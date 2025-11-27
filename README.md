@@ -74,7 +74,58 @@ Here we provide implementation of support vector machines with the following ker
 
 ## Latent Sentiment Analysis
 
-Latent Sentiment Analysis is a technique in natural language processing which discovers distributional semantics of relationships between a set of documents and associated terms. 
+Perform latent sentiment analysis on text using matrix factorization:
+
+1. Document-term matrix factorization
+2. Latent feature extraction for documents and terms
+3. SGD optimization with regularization
+4. Sentiment prediction and reconstruction
+
+## Hidden Markov Models
+
+Provides comprehensive HMM implementation:
+
+1. Forward-Backward algorithm (evaluation)
+2. Viterbi algorithm (decoding)
+3. Baum-Welch algorithm (training)
+4. Log-likelihood computation
+5. Multiple observation sequences support
+
+## Bayesian Networks
+
+Directed Acyclic Graph (DAG) probabilistic models:
+
+1. Node and edge management
+2. Conditional Probability Tables (CPT)
+3. Joint probability calculation
+4. Probabilistic inference
+5. Evidence-based reasoning
+
+## Marked Point Process
+
+Temporal event modeling with associated marks (labels):
+
+1. Self-exciting Hawkes processes
+2. Multi-mark event sequences
+3. Conditional intensity prediction
+4. Event sequence generation
+5. Maximum likelihood estimation
+6. Applications: financial transactions, user activity logs, earthquakes
+
+## Piecewise Conditional Intensity Models (PCIM)
+
+Non-stationary temporal point process modeling:
+
+1. Multiple intensity function types:
+   - Constant intensity
+   - Linear intensity
+   - Exponential decay
+   - Hawkes self-exciting
+   - Cox proportional hazards
+2. Uniform and adaptive interval creation
+3. Regime change detection
+4. Model selection (AIC/BIC)
+5. Applications: market microstructure, crime patterns, healthcare monitoring
 
 # Dependencies
 
@@ -101,3 +152,29 @@ use the `./clean&build` script.
 Generated libraries can be found in;
 
 `build/src/lib*.so`
+
+# Python Bindings
+
+Python bindings are available for all machine learning algorithms via pybind11. See the `python_bindings/` directory for detailed documentation and examples.
+
+## Quick Start
+
+```bash
+cd python_bindings
+./build.sh
+python3 test_bindings.py
+```
+
+## Available Modules
+
+- `ml_core.decision_tree` - Decision tree algorithms
+- `ml_core.svm` - Support Vector Machines with various kernels
+- `ml_core.bayesian_network` - Bayesian Network inference
+- `ml_core.hmm` - Hidden Markov Models
+- `ml_core.glm` - Generalized Linear Models
+- `ml_core.multi_arm_bandit` - Multi-arm bandit algorithms
+- `ml_core.marked_point_process` - Marked point processes and PCIM
+- `ml_core.latent_sentiment_analysis` - Latent sentiment analysis
+- `ml_core.tracker` - Kalman filters
+
+See `python_bindings/README.md` and `python_bindings/examples/` for comprehensive usage examples.

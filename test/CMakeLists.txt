@@ -77,3 +77,19 @@ add_executable(svm_tests ${SVM_SOURCES})
 target_link_libraries(svm_tests PRIVATE support_vector_machine Eigen3::Eigen gtest_main)
 target_include_directories(svm_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/support_vector_machine)
 add_test(NAME SVMTests COMMAND svm_tests)
+
+set(MPP_SOURCES
+    test_marked_point_process.cpp
+)
+add_executable(mpp_tests ${MPP_SOURCES})
+target_link_libraries(mpp_tests PRIVATE marked_point_process Eigen3::Eigen gtest_main)
+target_include_directories(mpp_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/marked_point_process)
+add_test(NAME MPPTests COMMAND mpp_tests)
+
+set(PCIM_SOURCES
+    test_piecewise_conditional_intensity_model.cpp
+)
+add_executable(pcim_tests ${PCIM_SOURCES})
+target_link_libraries(pcim_tests PRIVATE marked_point_process Eigen3::Eigen gtest_main)
+target_include_directories(pcim_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/marked_point_process)
+add_test(NAME PCIMTests COMMAND pcim_tests)
