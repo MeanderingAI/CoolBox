@@ -35,6 +35,8 @@
 #include "time_series/time_series.h"
 #include "nlp/text_processor.h"
 #include "nlp/embeddings.h"
+#include "distributed/message_passing.h"
+#include "distributed/distributed_trainer.h"
 
 namespace py = pybind11;
 
@@ -948,6 +950,134 @@ PYBIND11_MODULE(ml_core, m) {
     nlp_module.def("jaccard_similarity", &ml::nlp::jaccard_similarity);
     nlp_module.def("levenshtein_distance", &ml::nlp::levenshtein_distance);
     nlp_module.def("create_positional_encoding", &ml::nlp::create_positional_encoding);
-    nlp_module.def("average_embeddings", &ml::nlp::average_embeddings);
+    
+    // =========================================================================
+    // DISTRIBUTED COMPUTING MODULE
+    // =========================================================================
+    py::module_ dist_module = m.def_submodule("distributed", "Distributed computing for ML");
+    
+    // MessageType enum
+    py::enum_<distributed::MessageType>(dist_module, "MessageType")
+        .value("DATA", distributed::MessageType::DATA)
+        .value("GRADIENT", distributed::MessageType::GRADIENT)
+        .value("PARAMETER", distributed::MessageType::PARAMETER)
+        .value("COMMAND", distributed::MessageType::COMMAND)
+        .value("RESULT", distributed::MessageType::RESULT)
+        .value("HEARTBEAT", distributed::MessageType::HEARTBEAT)
+        .value("BARRIER", distributed::MessageType::BARRIER)
+        .value("REDUCE", distributed::MessageType::REDUCE);
+    
+    // CommPattern enum
+    py::enum_<distributed::CommPattern>(dist_module, "CommPattern")
+        .value("POINT_TO_POINT", distributed::CommPattern::POINT_TO_POINT)
+        .value("BROADCAST", distributed::CommPattern::BROADCAST)
+        .value("SCATTER", distributed::CommPattern::SCATTER)
+        .value("GATHER", distributed::CommPattern::GATHER)
+        .value("ALL_REDUCE", distributed::CommPattern::ALL_REDUCE)
+        .value("RING_ALL_REDUCE", distributed::CommPattern::RING_ALL_REDUCE);
+    
+    // ReduceOp enum
+    py::enum_<distributed::ReduceOp>(dist_module, "ReduceOp")
+        .value("SUM", distributed::ReduceOp::SUM)
+        .value("AVERAGE", distributed::ReduceOp::AVERAGE)
+        .value("MIN", distributed::ReduceOp::MIN)
+        .value("MAX", distributed::ReduceOp::MAX)
+        .value("PRODUCT", distributed::ReduceOp::PRODUCT);
+    
+    // TrainingStrategy enum
+    py::enum_<distributed::TrainingStrategy>(dist_module, "TrainingStrategy")
+        .value("DATA_PARALLEL", distributed::TrainingStrategy::DATA_PARALLEL)
+        .value("MODEL_PARALLEL", distributed::TrainingStrategy::MODEL_PARALLEL)
+        .value("PARAMETER_SERVER", distributed::TrainingStrategy::PARAMETER_SERVER)
+        .value("DECENTRALIZED", distributed::TrainingStrategy::DECENTRALIZED)
+        .value("FEDERATED", distributed::TrainingStrategy::FEDERATED);
+    
+    // AggregationMethod enum
+    py::enum_<distributed::AggregationMethod>(dist_module, "AggregationMethod")
+        .value("SYNCHRONOUS", distributed::AggregationMethod::SYNCHRONOUS)
+        .value("ASYNCHRONOUS", distributed::AggregationMethod::ASYNCHRONOUS)
+        .value("ELASTIC_AVERAGING", distributed::AggregationMethod::ELASTIC_AVERAGING);
+    
+    // Message class
+    py::class_<distributed::Message>(dist_module, "Message")
+        .def(py::init<distributed::MessageType, int, int>(),
+             py::arg("type") = distributed::MessageType::DATA,
+             py::arg("source_rank") = -1,
+             py::arg("dest_rank") = -1)
+        .def_readwrite("type", &distributed::Message::type)
+        .def_readwrite("source_rank", &distributed::Message::source_rank)
+        .def_readwrite("dest_rank", &distributed::Message::dest_rank)
+        .def_readwrite("data", &distributed::Message::data)
+        .def_readwrite("metadata", &distributed::Message::metadata);
+    
+    // DistributedContext class
+    py::class_<distributed::DistributedContext, std::shared_ptr<distributed::DistributedContext>>(
+        dist_module, "DistributedContext")
+        .def(py::init<int, int>())
+        .def("send", &distributed::DistributedContext::send)
+        .def("receive", &distributed::DistributedContext::receive,
+             py::arg("source_rank") = -1)
+        .def("broadcast", &distributed::DistributedContext::broadcast)
+        .def("scatter", &distributed::DistributedContext::scatter)
+        .def("gather", &distributed::DistributedContext::gather)
+        .def("all_reduce", &distributed::DistributedContext::all_reduce)
+        .def("ring_all_reduce", &distributed::DistributedContext::ring_all_reduce)
+        .def("barrier", &distributed::DistributedContext::barrier)
+        .def("rank", &distributed::DistributedContext::rank)
+        .def("world_size", &distributed::DistributedContext::world_size)
+        .def("is_master", &distributed::DistributedContext::is_master);
+    
+    // DataPartitioner class
+    py::class_<distributed::DataPartitioner>(dist_module, "DataPartitioner")
+        .def(py::init<size_t, int>())
+        .def("get_partition", &distributed::DataPartitioner::get_partition)
+        .def("get_indices", &distributed::DataPartitioner::get_indices)
+        .def("partition_size", &distributed::DataPartitioner::partition_size);
+    
+    // ParameterServer class
+    py::class_<distributed::ParameterServer>(dist_module, "ParameterServer")
+        .def(py::init<int>())
+        .def("set_parameters", &distributed::ParameterServer::set_parameters)
+        .def("get_parameters", &distributed::ParameterServer::get_parameters)
+        .def("update_parameters", &distributed::ParameterServer::update_parameters)
+        .def("accumulate_gradient", &distributed::ParameterServer::accumulate_gradient)
+        .def("apply_gradients", &distributed::ParameterServer::apply_gradients)
+        .def("clear_gradients", &distributed::ParameterServer::clear_gradients);
+    
+    // DistributedTrainer base class
+    py::class_<distributed::DistributedTrainer, std::shared_ptr<distributed::DistributedTrainer>>(
+        dist_module, "DistributedTrainer")
+        .def("train_epoch", &distributed::DistributedTrainer::train_epoch)
+        .def("get_parameters", &distributed::DistributedTrainer::get_parameters)
+        .def("set_parameters", &distributed::DistributedTrainer::set_parameters)
+        .def("predict", &distributed::DistributedTrainer::predict)
+        .def("synchronize_model", &distributed::DistributedTrainer::synchronize_model)
+        .def("aggregate_gradients", &distributed::DistributedTrainer::aggregate_gradients,
+             py::arg("local_gradient"),
+             py::arg("method") = distributed::AggregationMethod::SYNCHRONOUS);
+    
+    // DistributedNeuralNetTrainer class
+    py::class_<distributed::DistributedNeuralNetTrainer, distributed::DistributedTrainer,
+               std::shared_ptr<distributed::DistributedNeuralNetTrainer>>(
+        dist_module, "DistributedNeuralNetTrainer")
+        .def(py::init<std::shared_ptr<distributed::DistributedContext>,
+                      distributed::TrainingStrategy,
+                      int, std::vector<int>, int, double>())
+        .def("get_local_loss", &distributed::DistributedNeuralNetTrainer::get_local_loss)
+        .def("get_global_loss", &distributed::DistributedNeuralNetTrainer::get_global_loss);
+    
+    // DistributedKMeansTrainer class
+    py::class_<distributed::DistributedKMeansTrainer, distributed::DistributedTrainer,
+               std::shared_ptr<distributed::DistributedKMeansTrainer>>(
+        dist_module, "DistributedKMeansTrainer")
+        .def(py::init<std::shared_ptr<distributed::DistributedContext>,
+                      int, int>())
+        .def("get_centroids", &distributed::DistributedKMeansTrainer::get_centroids);
+    
+    // Utility functions
+    dist_module.def("partition_data", &distributed::utils::partition_data);
+    dist_module.def("compute_distributed_accuracy", &distributed::utils::compute_distributed_accuracy);
+}
+   nlp_module.def("average_embeddings", &ml::nlp::average_embeddings);
     nlp_module.def("max_pooling_embeddings", &ml::nlp::max_pooling_embeddings);
 }
