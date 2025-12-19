@@ -28,6 +28,7 @@
 #include "deep_learning/loss.h"
 #include "deep_learning/optimizer.h"
 #include "deep_learning/neural_network.h"
+#include "deep_learning/templates.h"
 #include "computer_vision/image.h"
 #include "computer_vision/transforms.h"
 #include "computer_vision/pipeline.h"
@@ -577,6 +578,255 @@ PYBIND11_MODULE(ml_core, m) {
         .def("train", &ml::deep_learning::NeuralNetwork::train,
              py::arg("inputs"),
              py::arg("targets"),
+             py::arg("epochs") = 100,
+             py::arg("verbose") = true);
+    
+    // =========================================================================
+    // NEURAL NETWORK TEMPLATES
+    // =========================================================================
+    
+    // CNN Architecture enum
+    py::enum_<ml::deep_learning::CNNTemplate::Architecture>(dl_module, "CNNArchitecture")
+        .value("SIMPLE", ml::deep_learning::CNNTemplate::Architecture::SIMPLE)
+        .value("LENET", ml::deep_learning::CNNTemplate::Architecture::LENET)
+        .value("VGGLIKE", ml::deep_learning::CNNTemplate::Architecture::VGGLIKE)
+        .value("RESNET", ml::deep_learning::CNNTemplate::Architecture::RESNET);
+    
+    // RNN Cell Type enum
+    py::enum_<ml::deep_learning::RNNTemplate::CellType>(dl_module, "RNNCellType")
+        .value("VANILLA", ml::deep_learning::RNNTemplate::CellType::VANILLA)
+        .value("LSTM", ml::deep_learning::RNNTemplate::CellType::LSTM)
+        .value("GRU", ml::deep_learning::RNNTemplate::CellType::GRU);
+    
+    // NetworkTemplate base class
+    py::class_<ml::deep_learning::NetworkTemplate>(dl_module, "NetworkTemplate")
+        .def("build", &ml::deep_learning::NetworkTemplate::build)
+        .def("name", &ml::deep_learning::NetworkTemplate::name);
+    
+    // MLPTemplate
+    py::class_<ml::deep_learning::MLPTemplate, ml::deep_learning::NetworkTemplate>(dl_module, "MLPTemplate")
+        .def(py::init<int, std::vector<int>, int, std::string, double, bool>(),
+             py::arg("input_dim"),
+             py::arg("hidden_dims"),
+             py::arg("output_dim"),
+             py::arg("activation") = "relu",
+             py::arg("dropout_rate") = 0.0,
+             py::arg("batch_norm") = false,
+             "Multi-Layer Perceptron template\n\n"
+             "Args:\n"
+             "    input_dim: Input dimension\n"
+             "    hidden_dims: List of hidden layer sizes\n"
+             "    output_dim: Output dimension\n"
+             "    activation: Activation function ('relu', 'tanh', 'sigmoid')\n"
+             "    dropout_rate: Dropout rate (0 to disable)\n"
+             "    batch_norm: Whether to use batch normalization");
+    
+    // CNNTemplate
+    py::class_<ml::deep_learning::CNNTemplate, ml::deep_learning::NetworkTemplate>(dl_module, "CNNTemplate")
+        .def(py::init<ml::deep_learning::CNNTemplate::Architecture, int, int, int, int>(),
+             py::arg("architecture"),
+             py::arg("num_classes"),
+             py::arg("input_channels") = 3,
+             py::arg("input_height") = 32,
+             py::arg("input_width") = 32,
+             "Convolutional Neural Network template\n\n"
+             "Args:\n"
+             "    architecture: Network architecture (SIMPLE, LENET, VGGLIKE, RESNET)\n"
+             "    num_classes: Number of output classes\n"
+             "    input_channels: Number of input channels\n"
+             "    input_height: Input image height\n"
+             "    input_width: Input image width");
+    
+    // AutoencoderTemplate
+    py::class_<ml::deep_learning::AutoencoderTemplate, ml::deep_learning::NetworkTemplate>(dl_module, "AutoencoderTemplate")
+        .def(py::init<int, std::vector<int>, int, bool>(),
+             py::arg("input_dim"),
+             py::arg("encoder_dims"),
+             py::arg("latent_dim"),
+             py::arg("variational") = false,
+             "Autoencoder template\n\n"
+             "Args:\n"
+             "    input_dim: Input dimension\n"
+             "    encoder_dims: Encoder hidden layer sizes\n"
+             "    latent_dim: Latent space dimension\n"
+             "    variational: Whether to use variational autoencoder")
+        .def("build_encoder", &ml::deep_learning::AutoencoderTemplate::build_encoder,
+             "Build encoder network only")
+        .def("build_decoder", &ml::deep_learning::AutoencoderTemplate::build_decoder,
+             "Build decoder network only");
+    
+    // RNNTemplate
+    py::class_<ml::deep_learning::RNNTemplate, ml::deep_learning::NetworkTemplate>(dl_module, "RNNTemplate")
+        .def(py::init<int, int, int, int, ml::deep_learning::RNNTemplate::CellType, bool, double>(),
+             py::arg("input_dim"),
+             py::arg("hidden_dim"),
+             py::arg("num_layers"),
+             py::arg("output_dim"),
+             py::arg("cell_type") = ml::deep_learning::RNNTemplate::CellType::LSTM,
+             py::arg("bidirectional") = false,
+             py::arg("dropout") = 0.0,
+             "Recurrent Neural Network template\n\n"
+             "Args:\n"
+             "    input_dim: Input dimension\n"
+             "    hidden_dim: Hidden state dimension\n"
+             "    num_layers: Number of recurrent layers\n"
+             "    output_dim: Output dimension\n"
+             "    cell_type: Type of RNN cell (VANILLA, LSTM, GRU)\n"
+             "    bidirectional: Whether to use bidirectional RNN\n"
+             "    dropout: Dropout rate between layers");
+    
+    // SiameseTemplate
+    py::class_<ml::deep_learning::SiameseTemplate, ml::deep_learning::NetworkTemplate>(dl_module, "SiameseTemplate")
+        .def(py::init<int, std::vector<int>, int, std::string>(),
+             py::arg("input_dim"),
+             py::arg("hidden_dims"),
+             py::arg("embedding_dim"),
+             py::arg("distance_metric") = "euclidean",
+             "Siamese Network template for similarity learning\n\n"
+             "Args:\n"
+             "    input_dim: Input dimension\n"
+             "    hidden_dims: Hidden layer sizes\n"
+             "    embedding_dim: Embedding dimension\n"
+             "    distance_metric: Distance metric ('euclidean', 'cosine')")
+        .def("build_embedding_network", &ml::deep_learning::SiameseTemplate::build_embedding_network,
+             "Build the shared embedding network");
+    
+    // GANTemplate
+    py::class_<ml::deep_learning::GANTemplate, ml::deep_learning::NetworkTemplate>(dl_module, "GANTemplate")
+        .def(py::init<int, int, std::vector<int>, std::vector<int>>(),
+             py::arg("latent_dim"),
+             py::arg("output_dim"),
+             py::arg("generator_dims"),
+             py::arg("discriminator_dims"),
+             "Generative Adversarial Network template\n\n"
+             "Args:\n"
+             "    latent_dim: Latent space dimension\n"
+             "    output_dim: Output dimension\n"
+             "    generator_dims: Generator hidden layer sizes\n"
+             "    discriminator_dims: Discriminator hidden layer sizes")
+        .def("build_generator", &ml::deep_learning::GANTemplate::build_generator,
+             "Build generator network")
+        .def("build_discriminator", &ml::deep_learning::GANTemplate::build_discriminator,
+             "Build discriminator network");
+    
+    // Quick builder functions
+    dl_module.def("binary_classifier", &ml::deep_learning::templates::binary_classifier,
+                 py::arg("input_dim"),
+                 py::arg("hidden_dims") = std::vector<int>{64, 32},
+                 "Create a binary classification network\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension\n"
+                 "    hidden_dims: Hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    Configured neural network with sigmoid output and BCE loss");
+    
+    dl_module.def("multiclass_classifier", &ml::deep_learning::templates::multiclass_classifier,
+                 py::arg("input_dim"),
+                 py::arg("num_classes"),
+                 py::arg("hidden_dims") = std::vector<int>{128, 64},
+                 "Create a multi-class classification network\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension\n"
+                 "    num_classes: Number of classes\n"
+                 "    hidden_dims: Hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    Configured neural network with softmax output");
+    
+    dl_module.def("image_classifier", &ml::deep_learning::templates::image_classifier,
+                 py::arg("num_classes"),
+                 py::arg("channels") = 3,
+                 py::arg("height") = 32,
+                 py::arg("width") = 32,
+                 py::arg("arch") = "simple",
+                 "Create an image classification network\n\n"
+                 "Args:\n"
+                 "    num_classes: Number of classes\n"
+                 "    channels: Number of image channels\n"
+                 "    height: Image height\n"
+                 "    width: Image width\n"
+                 "    arch: Architecture ('simple', 'lenet', 'vgg', 'resnet')\n\n"
+                 "Returns:\n"
+                 "    CNN for image classification");
+    
+    dl_module.def("regressor", &ml::deep_learning::templates::regressor,
+                 py::arg("input_dim"),
+                 py::arg("output_dim") = 1,
+                 py::arg("hidden_dims") = std::vector<int>{64, 32},
+                 "Create a regression network\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension\n"
+                 "    output_dim: Output dimension\n"
+                 "    hidden_dims: Hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    Configured neural network with MSE loss");
+    
+    dl_module.def("embedding_network", &ml::deep_learning::templates::embedding_network,
+                 py::arg("input_dim"),
+                 py::arg("embedding_dim"),
+                 py::arg("hidden_dims") = std::vector<int>{128, 64},
+                 "Create an embedding network\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension\n"
+                 "    embedding_dim: Embedding dimension\n"
+                 "    hidden_dims: Hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    Network for learning embeddings");
+    
+    dl_module.def("sequence_classifier", &ml::deep_learning::templates::sequence_classifier,
+                 py::arg("input_dim"),
+                 py::arg("num_classes"),
+                 py::arg("hidden_dim") = 128,
+                 py::arg("num_layers") = 2,
+                 "Create a sequence classification network\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension per timestep\n"
+                 "    num_classes: Number of classes\n"
+                 "    hidden_dim: RNN hidden dimension\n"
+                 "    num_layers: Number of RNN layers\n\n"
+                 "Returns:\n"
+                 "    LSTM-based sequence classifier");
+    
+    dl_module.def("simple_autoencoder", &ml::deep_learning::templates::simple_autoencoder,
+                 py::arg("input_dim"),
+                 py::arg("latent_dim"),
+                 py::arg("hidden_dims") = std::vector<int>{128, 64},
+                 "Create a simple autoencoder\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension\n"
+                 "    latent_dim: Latent space dimension\n"
+                 "    hidden_dims: Encoder hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    Autoencoder network");
+    
+    dl_module.def("variational_autoencoder", &ml::deep_learning::templates::variational_autoencoder,
+                 py::arg("input_dim"),
+                 py::arg("latent_dim"),
+                 py::arg("encoder_dims") = std::vector<int>{256, 128},
+                 "Create a variational autoencoder\n\n"
+                 "Args:\n"
+                 "    input_dim: Input dimension\n"
+                 "    latent_dim: Latent space dimension\n"
+                 "    encoder_dims: Encoder hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    VAE network");
+    
+    dl_module.def("simple_gan", &ml::deep_learning::templates::simple_gan,
+                 py::arg("latent_dim"),
+                 py::arg("output_dim"),
+                 py::arg("generator_dims") = std::vector<int>{128, 256},
+                 py::arg("discriminator_dims") = std::vector<int>{256, 128},
+                 "Create a simple GAN generator\n\n"
+                 "Args:\n"
+                 "    latent_dim: Latent noise dimension\n"
+                 "    output_dim: Output dimension\n"
+                 "    generator_dims: Generator hidden layer sizes\n"
+                 "    discriminator_dims: Discriminator hidden layer sizes\n\n"
+                 "Returns:\n"
+                 "    Generator network");
+    
+    // =========================================================================
+    // COMPUTER VISION MODULE
+    // =========================================================================
              py::arg("epochs"),
              py::arg("batch_size") = 32,
              py::arg("verbose") = true);
