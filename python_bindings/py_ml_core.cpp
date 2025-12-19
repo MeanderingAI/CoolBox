@@ -23,6 +23,18 @@
 #include "dimensionality_reduction/pca.h"
 #include "dimensionality_reduction/knn.h"
 #include "dimensionality_reduction/umap.h"
+#include "deep_learning/tensor.h"
+#include "deep_learning/layer.h"
+#include "deep_learning/loss.h"
+#include "deep_learning/optimizer.h"
+#include "deep_learning/neural_network.h"
+#include "computer_vision/image.h"
+#include "computer_vision/transforms.h"
+#include "computer_vision/pipeline.h"
+#include "computer_vision/layers.h"
+#include "time_series/time_series.h"
+#include "nlp/text_processor.h"
+#include "nlp/embeddings.h"
 
 namespace py = pybind11;
 
@@ -440,4 +452,502 @@ PYBIND11_MODULE(ml_core, m) {
              "Get number of components")
         .def("get_n_neighbors", &UMAP::get_n_neighbors,
              "Get number of neighbors");
+
+    // Deep Learning Module
+    py::module_ dl_module = m.def_submodule("deep_learning", "Deep Learning neural networks");
+    
+    // Tensor class
+    py::class_<ml::deep_learning::Tensor>(dl_module, "Tensor")
+        .def(py::init<const std::vector<size_t>&>())
+        .def(py::init<const std::vector<size_t>&, double>())
+        .def(py::init<const std::vector<size_t>&, const std::vector<double>&>())
+        .def("data", [](ml::deep_learning::Tensor& t) { return t.data(); })
+        .def("shape", &ml::deep_learning::Tensor::shape)
+        .def("size", &ml::deep_learning::Tensor::size)
+        .def("reshape", &ml::deep_learning::Tensor::reshape)
+        .def("transpose", &ml::deep_learning::Tensor::transpose)
+        .def("fill", &ml::deep_learning::Tensor::fill)
+        .def("randomize", &ml::deep_learning::Tensor::randomize,
+             py::arg("min") = -1.0, py::arg("max") = 1.0)
+        .def("clone", &ml::deep_learning::Tensor::clone)
+        .def("matmul", &ml::deep_learning::Tensor::matmul)
+        .def("__add__", &ml::deep_learning::Tensor::operator+)
+        .def("__sub__", &ml::deep_learning::Tensor::operator-)
+        .def("__mul__", [](const ml::deep_learning::Tensor& t, double s) { return t * s; })
+        .def("__truediv__", [](const ml::deep_learning::Tensor& t, double s) { return t / s; })
+        .def("at", [](ml::deep_learning::Tensor& t, size_t i) { return t.at(i); })
+        .def("__repr__", [](const ml::deep_learning::Tensor& t) {
+            std::ostringstream oss;
+            oss << "Tensor(shape=[";
+            for (size_t i = 0; i < t.shape().size(); ++i) {
+                oss << t.shape()[i];
+                if (i < t.shape().size() - 1) oss << ", ";
+            }
+            oss << "], size=" << t.size() << ")";
+            return oss.str();
+        });
+    
+    // Layer base class
+    py::class_<ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::Layer>>(dl_module, "Layer")
+        .def("forward", &ml::deep_learning::Layer::forward)
+        .def("backward", &ml::deep_learning::Layer::backward)
+        .def("name", &ml::deep_learning::Layer::name)
+        .def("has_parameters", &ml::deep_learning::Layer::has_parameters);
+    
+    // DenseLayer
+    py::class_<ml::deep_learning::DenseLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::DenseLayer>>(dl_module, "DenseLayer")
+        .def(py::init<size_t, size_t>())
+        .def("weights", &ml::deep_learning::DenseLayer::weights)
+        .def("bias", &ml::deep_learning::DenseLayer::bias);
+    
+    // ReLULayer
+    py::class_<ml::deep_learning::ReLULayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::ReLULayer>>(dl_module, "ReLULayer")
+        .def(py::init<>());
+    
+    // SigmoidLayer
+    py::class_<ml::deep_learning::SigmoidLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::SigmoidLayer>>(dl_module, "SigmoidLayer")
+        .def(py::init<>());
+    
+    // TanhLayer
+    py::class_<ml::deep_learning::TanhLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::TanhLayer>>(dl_module, "TanhLayer")
+        .def(py::init<>());
+    
+    // SoftmaxLayer
+    py::class_<ml::deep_learning::SoftmaxLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::SoftmaxLayer>>(dl_module, "SoftmaxLayer")
+        .def(py::init<>());
+    
+    // DropoutLayer
+    py::class_<ml::deep_learning::DropoutLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::DropoutLayer>>(dl_module, "DropoutLayer")
+        .def(py::init<double>())
+        .def("set_training", &ml::deep_learning::DropoutLayer::set_training);
+    
+    // Loss base class
+    py::class_<ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::Loss>>(dl_module, "Loss")
+        .def("compute", &ml::deep_learning::Loss::compute)
+        .def("gradient", &ml::deep_learning::Loss::gradient)
+        .def("name", &ml::deep_learning::Loss::name);
+    
+    // MSELoss
+    py::class_<ml::deep_learning::MSELoss, ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::MSELoss>>(dl_module, "MSELoss")
+        .def(py::init<>());
+    
+    // BCELoss
+    py::class_<ml::deep_learning::BCELoss, ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::BCELoss>>(dl_module, "BCELoss")
+        .def(py::init<>());
+    
+    // CategoricalCrossEntropyLoss
+    py::class_<ml::deep_learning::CategoricalCrossEntropyLoss, ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::CategoricalCrossEntropyLoss>>(dl_module, "CategoricalCrossEntropyLoss")
+        .def(py::init<>());
+    
+    // Optimizer base class
+    py::class_<ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::Optimizer>>(dl_module, "Optimizer")
+        .def("step", &ml::deep_learning::Optimizer::step)
+        .def("name", &ml::deep_learning::Optimizer::name)
+        .def("reset", &ml::deep_learning::Optimizer::reset);
+    
+    // SGD
+    py::class_<ml::deep_learning::SGD, ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::SGD>>(dl_module, "SGD")
+        .def(py::init<double, double>(), py::arg("learning_rate"), py::arg("momentum") = 0.0);
+    
+    // Adam
+    py::class_<ml::deep_learning::Adam, ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::Adam>>(dl_module, "Adam")
+        .def(py::init<double, double, double, double>(),
+             py::arg("learning_rate") = 0.001,
+             py::arg("beta1") = 0.9,
+             py::arg("beta2") = 0.999,
+             py::arg("epsilon") = 1e-8);
+    
+    // RMSprop
+    py::class_<ml::deep_learning::RMSprop, ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::RMSprop>>(dl_module, "RMSprop")
+        .def(py::init<double, double, double>(),
+             py::arg("learning_rate") = 0.001,
+             py::arg("decay") = 0.9,
+             py::arg("epsilon") = 1e-8);
+    
+    // NeuralNetwork
+    py::class_<ml::deep_learning::NeuralNetwork>(dl_module, "NeuralNetwork")
+        .def(py::init<>())
+        .def("add_layer", &ml::deep_learning::NeuralNetwork::add_layer)
+        .def("set_loss", &ml::deep_learning::NeuralNetwork::set_loss)
+        .def("set_optimizer", &ml::deep_learning::NeuralNetwork::set_optimizer)
+        .def("predict", &ml::deep_learning::NeuralNetwork::predict)
+        .def("train_step", &ml::deep_learning::NeuralNetwork::train_step)
+        .def("train", &ml::deep_learning::NeuralNetwork::train,
+             py::arg("inputs"),
+             py::arg("targets"),
+             py::arg("epochs"),
+             py::arg("batch_size") = 32,
+             py::arg("verbose") = true);
+
+    // Computer Vision Module
+    py::module_ cv_module = m.def_submodule("computer_vision", "Computer Vision algorithms");
+    
+    // ImageFormat enum
+    py::enum_<ml::cv::ImageFormat>(cv_module, "ImageFormat")
+        .value("GRAYSCALE", ml::cv::ImageFormat::GRAYSCALE)
+        .value("RGB", ml::cv::ImageFormat::RGB)
+        .value("RGBA", ml::cv::ImageFormat::RGBA);
+    
+    // InterpolationMode enum
+    py::enum_<ml::cv::InterpolationMode>(cv_module, "InterpolationMode")
+        .value("NEAREST", ml::cv::InterpolationMode::NEAREST)
+        .value("BILINEAR", ml::cv::InterpolationMode::BILINEAR)
+        .value("BICUBIC", ml::cv::InterpolationMode::BICUBIC);
+    
+    // Image class
+    py::class_<ml::cv::Image>(cv_module, "Image")
+        .def(py::init<>())
+        .def(py::init<int, int, ml::cv::ImageFormat>(),
+             py::arg("height"), py::arg("width"), 
+             py::arg("format") = ml::cv::ImageFormat::RGB)
+        .def(py::init<int, int, int, const std::vector<float>&>(),
+             py::arg("height"), py::arg("width"), py::arg("channels"), py::arg("data"))
+        .def("height", &ml::cv::Image::height)
+        .def("width", &ml::cv::Image::width)
+        .def("channels", &ml::cv::Image::channels)
+        .def("format", &ml::cv::Image::format)
+        .def("size", &ml::cv::Image::size)
+        .def("data", py::overload_cast<>(&ml::cv::Image::data))
+        .def("at", py::overload_cast<int, int, int>(&ml::cv::Image::at),
+             py::arg("row"), py::arg("col"), py::arg("channel") = 0,
+             py::return_value_policy::reference)
+        .def("clone", &ml::cv::Image::clone)
+        .def("fill", py::overload_cast<float>(&ml::cv::Image::fill))
+        .def("fill", py::overload_cast<const std::vector<float>&>(&ml::cv::Image::fill))
+        .def("to_grayscale", &ml::cv::Image::to_grayscale)
+        .def("to_rgb", &ml::cv::Image::to_rgb)
+        .def("mean", &ml::cv::Image::mean)
+        .def("std", &ml::cv::Image::std)
+        .def("min_max", &ml::cv::Image::min_max);
+    
+    // Transform base class
+    py::class_<ml::cv::Transform, std::shared_ptr<ml::cv::Transform>>(cv_module, "Transform")
+        .def("apply", &ml::cv::Transform::apply);
+    
+    // Resize transform
+    py::class_<ml::cv::Resize, ml::cv::Transform, std::shared_ptr<ml::cv::Resize>>(cv_module, "Resize")
+        .def(py::init<int, int, ml::cv::InterpolationMode>(),
+             py::arg("height"), py::arg("width"),
+             py::arg("mode") = ml::cv::InterpolationMode::BILINEAR);
+    
+    // CenterCrop transform
+    py::class_<ml::cv::CenterCrop, ml::cv::Transform, std::shared_ptr<ml::cv::CenterCrop>>(cv_module, "CenterCrop")
+        .def(py::init<int, int>(), py::arg("height"), py::arg("width"));
+    
+    // RandomCrop transform
+    py::class_<ml::cv::RandomCrop, ml::cv::Transform, std::shared_ptr<ml::cv::RandomCrop>>(cv_module, "RandomCrop")
+        .def(py::init<int, int, unsigned int>(),
+             py::arg("height"), py::arg("width"), py::arg("seed") = 0);
+    
+    // HorizontalFlip transform
+    py::class_<ml::cv::HorizontalFlip, ml::cv::Transform, std::shared_ptr<ml::cv::HorizontalFlip>>(cv_module, "HorizontalFlip")
+        .def(py::init<>());
+    
+    // VerticalFlip transform
+    py::class_<ml::cv::VerticalFlip, ml::cv::Transform, std::shared_ptr<ml::cv::VerticalFlip>>(cv_module, "VerticalFlip")
+        .def(py::init<>());
+    
+    // RandomHorizontalFlip transform
+    py::class_<ml::cv::RandomHorizontalFlip, ml::cv::Transform, std::shared_ptr<ml::cv::RandomHorizontalFlip>>(cv_module, "RandomHorizontalFlip")
+        .def(py::init<float, unsigned int>(),
+             py::arg("probability") = 0.5f, py::arg("seed") = 0);
+    
+    // Normalize transform
+    py::class_<ml::cv::Normalize, ml::cv::Transform, std::shared_ptr<ml::cv::Normalize>>(cv_module, "Normalize")
+        .def(py::init<const std::vector<float>&, const std::vector<float>&>(),
+             py::arg("mean"), py::arg("std"));
+    
+    // Standardize transform
+    py::class_<ml::cv::Standardize, ml::cv::Transform, std::shared_ptr<ml::cv::Standardize>>(cv_module, "Standardize")
+        .def(py::init<>());
+    
+    // Rotate transform
+    py::class_<ml::cv::Rotate, ml::cv::Transform, std::shared_ptr<ml::cv::Rotate>>(cv_module, "Rotate")
+        .def(py::init<float, ml::cv::InterpolationMode>(),
+             py::arg("angle_degrees"),
+             py::arg("mode") = ml::cv::InterpolationMode::BILINEAR);
+    
+    // RandomRotation transform
+    py::class_<ml::cv::RandomRotation, ml::cv::Transform, std::shared_ptr<ml::cv::RandomRotation>>(cv_module, "RandomRotation")
+        .def(py::init<float, float, ml::cv::InterpolationMode, unsigned int>(),
+             py::arg("min_angle"), py::arg("max_angle"),
+             py::arg("mode") = ml::cv::InterpolationMode::BILINEAR,
+             py::arg("seed") = 0);
+    
+    // AdjustBrightness transform
+    py::class_<ml::cv::AdjustBrightness, ml::cv::Transform, std::shared_ptr<ml::cv::AdjustBrightness>>(cv_module, "AdjustBrightness")
+        .def(py::init<float>(), py::arg("factor"));
+    
+    // AdjustContrast transform
+    py::class_<ml::cv::AdjustContrast, ml::cv::Transform, std::shared_ptr<ml::cv::AdjustContrast>>(cv_module, "AdjustContrast")
+        .def(py::init<float>(), py::arg("factor"));
+    
+    // GaussianBlur transform
+    py::class_<ml::cv::GaussianBlur, ml::cv::Transform, std::shared_ptr<ml::cv::GaussianBlur>>(cv_module, "GaussianBlur")
+        .def(py::init<int, float>(), py::arg("kernel_size"), py::arg("sigma"));
+    
+    // Pad transform
+    py::class_<ml::cv::Pad, ml::cv::Transform, std::shared_ptr<ml::cv::Pad>>(cv_module, "Pad")
+        .def(py::init<int, int, int, int, float>(),
+             py::arg("top"), py::arg("bottom"), py::arg("left"), py::arg("right"),
+             py::arg("fill_value") = 0.0f);
+    
+    // TransformPipeline class
+    py::class_<ml::cv::TransformPipeline>(cv_module, "TransformPipeline")
+        .def(py::init<>())
+        .def("add", [](ml::cv::TransformPipeline& self, std::shared_ptr<ml::cv::Transform> transform) {
+            self.add(std::unique_ptr<ml::cv::Transform>(transform->clone()));
+        })
+        .def("apply", &ml::cv::TransformPipeline::apply)
+        .def("apply_batch", &ml::cv::TransformPipeline::apply_batch)
+        .def("size", &ml::cv::TransformPipeline::size)
+        .def("clear", &ml::cv::TransformPipeline::clear)
+        .def("clone", &ml::cv::TransformPipeline::clone);
+    
+    // Predefined pipelines
+    cv_module.def("create_imagenet_pipeline", &ml::cv::create_imagenet_pipeline,
+                  py::arg("image_size") = 224);
+    cv_module.def("create_training_augmentation_pipeline", &ml::cv::create_training_augmentation_pipeline,
+                  py::arg("image_size"),
+                  py::arg("random_flip") = true,
+                  py::arg("random_rotation") = true,
+                  py::arg("random_brightness") = true,
+                  py::arg("random_contrast") = true);
+    cv_module.def("create_inference_pipeline", &ml::cv::create_inference_pipeline,
+                  py::arg("image_size"),
+                  py::arg("mean") = std::vector<float>{0.485f, 0.456f, 0.406f},
+                  py::arg("std") = std::vector<float>{0.229f, 0.224f, 0.225f});
+    
+    // Utility functions
+    cv_module.def("image_to_tensor", &ml::cv::image_to_tensor);
+    cv_module.def("tensor_to_image", &ml::cv::tensor_to_image,
+                  py::arg("tensor"),
+                  py::arg("format") = ml::cv::ImageFormat::RGB);
+    
+    // CV Layers
+    py::class_<ml::cv::Conv2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::Conv2DLayer>>(cv_module, "Conv2DLayer")
+        .def(py::init<int, int, int, int, int>(),
+             py::arg("in_channels"), py::arg("out_channels"), py::arg("kernel_size"),
+             py::arg("stride") = 1, py::arg("padding") = 0)
+        .def("in_channels", &ml::cv::Conv2DLayer::in_channels)
+        .def("out_channels", &ml::cv::Conv2DLayer::out_channels)
+        .def("kernel_size", &ml::cv::Conv2DLayer::kernel_size)
+        .def("stride", &ml::cv::Conv2DLayer::stride)
+        .def("padding", &ml::cv::Conv2DLayer::padding);
+    
+    py::class_<ml::cv::MaxPool2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::MaxPool2DLayer>>(cv_module, "MaxPool2DLayer")
+        .def(py::init<int, int>(), py::arg("kernel_size"), py::arg("stride") = -1)
+        .def("kernel_size", &ml::cv::MaxPool2DLayer::kernel_size)
+        .def("stride", &ml::cv::MaxPool2DLayer::stride);
+    
+    py::class_<ml::cv::AvgPool2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::AvgPool2DLayer>>(cv_module, "AvgPool2DLayer")
+        .def(py::init<int, int>(), py::arg("kernel_size"), py::arg("stride") = -1)
+        .def("kernel_size", &ml::cv::AvgPool2DLayer::kernel_size)
+        .def("stride", &ml::cv::AvgPool2DLayer::stride);
+    
+    py::class_<ml::cv::BatchNorm2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::BatchNorm2DLayer>>(cv_module, "BatchNorm2DLayer")
+        .def(py::init<int, float, float>(),
+             py::arg("num_features"), py::arg("eps") = 1e-5f, py::arg("momentum") = 0.1f)
+        .def("set_training", &ml::cv::BatchNorm2DLayer::set_training)
+        .def("is_training", &ml::cv::BatchNorm2DLayer::is_training);
+    
+    py::class_<ml::cv::FlattenLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::FlattenLayer>>(cv_module, "FlattenLayer")
+        .def(py::init<>());
+    
+    py::class_<ml::cv::GlobalAvgPool2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::GlobalAvgPool2DLayer>>(cv_module, "GlobalAvgPool2DLayer")
+        .def(py::init<>());
+    
+    // ========== Time Series Module ==========
+    py::module_ ts_module = m.def_submodule("time_series", "Time Series Analysis");
+    
+    // TimeSeries class
+    py::class_<ml::time_series::TimeSeries>(ts_module, "TimeSeries")
+        .def(py::init<>())
+        .def(py::init<const std::vector<double>&, const std::vector<std::string>&>(),
+             py::arg("values"), py::arg("timestamps") = std::vector<std::string>())
+        .def("size", &ml::time_series::TimeSeries::size)
+        .def("values", py::overload_cast<>(&ml::time_series::TimeSeries::values, py::const_))
+        .def("at", py::overload_cast<size_t>(&ml::time_series::TimeSeries::at, py::const_))
+        .def("timestamp_at", &ml::time_series::TimeSeries::timestamp_at)
+        .def("mean", &ml::time_series::TimeSeries::mean)
+        .def("std", &ml::time_series::TimeSeries::std)
+        .def("min", &ml::time_series::TimeSeries::min)
+        .def("max", &ml::time_series::TimeSeries::max)
+        .def("median", &ml::time_series::TimeSeries::median)
+        .def("normalize", &ml::time_series::TimeSeries::normalize)
+        .def("min_max_scale", &ml::time_series::TimeSeries::min_max_scale,
+             py::arg("min_val") = 0.0, py::arg("max_val") = 1.0)
+        .def("diff", &ml::time_series::TimeSeries::diff, py::arg("lag") = 1)
+        .def("log_transform", &ml::time_series::TimeSeries::log_transform)
+        .def("moving_average", &ml::time_series::TimeSeries::moving_average)
+        .def("exponential_smoothing", &ml::time_series::TimeSeries::exponential_smoothing)
+        .def("resample", &ml::time_series::TimeSeries::resample)
+        .def("create_windows", &ml::time_series::TimeSeries::create_windows,
+             py::arg("window_size"), py::arg("stride") = 1)
+        .def("create_supervised_windows", &ml::time_series::TimeSeries::create_supervised_windows,
+             py::arg("input_window"), py::arg("output_window") = 1, py::arg("stride") = 1)
+        .def("autocorrelation", &ml::time_series::TimeSeries::autocorrelation);
+    
+    // MultivariateTimeSeries class
+    py::class_<ml::time_series::MultivariatTimeSeries>(ts_module, "MultivariatTimeSeries")
+        .def(py::init<>())
+        .def(py::init<const std::vector<std::vector<double>>&, const std::vector<std::string>&, const std::vector<std::string>&>(),
+             py::arg("data"), py::arg("feature_names") = std::vector<std::string>(),
+             py::arg("timestamps") = std::vector<std::string>())
+        .def("num_samples", &ml::time_series::MultivariatTimeSeries::num_samples)
+        .def("num_features", &ml::time_series::MultivariatTimeSeries::num_features)
+        .def("data", &ml::time_series::MultivariatTimeSeries::data)
+        .def("feature", &ml::time_series::MultivariatTimeSeries::feature)
+        .def("sample", &ml::time_series::MultivariatTimeSeries::sample)
+        .def("at", &ml::time_series::MultivariatTimeSeries::at)
+        .def("means", &ml::time_series::MultivariatTimeSeries::means)
+        .def("stds", &ml::time_series::MultivariatTimeSeries::stds)
+        .def("normalize", &ml::time_series::MultivariatTimeSeries::normalize)
+        .def("min_max_scale", &ml::time_series::MultivariatTimeSeries::min_max_scale)
+        .def("create_windows", &ml::time_series::MultivariatTimeSeries::create_windows,
+             py::arg("window_size"), py::arg("stride") = 1);
+    
+    // Forecasting models
+    py::class_<ml::time_series::MovingAverageForecaster>(ts_module, "MovingAverageForecaster")
+        .def(py::init<size_t>(), py::arg("window_size"))
+        .def("fit", &ml::time_series::MovingAverageForecaster::fit)
+        .def("forecast", &ml::time_series::MovingAverageForecaster::forecast)
+        .def("forecast_one_step", &ml::time_series::MovingAverageForecaster::forecast_one_step);
+    
+    py::class_<ml::time_series::ExponentialSmoothingForecaster>(ts_module, "ExponentialSmoothingForecaster")
+        .def(py::init<double, double, double>(),
+             py::arg("alpha"), py::arg("beta") = 0.0, py::arg("gamma") = 0.0)
+        .def("fit", &ml::time_series::ExponentialSmoothingForecaster::fit)
+        .def("forecast", &ml::time_series::ExponentialSmoothingForecaster::forecast);
+    
+    py::class_<ml::time_series::AutoRegressiveModel>(ts_module, "AutoRegressiveModel")
+        .def(py::init<size_t>(), py::arg("order"))
+        .def("fit", &ml::time_series::AutoRegressiveModel::fit)
+        .def("forecast", &ml::time_series::AutoRegressiveModel::forecast)
+        .def("coefficients", &ml::time_series::AutoRegressiveModel::coefficients);
+    
+    // Seasonal decomposition struct
+    py::class_<ml::time_series::SeasonalDecomposition>(ts_module, "SeasonalDecomposition")
+        .def_readwrite("trend", &ml::time_series::SeasonalDecomposition::trend)
+        .def_readwrite("seasonal", &ml::time_series::SeasonalDecomposition::seasonal)
+        .def_readwrite("residual", &ml::time_series::SeasonalDecomposition::residual);
+    
+    // Utility functions
+    ts_module.def("seasonal_decompose", &ml::time_series::seasonal_decompose);
+    ts_module.def("detect_outliers_zscore", &ml::time_series::detect_outliers_zscore,
+                  py::arg("ts"), py::arg("threshold") = 3.0);
+    ts_module.def("detect_outliers_iqr", &ml::time_series::detect_outliers_iqr,
+                  py::arg("ts"), py::arg("multiplier") = 1.5);
+    ts_module.def("interpolate_missing", &ml::time_series::interpolate_missing);
+    
+    // ========== NLP Module ==========
+    py::module_ nlp_module = m.def_submodule("nlp", "Natural Language Processing");
+    
+    // TextProcessor class
+    py::class_<ml::nlp::TextProcessor>(nlp_module, "TextProcessor")
+        .def(py::init<>())
+        .def_static("to_lowercase", &ml::nlp::TextProcessor::to_lowercase)
+        .def_static("remove_punctuation", &ml::nlp::TextProcessor::remove_punctuation)
+        .def_static("remove_numbers", &ml::nlp::TextProcessor::remove_numbers)
+        .def_static("remove_extra_whitespace", &ml::nlp::TextProcessor::remove_extra_whitespace)
+        .def_static("strip", &ml::nlp::TextProcessor::strip)
+        .def_static("tokenize", &ml::nlp::TextProcessor::tokenize,
+                   py::arg("text"), py::arg("delimiter") = " ")
+        .def_static("word_tokenize", &ml::nlp::TextProcessor::word_tokenize)
+        .def_static("sentence_tokenize", &ml::nlp::TextProcessor::sentence_tokenize)
+        .def_static("generate_ngrams", &ml::nlp::TextProcessor::generate_ngrams)
+        .def_static("stem", &ml::nlp::TextProcessor::stem)
+        .def_static("stem_tokens", &ml::nlp::TextProcessor::stem_tokens)
+        .def_static("default_stop_words", &ml::nlp::TextProcessor::default_stop_words)
+        .def_static("remove_stop_words", &ml::nlp::TextProcessor::remove_stop_words,
+                   py::arg("tokens"), py::arg("stop_words") = ml::nlp::TextProcessor::default_stop_words())
+        .def("process", &ml::nlp::TextProcessor::process,
+             py::arg("text"), py::arg("lowercase") = true, py::arg("remove_punct") = true,
+             py::arg("remove_nums") = false, py::arg("remove_stops") = true,
+             py::arg("apply_stemming") = false);
+    
+    // Vocabulary class
+    py::class_<ml::nlp::Vocabulary, std::shared_ptr<ml::nlp::Vocabulary>>(nlp_module, "Vocabulary")
+        .def(py::init<size_t, size_t>(), py::arg("min_freq") = 1, py::arg("max_size") = 0)
+        .def("build", &ml::nlp::Vocabulary::build)
+        .def("build_from_texts", &ml::nlp::Vocabulary::build_from_texts)
+        .def("add_special_token", &ml::nlp::Vocabulary::add_special_token)
+        .def("token_to_index", &ml::nlp::Vocabulary::token_to_index)
+        .def("index_to_token", &ml::nlp::Vocabulary::index_to_token)
+        .def("contains", &ml::nlp::Vocabulary::contains)
+        .def("encode", &ml::nlp::Vocabulary::encode)
+        .def("decode", &ml::nlp::Vocabulary::decode)
+        .def("size", &ml::nlp::Vocabulary::size)
+        .def("frequency", &ml::nlp::Vocabulary::frequency)
+        .def_readonly_static("PAD_IDX", &ml::nlp::Vocabulary::PAD_IDX)
+        .def_readonly_static("UNK_IDX", &ml::nlp::Vocabulary::UNK_IDX)
+        .def_readonly_static("BOS_IDX", &ml::nlp::Vocabulary::BOS_IDX)
+        .def_readonly_static("EOS_IDX", &ml::nlp::Vocabulary::EOS_IDX);
+    
+    // BagOfWords class
+    py::class_<ml::nlp::BagOfWords>(nlp_module, "BagOfWords")
+        .def(py::init<std::shared_ptr<ml::nlp::Vocabulary>>(),
+             py::arg("vocab") = nullptr)
+        .def("fit", &ml::nlp::BagOfWords::fit)
+        .def("transform", &ml::nlp::BagOfWords::transform)
+        .def("transform_batch", &ml::nlp::BagOfWords::transform_batch)
+        .def("vocabulary", &ml::nlp::BagOfWords::vocabulary);
+    
+    // TFIDF class
+    py::class_<ml::nlp::TFIDF>(nlp_module, "TFIDF")
+        .def(py::init<std::shared_ptr<ml::nlp::Vocabulary>>(),
+             py::arg("vocab") = nullptr)
+        .def("fit", &ml::nlp::TFIDF::fit)
+        .def("transform", &ml::nlp::TFIDF::transform)
+        .def("transform_batch", &ml::nlp::TFIDF::transform_batch)
+        .def("vocabulary", &ml::nlp::TFIDF::vocabulary);
+    
+    // SequenceEncoder class
+    py::class_<ml::nlp::SequenceEncoder>(nlp_module, "SequenceEncoder")
+        .def(py::init<std::shared_ptr<ml::nlp::Vocabulary>, size_t, bool, bool>(),
+             py::arg("vocab"), py::arg("max_length") = 0,
+             py::arg("padding") = true, py::arg("truncation") = true)
+        .def("encode", py::overload_cast<const std::vector<std::string>&>(&ml::nlp::SequenceEncoder::encode, py::const_))
+        .def("encode_batch", &ml::nlp::SequenceEncoder::encode_batch)
+        .def("decode", &ml::nlp::SequenceEncoder::decode,
+             py::arg("indices"), py::arg("skip_special") = true);
+    
+    // CharacterEncoder class
+    py::class_<ml::nlp::CharacterEncoder>(nlp_module, "CharacterEncoder")
+        .def(py::init<>())
+        .def("fit", &ml::nlp::CharacterEncoder::fit)
+        .def("encode", &ml::nlp::CharacterEncoder::encode)
+        .def("decode", &ml::nlp::CharacterEncoder::decode)
+        .def("vocab_size", &ml::nlp::CharacterEncoder::vocab_size);
+    
+    // WordEmbedding class
+    py::class_<ml::nlp::WordEmbedding>(nlp_module, "WordEmbedding")
+        .def(py::init<size_t>(), py::arg("embedding_dim"))
+        .def("random_init", &ml::nlp::WordEmbedding::random_init)
+        .def("xavier_init", &ml::nlp::WordEmbedding::xavier_init)
+        .def("get_embedding", &ml::nlp::WordEmbedding::get_embedding)
+        .def("has_word", &ml::nlp::WordEmbedding::has_word)
+        .def("get_embeddings", &ml::nlp::WordEmbedding::get_embeddings)
+        .def("update_embedding", &ml::nlp::WordEmbedding::update_embedding)
+        .def("similarity", &ml::nlp::WordEmbedding::similarity)
+        .def("most_similar", &ml::nlp::WordEmbedding::most_similar,
+             py::arg("word"), py::arg("top_k") = 10)
+        .def("vocab_size", &ml::nlp::WordEmbedding::vocab_size)
+        .def("embedding_dim", &ml::nlp::WordEmbedding::embedding_dim);
+    
+    // OneHotEncoder class
+    py::class_<ml::nlp::OneHotEncoder>(nlp_module, "OneHotEncoder")
+        .def(py::init<>())
+        .def("fit", &ml::nlp::OneHotEncoder::fit)
+        .def("encode", &ml::nlp::OneHotEncoder::encode)
+        .def("encode_batch", &ml::nlp::OneHotEncoder::encode_batch)
+        .def("vocab_size", &ml::nlp::OneHotEncoder::vocab_size);
+    
+    // NLP utility functions
+    nlp_module.def("cosine_similarity", &ml::nlp::cosine_similarity);
+    nlp_module.def("jaccard_similarity", &ml::nlp::jaccard_similarity);
+    nlp_module.def("levenshtein_distance", &ml::nlp::levenshtein_distance);
+    nlp_module.def("create_positional_encoding", &ml::nlp::create_positional_encoding);
+    nlp_module.def("average_embeddings", &ml::nlp::average_embeddings);
+    nlp_module.def("max_pooling_embeddings", &ml::nlp::max_pooling_embeddings);
 }

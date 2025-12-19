@@ -42,7 +42,11 @@ src_dirs = [
     "src/generalized_linear_model",
     "src/multi_arm_bandit",
     "src/tracker",
-    "src/dimensionality_reduction"
+    "src/dimensionality_reduction",
+    "src/deep_learning",
+    "src/computer_vision",
+    "src/time_series",
+    "src/nlp"
 ]
 
 for src_dir in src_dirs:

@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""
+Time Series Analysis Examples
+
+Demonstrates time series processing, forecasting, and analysis.
+"""
+
+import sys
+sys.path.insert(0, './build')
+import ml_core
+import numpy as np
+
+def example_basic_timeseries():
+    """Basic time series operations"""
+    print("=" * 60)
+    print("Example 1: Basic Time Series Operations")
+    print("=" * 60)
+    
+    # Create a time series with trend and seasonality
+    t = np.arange(0, 100)
+    trend = 0.5 * t
+    seasonal = 10 * np.sin(2 * np.pi * t / 12)
+    noise = np.random.randn(100) * 2
+    values = (trend + seasonal + noise).tolist()
+    
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    print(f"Time series size: {ts.size()}")
+    print(f"Mean: {ts.mean():.2f}")
+    print(f"Std: {ts.std():.2f}")
+    print(f"Min: {ts.min():.2f}")
+    print(f"Max: {ts.max():.2f}")
+    print(f"Median: {ts.median():.2f}")
+    print()
+
+def example_preprocessing():
+    """Time series preprocessing"""
+    print("=" * 60)
+    print("Example 2: Time Series Preprocessing")
+    print("=" * 60)
+    
+    # Generate sample data
+    values = (np.random.randn(100) * 10 + 50).tolist()
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    # Normalize (z-score)
+    ts_normalized = ts.normalize()
+    print(f"Original - Mean: {ts.mean():.2f}, Std: {ts.std():.2f}")
+    print(f"Normalized - Mean: {ts_normalized.mean():.4f}, Std: {ts_normalized.std():.4f}")
+    
+    # Min-max scaling
+    ts_scaled = ts.min_max_scale(0.0, 1.0)
+    print(f"Scaled - Min: {ts_scaled.min():.4f}, Max: {ts_scaled.max():.4f}")
+    
+    # Differencing
+    ts_diff = ts.diff(lag=1)
+    print(f"Differenced size: {ts_diff.size()}")
+    
+    # Moving average
+    ts_ma = ts.moving_average(5)
+    print(f"Moving average - Std: {ts_ma.std():.2f} (smoother)")
+    
+    # Exponential smoothing
+    ts_exp = ts.exponential_smoothing(0.3)
+    print(f"Exponential smoothing - Std: {ts_exp.std():.2f}")
+    print()
+
+def example_windowing():
+    """Create windows for ML models"""
+    print("=" * 60)
+    print("Example 3: Windowing for Machine Learning")
+    print("=" * 60)
+    
+    # Generate sequential data
+    values = list(range(20))
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    # Create sliding windows
+    windows = ts.create_windows(5, 1)
+    print(f"Created {len(windows)} windows of size 5")
+    print(f"First window: {windows[0]}")
+    print(f"Second window: {windows[1]}")
+    
+    # Create supervised learning windows (input -> output)
+    X, y = ts.create_supervised_windows(3, 1, 1)
+    print(f"\nSupervised dataset: {len(X)} samples")
+    print(f"Example - Input: {X[0]}, Output: {y[0]}")
+    print(f"Example - Input: {X[1]}, Output: {y[1]}")
+    print()
+
+def example_forecasting():
+    """Time series forecasting"""
+    print("=" * 60)
+    print("Example 4: Time Series Forecasting")
+    print("=" * 60)
+    
+    # Generate data with trend
+    t = np.arange(0, 50)
+    values = (2 * t + np.random.randn(50) * 5).tolist()
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    # Moving Average Forecaster
+    print("Moving Average Forecaster:")
+    ma_forecaster = ml_core.time_series.MovingAverageForecaster(5)
+    ma_forecaster.fit(ts)
+    predictions_ma = ma_forecaster.forecast(10)
+    print(f"  Forecast next 10 steps: {[f'{p:.2f}' for p in predictions_ma[:3]]}...")
+    
+    # Exponential Smoothing
+    print("\nExponential Smoothing Forecaster:")
+    es_forecaster = ml_core.time_series.ExponentialSmoothingForecaster(
+        0.3, 0.1, 0.0
+    )
+    es_forecaster.fit(ts)
+    predictions_es = es_forecaster.forecast(10)
+    print(f"  Forecast next 10 steps: {[f'{p:.2f}' for p in predictions_es[:3]]}...")
+    
+    # Auto-regressive Model
+    print("\nAuto-Regressive Model (AR):")
+    ar_model = ml_core.time_series.AutoRegressiveModel(3)
+    ar_model.fit(ts)
+    predictions_ar = ar_model.forecast(10)
+    print(f"  Coefficients: {[f'{c:.3f}' for c in ar_model.coefficients()]}")
+    print(f"  Forecast next 10 steps: {[f'{p:.2f}' for p in predictions_ar[:3]]}...")
+    print()
+
+def example_seasonal_decomposition():
+    """Seasonal decomposition"""
+    print("=" * 60)
+    print("Example 5: Seasonal Decomposition")
+    print("=" * 60)
+    
+    # Generate data with trend, seasonality, and noise
+    t = np.arange(0, 100)
+    trend = 0.5 * t + 20
+    seasonal = 10 * np.sin(2 * np.pi * t / 12)
+    residual = np.random.randn(100) * 2
+    values = (trend + seasonal + residual).tolist()
+    
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    # Decompose
+    decomposition = ml_core.time_series.seasonal_decompose(ts, 12)
+    
+    print(f"Original - Mean: {ts.mean():.2f}, Std: {ts.std():.2f}")
+    print(f"Trend - Mean: {decomposition.trend.mean():.2f}, Std: {decomposition.trend.std():.2f}")
+    print(f"Seasonal - Mean: {decomposition.seasonal.mean():.2f}, Std: {decomposition.seasonal.std():.2f}")
+    print(f"Residual - Mean: {decomposition.residual.mean():.2f}, Std: {decomposition.residual.std():.2f}")
+    print()
+
+def example_outlier_detection():
+    """Outlier detection"""
+    print("=" * 60)
+    print("Example 6: Outlier Detection")
+    print("=" * 60)
+    
+    # Generate data with outliers
+    values = list(np.random.randn(100) * 5 + 50)
+    values[20] = 100  # Outlier
+    values[50] = 5    # Outlier
+    values[80] = 95   # Outlier
+    
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    # Z-score method
+    outliers_zscore = ml_core.time_series.detect_outliers_zscore(ts, 3.0)
+    print(f"Z-score outliers (indices): {[int(o) for o in outliers_zscore]}")
+    
+    # IQR method
+    outliers_iqr = ml_core.time_series.detect_outliers_iqr(ts, 1.5)
+    print(f"IQR outliers (indices): {[int(o) for o in outliers_iqr]}")
+    print()
+
+def example_multivariate():
+    """Multivariate time series"""
+    print("=" * 60)
+    print("Example 7: Multivariate Time Series")
+    print("=" * 60)
+    
+    # Create multivariate data [features x samples]
+    feature1 = list(np.random.randn(100) * 10 + 50)
+    feature2 = list(np.random.randn(100) * 5 + 30)
+    feature3 = list(np.random.randn(100) * 15 + 70)
+    
+    data = [feature1, feature2, feature3]
+    feature_names = ["temperature", "humidity", "pressure"]
+    
+    mts = ml_core.time_series.MultivariatTimeSeries(data, feature_names)
+    
+    print(f"Number of features: {mts.num_features()}")
+    print(f"Number of samples: {mts.num_samples()}")
+    
+    means = mts.means()
+    stds = mts.stds()
+    for i, name in enumerate(feature_names):
+        print(f"{name}: mean={means[i]:.2f}, std={stds[i]:.2f}")
+    
+    # Normalize
+    mts_norm = mts.normalize()
+    means_norm = mts_norm.means()
+    print(f"\nNormalized means: {[f'{m:.4f}' for m in means_norm]}")
+    
+    # Create windows for ML
+    windows = mts.create_windows(10, 5)
+    print(f"\nCreated {len(windows)} multivariate windows")
+    print(f"Window shape: [{len(windows[0])} features x {len(windows[0][0])} timesteps]")
+    print()
+
+def example_autocorrelation():
+    """Autocorrelation analysis"""
+    print("=" * 60)
+    print("Example 8: Autocorrelation")
+    print("=" * 60)
+    
+    # Generate AR process
+    np.random.seed(42)
+    values = [0.0]
+    for i in range(99):
+        # AR(1): y_t = 0.7 * y_{t-1} + noise
+        values.append(0.7 * values[-1] + np.random.randn() * 0.5)
+    
+    ts = ml_core.time_series.TimeSeries(values)
+    
+    # Calculate autocorrelation
+    acf = ts.autocorrelation(10)
+    print("Autocorrelation function (first 10 lags):")
+    for lag, corr in enumerate(acf):
+        print(f"  Lag {lag}: {corr:.3f}")
+    print()
+
+if __name__ == "__main__":
+    print("\n" + "=" * 60)
+    print("TIME SERIES ANALYSIS EXAMPLES")
+    print("=" * 60 + "\n")
+    
+    example_basic_timeseries()
+    example_preprocessing()
+    example_windowing()
+    example_forecasting()
+    example_seasonal_decomposition()
+    example_outlier_detection()
+    example_multivariate()
+    example_autocorrelation()
+    
+    print("=" * 60)
+    print("All examples completed successfully!")
+    print("=" * 60)
