@@ -1,3 +1,9 @@
+# Fuzzer library
+add_subdirectory(fuzzer)
+
+# Network Scanner library
+add_subdirectory(network_scanner)
+
 # Security Library
 add_library(security SHARED
     malware_scanner.cpp

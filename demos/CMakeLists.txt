@@ -100,6 +100,18 @@ add_executable(scanner_webui_demo scanner_webui_demo.cpp)
 target_link_libraries(scanner_webui_demo PRIVATE host_scanner html_processor pthread)
 target_include_directories(scanner_webui_demo PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
+add_executable(fuzzer_demo fuzzer_demo.cpp)
+target_link_libraries(fuzzer_demo PRIVATE fuzzer pthread)
+target_include_directories(fuzzer_demo PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_executable(network_fuzzer_demo network_fuzzer_demo.cpp)
+target_link_libraries(network_fuzzer_demo PRIVATE fuzzer pthread)
+target_include_directories(network_fuzzer_demo PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_executable(network_scanner_demo network_scanner_demo.cpp)
+target_link_libraries(network_scanner_demo PRIVATE network_scanner fuzzer pthread)
+target_include_directories(network_scanner_demo PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
 # Set C++ standard for all demos
 set_target_properties(
     data_structures_demo
@@ -120,6 +132,9 @@ set_target_properties(
     mail_webui_demo
     ml_webui_demo
     security_scanner_demo
+    fuzzer_demo
+    network_fuzzer_demo
+    network_scanner_demo
     PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
