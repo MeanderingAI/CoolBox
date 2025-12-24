@@ -1,0 +1,55 @@
+// Example Prisma Schema
+// This demonstrates the types of schemas that can be parsed
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User model with basic fields
+model User {
+  id        Int      @id @default(auto)
+  email     String   @unique
+  name      String?
+  age       Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now)
+}
+
+// Post model with relationships
+model Post {
+  id        Int      @id @default(auto)
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  Int
+  views     Int      @default(0)
+  createdAt DateTime @default(now)
+  updatedAt DateTime @default(now)
+}
+
+// Product model for e-commerce
+model Product {
+  id          Int     @id @default(auto)
+  name        String
+  description String?
+  price       Float
+  stock       Int     @default(0)
+  category    String
+  sku         String  @unique
+  active      Boolean @default(true)
+}
+
+// Comment model
+model Comment {
+  id        Int      @id @default(auto)
+  text      String
+  postId    Int
+  authorId  Int
+  likes     Int      @default(0)
+  createdAt DateTime @default(now)
+}

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
 project(Models)
 
+# Set C++ standard globally
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Include the external dependencies from the sub-directory
 include(cmake/ExternalDependencies.cmake)
 
@@ -10,6 +14,7 @@ add_executable(tui main.cpp)
 # Add subdirectories for the shared library and tests
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(demos)
 
 # Option to build Python bindings
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <sequential_monte_carlo.h>
+#include "ml/tracker/sequential_monte_carlo.h"
 
 // Test construction and initial weights
 TEST(SequentialMonteCarloTest, Initialization) {

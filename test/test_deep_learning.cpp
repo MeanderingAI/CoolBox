@@ -1,7 +1,7 @@
-#include "deep_learning/neural_network.h"
-#include "deep_learning/layer.h"
-#include "deep_learning/loss.h"
-#include "deep_learning/tensor.h"
+#include "ml/deep_learning/neural_network.h"
+#include "ml/deep_learning/layer.h"
+#include "ml/deep_learning/loss.h"
+#include "ml/deep_learning/tensor.h"
 #include <gtest/gtest.h>
 #include <memory>
 

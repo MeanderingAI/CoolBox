@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "dimensionality_reduction/umap.h"
+#include "ml/dimensionality_reduction/umap.h"
 #include <Eigen/Dense>
 #include <cmath>
 

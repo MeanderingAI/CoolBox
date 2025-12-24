@@ -29,10 +29,10 @@ NeuralNetwork MLPTemplate::build() {
         // Dense layer
         net.add_layer(std::make_shared<DenseLayer>(prev_dim, hidden_dims_[i]));
         
-        // Batch normalization (optional)
-        if (batch_norm_) {
-            net.add_layer(std::make_shared<BatchNormLayer>(hidden_dims_[i]));
-        }
+        // Batch normalization (optional) - TODO: Implement BatchNormLayer
+        // if (batch_norm_) {
+        //     net.add_layer(std::make_shared<BatchNormLayer>(hidden_dims_[i]));
+        // }
         
         // Activation
         if (activation_ == "relu") {
@@ -100,38 +100,23 @@ NeuralNetwork CNNTemplate::build() {
 }
 
 void CNNTemplate::build_simple(NeuralNetwork& net) {
+    // TODO: Implement Conv2D, MaxPool2D, and Flatten layers
     // Simple CNN: Conv -> ReLU -> Pool -> Conv -> ReLU -> Pool -> FC
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 32, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
+    // net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 32, 3, 1, 1));
+    // net.add_layer(std::make_shared<ReLULayer>());
+    // net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
     
-    net.add_layer(std::make_shared<Conv2DLayer>(32, 64, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
-    
-    // Calculate flattened size
-    int h = input_height_ / 4;
-    int w = input_width_ / 4;
-    int flattened = 64 * h * w;
-    
-    net.add_layer(std::make_shared<FlattenLayer>());
+    // For now, use a simple fully connected network
+    int flattened = input_channels_ * input_height_ * input_width_;
     net.add_layer(std::make_shared<DenseLayer>(flattened, 128));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<DenseLayer>(128, num_classes_));
 }
 
 void CNNTemplate::build_lenet(NeuralNetwork& net) {
-    // LeNet-5 style architecture
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 6, 5, 1, 0));
-    net.add_layer(std::make_shared<TanhLayer>());
-    net.add_layer(std::make_shared<AvgPool2DLayer>(2, 2));
-    
-    net.add_layer(std::make_shared<Conv2DLayer>(6, 16, 5, 1, 0));
-    net.add_layer(std::make_shared<TanhLayer>());
-    net.add_layer(std::make_shared<AvgPool2DLayer>(2, 2));
-    
-    net.add_layer(std::make_shared<FlattenLayer>());
-    net.add_layer(std::make_shared<DenseLayer>(16 * 5 * 5, 120));
+    // TODO: Implement LeNet-5 with Conv2D and AvgPool2D layers
+    int flattened = input_channels_ * input_height_ * input_width_;
+    net.add_layer(std::make_shared<DenseLayer>(flattened, 120));
     net.add_layer(std::make_shared<TanhLayer>());
     net.add_layer(std::make_shared<DenseLayer>(120, 84));
     net.add_layer(std::make_shared<TanhLayer>());
@@ -139,33 +124,8 @@ void CNNTemplate::build_lenet(NeuralNetwork& net) {
 }
 
 void CNNTemplate::build_vgglike(NeuralNetwork& net) {
-    // VGG-style with multiple conv blocks
-    // Block 1
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 64, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<Conv2DLayer>(64, 64, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
-    
-    // Block 2
-    net.add_layer(std::make_shared<Conv2DLayer>(64, 128, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<Conv2DLayer>(128, 128, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
-    
-    // Block 3
-    net.add_layer(std::make_shared<Conv2DLayer>(128, 256, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<Conv2DLayer>(256, 256, 3, 1, 1));
-    net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
-    
-    int h = input_height_ / 8;
-    int w = input_width_ / 8;
-    int flattened = 256 * h * w;
-    
-    net.add_layer(std::make_shared<FlattenLayer>());
+    // TODO: Implement VGG-style with Conv2D blocks
+    int flattened = input_channels_ * input_height_ * input_width_;
     net.add_layer(std::make_shared<DenseLayer>(flattened, 512));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<DropoutLayer>(0.5));
@@ -173,22 +133,12 @@ void CNNTemplate::build_vgglike(NeuralNetwork& net) {
 }
 
 void CNNTemplate::build_resnet(NeuralNetwork& net) {
-    // Simplified ResNet-style (without actual residual connections in base framework)
-    // This would need additional layer types for true residual connections
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 64, 7, 2, 3));
-    net.add_layer(std::make_shared<BatchNormLayer>(64));
+    // TODO: Implement ResNet with residual connections
+    int flattened = input_channels_ * input_height_ * input_width_;
+    net.add_layer(std::make_shared<DenseLayer>(flattened, 256));
     net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<MaxPool2DLayer>(3, 2));
-    
-    // Residual blocks (simplified)
-    for (int i = 0; i < 3; ++i) {
-        net.add_layer(std::make_shared<Conv2DLayer>(64, 64, 3, 1, 1));
-        net.add_layer(std::make_shared<BatchNormLayer>(64));
-        net.add_layer(std::make_shared<ReLULayer>());
-    }
-    
-    net.add_layer(std::make_shared<AdaptiveAvgPool2DLayer>(1, 1));
-    net.add_layer(std::make_shared<FlattenLayer>());
+    net.add_layer(std::make_shared<DenseLayer>(256, 64));
+    net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<DenseLayer>(64, num_classes_));
 }
 
@@ -296,22 +246,14 @@ std::string RNNTemplate::name() const {
 NeuralNetwork RNNTemplate::build() {
     NeuralNetwork net;
     
-    // Add RNN layers
+    // TODO: Implement LSTM, GRU, and RNN layers
+    // For now, use DenseLayer as a placeholder
     for (int i = 0; i < num_layers_; ++i) {
         int input_size = (i == 0) ? input_dim_ : hidden_dim_;
         
-        switch (cell_type_) {
-            case CellType::LSTM:
-                net.add_layer(std::make_shared<LSTMLayer>(input_size, hidden_dim_));
-                break;
-            case CellType::GRU:
-                net.add_layer(std::make_shared<GRULayer>(input_size, hidden_dim_));
-                break;
-            case CellType::VANILLA:
-            default:
-                net.add_layer(std::make_shared<RNNLayer>(input_size, hidden_dim_));
-                break;
-        }
+        // Placeholder: use DenseLayer instead of RNN variants
+        net.add_layer(std::make_shared<DenseLayer>(input_size, hidden_dim_));
+        net.add_layer(std::make_shared<TanhLayer>());
         
         // Add dropout between layers
         if (dropout_ > 0.0 && i < num_layers_ - 1) {
@@ -354,10 +296,11 @@ NeuralNetwork SiameseTemplate::build_embedding_network() {
     // Embedding layer
     net.add_layer(std::make_shared<DenseLayer>(prev_dim, embedding_dim_));
     
-    // L2 normalization for embeddings (for cosine similarity)
-    if (distance_metric_ == "cosine") {
-        net.add_layer(std::make_shared<L2NormLayer>());
-    }
+    // TODO: Implement L2NormLayer for proper cosine similarity
+    // For now, skip normalization
+    // if (distance_metric_ == "cosine") {
+    //     net.add_layer(std::make_shared<L2NormLayer>());
+    // }
     
     return net;
 }
@@ -385,7 +328,8 @@ NeuralNetwork GANTemplate::build_generator() {
     for (size_t i = 0; i < generator_dims_.size(); ++i) {
         generator.add_layer(std::make_shared<DenseLayer>(prev_dim, generator_dims_[i]));
         generator.add_layer(std::make_shared<ReLULayer>());
-        generator.add_layer(std::make_shared<BatchNormLayer>(generator_dims_[i]));
+        // TODO: Implement BatchNormLayer
+        // generator.add_layer(std::make_shared<BatchNormLayer>(generator_dims_[i]));
         prev_dim = generator_dims_[i];
     }
     
@@ -401,7 +345,9 @@ NeuralNetwork GANTemplate::build_discriminator() {
     int prev_dim = output_dim_;
     for (size_t i = 0; i < discriminator_dims_.size(); ++i) {
         discriminator.add_layer(std::make_shared<DenseLayer>(prev_dim, discriminator_dims_[i]));
-        discriminator.add_layer(std::make_shared<LeakyReLULayer>(0.2));
+        // TODO: Implement LeakyReLULayer  
+        // discriminator.add_layer(std::make_shared<LeakyReLULayer>(0.2));
+        discriminator.add_layer(std::make_shared<ReLULayer>());
         discriminator.add_layer(std::make_shared<DropoutLayer>(0.3));
         prev_dim = discriminator_dims_[i];
     }
@@ -425,33 +371,12 @@ UNetTemplate::UNetTemplate(int input_channels, int num_classes,
 NeuralNetwork UNetTemplate::build() {
     NeuralNetwork net;
     
-    // Encoder path
-    int filters = base_filters_;
-    for (int i = 0; i < depth_; ++i) {
-        int in_ch = (i == 0) ? input_channels_ : filters / 2;
-        net.add_layer(std::make_shared<Conv2DLayer>(in_ch, filters, 3, 1, 1));
-        net.add_layer(std::make_shared<ReLULayer>());
-        net.add_layer(std::make_shared<Conv2DLayer>(filters, filters, 3, 1, 1));
-        net.add_layer(std::make_shared<ReLULayer>());
-        
-        if (i < depth_ - 1) {
-            net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
-            filters *= 2;
-        }
-    }
-    
-    // Decoder path
-    for (int i = depth_ - 2; i >= 0; --i) {
-        filters /= 2;
-        net.add_layer(std::make_shared<ConvTranspose2DLayer>(filters * 2, filters, 2, 2));
-        net.add_layer(std::make_shared<Conv2DLayer>(filters, filters, 3, 1, 1));
-        net.add_layer(std::make_shared<ReLULayer>());
-        net.add_layer(std::make_shared<Conv2DLayer>(filters, filters, 3, 1, 1));
-        net.add_layer(std::make_shared<ReLULayer>());
-    }
-    
-    // Final layer
-    net.add_layer(std::make_shared<Conv2DLayer>(base_filters_, num_classes_, 1, 1, 0));
+    // TODO: Implement U-Net with Conv2D, pooling, and upsampling layers
+    // Placeholder implementation with simple dense layers
+    int flattened = input_channels_ * 32 * 32;  // Assuming 32x32 default
+    net.add_layer(std::make_shared<DenseLayer>(flattened, 256));
+    net.add_layer(std::make_shared<ReLULayer>());
+    net.add_layer(std::make_shared<DenseLayer>(256, num_classes_));
     
     return net;
 }
@@ -471,26 +396,17 @@ TransformerTemplate::TransformerTemplate(int input_dim, int model_dim, int num_h
 NeuralNetwork TransformerTemplate::build() {
     NeuralNetwork net;
     
-    // Input projection
+    // TODO: Implement Transformer with MultiHeadAttention, LayerNorm
+    // Simplified version using dense layers
     net.add_layer(std::make_shared<DenseLayer>(input_dim_, model_dim_));
     
-    // Transformer layers
     for (int i = 0; i < num_layers_; ++i) {
-        // Multi-head attention
-        net.add_layer(std::make_shared<MultiHeadAttentionLayer>(model_dim_, num_heads_));
-        net.add_layer(std::make_shared<DropoutLayer>(dropout_));
-        net.add_layer(std::make_shared<LayerNormLayer>(model_dim_));
-        
-        // Feed-forward
         net.add_layer(std::make_shared<DenseLayer>(model_dim_, ff_dim_));
         net.add_layer(std::make_shared<ReLULayer>());
         net.add_layer(std::make_shared<DropoutLayer>(dropout_));
         net.add_layer(std::make_shared<DenseLayer>(ff_dim_, model_dim_));
-        net.add_layer(std::make_shared<DropoutLayer>(dropout_));
-        net.add_layer(std::make_shared<LayerNormLayer>(model_dim_));
     }
     
-    // Output projection
     net.add_layer(std::make_shared<DenseLayer>(model_dim_, output_dim_));
     
     return net;
@@ -511,36 +427,20 @@ LLMTemplate::LLMTemplate(int vocab_size, int context_length, int embed_dim,
 NeuralNetwork LLMTemplate::build() {
     NeuralNetwork net;
     
-    // Token embedding layer
-    net.add_layer(std::make_shared<EmbeddingLayer>(vocab_size_, embed_dim_));
-    
-    // Positional encoding
-    net.add_layer(std::make_shared<PositionalEncodingLayer>(embed_dim_, context_length_));
+    // TODO: Implement LLM with Embedding, Positional Encoding, Causal Attention, LayerNorm
+    // Simplified version using dense layers
+    net.add_layer(std::make_shared<DenseLayer>(vocab_size_, embed_dim_));
     net.add_layer(std::make_shared<DropoutLayer>(dropout_));
     
-    // Transformer decoder blocks (GPT-style)
+    // Simplified transformer blocks
     for (int i = 0; i < num_layers_; ++i) {
-        // Self-attention with causal masking
-        if (causal_) {
-            net.add_layer(std::make_shared<CausalSelfAttentionLayer>(embed_dim_, num_heads_));
-        } else {
-            net.add_layer(std::make_shared<MultiHeadAttentionLayer>(embed_dim_, num_heads_));
-        }
-        net.add_layer(std::make_shared<DropoutLayer>(dropout_));
-        net.add_layer(std::make_shared<LayerNormLayer>(embed_dim_));
-        
-        // Feed-forward network (typically 4x embed_dim)
         net.add_layer(std::make_shared<DenseLayer>(embed_dim_, ff_dim_));
-        net.add_layer(std::make_shared<GELULayer>());  // GELU is standard for LLMs
+        net.add_layer(std::make_shared<ReLULayer>());  // Should be GELU but not implemented
         net.add_layer(std::make_shared<DenseLayer>(ff_dim_, embed_dim_));
         net.add_layer(std::make_shared<DropoutLayer>(dropout_));
-        net.add_layer(std::make_shared<LayerNormLayer>(embed_dim_));
     }
     
-    // Final layer norm
-    net.add_layer(std::make_shared<LayerNormLayer>(embed_dim_));
-    
-    // Language modeling head (projects back to vocabulary)
+    // Language modeling head
     net.add_layer(std::make_shared<DenseLayer>(embed_dim_, vocab_size_));
     
     return net;
@@ -556,8 +456,8 @@ NeuralNetwork binary_classifier(int input_dim, const std::vector<int>& hidden_di
     MLPTemplate template_builder(input_dim, hidden_dims, 1, "relu", 0.0, false);
     NeuralNetwork net = template_builder.build();
     net.add_layer(std::make_shared<SigmoidLayer>());
-    net.set_loss(std::make_shared<BinaryCrossEntropyLoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_loss(std::make_shared<BCELoss>());
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -566,8 +466,8 @@ NeuralNetwork multiclass_classifier(int input_dim, int num_classes,
     MLPTemplate template_builder(input_dim, hidden_dims, num_classes, "relu", 0.0, false);
     NeuralNetwork net = template_builder.build();
     net.add_layer(std::make_shared<SoftmaxLayer>());
-    net.set_loss(std::make_shared<CrossEntropyLoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_loss(std::make_shared<CategoricalCrossEntropyLoss>());
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -587,8 +487,8 @@ NeuralNetwork image_classifier(int num_classes, int channels, int height, int wi
     CNNTemplate template_builder(architecture, num_classes, channels, height, width);
     NeuralNetwork net = template_builder.build();
     net.add_layer(std::make_shared<SoftmaxLayer>());
-    net.set_loss(std::make_shared<CrossEntropyLoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_loss(std::make_shared<CategoricalCrossEntropyLoss>());
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -597,7 +497,7 @@ NeuralNetwork regressor(int input_dim, int output_dim,
     MLPTemplate template_builder(input_dim, hidden_dims, output_dim, "relu", 0.0, false);
     NeuralNetwork net = template_builder.build();
     net.set_loss(std::make_shared<MSELoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -613,8 +513,8 @@ NeuralNetwork sequence_classifier(int input_dim, int num_classes,
                                 RNNTemplate::CellType::LSTM, false, 0.0);
     NeuralNetwork net = template_builder.build();
     net.add_layer(std::make_shared<SoftmaxLayer>());
-    net.set_loss(std::make_shared<CrossEntropyLoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_loss(std::make_shared<CategoricalCrossEntropyLoss>());
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -636,7 +536,7 @@ NeuralNetwork simple_autoencoder(int input_dim, int latent_dim,
     AutoencoderTemplate template_builder(input_dim, hidden_dims, latent_dim, false);
     NeuralNetwork net = template_builder.build();
     net.set_loss(std::make_shared<MSELoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -646,7 +546,7 @@ NeuralNetwork variational_autoencoder(int input_dim, int latent_dim,
     NeuralNetwork net = template_builder.build();
     // VAE needs special loss combining reconstruction and KL divergence
     net.set_loss(std::make_shared<MSELoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.001));
+    net.set_optimizer(std::make_shared<Adam>(0.001));
     return net;
 }
 
@@ -663,8 +563,8 @@ NeuralNetwork language_model(int vocab_size, int context_length,
     LLMTemplate template_builder(vocab_size, context_length, embed_dim,
                                 num_heads, num_layers, ff_dim, 0.1, true);
     NeuralNetwork net = template_builder.build();
-    net.set_loss(std::make_shared<CrossEntropyLoss>());
-    net.set_optimizer(std::make_shared<AdamOptimizer>(0.0001));  // Lower LR for LLMs
+    net.set_loss(std::make_shared<CategoricalCrossEntropyLoss>());
+    net.set_optimizer(std::make_shared<Adam>(0.0001));  // Lower LR for LLMs
     return net;
 }
 

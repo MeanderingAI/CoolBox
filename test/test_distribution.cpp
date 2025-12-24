@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
-#include <bernoulli_distribution.h>
-#include <binomial_distribution.h>
-#include <categorical_distribution.h>
-#include <exponential_distribution.h>
-#include <gamma_distribution.h>
-#include <inverse_gaussian_distribution.h>
-#include <laplace_distribution.h>
-#include <multinomial_distribution.h>
-#include <normal_distribution.h>
-#include <poisson_distribution.h>
+#include "ml/distribution/bernoulli_distribution.h"
+#include "ml/distribution/binomial_distribution.h"
+#include "ml/distribution/categorical_distribution.h"
+#include "ml/distribution/exponential_distribution.h"
+#include "ml/distribution/gamma_distribution.h"
+#include "ml/distribution/inverse_gaussian_distribution.h"
+#include "ml/distribution/laplace_distribution.h"
+#include "ml/distribution/multinomial_distribution.h"
+#include "ml/distribution/normal_distribution.h"
+#include "ml/distribution/poisson_distribution.h"
 #include <cmath>
 #include <limits>
 

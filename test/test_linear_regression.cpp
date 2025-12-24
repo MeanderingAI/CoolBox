@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-#include <linear_regression.h>
+#include "ml/generalized_linear_model/linear_regression.h"
 
 // Helper function to check if two vectors are approximately equal
 bool are_vectors_equal(const std::vector<double>& v1, const std::vector<double>& v2, double tolerance = 1e-6) {

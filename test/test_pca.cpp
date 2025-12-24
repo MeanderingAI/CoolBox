@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "dimensionality_reduction/pca.h"
+#include "ml/dimensionality_reduction/pca.h"
 #include <Eigen/Dense>
 #include <cmath>
 

@@ -4,40 +4,42 @@
 #include <pybind11/numpy.h>
 
 // Include all the ML headers
-#include "decision_tree/decision_tree.h"
-#include "decision_tree/random_forest.h"
-// #include "decision_tree/decision_tree_regressor.h"  // TODO: Implement this class
-#include "support_vector_machine/support_vector_machine.h"
-#include "support_vector_machine/linear_kernel.h"
-#include "support_vector_machine/rbf_kernel.h"
-#include "support_vector_machine/polynomial_kernel.h"
-#include "support_vector_machine/sigmoid_kernel.h"
-#include "bayesian_network/bayesian_network.h"
-#include "hidden_markov_model/hidden_markov_model.h"
-#include "generalized_linear_model/linear_regression.h"
-#include "multi_arm_bandit/bandit_arm.h"
-#include "multi_arm_bandit/decaying_epsilon_agent.h"
-#include "tracker/kalman_filter.h"
-#include "tracker/unscented_kalman_filter.h"
-#include "dimensionality_reduction/svd.h"
-#include "dimensionality_reduction/pca.h"
-#include "dimensionality_reduction/knn.h"
-#include "dimensionality_reduction/umap.h"
-#include "deep_learning/tensor.h"
-#include "deep_learning/layer.h"
-#include "deep_learning/loss.h"
-#include "deep_learning/optimizer.h"
-#include "deep_learning/neural_network.h"
-#include "deep_learning/templates.h"
-#include "computer_vision/image.h"
-#include "computer_vision/transforms.h"
-#include "computer_vision/pipeline.h"
-#include "computer_vision/layers.h"
-#include "time_series/time_series.h"
-#include "nlp/text_processor.h"
-#include "nlp/embeddings.h"
-#include "distributed/message_passing.h"
-#include "distributed/distributed_trainer.h"
+#include "ml/decision_tree/decision_tree.h"
+#include "ml/decision_tree/random_forest.h"
+// #include "ml/decision_tree/decision_tree_regressor.h"  // TODO: Implement this class
+#include "ml/support_vector_machine/support_vector_machine.h"
+#include "ml/support_vector_machine/linear_kernel.h"
+#include "ml/support_vector_machine/rbf_kernel.h"
+#include "ml/support_vector_machine/polynomial_kernel.h"
+#include "ml/support_vector_machine/sigmoid_kernel.h"
+#include "ml/bayesian_network/bayesian_network.h"
+#include "ml/hidden_markov_model/hidden_markov_model.h"
+#include "ml/generalized_linear_model/linear_regression.h"
+#include "ml/multi_arm_bandit/bandit_arm.h"
+#include "ml/multi_arm_bandit/decaying_epsilon_agent.h"
+#include "ml/tracker/kalman_filter.h"
+#include "ml/tracker/unscented_kalman_filter.h"
+#include "ml/dimensionality_reduction/svd.h"
+#include "ml/dimensionality_reduction/pca.h"
+#include "ml/dimensionality_reduction/knn.h"
+#include "ml/dimensionality_reduction/umap.h"
+#include "ml/deep_learning/tensor.h"
+#include "ml/deep_learning/layer.h"
+#include "ml/deep_learning/loss.h"
+#include "ml/deep_learning/optimizer.h"
+#include "ml/deep_learning/neural_network.h"
+#include "ml/deep_learning/templates.h"
+#include "ml/computer_vision/image.h"
+#include "ml/computer_vision/transforms.h"
+#include "ml/computer_vision/pipeline.h"
+#include "ml/computer_vision/layers.h"
+#include "ml/time_series/time_series.h"
+#include "ml/nlp/text_processor.h"
+#include "ml/nlp/embeddings.h"
+#include "networking/distributed/message_passing.h"
+#include "networking/distributed/distributed_trainer.h"
+#include "networking/rest_api/server.h"
+#include "networking/rest_api/model_server.h"
 
 namespace py = pybind11;
 
@@ -1361,6 +1363,114 @@ PYBIND11_MODULE(ml_core, m) {
         .def("aggregate_gradients", &distributed::DistributedTrainer::aggregate_gradients,
              py::arg("local_gradient"),
              py::arg("method") = distributed::AggregationMethod::SYNCHRONOUS);
+    
+    // =========================================================================
+    // REST API MODULE
+    // =========================================================================
+    
+    py::module_ rest_module = m.def_submodule("rest_api", "REST API for model serving");
+    
+    // HTTP Method enum
+    py::enum_<ml::rest_api::HttpMethod>(rest_module, "HttpMethod")
+        .value("GET", ml::rest_api::HttpMethod::GET)
+        .value("POST", ml::rest_api::HttpMethod::POST)
+        .value("PUT", ml::rest_api::HttpMethod::PUT)
+        .value("DELETE", ml::rest_api::HttpMethod::DELETE)
+        .value("PATCH", ml::rest_api::HttpMethod::PATCH)
+        .value("OPTIONS", ml::rest_api::HttpMethod::OPTIONS);
+    
+    // HTTP Status enum
+    py::enum_<ml::rest_api::HttpStatus>(rest_module, "HttpStatus")
+        .value("OK", ml::rest_api::HttpStatus::OK)
+        .value("CREATED", ml::rest_api::HttpStatus::CREATED)
+        .value("ACCEPTED", ml::rest_api::HttpStatus::ACCEPTED)
+        .value("NO_CONTENT", ml::rest_api::HttpStatus::NO_CONTENT)
+        .value("BAD_REQUEST", ml::rest_api::HttpStatus::BAD_REQUEST)
+        .value("UNAUTHORIZED", ml::rest_api::HttpStatus::UNAUTHORIZED)
+        .value("FORBIDDEN", ml::rest_api::HttpStatus::FORBIDDEN)
+        .value("NOT_FOUND", ml::rest_api::HttpStatus::NOT_FOUND)
+        .value("METHOD_NOT_ALLOWED", ml::rest_api::HttpStatus::METHOD_NOT_ALLOWED)
+        .value("INTERNAL_SERVER_ERROR", ml::rest_api::HttpStatus::INTERNAL_SERVER_ERROR)
+        .value("NOT_IMPLEMENTED", ml::rest_api::HttpStatus::NOT_IMPLEMENTED)
+        .value("SERVICE_UNAVAILABLE", ml::rest_api::HttpStatus::SERVICE_UNAVAILABLE);
+    
+    // Request class
+    py::class_<ml::rest_api::Request>(rest_module, "Request")
+        .def(py::init<ml::rest_api::HttpMethod, const std::string&,
+                      const std::map<std::string, std::string>&, const std::string&>())
+        .def("method", &ml::rest_api::Request::method)
+        .def("path", &ml::rest_api::Request::path)
+        .def("body", &ml::rest_api::Request::body)
+        .def("headers", &ml::rest_api::Request::headers)
+        .def("query_params", &ml::rest_api::Request::query_params)
+        .def("path_params", &ml::rest_api::Request::path_params)
+        .def("get_header", &ml::rest_api::Request::get_header,
+             py::arg("key"), py::arg("default_val") = "")
+        .def("get_query_param", &ml::rest_api::Request::get_query_param,
+             py::arg("key"), py::arg("default_val") = "")
+        .def("get_path_param", &ml::rest_api::Request::get_path_param,
+             py::arg("key"), py::arg("default_val") = "");
+    
+    // Response class
+    py::class_<ml::rest_api::Response>(rest_module, "Response")
+        .def(py::init<>())
+        .def(py::init<int, const std::string&>())
+        .def("status_code", &ml::rest_api::Response::status_code)
+        .def("body", &ml::rest_api::Response::body)
+        .def("headers", &ml::rest_api::Response::headers)
+        .def("set_status", py::overload_cast<int>(&ml::rest_api::Response::set_status))
+        .def("set_body", &ml::rest_api::Response::set_body)
+        .def("set_header", &ml::rest_api::Response::set_header)
+        .def("set_json", &ml::rest_api::Response::set_json)
+        .def("to_string", &ml::rest_api::Response::to_string);
+    
+    // Server class
+    py::class_<ml::rest_api::Server>(rest_module, "Server")
+        .def(py::init<int>(), py::arg("port") = 8080)
+        .def("get", &ml::rest_api::Server::get)
+        .def("post", &ml::rest_api::Server::post)
+        .def("put", &ml::rest_api::Server::put)
+        .def("delete", &ml::rest_api::Server::delete_)
+        .def("patch", &ml::rest_api::Server::patch)
+        .def("enable_cors", &ml::rest_api::Server::enable_cors,
+             py::arg("origin") = "*")
+        .def("start", &ml::rest_api::Server::start)
+        .def("stop", &ml::rest_api::Server::stop)
+        .def("is_running", &ml::rest_api::Server::is_running)
+        .def("handle_request", &ml::rest_api::Server::handle_request)
+        .def("port", &ml::rest_api::Server::port);
+    
+    // ModelServer class
+    py::class_<ml::rest_api::ModelServer>(rest_module, "ModelServer")
+        .def(py::init<int>(), py::arg("port") = 8080,
+             "Create a model serving server\n\n"
+             "Args:\n"
+             "    port: Port to run the server on (default: 8080)")
+        .def("setup_prediction_endpoint", &ml::rest_api::ModelServer::setup_prediction_endpoint,
+             "Setup a prediction endpoint for a model")
+        .def("setup_batch_prediction_endpoint", &ml::rest_api::ModelServer::setup_batch_prediction_endpoint,
+             "Setup a batch prediction endpoint")
+        .def("setup_health_endpoint", &ml::rest_api::ModelServer::setup_health_endpoint,
+             "Setup a health check endpoint")
+        .def("setup_info_endpoint", &ml::rest_api::ModelServer::setup_info_endpoint,
+             "Setup a model info endpoint")
+        .def("start", &ml::rest_api::ModelServer::start,
+             "Start the server")
+        .def("stop", &ml::rest_api::ModelServer::stop,
+             "Stop the server")
+        .def("get_server", &ml::rest_api::ModelServer::get_server,
+             py::return_value_policy::reference,
+             "Get the underlying Server instance");
+    
+    // JSON utilities
+    rest_module.def("json_encode", &ml::rest_api::json::encode,
+                   "Encode a dictionary to JSON string");
+    rest_module.def("json_decode", &ml::rest_api::json::decode,
+                   "Decode a JSON string to dictionary");
+    rest_module.def("json_encode_array", &ml::rest_api::json::encode_array,
+                   "Encode an array to JSON string");
+    rest_module.def("json_decode_array", &ml::rest_api::json::decode_array,
+                   "Decode a JSON array string");
     
     // DistributedNeuralNetTrainer class
     py::class_<distributed::DistributedNeuralNetTrainer, distributed::DistributedTrainer,

@@ -1,0 +1,77 @@
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "pybind11>=2.6.0",
+    "cmake>=3.12.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml-toolbox"
+version = "0.2.0"
+description = "Comprehensive C++ Machine Learning Library with Python Bindings"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+authors = [
+    {name = "ML Core Team"},
+]
+keywords = [
+    "machine-learning",
+    "deep-learning",
+    "neural-networks",
+    "decision-trees",
+    "svm",
+    "bayesian-networks",
+    "distributed-training",
+    "computer-vision",
+    "nlp",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C++",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "numpy>=1.19.0",
+    "pybind11>=2.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black>=21.0",
+    "mypy>=0.900",
+]
+examples = [
+    "matplotlib>=3.3.0",
+    "scikit-learn>=0.24.0",
+]
+all = [
+    "ml-toolbox[dev,examples]",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/ToolBox"
+Documentation = "https://github.com/yourusername/ToolBox/blob/main/README.md"
+Repository = "https://github.com/yourusername/ToolBox"
+Issues = "https://github.com/yourusername/ToolBox/issues"
+
+[tool.setuptools]
+packages = ["ml_toolbox"]
+
+[tool.setuptools.package-data]
+ml_toolbox = ["*.so", "*.pyd", "*.dll"]

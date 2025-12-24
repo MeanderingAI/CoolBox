@@ -1,10 +1,17 @@
 include README.md
+include README_INSTALL.md
 include requirements.txt
 include CMakeLists.txt
-recursive-include examples *.py
-recursive-include . *.h
-recursive-include . *.cpp
+include pyproject.toml
+include LICENSE
+recursive-include ml_toolbox *.py *.typed
+recursive-include examples *.py *.md
+recursive-include ../include *.h
+recursive-include ../src *.cpp
+recursive-include ../cmake *.cmake
 global-exclude *.pyc
 global-exclude __pycache__
 global-exclude .git*
 global-exclude build/
+global-exclude dist/
+global-exclude *.egg-info

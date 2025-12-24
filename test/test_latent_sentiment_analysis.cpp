@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include <latent_sentiment_analysis.h>
+#include "ml/latent_sentiment_analysis/latent_sentiment_analysis.h"
 #include <Eigen/Dense>
 #include <cmath>
 

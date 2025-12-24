@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <bandit_arm.h>
-#include <epsilon_greedy_agent.h>
-#include <decaying_epsilon_agent.h>
-#include <ucb_agent.h>
-#include <thompson_sampling_agent.h>
+#include "ml/multi_arm_bandit/bandit_arm.h"
+#include "ml/multi_arm_bandit/epsilon_greedy_agent.h"
+#include "ml/multi_arm_bandit/decaying_epsilon_agent.h"
+#include "ml/multi_arm_bandit/ucb_agent.h"
+#include "ml/multi_arm_bandit/thompson_sampling_agent.h"
 
 // Test fixture for BanditArm
 class BanditArmTest : public ::testing::Test {

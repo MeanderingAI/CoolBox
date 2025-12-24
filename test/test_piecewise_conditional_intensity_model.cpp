@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include <piecewise_conditional_intensity_model.h>
+#include "ml/marked_point_process/piecewise_conditional_intensity_model.h"
 #include <Eigen/Dense>
 #include <cmath>
 #include <vector>

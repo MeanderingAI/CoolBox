@@ -2,7 +2,7 @@
 #include <map>
 #include <vector>
 
-#include <bayesian_network.h>
+#include "ml/bayesian_network/bayesian_network.h"
 
 // Helper function to check if two doubles are approximately equal
 bool nearly_equal(double a, double b, double epsilon = 1e-4) {

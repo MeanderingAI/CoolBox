@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "dimensionality_reduction/svd.h"
+#include "ml/dimensionality_reduction/svd.h"
 #include <Eigen/Dense>
 #include <cmath>
 

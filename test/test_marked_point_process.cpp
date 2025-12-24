@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include <marked_point_process.h>
+#include "ml/marked_point_process/marked_point_process.h"
 #include <Eigen/Dense>
 #include <cmath>
 #include <vector>

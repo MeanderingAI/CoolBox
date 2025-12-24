@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <Eigen/Dense>
-#include <linear_kernel.h>
-#include <polynomial_kernel.h>
-#include <rbf_kernel.h>
-#include <sigmoid_kernel.h>
+#include "ml/support_vector_machine/linear_kernel.h"
+#include "ml/support_vector_machine/polynomial_kernel.h"
+#include "ml/support_vector_machine/rbf_kernel.h"
+#include "ml/support_vector_machine/sigmoid_kernel.h"
 
 // Test fixture to set up common test data
 class KernelTest : public ::testing::Test {

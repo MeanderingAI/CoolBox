@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <random_forest.h>
-#include <decision_tree.h>
+#include "ml/decision_tree/random_forest.h"
+#include "ml/decision_tree/decision_tree.h"
 #include <vector>
 #include <numeric>
 #include <random>

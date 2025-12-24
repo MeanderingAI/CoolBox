@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "dimensionality_reduction/knn.h"
+#include "ml/dimensionality_reduction/knn.h"
 #include <Eigen/Dense>
 
 using namespace dimensionality_reduction;

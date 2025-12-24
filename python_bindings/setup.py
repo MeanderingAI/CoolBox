@@ -44,16 +44,22 @@ src_dirs = [
     "src/tracker",
     "src/dimensionality_reduction",
     "src/deep_learning",
+    "src/distributed",
     "src/computer_vision",
     "src/time_series",
-    "src/nlp"
+    "src/nlp",
+    "src/json",
+    "src/sql",
+    "src/rest_api"
 ]
 
 for src_dir in src_dirs:
     full_path = os.path.join(parent_dir, src_dir)
     if os.path.exists(full_path):
         cpp_files = glob.glob(os.path.join(full_path, "*.cpp"))
-        source_files.extend(cpp_files)
+        # Make paths relative to python_bindings directory
+        relative_files = [os.path.relpath(f, project_root) for f in cpp_files]
+        source_files.extend(relative_files)
 
 # Compiler flags
 compile_args = [
@@ -70,18 +76,21 @@ ext_modules = [
         "ml_core",
         source_files,
         include_dirs=include_dirs,
+        libraries=["sqlite3"],
         cxx_std=17,
         extra_compile_args=compile_args,
     ),
 ]
 
 setup(
-    name="ml_core",
-    version="0.1.0",
+    name="ml-toolbox",
+    version="0.2.0",
     author="ML Core Team",
     author_email="",
-    description="Python bindings for ML Core C++ library",
-    long_description="A comprehensive machine learning library with Python bindings for decision trees, SVM, Bayesian networks, HMM, linear regression, and more.",
+    description="Comprehensive C++ Machine Learning Library with Python Bindings",
+    long_description=open(os.path.join(project_root, "README.md")).read() if os.path.exists(os.path.join(project_root, "README.md")) else "A comprehensive machine learning library with Python bindings for decision trees, SVM, Bayesian networks, HMM, deep learning, distributed training, and more.",
+    long_description_content_type="text/markdown",
+    url="https://github.com/yourusername/ToolBox",
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
     zip_safe=False,

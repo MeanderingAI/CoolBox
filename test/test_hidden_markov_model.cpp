@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <hidden_markov_model.h> // Your HMM class header
+#include "ml/hidden_markov_model/hidden_markov_model.h" // Your HMM class header
 
 // Helper function to initialize a simple, known HMM
 HMM create_test_hmm() {
