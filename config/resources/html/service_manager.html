@@ -84,6 +84,7 @@
 			.slide { padding: 16px 4vw 24px 4vw; }
 		}
 	</style>
+	<script src="fetch_logger.js"></script>
 </head>
 <body>
 	<h1>Service Manager</h1>
@@ -107,7 +108,7 @@
 						   <th>Last Modified</th>
 						   <th>Version</th>
 						   <th>Description</th>
-						   <th>Author</th>
+						   <!-- <th>Author</th> -->
 						   <th>Docs</th>
 					   </tr>
 				   </thead>
@@ -193,7 +194,7 @@
 					   <td>${formatDate(lib.last_modified)}</td>
 					   <td>${lib.version || ''}</td>
 					   <td>${lib.description || ''}</td>
-					   <td>${lib.author || ''}</td>
+					   <!-- <td>${lib.author || ''}</td> -->
 					   <td>${lib.has_metadata ? `<button class='docs-btn' data-doc='${lib.name}'>Docs</button>` : ''}</td>
 				   `;
 				   tbody.appendChild(tr);

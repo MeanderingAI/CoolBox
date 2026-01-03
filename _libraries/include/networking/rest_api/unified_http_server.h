@@ -1,6 +1,6 @@
 // ...existing code...
 #pragma once
-#include "http1_server.h"
+#include "http1_servlet.h"
 #include "http2_server.h"
 #include "http3_server.h"
 #include "file_system/file_watcher.h"
@@ -34,7 +34,7 @@ public:
 private:
     int port_;
     size_t num_threads_;
-    std::unique_ptr<Http1Server> http1_;
+    std::unique_ptr<Http1Servlet> http1_;
     std::unique_ptr<Http2Server> http2_;
     std::unique_ptr<Http3Server> http3_;
     std::thread t1_, t2_, t3_;

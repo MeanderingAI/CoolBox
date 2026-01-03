@@ -1,5 +1,5 @@
 #include "networking/rest_api/http_server_base.h"
-#include "networking/rest_api/http1_server.h"
+#include "networking/rest_api/http1_servlet.h"
 #include "networking/rest_api/http2_server.h"
 #include "networking/rest_api/http3_server.h"
 
@@ -81,7 +81,7 @@ std::unique_ptr<HttpServerBase> HttpServerFactory::create(
 }
 
 std::unique_ptr<HttpServerBase> HttpServerFactory::create_http1(int port, size_t num_threads) {
-    return std::make_unique<Http1Server>(port, num_threads);
+    return std::make_unique<Http1Servlet>(port, num_threads);
 }
 
 std::unique_ptr<HttpServerBase> HttpServerFactory::create_http2(int port, size_t num_threads) {

@@ -1,9 +1,16 @@
+
 #include "advanced_logging/advanced_logging.h"
 static advanced_logging::Logger http2_logger("http2_server.log");
 #include "networking/rest_api/http2_server.h"
 #include <iostream>
 #include <random>
 #include <sstream>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <errno.h>
 
 namespace networking {
 namespace rest_api {
@@ -19,6 +26,7 @@ Http2Server::Http2Server(int port, size_t num_threads)
     settings_.initial_window_size = 65535;
     settings_.max_frame_size = 16384;
     settings_.max_header_list_size = 8192;
+
 }
 
 Http2Server::~Http2Server() {
@@ -31,12 +39,56 @@ ProtocolCapabilities Http2Server::capabilities() const {
 
 void Http2Server::start() {
     running_ = true;
-    std::cout << "HTTP/2 Server started on port " << port_ << std::endl;
-    std::cout << "Protocol: HTTP/2 (binary framing, multiplexing enabled)" << std::endl;
-    std::cout << "Thread pool size: " << num_threads_ << " threads" << std::endl;
-    std::cout << "Max concurrent streams: " << settings_.max_concurrent_streams << std::endl;
-    std::cout << "Server push: " << (settings_.enable_push ? "enabled" : "disabled") << std::endl;
-    std::cout << "Header compression: HPACK" << std::endl;
+    std::cout << "[unified http handler] HTTP/2 Server started on port " << port_ << std::endl;
+    std::cout << "[unified http handler] Protocol: HTTP/2 (binary framing, multiplexing enabled)" << std::endl;
+    std::cout << "[unified http handler] Thread pool size: " << num_threads_ << " threads" << std::endl;
+    std::cout << "[unified http handler] Max concurrent streams: " << settings_.max_concurrent_streams << std::endl;
+    std::cout << "[unified http handler] Server push: " << (settings_.enable_push ? "enabled" : "disabled") << std::endl;
+    std::cout << "[unified http handler] Header compression: HPACK" << std::endl;
+
+    try {
+        int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (server_fd < 0) {
+            throw std::runtime_error("socket() failed: " + std::string(strerror(errno)));
+        }
+        sockaddr_in serv_addr{};
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        serv_addr.sin_port = htons(port_);
+        if (bind(server_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+            close(server_fd);
+            throw std::runtime_error("bind() failed: " + std::string(strerror(errno)));
+        }
+        if (listen(server_fd, 16) < 0) {
+            close(server_fd);
+            throw std::runtime_error("listen() failed: " + std::string(strerror(errno)));
+        }
+        std::cout << "[unified http handler] Listening for HTTP/2 connections on port " << port_ << std::endl;
+        while (running_) {
+            sockaddr_in client_addr{};
+            socklen_t client_len = sizeof(client_addr);
+            int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+            if (client_fd < 0) {
+                if (running_) {
+                    throw std::runtime_error("accept() failed: " + std::string(strerror(errno)));
+                }
+                continue;
+            }
+            char addr_buf[INET_ADDRSTRLEN];
+            std::string remote_addr = inet_ntop(AF_INET, &client_addr.sin_addr, addr_buf, INET_ADDRSTRLEN) ? std::string(addr_buf) : "";
+            // TODO: Parse HTTP/2 frames and construct Request objects
+            // For demonstration, create a dummy Request and log remote_addr
+            std::cout << "Accepted HTTP/2 connection from " << remote_addr << std::endl;
+            // networking::http::Request req(method_enum, path, headers, body, remote_addr);
+            close(client_fd);
+            std::cout << "[servlet] Request handled and connection closed." << std::endl;
+        }
+        close(server_fd);
+        std::cout << "[unified http handler] HTTP/2 server (thread pool) stopped." << std::endl;
+    } catch (const std::exception& ex) {
+        std::cerr << "[unified http handler] HTTP/2 Server error: " << ex.what() << std::endl;
+        running_ = false;
+    }
 }
 
 void Http2Server::stop() {
@@ -44,7 +96,7 @@ void Http2Server::stop() {
     if (thread_pool_) {
         thread_pool_->stop();
     }
-    std::cout << "HTTP/2 Server stopped" << std::endl;
+    std::cout << "[unified http handler] HTTP/2 server (thread pool) stopped." << std::endl;
 }
 
 nhh::Response Http2Server::handle_request(const nhh::Request& request) {

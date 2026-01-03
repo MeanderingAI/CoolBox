@@ -46,21 +46,25 @@ class Request {
 public:
     Request(HttpMethod method, const std::string& path,
             const std::map<std::string, std::string>& headers,
-            const std::string& body);
-    
+            const std::string& body,
+            const std::string& remote_addr = "");
+
     HttpMethod method() const { return method_; }
     std::string path() const { return path_; }
     std::string body() const { return body_; }
     std::map<std::string, std::string> headers() const { return headers_; }
     std::map<std::string, std::string> query_params() const { return query_params_; }
     std::map<std::string, std::string> path_params() const { return path_params_; }
-    
+
     std::string get_header(const std::string& key, const std::string& default_val = "") const;
     std::string get_query_param(const std::string& key, const std::string& default_val = "") const;
     std::string get_path_param(const std::string& key, const std::string& default_val = "") const;
-    
+
     void set_path_params(const std::map<std::string, std::string>& params);
-    
+
+    // New: Get remote address of the client
+    std::string remote_addr() const { return remote_addr_; }
+
 private:
     HttpMethod method_;
     std::string path_;
@@ -68,7 +72,8 @@ private:
     std::map<std::string, std::string> query_params_;
     std::map<std::string, std::string> path_params_;
     std::string body_;
-    
+    std::string remote_addr_;
+
     void parse_query_params();
 };
 

@@ -7,8 +7,8 @@
  * - Chunked transfer encoding
  */
 
-#ifndef NETWORKING_REST_API_HTTP1_SERVER_H
-#define NETWORKING_REST_API_HTTP1_SERVER_H
+#ifndef NETWORKING_REST_API_HTTP1_SERVLET_H
+#define NETWORKING_REST_API_HTTP1_SERVLET_H
 
 #include "http_server_base.h"
 
@@ -17,7 +17,7 @@ namespace nhh = networking::http;
 namespace networking {
 namespace rest_api {
 
-class Http1Server : public HttpServerBase {
+class Http1Servlet : public HttpServerBase {
 private:
     // Connection tracking
     struct Connection {
@@ -34,8 +34,8 @@ private:
     std::mutex connections_mutex_;
     
 public:
-    Http1Server(int port = 8080, size_t num_threads = 4);
-    ~Http1Server() override;
+    Http1Servlet(int port = 8080, size_t num_threads = 4);
+    ~Http1Servlet() override;
     
     // Protocol information
     HttpVersion protocol_version() const override { return HttpVersion::HTTP_1_1; }

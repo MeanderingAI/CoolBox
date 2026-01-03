@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "networking/rest_api/http1_server.h"
+#include "networking/rest_api/http1_servlet.h"
 #include "networking/rest_api/http2_server.h"
 #include "networking/rest_api/http3_server.h"
 #include "networking/http/request_response.h"
@@ -17,8 +17,8 @@ Response dummy_handler(const Request& req) {
     return res;
 }
 
-TEST(Http1ServerTest, StartStop) {
-    Http1Server server(9081, 2);
+TEST(Http1ServletTest, StartStop) {
+    Http1Servlet server(9081, 2);
     server.load_routes({std::make_shared<Route>("/", networking::http::HttpMethod::GET, dummy_handler)});
     std::thread t([&](){ server.start(); });
     std::this_thread::sleep_for(std::chrono::milliseconds(200));

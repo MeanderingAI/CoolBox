@@ -38,12 +38,15 @@
 #include "utils.hpp"
 #include "request_handlers.h"
 #include "server_constants.hpp"
+
 #include "binary_info.hpp"
 #include "shared_library.hpp"
+#include "advanced_logging/advanced_logging.h"
 
 
 
 int main(int argc, char* argv[]) {
+    static advanced_logging::Logger logger("service_manager.log");
     int port = 9004;
     size_t num_threads = 8;
     std::string config_path = "config/path_routes/bp.json";
@@ -57,9 +60,9 @@ int main(int argc, char* argv[]) {
 
     const auto& routes = service_manager::get_api_routes();
 
-    std::cout << "Exposed API Routes:\n";
+    logger.info("Exposed API Routes:");
     for (const auto& r : routes) {
-        std::cout << "  [" << r.method << "] " << r.path << "\n      - " << r.description << "\n";
+        logger.info("  [" + r.method + "] " + r.path + " - " + r.description);
     }
 
     std::vector<std::shared_ptr<networking::rest_api::Route>> shared_routes;
@@ -79,14 +82,14 @@ int main(int argc, char* argv[]) {
     unified_server.enable_cors();
     unified_server.load_routes(shared_routes);
     unified_server.start();
-    std::cout << "Unified HTTP server running on port " << port << " (HTTP/1.1, HTTP/2, HTTP/3)" << std::endl;
-    std::cout << "[DEBUG] After unified_server.start(), is_running() = " << unified_server.is_running() << std::endl;
+    logger.info("Unified HTTP server running on port " + std::to_string(port) + " (HTTP/1.1, HTTP/2, HTTP/3)");
+    logger.debug("[DEBUG] After unified_server.start(), is_running() = " + std::string(unified_server.is_running() ? "true" : "false"));
     int loop_count = 0;
     while (unified_server.is_running()) {
-        std::cout << "[DEBUG] Main loop, is_running() = true, loop_count = " << loop_count++ << std::endl;
+        logger.debug("[DEBUG] Main loop, is_running() = true, loop_count = " + std::to_string(loop_count++));
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    std::cout << "[DEBUG] Main loop exited, is_running() = " << unified_server.is_running() << std::endl;
+    logger.warn("[DEBUG] Main loop exited, is_running() = " + std::string(unified_server.is_running() ? "true" : "false"));
 
     return 0;
 }

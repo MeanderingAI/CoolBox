@@ -3,7 +3,7 @@ add_library(rest_api SHARED
     model_server.cpp
     http_protocol.cpp
     http_server_base.cpp
-    http1_server.cpp
+    http1_servlet.cpp
     http2_server.cpp
     http3_server.cpp
     unified_http_server.cpp

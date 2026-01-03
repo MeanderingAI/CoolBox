@@ -1,3 +1,5 @@
+# Option to control Emscripten MODULARIZE (default ON, can override with -DEMSCRIPTEN_MODULARIZE=OFF)
+option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async JS loading)" ON)
 
 cmake_minimum_required(VERSION 3.12)
 project(Models)

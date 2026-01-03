@@ -1,3 +1,51 @@
+
+/**
+ * @mainpage SVM Library
+ *
+ * @section usage_examples Usage Examples
+ *
+ * @subsection cpp_example C++ Example
+ * @code{.cpp}
+ * #include "ml/support_vector_machine/support_vector_machine.h"
+ * LinearKernel kernel;
+ * SVM svm(kernel);
+ * svm.fit(X, y); // X: Eigen::MatrixXd, y: Eigen::VectorXd
+ * double pred = svm.predict(sample);
+ * @endcode
+ *
+ * @subsection python_example Python Example
+ * @code{.python}
+ * from ml_core.svm import SVM, LinearKernel
+ * kernel = LinearKernel()
+ * svm = SVM(kernel)
+ * svm.fit(X, y)
+ * pred = svm.predict(sample)
+ * @endcode
+ *
+ * @subsection js_example JavaScript Example (WASM/Emscripten)
+ * @code{.js}
+ * // Async usage (MODULARIZE=1, default):
+ * createSVMModule().then(Module => {
+ *     const SVM = Module.SVM;
+ *     const kernel = new Module.LinearKernel();
+ *     const svm = new SVM(kernel);
+ *     svm.fit(X, y);
+ *     const pred = svm.predict(sample);
+ * });
+ * @endcode
+ *
+ * @subsection js_example_sync JavaScript Example (Synchronous, MODULARIZE=0)
+ * @code{.js}
+ * // If svm.js is loaded and exposes 'Module' globally:
+ * const SVM = Module.SVM;
+ * const kernel = new Module.LinearKernel();
+ * const svm = new SVM(kernel);
+ * svm.fit(X, y);
+ * const pred = svm.predict(sample);
+ * // Note: If built with MODULARIZE=1 (default), you must use createSVMModule().then(...)
+ * // If built with MODULARIZE=0, you can use the Module object directly after script load.
+ * @endcode
+ */
 #ifndef SVM_H
 #define SVM_H
 

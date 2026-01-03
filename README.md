@@ -1,3 +1,30 @@
+# Compiling
+
+## Makefile Commands
+
+- `make build` — Build all C++ libraries
+- `make build-apps` — Build all C++ apps
+- `make build-services` — Build all C++ services
+- `make build-service-manager` — Build the service_manager app
+- `make build-emscripten` — Build Emscripten JS/WASM bindings (set EMS_MODULARIZE=0 for synchronous JS, default is async)
+- `make clean` — Remove all build artifacts
+- `make list-apps` — List all built apps
+- `make list-libs` — List all built libraries
+- `make list-services` — List all built services
+- `make help-run` — Show runnable apps and demos
+
+### Example: Build Emscripten bindings with MODULARIZE=0 (sync JS)
+
+```sh
+make build-emscripten EMS_MODULARIZE=OFF
+```
+
+### Example: Build Emscripten bindings with MODULARIZE=1 (async JS, default)
+
+```sh
+make build-emscripten
+```
+
 # Tool Box
 
 The cmake generates shared objects which can be used with other projects for each of these categories of machine learning.

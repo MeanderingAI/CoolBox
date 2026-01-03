@@ -6,8 +6,9 @@ namespace http {
 
 Request::Request(HttpMethod method, const std::string& path,
                  const std::map<std::string, std::string>& headers,
-                 const std::string& body)
-    : method_(method), path_(path), headers_(headers), body_(body) {
+                 const std::string& body,
+                 const std::string& remote_addr)
+    : method_(method), path_(path), headers_(headers), body_(body), remote_addr_(remote_addr) {
     parse_query_params();
 }
 

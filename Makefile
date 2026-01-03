@@ -1,3 +1,14 @@
+# Build Emscripten JS/WASM bindings (default MODULARIZE=1, override with EMS_MODULARIZE=0)
+.PHONY: build-emscripten
+build-emscripten:
+	@echo "========================================"
+	@echo "Building Emscripten JS/WASM bindings (_libraries/emscripten_bindings)"
+	@echo "========================================"
+	@mkdir -p build
+	cd build && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=$(or $(EMS_MODULARIZE),ON) .. && $(MAKE) advanced_logging_js
+	@echo "✓ Emscripten bindings built! (MODULARIZE=$$(if $(EMS_MODULARIZE),$(EMS_MODULARIZE),ON))"
+	@ls -lh _libraries/emscripten_bindings/*.js || true
+	@echo ""
 # Alias for user convenience
 build-service_manager: build-service-manager
 # List all built apps

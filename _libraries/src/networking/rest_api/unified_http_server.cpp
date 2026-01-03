@@ -14,7 +14,7 @@ UnifiedHttpServer::UnifiedHttpServer(int port, size_t num_threads)
     : port_(port), num_threads_(num_threads), running_(false) {
     unified_server_logger.info("UnifiedHttpServer constructed on port " + std::to_string(port) + ", threads: " + std::to_string(num_threads));
     try {
-        http1_ = std::make_unique<Http1Server>(port, num_threads);
+        http1_ = std::make_unique<Http1Servlet>(port, num_threads);
         http2_ = std::make_unique<Http2Server>(port, num_threads);
         http3_ = std::make_unique<Http3Server>(port, num_threads);
     } catch (const std::exception& ex) {

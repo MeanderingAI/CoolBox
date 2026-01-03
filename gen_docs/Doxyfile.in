@@ -1,0 +1,19 @@
+# Doxyfile.in for ToolBox
+PROJECT_NAME           = ToolBox
+OUTPUT_DIRECTORY       = @CMAKE_CURRENT_SOURCE_DIR@/html
+INPUT                  = @TOOLBOX_SOURCE_DIR@/_libraries/include \
+						@TOOLBOX_SOURCE_DIR@/libraries/src \
+						@TOOLBOX_SOURCE_DIR@/python_bindings \
+						@TOOLBOX_SOURCE_DIR@/_libraries/emscripten_bindings
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_ANON_NSPACES   = YES
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+GENERATE_TREEVIEW      = YES
+FULL_PATH_NAMES        = NO

@@ -1,4 +1,48 @@
 
+
+/**
+ * @mainpage DecisionTree Library
+ *
+ * @section usage_examples Usage Examples
+ *
+ * @subsection cpp_example C++ Example
+ * @code{.cpp}
+ * #include "ml/decision_tree/decision_tree.h"
+ * DecisionTree tree(SplitCriterion::GINI);
+ * tree.fit(X, y, 5); // X: std::vector<std::vector<int>>, y: std::vector<int>
+ * int label = tree.predict(sample);
+ * @endcode
+ *
+ * @subsection python_example Python Example
+ * @code{.python}
+ * from ml_core.decision_tree import DecisionTree, SplitCriterion
+ * tree = DecisionTree(SplitCriterion.GINI)
+ * tree.fit(X, y, 5)
+ * label = tree.predict(sample)
+ * @endcode
+ *
+ * @subsection js_example JavaScript Example (WASM/Emscripten)
+ * @code{.js}
+ * // Async usage (MODULARIZE=1, default):
+ * createDecisionTreeModule().then(Module => {
+ *     const DecisionTree = Module.DecisionTree;
+ *     const tree = new DecisionTree(Module.SplitCriterion.GINI);
+ *     tree.fit(X, y, 5);
+ *     const label = tree.predict(sample);
+ * });
+ * @endcode
+ *
+ * @subsection js_example_sync JavaScript Example (Synchronous, MODULARIZE=0)
+ * @code{.js}
+ * // If decision_tree.js is loaded and exposes 'Module' globally:
+ * const DecisionTree = Module.DecisionTree;
+ * const tree = new DecisionTree(Module.SplitCriterion.GINI);
+ * tree.fit(X, y, 5);
+ * const label = tree.predict(sample);
+ * // Note: If built with MODULARIZE=1 (default), you must use createDecisionTreeModule().then(...)
+ * // If built with MODULARIZE=0, you can use the Module object directly after script load.
+ * @endcode
+ */
 #ifndef DECISION_TREE_H
 #define DECISION_TREE_H
 

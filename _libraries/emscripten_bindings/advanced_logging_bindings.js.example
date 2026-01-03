@@ -1,0 +1,13 @@
+// Example: Using advanced_logging WASM module synchronously (if built with MODULARIZE=0 and exported as 'Module')
+// This requires the Emscripten build to be configured without MODULARIZE=1
+// and the script to be loaded synchronously before use.
+
+// If advanced_logging.js is loaded and exposes 'Module' globally:
+const Logger = Module.Logger;
+const logger = new Logger(); // logs to console by default
+logger.info("Hello from JS (sync)!");
+logger.warn("This is a warning");
+logger.error("This is an error");
+
+// Note: If built with MODULARIZE=1 (default), you must use createAdvancedLoggingModule().then(...)
+// If built with MODULARIZE=0, you can use the Module object directly after script load.

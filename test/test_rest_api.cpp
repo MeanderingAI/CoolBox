@@ -2,7 +2,7 @@
 #include "networking/rest_api/server.h"
 #include "networking/rest_api/http_protocol.h"
 #include "networking/rest_api/http_server_base.h"
-#include "networking/rest_api/http1_server.h"
+#include "networking/rest_api/http1_servlet.h"
 #include "networking/rest_api/http2_server.h"
 #include "networking/rest_api/http3_server.h"
 #include "dataformats/json/json.h"
@@ -380,8 +380,8 @@ TEST(HttpServerFactoryTest, ServerRouting) {
 // HTTP/1.1 Server Tests
 // ============================================================================
 
-TEST(Http1ServerTest, KeepAliveSettings) {
-    Http1Server server(8080, 4);
+TEST(Http1ServletTest, KeepAliveSettings) {
+    Http1Servlet server(8080, 4);
     
     // Test default keep-alive
     server.set_keep_alive(true, 10);
@@ -393,8 +393,8 @@ TEST(Http1ServerTest, KeepAliveSettings) {
     EXPECT_EQ(res.status(), HttpStatus::NOT_FOUND); // No routes added
 }
 
-TEST(Http1ServerTest, ConnectionTracking) {
-    Http1Server server(8080, 4);
+TEST(Http1ServletTest, ConnectionTracking) {
+    Http1Servlet server(8080, 4);
     
     server.get("/", [](const Request& req) {
         Response res;

@@ -1,0 +1,19 @@
+# Doxyfile.in for ToolBox
+PROJECT_NAME           = ToolBox
+OUTPUT_DIRECTORY       = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html
+INPUT                  = /Users/mehranghamaty/wkspace/ToolBox/_libraries/include \
+						/Users/mehranghamaty/wkspace/ToolBox/libraries/src \
+						/Users/mehranghamaty/wkspace/ToolBox/python_bindings \
+						/Users/mehranghamaty/wkspace/ToolBox/_libraries/emscripten_bindings
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_ANON_NSPACES   = YES
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+GENERATE_TREEVIEW      = YES
+FULL_PATH_NAMES        = NO
