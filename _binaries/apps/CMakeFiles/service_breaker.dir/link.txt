@@ -1,0 +1,2 @@
+/usr/bin/ar qc libservice_breaker.a CMakeFiles/service_breaker.dir/service_breaker/service_breaker.cpp.o
+/usr/bin/ranlib libservice_breaker.a

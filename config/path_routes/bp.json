@@ -1,0 +1,7 @@
+{
+  "workspace_path": "/Users/mehranghamaty/wkspace/ToolBox",
+  "libdocs_path": "gen_docs/html/libs",
+  "resources": {
+    "html": "./config/resources/html/"
+  }
+}

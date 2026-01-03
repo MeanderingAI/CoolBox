@@ -199,12 +199,37 @@ Eigen::MatrixXd X_umap = umap.fit_transform(X);
 
 # Dependencies
 
+## CMAKE
+
+OSX
+```
+brew install cmake
+```
+
 ## GSL
 
-This library uses libgsl, on ubuntu it can be installed with
+This library uses libgsl for the distribution generation, on ubuntu it can be installed with
 
+Ubuntu
 ```
 sudo apt install libgsl-dev
+```
+
+OSX
+```
+brew install gsl
+```
+
+## Bison
+
+```
+brew install bison
+```
+
+## Doxygen
+
+```
+brew install doxygen
 ```
 
 ## Eigen
@@ -217,11 +242,21 @@ This library is automatically installed by cmake during compilation
 
 # Compiling
 
-use the `./clean&build` script.
+
+## Dependencies
+
+- C++17 compiler (clang++/g++)
+- CMake 3.12+
+- Python 3 (for bindings)
+- **Rust (cargo)**: Required for HTTP/3/QUIC support (quiche library)
+   - Install on macOS: `brew install rust`
+   - Or: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+Use the `./clean&build` script to build everything.
 
 Generated libraries can be found in;
 
-`build/src/lib*.so`
+`build/libraries/src/lib*.so`
 
 # Python Bindings
 

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsystem_monitor_lib.a CMakeFiles/system_monitor_lib.dir/src/system_monitor.cpp.o
+/usr/bin/ranlib libsystem_monitor_lib.a

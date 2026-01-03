@@ -421,7 +421,9 @@ TEST(JsonBuilderTest, SimpleObject) {
     
     Object obj = v.as_object();
     EXPECT_EQ(obj.size(), 3u);
-    EXPECT_EQ(obj.get("name").as_string(), "John");
+    auto name_val = obj.get("name");
+    std::cout << "[DEBUG] obj.get(\"name\").type() = " << static_cast<int>(name_val.type()) << std::endl;
+    EXPECT_EQ(name_val.as_string(), "John");
     EXPECT_EQ(obj.get("age").as_number(), 30);
     EXPECT_TRUE(obj.get("active").as_bool());
 }

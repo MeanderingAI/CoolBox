@@ -1,0 +1,9 @@
+PROJECT_NAME = "networking/html API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/networking/html
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/networking/html
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

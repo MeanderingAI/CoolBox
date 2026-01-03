@@ -1,0 +1,9 @@
+PROJECT_NAME = "services/service_breaker API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/services/service_breaker
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/services/service_breaker
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

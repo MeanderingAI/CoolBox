@@ -1,3 +1,8 @@
+# HTTP server tests
+add_executable(http_server_tests test_http_server.cpp)
+target_link_libraries(http_server_tests PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(http_server_tests PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME HttpServerTests COMMAND http_server_tests)
 enable_testing()
 
 set(FILTER_SOURCES
@@ -16,7 +21,7 @@ set(LSA_SOURCES
 )
 add_executable(lsa_tests ${LSA_SOURCES})
 target_link_libraries(lsa_tests PRIVATE latent_sentiment_analysis Eigen3::Eigen gtest_main)
-target_include_directories(lsa_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/latent_sentiment_analysis)
+target_include_directories(lsa_tests PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include/latent_sentiment_analysis)
 add_test(NAME LSATests COMMAND lsa_tests)
 
 set(HMM_SOURCES
@@ -75,7 +80,7 @@ set(SVM_SOURCES
 )
 add_executable(svm_tests ${SVM_SOURCES})
 target_link_libraries(svm_tests PRIVATE support_vector_machine Eigen3::Eigen gtest_main)
-target_include_directories(svm_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/support_vector_machine)
+target_include_directories(svm_tests PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include/support_vector_machine)
 add_test(NAME SVMTests COMMAND svm_tests)
 
 set(MPP_SOURCES
@@ -83,7 +88,7 @@ set(MPP_SOURCES
 )
 add_executable(mpp_tests ${MPP_SOURCES})
 target_link_libraries(mpp_tests PRIVATE marked_point_process Eigen3::Eigen gtest_main)
-target_include_directories(mpp_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/marked_point_process)
+target_include_directories(mpp_tests PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include/marked_point_process)
 add_test(NAME MPPTests COMMAND mpp_tests)
 
 set(PCIM_SOURCES
@@ -91,7 +96,7 @@ set(PCIM_SOURCES
 )
 add_executable(pcim_tests ${PCIM_SOURCES})
 target_link_libraries(pcim_tests PRIVATE marked_point_process Eigen3::Eigen gtest_main)
-target_include_directories(pcim_tests PRIVATE ${CMAKE_SOURCE_DIR}/include/marked_point_process)
+target_include_directories(pcim_tests PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include/marked_point_process)
 add_test(NAME PCIMTests COMMAND pcim_tests)
 
 set(SVD_SOURCES

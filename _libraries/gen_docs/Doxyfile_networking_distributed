@@ -1,0 +1,9 @@
+PROJECT_NAME = "networking/distributed API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/networking/distributed
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/networking/distributed
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

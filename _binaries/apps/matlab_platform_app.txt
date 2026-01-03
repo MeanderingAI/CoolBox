@@ -1,0 +1,10 @@
+# CMake or Makefile integration for matlab_platform_app
+# Add this file to your build system as needed.
+
+# Example for CMakeLists.txt:
+# add_executable(matlab_platform_app _binaries/apps/matlab_platform_app.cpp)
+# target_link_libraries(matlab_platform_app ...)
+
+# Example for Makefile:
+# _binaries/apps/matlab_platform_app: _binaries/apps/matlab_platform_app.cpp
+# 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

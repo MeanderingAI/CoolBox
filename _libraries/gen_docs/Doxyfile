@@ -1,0 +1,9 @@
+# Doxyfile.in for gen_docs
+PROJECT_NAME           = "ToolBox API Documentation"
+OUTPUT_DIRECTORY       = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html
+INPUT                  = /Users/mehranghamaty/wkspace/ToolBox/include
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTRACT_ALL            = YES
+QUIET                  = YES

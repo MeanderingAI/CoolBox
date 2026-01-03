@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libserver_launch.dylib -install_name @rpath/libserver_launch.dylib CMakeFiles/server_launch.dir/service_manager.cpp.o  -lpthread

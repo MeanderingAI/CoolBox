@@ -1,5 +1,16 @@
+
 cmake_minimum_required(VERSION 3.12)
 project(Models)
+
+
+# Ensure std::filesystem is available on macOS
+if(APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version")
+endif()
+
+# Add _libraries/include and quiche include as global include directories
+include_directories(${CMAKE_SOURCE_DIR}/_libraries/include)
+include_directories(${CMAKE_SOURCE_DIR}/external/quiche/quiche/include)
 
 # Set C++ standard globally
 set(CMAKE_CXX_STANDARD 17)
@@ -12,9 +23,14 @@ include(cmake/ExternalDependencies.cmake)
 add_executable(tui main.cpp)
 
 # Add subdirectories for the shared library and tests
-add_subdirectory(src)
+
+# Pass top-level source dir to gen_docs
+set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox source directory" FORCE)
+
+add_subdirectory(_libraries/src)
 add_subdirectory(test)
-add_subdirectory(demos)
+add_subdirectory(_binaries/demos)
+add_subdirectory(_libraries/gen_docs)
 
 # Option to build Python bindings
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
@@ -32,3 +48,25 @@ if(BUILD_PYTHON_BINDINGS)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+add_subdirectory(_binaries/examples)
+add_subdirectory(_binaries/apps)
+add_subdirectory(_binaries/services)
+add_subdirectory(_libraries/src/advanced_logging)
+
+
+# Add quiche (QUIC/HTTP3) as external dependency
+include(ExternalProject)
+ExternalProject_Add(
+    quiche_build
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/quiche
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND cargo build --release --features ffi
+    INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${CMAKE_SOURCE_DIR}/external/quiche/target/release/libquiche.a
+    BUILD_IN_SOURCE 1
+)
+
+# Add quiche include and library paths for dependent targets
+set(QUICHE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/quiche/quiche/include)
+set(QUICHE_LIB ${CMAKE_SOURCE_DIR}/external/quiche/target/release/libquiche.a)

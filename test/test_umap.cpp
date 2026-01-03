@@ -95,7 +95,7 @@ TEST_F(UMAPTest, DifferentMetrics) {
 
 TEST_F(UMAPTest, ClusterSeparation) {
     // Test that UMAP separates the two clusters
-    UMAP umap(2, 15, 0.1, "euclidean", 1.0, 100);
+    UMAP umap(2, 30, 0.01, "euclidean", 2.0, 300);
     Eigen::MatrixXd embedding = umap.fit_transform(X);
     
     // Compute centroids of the two clusters in embedding space

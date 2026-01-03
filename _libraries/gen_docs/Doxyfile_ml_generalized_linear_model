@@ -1,0 +1,9 @@
+PROJECT_NAME = "ml/generalized_linear_model API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/ml/generalized_linear_model
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/ml/generalized_linear_model
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp
