@@ -1,5 +1,5 @@
 
-#include "ml/support_vector_machine/rbf_kernel.h"
+#include "ML/support_vector_machine/rbf_kernel.h"
 
 double RBFKernel::calculate(const Eigen::VectorXd& x, const Eigen::VectorXd& y) const {
     double squared_distance = (x - y).squaredNorm();

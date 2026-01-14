@@ -61,12 +61,11 @@ Shows advanced concurrency features:
 - Performance benchmarking
 
 ### 4. Model Server (`model_server_example.cpp`)
-ML model serving capabilities:
-- `ModelServer` class for model hosting
-- Model registration and discovery
-- Single and batch predictions
-- Model metadata endpoints
-- Error handling for invalid requests
+ ML model serving capabilities:
+ Model registration and discovery
+ Single and batch predictions
+ Model metadata endpoints
+ Error handling for invalid requests
 
 **Key concepts:**
 - `MLModel` interface implementation
@@ -83,7 +82,7 @@ make
 ```
 
 ### Build specific example:
-```bash
+```
 make basic_server
 make json_example
 make threaded_server

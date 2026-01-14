@@ -1,4 +1,4 @@
-#include "ml/nlp/embeddings.h"
+#include "ML/nlp/embeddings.h"
 #include <random>
 #include <cmath>
 #include <algorithm>

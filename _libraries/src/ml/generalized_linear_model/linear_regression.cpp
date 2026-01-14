@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <random>
 #include <Eigen/Dense>
-#include "ml/generalized_linear_model/linear_regression.h"
-#include "ml/generalized_linear_model/generalized_linear_model.h"
+#include "ML/generalized_linear_model/linear_regression.h"
+#include "ML/generalized_linear_model/generalized_linear_model.h"
 
 
 /**

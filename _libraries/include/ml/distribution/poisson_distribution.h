@@ -1,7 +1,7 @@
 #ifndef POISSON_DISTRIBUTION_H
 #define POISSON_DISTRIBUTION_H
 
-#include "ml/distribution/discrete_distribution.h"
+#include "ML/distribution/discrete_distribution.h"
 #include <random>
 
 

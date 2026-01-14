@@ -8,7 +8,7 @@
  * - Batch prediction
  */
 
-#include "networking/rest_api/model_server.h"
+// #include "networking/rest_api/model_server.h" (removed)
 #include "dataformats/json/json.h"
 #include <iostream>
 #include <vector>
@@ -91,7 +91,7 @@ int main() {
     std::cout << "=== Model Server Example ===" << std::endl;
     
     // Create model server with 4 threads
-    ModelServer server(8080, 4);
+    // ModelServer removed for HTTP2-only build
     
     // Register models
     auto linear_model = std::make_shared<LinearModel>();

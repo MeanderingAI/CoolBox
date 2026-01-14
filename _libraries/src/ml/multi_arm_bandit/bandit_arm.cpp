@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/bandit_arm.h"
+#include "ML/multi_arm_bandit/bandit_arm.h"
 #include <random>
 
 BanditArm::BanditArm(double true_reward_prob) :

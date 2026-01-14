@@ -1,7 +1,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
-#include "ml/tracker/sequential_monte_carlo.h"
+#include "ML/tracker/sequential_monte_carlo.h"
 
 SequentialMonteCarlo::SequentialMonteCarlo(int num_particles)
     : num_particles_(num_particles), particles_(num_particles) {

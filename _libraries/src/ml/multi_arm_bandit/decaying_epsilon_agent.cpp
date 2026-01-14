@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/decaying_epsilon_agent.h"
+#include "ML/multi_arm_bandit/decaying_epsilon_agent.h"
 #include <iostream>
 
 DecayingEpsilonGreedyAgent::DecayingEpsilonGreedyAgent(const std::vector<double>& true_probs, double initial_epsilon, double decay_rate, long long seed)

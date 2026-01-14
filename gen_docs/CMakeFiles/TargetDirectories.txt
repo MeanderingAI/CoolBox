@@ -1,3 +1,0 @@
-/Users/mehranghamaty/wkspace/ToolBox/gen_docs/CMakeFiles/doc.dir
-/Users/mehranghamaty/wkspace/ToolBox/gen_docs/CMakeFiles/edit_cache.dir
-/Users/mehranghamaty/wkspace/ToolBox/gen_docs/CMakeFiles/rebuild_cache.dir

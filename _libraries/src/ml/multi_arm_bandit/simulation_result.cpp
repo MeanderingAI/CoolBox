@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/simulation_result.h"
+#include "ML/multi_arm_bandit/simulation_result.h"
 
 std::ostream& operator<<(std::ostream& os, const SimulationResult& result) {
     os << "Simulation finished." << std::endl;

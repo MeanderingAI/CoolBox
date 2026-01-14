@@ -1,7 +1,7 @@
-#include "ml/deep_learning/templates.h"
-#include "ml/deep_learning/layer.h"
-#include "ml/deep_learning/loss.h"
-#include "ml/deep_learning/optimizer.h"
+#include "ML/deep_learning/templates.h"
+#include "ML/deep_learning/layer.h"
+#include "ML/deep_learning/loss.h"
+#include "ML/deep_learning/optimizer.h"
 #include <stdexcept>
 #include <algorithm>
 

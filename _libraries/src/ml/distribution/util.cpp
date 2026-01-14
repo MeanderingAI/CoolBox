@@ -1,4 +1,4 @@
-#include "ml/distribution/util.h"
+#include "ML/distribution/util.h"
 #include <stdexcept>
 #include <cmath>
 

@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/bandit_agent.h"
+#include "ML/multi_arm_bandit/bandit_agent.h"
 
 BanditAgent::BanditAgent(const std::vector<double>& true_probs) {
     for (double prob : true_probs) {

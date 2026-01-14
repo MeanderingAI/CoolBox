@@ -1,0 +1,35 @@
+# Networking/REST Tests
+add_executable(http_server_tests test_http_server.cpp)
+target_link_libraries(http_server_tests PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(http_server_tests PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME HttpServerTests COMMAND http_server_tests)
+
+add_executable(test_http2_servlet test_http2_servlet.cpp)
+target_link_libraries(test_http2_servlet PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(test_http2_servlet PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME Http2ServletTest COMMAND test_http2_servlet)
+
+add_executable(test_unified_http_servlet test_unified_http_servlet.cpp)
+target_link_libraries(test_unified_http_servlet PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(test_unified_http_servlet PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME UnifiedHttpServletTest COMMAND test_unified_http_servlet)
+
+add_executable(test_thread_pool test_thread_pool.cpp)
+target_link_libraries(test_thread_pool PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(test_thread_pool PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME ThreadPoolTest COMMAND test_thread_pool)
+
+add_executable(test_unified_http_server test_unified_http_server.cpp)
+target_link_libraries(test_unified_http_server PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(test_unified_http_server PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME UnifiedHttpServerTest COMMAND test_unified_http_server)
+
+add_executable(test_http1_servlet test_http1_servlet.cpp)
+target_link_libraries(test_http1_servlet PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(test_http1_servlet PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME Http1ServletBasicTest COMMAND test_http1_servlet)
+
+add_executable(test_http3_servlet test_http3_servlet.cpp)
+target_link_libraries(test_http3_servlet PRIVATE rest_api networking_http_request_response json gtest_main pthread)
+target_include_directories(test_http3_servlet PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/include ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME Http3ServletBasicTest COMMAND test_http3_servlet)

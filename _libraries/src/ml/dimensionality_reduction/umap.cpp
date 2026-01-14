@@ -7,7 +7,7 @@ LIBRARY_METADATA(
     "Uniform Manifold Approximation and Projection for nonlinear dimensionality reduction.",
     "ToolBox Authors"
 )
-#include "ml/dimensionality_reduction/umap.h"
+#include "ML/dimensionality_reduction/umap.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>

@@ -1,4 +1,4 @@
-#include "ml/distribution/categorical_distribution.h"
+#include "ML/distribution/categorical_distribution.h"
 #include <stdexcept>
 
 // Constructor

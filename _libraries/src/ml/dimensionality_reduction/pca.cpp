@@ -7,7 +7,7 @@ LIBRARY_METADATA(
     "Principal Component Analysis for dimensionality reduction and feature extraction.",
     "ToolBox Authors"
 )
-#include "ml/dimensionality_reduction/pca.h"
+#include "ML/dimensionality_reduction/pca.h"
 #include <iostream>
 #include <cmath>
 

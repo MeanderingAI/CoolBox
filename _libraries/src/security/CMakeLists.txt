@@ -1,23 +1,11 @@
-# Fuzzer library
-add_subdirectory(fuzzer)
 
-# Network Scanner library
-add_subdirectory(network_scanner)
+# Dynamically add all subdirectories in this folder that contain a CMakeLists.txt
+file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
+foreach(child ${children})
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${child}")
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${child}/CMakeLists.txt")
+            add_subdirectory(${child})
+        endif()
+    endif()
+endforeach()
 
-# Security Library
-add_library(security SHARED
-    malware_scanner.cpp
-)
-
-target_include_directories(security PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
-)
-
-target_link_libraries(security
-    pthread
-)
-
-set_target_properties(security PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-)

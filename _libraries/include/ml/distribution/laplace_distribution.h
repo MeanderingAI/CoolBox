@@ -1,7 +1,7 @@
 #ifndef LAPLACE_DISTRIBUTION_H
 #define LAPLACE_DISTRIBUTION_H
 
-#include "ml/distribution/distribution.h"
+#include "ML/distribution/distribution.h"
 #include <random>
 
 /**

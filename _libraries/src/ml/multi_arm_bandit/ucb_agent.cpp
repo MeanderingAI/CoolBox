@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/ucb_agent.h"
+#include "ML/multi_arm_bandit/ucb_agent.h"
 #include <iostream>
 #include <random>
 #include <cmath>

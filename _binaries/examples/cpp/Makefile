@@ -12,7 +12,7 @@ LIBS = -lrest_api -ljson -lsql -lpthread -lsqlite3
 BUILD_DIR = ../build/examples
 
 # Targets
-TARGETS = basic_server json_example threaded_server model_server prisma_sql http_protocols
+TARGETS = basic_server json_example threaded_server prisma_sql http_protocols
 
 # Default target
 all: check_libs $(TARGETS)
@@ -51,8 +51,7 @@ threaded_server: networking/threaded_server_example.cpp
 	@echo "Compiling threaded_server_example..."
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $< $(LIBDIRS) $(LIBS) -o $(BUILD_DIR)/$@
 
-model_server: ml/model_server_example.cpp
-	@echo "Compiling model_server_example..."
+ 
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $< $(LIBDIRS) $(LIBS) -o $(BUILD_DIR)/$@
 prisma_sql: sql/prisma_sql_example.cpp
 	@echo "Compiling prisma_sql_example..."
@@ -77,7 +76,7 @@ run-threaded: threaded_server
 	@echo "Running threaded_server_example..."
 	@echo "==================================="
 	@cd $(BUILD_DIR) && LD_LIBRARY_PATH=../../_libraries/src/json:../../_libraries/src/rest_api:$$LD_LIBRARY_PATH ./threaded_server
-../../_libraries/src/sql:$$LD_LIBRARY_PATH ./model_server
+../../_libraries/src/sql:$$LD_LIBRARY_PATH
 
 
 run-protocols: http_protocols
@@ -89,7 +88,7 @@ run-prisma: prisma_sql
 	@echo "Running prisma_sql_example..."
 	@echo "=============================="
 	@cd $(BUILD_DIR) && LD_LIBRARY_PATH=../../_libraries/src/json:../../_libraries/src/rest_api:../../_libraries/src/sql:$$LD_LIBRARY_PATH ./prisma_sql
-run-model: model_server
+run-model:
 	@echo "Runnin
 run-all: all
 	@echo ""
@@ -120,7 +119,7 @@ run-all: all
 	@echo "  make basic_server    - Basic server with GET/POST routes"
 	@echo "  make json_example    - JSON library usage"
 	@echo "  make threaded_server - Thread pool and async requests"
-	@echo "  make model_server    - ML model serving"
+ 
 	@echo "  make prisma_sql      - Prisma schema and SQL CRUD"
 	@echo "  make http_protocols  - HTTP/1.1, HTTP/2, HTTP/3 comparison"
 	@echo ""
@@ -129,7 +128,7 @@ run-all: all
 	@echo "  make run-basic     - Run basic_server_example"
 	@echo "  make run-json      - Run json_example"
 	@echo "  make run-threaded  - Run threaded_server_example"
-	@echo "  make run-model     - Run model_server_example"
+ 
 	@echo "  make run-prisma    - Run prisma_sql_example"
 	@echo "  make run-protocols - Run http_protocols_example"
 	@echo ""
@@ -141,7 +140,7 @@ run-all: all
 .PHONY: all check_libs clean help run-basic run-json run-threaded run-model run-prisma run-protocols
 	@echo "  make run-json     - Run json_example"
 	@echo "  make run-threaded - Run threaded_server_example"
-	@echo "  make run-model    - Run model_server_example"
+
 	@echo ""
 	@echo "Prerequisites:"
 	@echo "  - _Libraries must be built first (cd .. && ./clean&build.sh)"

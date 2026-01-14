@@ -1,7 +1,7 @@
 #ifndef POLYNOMIAL_KERNEL_H
 #define POLYNOMIAL_KERNEL_H
 
-#include "ml/support_vector_machine/kernel.h"
+#include "ML/support_vector_machine/kernel.h"
 #include <Eigen/Dense>
 #include <cmath>
 

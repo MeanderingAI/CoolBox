@@ -1,4 +1,3 @@
 add_subdirectory(http)
 add_subdirectory(distributed)
-add_subdirectory(rest_api)
-add_subdirectory(html)
+## Removed non-existent rest_api and html directories

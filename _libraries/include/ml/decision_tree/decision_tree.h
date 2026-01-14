@@ -7,7 +7,7 @@
  *
  * @subsection cpp_example C++ Example
  * @code{.cpp}
- * #include "ml/decision_tree/decision_tree.h"
+ * #include "ML/decision_tree/decision_tree.h"
  * DecisionTree tree(SplitCriterion::GINI);
  * tree.fit(X, y, 5); // X: std::vector<std::vector<int>>, y: std::vector<int>
  * int label = tree.predict(sample);

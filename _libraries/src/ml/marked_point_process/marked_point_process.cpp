@@ -1,4 +1,4 @@
-#include "ml/marked_point_process/marked_point_process.h"
+#include "ML/marked_point_process/marked_point_process.h"
 #include <random>
 #include <cmath>
 #include <algorithm>

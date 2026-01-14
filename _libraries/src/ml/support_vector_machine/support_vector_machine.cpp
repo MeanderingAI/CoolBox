@@ -1,4 +1,4 @@
-#include "ml/support_vector_machine/support_vector_machine.h"
+#include "ML/support_vector_machine/support_vector_machine.h"
 
 SVM::SVM(const Kernel& kernel) : kernel_(kernel) {}
 

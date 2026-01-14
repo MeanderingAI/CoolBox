@@ -1,7 +1,7 @@
 #ifndef EPSILON_GREEDY_AGENT_H
 #define EPSILON_GREEDY_AGENT_H
 
-#include "ml/multi_arm_bandit/bandit_agent.h"
+#include "ML/multi_arm_bandit/bandit_agent.h"
 #include <random>
 
 class EpsilonGreedyAgent : public BanditAgent {

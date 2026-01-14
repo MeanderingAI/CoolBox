@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/thompson_sampling_agent.h"
+#include "ML/multi_arm_bandit/thompson_sampling_agent.h"
 #include <iostream>
 
 ThompsonSamplingAgent::ThompsonSamplingAgent(const std::vector<double>& true_probs, long long seed)

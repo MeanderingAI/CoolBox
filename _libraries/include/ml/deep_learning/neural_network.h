@@ -6,7 +6,7 @@
  *
  * @subsection cpp_example C++ Example
  * @code{.cpp}
- * #include "ml/deep_learning/neural_network.h"
+ * #include "ML/deep_learning/neural_network.h"
  * using namespace ml::deep_learning;
  * NeuralNetwork net;
  * // net.add_layer(...), net.set_loss(...), net.set_optimizer(...)

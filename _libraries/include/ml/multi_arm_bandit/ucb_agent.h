@@ -1,7 +1,7 @@
 #ifndef UCB_AGENT_H
 #define UCB_AGENT_H
 
-#include "ml/multi_arm_bandit/bandit_agent.h"
+#include "ML/multi_arm_bandit/bandit_agent.h"
 #include <vector>
 
 class UCBAgent : public BanditAgent {

@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <memory>
-#include "ml/decision_tree/decision_tree.h"
+#include "ML/decision_tree/decision_tree.h"
 
 class RandomForest {
 public:

@@ -1,4 +1,4 @@
-#include "ml/marked_point_process/piecewise_conditional_intensity_model.h"
+#include "ML/marked_point_process/piecewise_conditional_intensity_model.h"
 #include <random>
 #include <cmath>
 #include <algorithm>

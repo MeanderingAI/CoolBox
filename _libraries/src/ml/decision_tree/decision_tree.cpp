@@ -8,7 +8,7 @@ LIBRARY_METADATA(
     "Decision Tree for classification and regression tasks.",
     "ToolBox Authors"
 )
-#include "ml/decision_tree/decision_tree.h"
+#include "ML/decision_tree/decision_tree.h"
 #include <iostream>
 #include <map>
 #include <numeric>

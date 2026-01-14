@@ -7,7 +7,7 @@ LIBRARY_METADATA(
     "Singular Value Decomposition for matrix factorization and dimensionality reduction.",
     "ToolBox Authors"
 )
-#include "ml/dimensionality_reduction/svd.h"
+#include "ML/dimensionality_reduction/svd.h"
 #include <iostream>
 
 namespace dimensionality_reduction {

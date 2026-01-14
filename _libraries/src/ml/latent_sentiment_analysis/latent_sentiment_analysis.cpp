@@ -1,4 +1,4 @@
-#include "ml/latent_sentiment_analysis/latent_sentiment_analysis.h"
+#include "ML/latent_sentiment_analysis/latent_sentiment_analysis.h"
 
 #include <random>
 #include <chrono>

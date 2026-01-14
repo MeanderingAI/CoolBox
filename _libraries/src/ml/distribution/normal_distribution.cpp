@@ -1,5 +1,5 @@
-#include "ml/distribution/normal_distribution.h"
-#include "ml/distribution/util.h"
+#include "ML/distribution/normal_distribution.h"
+#include "ML/distribution/util.h"
 #include <random>
 #include <cmath>
 #include <limits>

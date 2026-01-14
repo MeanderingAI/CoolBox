@@ -1,4 +1,4 @@
-#include "ml/distribution/discrete_distribution.h"
+#include "ML/distribution/discrete_distribution.h"
 
 // Override the base sample function to return a double,
 // as required by the base class. This function simply calls the

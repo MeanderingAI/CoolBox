@@ -1,4 +1,4 @@
-#include "ml/support_vector_machine/sigmoid_kernel.h"
+#include "ML/support_vector_machine/sigmoid_kernel.h"
 #include <cmath>
 
 double SigmoidKernel::calculate(const Eigen::VectorXd& x, const Eigen::VectorXd& y) const {

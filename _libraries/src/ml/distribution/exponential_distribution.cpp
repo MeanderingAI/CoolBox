@@ -1,5 +1,5 @@
-#include "ml/distribution/exponential_distribution.h"
-#include "ml/distribution/util.h"
+#include "ML/distribution/exponential_distribution.h"
+#include "ML/distribution/util.h"
 #include <random>
 #include <cmath>
 #include <limits>

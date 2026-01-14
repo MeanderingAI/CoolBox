@@ -1,7 +1,7 @@
 #ifndef GAMMA_DISTRIBUTION_H
 #define GAMMA_DISTRIBUTION_H
 
-#include "ml/distribution/distribution.h"
+#include "ML/distribution/distribution.h"
 #include <random>
 
 /**

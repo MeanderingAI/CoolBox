@@ -6,7 +6,7 @@
 // Metadata only defined in umap.cpp to avoid duplicate symbols
 
 #include <Eigen/Dense>
-#include "ml/dimensionality_reduction/knn.h"
+#include "ML/dimensionality_reduction/knn.h"
 #include <vector>
 #include <random>
 

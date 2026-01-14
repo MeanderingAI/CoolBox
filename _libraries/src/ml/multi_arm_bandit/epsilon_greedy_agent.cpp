@@ -1,4 +1,4 @@
-#include "ml/multi_arm_bandit/epsilon_greedy_agent.h"
+#include "ML/multi_arm_bandit/epsilon_greedy_agent.h"
 #include <random>
 #include <iostream>
 

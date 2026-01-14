@@ -6,7 +6,7 @@
  *
  * @subsection cpp_example C++ Example
  * @code{.cpp}
- * #include "ml/support_vector_machine/support_vector_machine.h"
+ * #include "ML/support_vector_machine/support_vector_machine.h"
  * LinearKernel kernel;
  * SVM svm(kernel);
  * svm.fit(X, y); // X: Eigen::MatrixXd, y: Eigen::VectorXd
@@ -52,7 +52,7 @@
 #include <vector>
 #include <iostream>
 #include <Eigen/Dense>
-#include "ml/support_vector_machine/kernel.h"
+#include "ML/support_vector_machine/kernel.h"
 
 class SVM {
 public:

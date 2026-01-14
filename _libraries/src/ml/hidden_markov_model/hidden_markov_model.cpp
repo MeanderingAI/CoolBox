@@ -4,7 +4,7 @@
 
 #include <random>
 
-#include "ml/hidden_markov_model/hidden_markov_model.h"
+#include "ML/hidden_markov_model/hidden_markov_model.h"
 
 // Static helper function to compute log(a + b) from log(a) and log(b)
 double HMM::log_sum_exp(double log_a, double log_b) {

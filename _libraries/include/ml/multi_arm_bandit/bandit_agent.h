@@ -1,8 +1,8 @@
 #ifndef BANDIT_AGENT_H
 #define BANDIT_AGENT_H
 
-#include "ml/multi_arm_bandit/bandit_arm.h"
-#include "ml/multi_arm_bandit/simulation_result.h"
+#include "ML/multi_arm_bandit/bandit_arm.h"
+#include "ML/multi_arm_bandit/simulation_result.h"
 #include <vector>
 
 class BanditAgent {

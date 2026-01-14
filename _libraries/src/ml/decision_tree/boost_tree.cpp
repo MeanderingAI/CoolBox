@@ -1,5 +1,5 @@
-#include "ml/decision_tree/boost_tree.h"
-#include "ml/decision_tree/decision_tree.h"
+#include "ML/decision_tree/boost_tree.h"
+#include "ML/decision_tree/decision_tree.h"
 #include <iostream>
 #include <stdexcept>
 #include <numeric>

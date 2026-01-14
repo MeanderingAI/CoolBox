@@ -1,4 +1,4 @@
-#include "ml/distribution/multinomial_distribution.h"
+#include "ML/distribution/multinomial_distribution.h"
 #include <cmath>
 #include <stdexcept>
 #include <numeric>

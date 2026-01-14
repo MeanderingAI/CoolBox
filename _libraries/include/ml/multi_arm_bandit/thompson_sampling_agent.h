@@ -1,7 +1,7 @@
 #ifndef THOMPSON_SAMPLING_AGENT_H
 #define THOMPSON_SAMPLING_AGENT_H
 
-#include "ml/multi_arm_bandit/bandit_agent.h"
+#include "ML/multi_arm_bandit/bandit_agent.h"
 #include <random>
 
 class ThompsonSamplingAgent : public BanditAgent {

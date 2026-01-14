@@ -6,7 +6,7 @@
 // Metadata only defined in pca.cpp to avoid duplicate symbols
 
 #include <Eigen/Dense>
-#include "ml/dimensionality_reduction/svd.h"
+#include "ML/dimensionality_reduction/svd.h"
 
 namespace dimensionality_reduction {
 

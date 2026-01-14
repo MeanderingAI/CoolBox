@@ -6,7 +6,7 @@
  *
  * @subsection cpp_example C++ Example
  * @code{.cpp}
- * #include "ml/bayesian_network/bayesian_network.h"
+ * #include "ML/bayesian_network/bayesian_network.h"
  * BayesianNetwork bn;
  * int nodeA = bn.add_node("A", {"T", "F"});
  * int nodeB = bn.add_node("B", {"T", "F"});

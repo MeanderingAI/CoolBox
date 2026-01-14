@@ -1,7 +1,7 @@
 #ifndef SIGMOID_KERNEL_H
 #define SIGMOID_KERNEL_H
 
-#include "ml/support_vector_machine/kernel.h"
+#include "ML/support_vector_machine/kernel.h"
 #include <Eigen/Dense>
 
 class SigmoidKernel : public Kernel {

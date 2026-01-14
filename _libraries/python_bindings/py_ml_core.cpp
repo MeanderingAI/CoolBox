@@ -39,7 +39,7 @@
 #include "networking/distributed/message_passing.h"
 #include "networking/distributed/distributed_trainer.h"
 #include "networking/rest_api/server.h"
-#include "networking/rest_api/model_server.h"
+// #include "networking/rest_api/model_server.h" (removed)
 
 namespace py = pybind11;
 
@@ -1440,27 +1440,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("handle_request", &ml::rest_api::Server::handle_request)
         .def("port", &ml::rest_api::Server::port);
     
-    // ModelServer class
-    py::class_<ml::rest_api::ModelServer>(rest_module, "ModelServer")
-        .def(py::init<int>(), py::arg("port") = 8080,
-             "Create a model serving server\n\n"
-             "Args:\n"
-             "    port: Port to run the server on (default: 8080)")
-        .def("setup_prediction_endpoint", &ml::rest_api::ModelServer::setup_prediction_endpoint,
-             "Setup a prediction endpoint for a model")
-        .def("setup_batch_prediction_endpoint", &ml::rest_api::ModelServer::setup_batch_prediction_endpoint,
-             "Setup a batch prediction endpoint")
-        .def("setup_health_endpoint", &ml::rest_api::ModelServer::setup_health_endpoint,
-             "Setup a health check endpoint")
-        .def("setup_info_endpoint", &ml::rest_api::ModelServer::setup_info_endpoint,
-             "Setup a model info endpoint")
-        .def("start", &ml::rest_api::ModelServer::start,
-             "Start the server")
-        .def("stop", &ml::rest_api::ModelServer::stop,
-             "Stop the server")
-        .def("get_server", &ml::rest_api::ModelServer::get_server,
-             py::return_value_policy::reference,
-             "Get the underlying Server instance");
+    // ModelServer bindings removed for HTTP2-only build
     
     // JSON utilities
     rest_module.def("json_encode", &ml::rest_api::json::encode,

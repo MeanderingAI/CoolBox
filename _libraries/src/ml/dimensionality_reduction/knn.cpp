@@ -7,7 +7,7 @@ LIBRARY_METADATA(
     "K-Nearest Neighbors for classification and regression.",
     "ToolBox Authors"
 )
-#include "ml/dimensionality_reduction/knn.h"
+#include "ML/dimensionality_reduction/knn.h"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
