@@ -1,0 +1,9 @@
+PROJECT_NAME = "services/cache_server API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/services/cache_server
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/services/cache_server
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

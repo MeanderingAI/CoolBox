@@ -1,0 +1,7 @@
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/ml
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/ml
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES

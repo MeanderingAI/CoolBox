@@ -1,0 +1,9 @@
+PROJECT_NAME = "ml/nlp API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/ml/nlp
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/ml/nlp
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

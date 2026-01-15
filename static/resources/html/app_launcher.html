@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>App Launcher - MATLAB Style [Hot-Reload ✓]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f0f0f0;
+        }
+        .matlab-header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .matlab-header h1 {
+            font-size: 1.5rem;
+            color: white;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .user-badge {
+            background: #34495e;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        .matlab-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .section-title {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #3498db;
+        }
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .app-tile {
+            background: white;
+            padding: 2rem;
+            border-radius: 0px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .app-tile:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .app-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .app-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .app-desc {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        .version-footer {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            z-index: 1000;
+        }
+        .version-footer strong {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="matlab-header">
+        <h1>🔬 ToolBox Platform - App Launcher</h1>
+        <div class="user-info">
+            <div class="user-badge">{{USERNAME}} ({{ROLE}})</div>
+            <a href="/api/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="matlab-container">
+        <h2 class="section-title">Service Applications</h2>
+        <div class="apps-grid">
+            <a href="/app/cache" class="app-tile">
+                <div class="app-icon">💾</div>
+                <div class="app-name">Cache Server</div>
+                <div class="app-desc">High-performance caching</div>
+            </a>
+
+            <a href="/app/dfs" class="app-tile">
+                <div class="app-icon">📁</div>
+                <div class="app-name">Distributed FS</div>
+                <div class="app-desc">Distributed file storage</div>
+            </a>
+
+            <a href="/app/mail" class="app-tile">
+                <div class="app-icon">📧</div>
+                <div class="app-name">Mail Server</div>
+                <div class="app-desc">SMTP/POP3 email</div>
+            </a>
+
+            <a href="/app/ml" class="app-tile">
+                <div class="app-icon">🤖</div>
+                <div class="app-name">ML Models</div>
+                <div class="app-desc">Machine learning server</div>
+            </a>
+
+            <a href="/app/security" class="app-tile">
+                <div class="app-icon">🔒</div>
+                <div class="app-name">Security Scanner</div>
+                <div class="app-desc">Malware detection</div>
+            </a>
+
+            <a href="/app/dns" class="app-tile">
+                <div class="app-icon">🌐</div>
+                <div class="app-name">DNS Server</div>
+                <div class="app-desc">Domain resolution</div>
+            </a>
+
+            <a href="/app/proxy" class="app-tile">
+                <div class="app-icon">🔄</div>
+                <div class="app-name">Proxy Server</div>
+                <div class="app-desc">HTTP/HTTPS proxy</div>
+            </a>
+            
+            <a href="/app/urlshort" class="app-tile">
+                <div class="app-icon">🔗</div>
+                <div class="app-name">URL Shortener</div>
+                <div class="app-desc">Shorten & track links</div>
+            </a>
+            
+            <a href="/app/monitor" class="app-tile">
+                <div class="app-icon">📊</div>
+                <div class="app-name">System Monitor</div>
+                <div class="app-desc">CPU, memory & network</div>
+            </a>
+            
+            <a href="/app/breaker" class="app-tile">
+                <div class="app-icon">🔧</div>
+                <div class="app-name">Service Breaker</div>
+                <div class="app-desc">Control & configure services</div>
+            </a>
+        </div>
+
+        <h2 class="section-title">Frontends</h2>
+        <div class="apps-grid">
+            <a href="/app/manager" class="app-tile">
+                <div class="app-icon">📊</div>
+                <div class="app-name">Service Manager GUI</div>
+                <div class="app-desc">Web-based service dashboard</div>
+            </a>
+            
+            <a href="/app/frontends" class="app-tile">
+                <div class="app-icon">🎨</div>
+                <div class="app-name">Frontend Manager</div>
+                <div class="app-desc">Create & manage web frontends</div>
+            </a>
+            
+            <a href="http://localhost:3000" class="app-tile" target="_blank">
+                <div class="app-icon">👤</div>
+                <div class="app-name">Account Frontend</div>
+                <div class="app-desc">User account UI (Bun.js)</div>
+            </a>
+        </div>
+        
+        <h2 class="section-title">Administration</h2>
+        <div class="apps-grid">
+            <a href="/admin" class="app-tile">
+                <div class="app-icon">⚙️</div>
+                <div class="app-name">Admin Panel</div>
+                <div class="app-desc">User & system management</div>
+            </a>
+            
+            <a href="http://localhost:9002" class="app-tile" target="_blank">
+                <div class="app-icon">🌐</div>
+                <div class="app-name">Account Service</div>
+                <div class="app-desc">Backend API</div>
+            </a>
+        </div>
+    </div>
+    
+    <div class="version-footer">
+        <strong>ToolBox Platform</strong> v1.0.0 | Build 2025.12.21
+    </div>
+</body>
+</html>

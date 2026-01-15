@@ -1,0 +1,9 @@
+PROJECT_NAME = "services/server_launch API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/services/server_launch
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/services/server_launch
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

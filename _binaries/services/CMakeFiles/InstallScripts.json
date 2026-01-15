@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/mehranghamaty/wkspace/ToolBox/_binaries/services/cmake_install.cmake",
+		"/Users/mehranghamaty/wkspace/ToolBox/_binaries/services/system_monitor/cmake_install.cmake",
+		"/Users/mehranghamaty/wkspace/ToolBox/_binaries/services/proxy_service/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

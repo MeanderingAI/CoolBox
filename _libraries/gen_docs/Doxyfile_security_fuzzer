@@ -1,0 +1,9 @@
+PROJECT_NAME = "security/fuzzer API Documentation"
+OUTPUT_DIRECTORY = /Users/mehranghamaty/wkspace/ToolBox/gen_docs/html/libs/security/fuzzer
+INPUT = /Users/mehranghamaty/wkspace/ToolBox/include/security/fuzzer
+RECURSIVE = YES
+GENERATE_HTML = YES
+GENERATE_LATEX = NO
+EXTRACT_ALL = YES
+QUIET = YES
+FILE_PATTERNS = *.h *.hpp

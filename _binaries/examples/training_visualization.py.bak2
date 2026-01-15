@@ -1,0 +1,472 @@
+#!/usr/bin/env python3
+"""
+Neural Network Training Visualization Examples
+
+Demonstrates training deep learning models with real-time visualization of:
+- Loss curves
+- Accuracy progression
+- Weight distributions
+- Prediction quality
+"""
+
+import sys
+sys.path.insert(0, './build')
+import ml_core
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import matplotlib.gridspec as gridspec
+
+# Set style for better-looking plots
+plt.style.use('seaborn-v0_8-darkgrid')
+
+def generate_regression_data(n_samples=200):
+    """Generate synthetic regression data"""
+    np.random.seed(42)
+    X = np.linspace(-3, 3, n_samples).reshape(-1, 1)
+    y = 0.5 * X**2 + 2 * np.sin(X) + np.random.randn(n_samples, 1) * 0.3
+    return X, y
+
+def generate_classification_data(n_samples=300):
+    """Generate synthetic classification data (XOR-like)"""
+    np.random.seed(42)
+    X = np.random.randn(n_samples, 2)
+    # XOR pattern
+    y = ((X[:, 0] > 0) ^ (X[:, 1] > 0)).astype(float).reshape(-1, 1)
+    # Add some noise
+    noise_idx = np.random.choice(n_samples, size=int(n_samples * 0.1), replace=False)
+    y[noise_idx] = 1 - y[noise_idx]
+    return X, y
+
+def example_regression_training():
+    """Example 1: Regression with live training curve"""
+    print("=" * 70)
+    print("Example 1: Regression Training Visualization")
+    print("=" * 70)
+    
+    # Generate data
+    X_train, y_train = generate_regression_data(200)
+    X_test, y_test = generate_regression_data(50)
+    
+    # Create neural network
+    net = ml_core.deep_learning.NeuralNetwork()
+    net.add_layer(ml_core.deep_learning.DenseLayer(1, 32))
+    net.add_layer(ml_core.deep_learning.ReLULayer())
+    net.add_layer(ml_core.deep_learning.DenseLayer(32, 32))
+    net.add_layer(ml_core.deep_learning.ReLULayer())
+    net.add_layer(ml_core.deep_learning.DenseLayer(32, 1))
+    
+    net.set_loss(ml_core.deep_learning.MSELoss())
+    net.set_optimizer(ml_core.deep_learning.AdamOptimizer(0.01))
+    
+    print(f"Network architecture:")
+    print(net.summary())
+    print()
+    
+    # Training with loss tracking
+    epochs = 100
+    train_losses = []
+    test_losses = []
+    
+    print("Training...")
+    for epoch in range(epochs):
+        # Training step
+        train_loss = net.train_step(X_train.tolist(), y_train.tolist())
+        train_losses.append(train_loss)
+        
+        # Test evaluation
+        predictions = net.predict(X_test.tolist())
+        test_loss = np.mean((np.array(predictions) - y_test) ** 2)
+        test_losses.append(test_loss)
+        
+        if (epoch + 1) % 20 == 0:
+            print(f"Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}")
+    
+    # Create visualization
+    fig = plt.figure(figsize=(15, 5))
+    gs = gridspec.GridSpec(1, 3, figure=fig)
+    
+    # Plot 1: Training curves
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.plot(train_losses, label='Train Loss', linewidth=2)
+    ax1.plot(test_losses, label='Test Loss', linewidth=2)
+    ax1.set_xlabel('Epoch', fontsize=12)
+    ax1.set_ylabel('MSE Loss', fontsize=12)
+    ax1.set_title('Training Progress', fontsize=14, fontweight='bold')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Predictions vs Actual
+    ax2 = fig.add_subplot(gs[0, 1])
+    predictions = np.array(net.predict(X_test.tolist()))
+    ax2.scatter(X_test, y_test, alpha=0.6, s=50, label='Actual', color='blue')
+    ax2.scatter(X_test, predictions, alpha=0.6, s=50, label='Predicted', color='red')
+    ax2.set_xlabel('Input X', fontsize=12)
+    ax2.set_ylabel('Output y', fontsize=12)
+    ax2.set_title('Predictions vs Actual', fontsize=14, fontweight='bold')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Plot 3: Residuals
+    ax3 = fig.add_subplot(gs[0, 2])
+    residuals = y_test - predictions
+    ax3.scatter(predictions, residuals, alpha=0.6, s=50, color='purple')
+    ax3.axhline(y=0, color='r', linestyle='--', linewidth=2)
+    ax3.set_xlabel('Predicted Values', fontsize=12)
+    ax3.set_ylabel('Residuals', fontsize=12)
+    ax3.set_title('Residual Plot', fontsize=14, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('regression_training.png', dpi=300, bbox_inches='tight')
+    print(f"\nSaved visualization to: regression_training.png")
+    print(f"Final Train Loss: {train_losses[-1]:.4f}")
+    print(f"Final Test Loss: {test_losses[-1]:.4f}")
+    plt.show()
+    print()
+
+def example_classification_training():
+    """Example 2: Binary classification with decision boundary"""
+    print("=" * 70)
+    print("Example 2: Classification Training Visualization")
+    print("=" * 70)
+    
+    # Generate data
+    X_train, y_train = generate_classification_data(300)
+    X_test, y_test = generate_classification_data(100)
+    
+    # Create neural network
+    net = ml_core.deep_learning.NeuralNetwork()
+    net.add_layer(ml_core.deep_learning.DenseLayer(2, 16))
+    net.add_layer(ml_core.deep_learning.ReLULayer())
+    net.add_layer(ml_core.deep_learning.DenseLayer(16, 16))
+    net.add_layer(ml_core.deep_learning.ReLULayer())
+    net.add_layer(ml_core.deep_learning.DenseLayer(16, 1))
+    net.add_layer(ml_core.deep_learning.SigmoidLayer())
+    
+    net.set_loss(ml_core.deep_learning.BinaryCrossEntropyLoss())
+    net.set_optimizer(ml_core.deep_learning.AdamOptimizer(0.01))
+    
+    print(f"Network architecture:")
+    print(net.summary())
+    print()
+    
+    # Training with accuracy tracking
+    epochs = 150
+    train_losses = []
+    train_accs = []
+    test_accs = []
+    
+    print("Training...")
+    for epoch in range(epochs):
+        # Training step
+        train_loss = net.train_step(X_train.tolist(), y_train.tolist())
+        train_losses.append(train_loss)
+        
+        # Training accuracy
+        train_pred = np.array(net.predict(X_train.tolist()))
+        train_acc = np.mean((train_pred > 0.5) == y_train)
+        train_accs.append(train_acc)
+        
+        # Test accuracy
+        test_pred = np.array(net.predict(X_test.tolist()))
+        test_acc = np.mean((test_pred > 0.5) == y_test)
+        test_accs.append(test_acc)
+        
+        if (epoch + 1) % 30 == 0:
+            print(f"Epoch {epoch+1}/{epochs} - Loss: {train_loss:.4f}, Train Acc: {train_acc:.3f}, Test Acc: {test_acc:.3f}")
+    
+    # Create visualization
+    fig = plt.figure(figsize=(18, 5))
+    gs = gridspec.GridSpec(1, 3, figure=fig)
+    
+    # Plot 1: Loss curve
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.plot(train_losses, linewidth=2, color='darkblue')
+    ax1.set_xlabel('Epoch', fontsize=12)
+    ax1.set_ylabel('Binary Cross-Entropy Loss', fontsize=12)
+    ax1.set_title('Training Loss', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Accuracy curves
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.plot(train_accs, label='Train Accuracy', linewidth=2, color='green')
+    ax2.plot(test_accs, label='Test Accuracy', linewidth=2, color='orange')
+    ax2.set_xlabel('Epoch', fontsize=12)
+    ax2.set_ylabel('Accuracy', fontsize=12)
+    ax2.set_title('Accuracy Progress', fontsize=14, fontweight='bold')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    ax2.set_ylim([0, 1.05])
+    
+    # Plot 3: Decision boundary
+    ax3 = fig.add_subplot(gs[0, 2])
+    
+    # Create mesh for decision boundary
+    x_min, x_max = X_train[:, 0].min() - 1, X_train[:, 0].max() + 1
+    y_min, y_max = X_train[:, 1].min() - 1, X_train[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 100),
+                         np.linspace(y_min, y_max, 100))
+    
+    # Predict on mesh
+    mesh_input = np.c_[xx.ravel(), yy.ravel()]
+    Z = np.array(net.predict(mesh_input.tolist())).reshape(xx.shape)
+    
+    # Plot decision boundary
+    contour = ax3.contourf(xx, yy, Z, levels=20, cmap='RdYlBu', alpha=0.6)
+    ax3.contour(xx, yy, Z, levels=[0.5], colors='black', linewidths=2)
+    
+    # Plot data points
+    scatter1 = ax3.scatter(X_train[y_train.flatten() == 0, 0], 
+                          X_train[y_train.flatten() == 0, 1],
+                          c='blue', s=50, alpha=0.7, edgecolors='k', label='Class 0')
+    scatter2 = ax3.scatter(X_train[y_train.flatten() == 1, 0], 
+                          X_train[y_train.flatten() == 1, 1],
+                          c='red', s=50, alpha=0.7, edgecolors='k', label='Class 1')
+    
+    ax3.set_xlabel('Feature 1', fontsize=12)
+    ax3.set_ylabel('Feature 2', fontsize=12)
+    ax3.set_title('Decision Boundary', fontsize=14, fontweight='bold')
+    ax3.legend()
+    plt.colorbar(contour, ax=ax3)
+    
+    plt.tight_layout()
+    plt.savefig('classification_training.png', dpi=300, bbox_inches='tight')
+    print(f"\nSaved visualization to: classification_training.png")
+    print(f"Final Train Accuracy: {train_accs[-1]:.3f}")
+    print(f"Final Test Accuracy: {test_accs[-1]:.3f}")
+    plt.show()
+    print()
+
+def example_multiclass_training():
+    """Example 3: Multi-class classification with confusion matrix"""
+    print("=" * 70)
+    print("Example 3: Multi-Class Classification")
+    print("=" * 70)
+    
+    # Generate spiral dataset
+    np.random.seed(42)
+    n_samples_per_class = 100
+    n_classes = 3
+    
+    X_list = []
+    y_list = []
+    
+    for class_idx in range(n_classes):
+        r = np.linspace(0.0, 1, n_samples_per_class)
+        t = np.linspace(class_idx * 4, (class_idx + 1) * 4, n_samples_per_class) + np.random.randn(n_samples_per_class) * 0.2
+        X_class = np.c_[r * np.sin(t * 2.5), r * np.cos(t * 2.5)]
+        X_list.append(X_class)
+        y_class = np.zeros((n_samples_per_class, n_classes))
+        y_class[:, class_idx] = 1
+        y_list.append(y_class)
+    
+    X = np.vstack(X_list)
+    y = np.vstack(y_list)
+    
+    # Shuffle
+    indices = np.random.permutation(len(X))
+    X = X[indices]
+    y = y[indices]
+    
+    # Split
+    split = int(0.8 * len(X))
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+    
+    # Create network
+    net = ml_core.deep_learning.NeuralNetwork()
+    net.add_layer(ml_core.deep_learning.DenseLayer(2, 32))
+    net.add_layer(ml_core.deep_learning.ReLULayer())
+    net.add_layer(ml_core.deep_learning.DenseLayer(32, 32))
+    net.add_layer(ml_core.deep_learning.ReLULayer())
+    net.add_layer(ml_core.deep_learning.DenseLayer(32, n_classes))
+    net.add_layer(ml_core.deep_learning.SoftmaxLayer())
+    
+    net.set_loss(ml_core.deep_learning.CrossEntropyLoss())
+    net.set_optimizer(ml_core.deep_learning.AdamOptimizer(0.01))
+    
+    print(f"Network architecture:")
+    print(net.summary())
+    print()
+    
+    # Training
+    epochs = 200
+    train_losses = []
+    train_accs = []
+    test_accs = []
+    
+    print("Training...")
+    for epoch in range(epochs):
+        train_loss = net.train_step(X_train.tolist(), y_train.tolist())
+        train_losses.append(train_loss)
+        
+        # Accuracies
+        train_pred = np.array(net.predict(X_train.tolist()))
+        train_acc = np.mean(np.argmax(train_pred, axis=1) == np.argmax(y_train, axis=1))
+        train_accs.append(train_acc)
+        
+        test_pred = np.array(net.predict(X_test.tolist()))
+        test_acc = np.mean(np.argmax(test_pred, axis=1) == np.argmax(y_test, axis=1))
+        test_accs.append(test_acc)
+        
+        if (epoch + 1) % 40 == 0:
+            print(f"Epoch {epoch+1}/{epochs} - Loss: {train_loss:.4f}, Train Acc: {train_acc:.3f}, Test Acc: {test_acc:.3f}")
+    
+    # Visualization
+    fig = plt.figure(figsize=(18, 5))
+    gs = gridspec.GridSpec(1, 3, figure=fig)
+    
+    # Plot 1: Loss
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.plot(train_losses, linewidth=2, color='darkred')
+    ax1.set_xlabel('Epoch', fontsize=12)
+    ax1.set_ylabel('Cross-Entropy Loss', fontsize=12)
+    ax1.set_title('Training Loss', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Accuracy
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.plot(train_accs, label='Train', linewidth=2, color='green')
+    ax2.plot(test_accs, label='Test', linewidth=2, color='orange')
+    ax2.set_xlabel('Epoch', fontsize=12)
+    ax2.set_ylabel('Accuracy', fontsize=12)
+    ax2.set_title('Accuracy Progress', fontsize=14, fontweight='bold')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    ax2.set_ylim([0, 1.05])
+    
+    # Plot 3: Decision regions
+    ax3 = fig.add_subplot(gs[0, 2])
+    
+    x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
+    y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 200),
+                         np.linspace(y_min, y_max, 200))
+    
+    mesh_input = np.c_[xx.ravel(), yy.ravel()]
+    Z = np.array(net.predict(mesh_input.tolist()))
+    Z = np.argmax(Z, axis=1).reshape(xx.shape)
+    
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+    contour = ax3.contourf(xx, yy, Z, levels=2, colors=colors, alpha=0.4)
+    
+    for class_idx in range(n_classes):
+        mask = np.argmax(y, axis=1) == class_idx
+        ax3.scatter(X[mask, 0], X[mask, 1], 
+                   c=colors[class_idx], s=50, alpha=0.8, 
+                   edgecolors='k', linewidth=0.5, label=f'Class {class_idx}')
+    
+    ax3.set_xlabel('Feature 1', fontsize=12)
+    ax3.set_ylabel('Feature 2', fontsize=12)
+    ax3.set_title('Decision Regions (Spiral Dataset)', fontsize=14, fontweight='bold')
+    ax3.legend()
+    
+    plt.tight_layout()
+    plt.savefig('multiclass_training.png', dpi=300, bbox_inches='tight')
+    print(f"\nSaved visualization to: multiclass_training.png")
+    print(f"Final Train Accuracy: {train_accs[-1]:.3f}")
+    print(f"Final Test Accuracy: {test_accs[-1]:.3f}")
+    plt.show()
+    print()
+
+def example_overfitting_demo():
+    """Example 4: Overfitting demonstration"""
+    print("=" * 70)
+    print("Example 4: Overfitting Demonstration")
+    print("=" * 70)
+    
+    # Generate small dataset
+    np.random.seed(42)
+    X_train = np.linspace(-2, 2, 20).reshape(-1, 1)
+    y_train = np.sin(X_train * 3) + np.random.randn(20, 1) * 0.1
+    
+    X_test = np.linspace(-2, 2, 100).reshape(-1, 1)
+    y_test = np.sin(X_test * 3)
+    
+    # Two networks: small and large
+    configs = [
+        ("Small Network (Good)", [8, 8]),
+        ("Large Network (Overfits)", [64, 64, 64])
+    ]
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    for idx, (name, hidden_sizes) in enumerate(configs):
+        print(f"\nTraining {name}...")
+        
+        net = ml_core.deep_learning.NeuralNetwork()
+        net.add_layer(ml_core.deep_learning.DenseLayer(1, hidden_sizes[0]))
+        net.add_layer(ml_core.deep_learning.ReLULayer())
+        
+        for i in range(len(hidden_sizes) - 1):
+            net.add_layer(ml_core.deep_learning.DenseLayer(hidden_sizes[i], hidden_sizes[i+1]))
+            net.add_layer(ml_core.deep_learning.ReLULayer())
+        
+        net.add_layer(ml_core.deep_learning.DenseLayer(hidden_sizes[-1], 1))
+        net.set_loss(ml_core.deep_learning.MSELoss())
+        net.set_optimizer(ml_core.deep_learning.AdamOptimizer(0.01))
+        
+        # Train
+        epochs = 500
+        train_losses = []
+        test_losses = []
+        
+        for epoch in range(epochs):
+            train_loss = net.train_step(X_train.tolist(), y_train.tolist())
+            train_losses.append(train_loss)
+            
+            test_pred = np.array(net.predict(X_test.tolist()))
+            test_loss = np.mean((test_pred - y_test) ** 2)
+            test_losses.append(test_loss)
+        
+        # Plot losses
+        ax_loss = axes[idx, 0]
+        ax_loss.plot(train_losses, label='Train Loss', linewidth=2, color='blue')
+        ax_loss.plot(test_losses, label='Test Loss', linewidth=2, color='red')
+        ax_loss.set_xlabel('Epoch')
+        ax_loss.set_ylabel('MSE Loss')
+        ax_loss.set_title(f'{name} - Training Curves')
+        ax_loss.legend()
+        ax_loss.grid(True, alpha=0.3)
+        ax_loss.set_ylim([0, max(0.5, min(max(test_losses), 2))])
+        
+        # Plot predictions
+        ax_pred = axes[idx, 1]
+        predictions = np.array(net.predict(X_test.tolist()))
+        ax_pred.plot(X_test, y_test, 'g-', label='True Function', linewidth=2, alpha=0.7)
+        ax_pred.scatter(X_train, y_train, c='blue', s=100, alpha=0.7, edgecolors='k', label='Training Data', zorder=5)
+        ax_pred.plot(X_test, predictions, 'r--', label='Predictions', linewidth=2)
+        ax_pred.set_xlabel('X')
+        ax_pred.set_ylabel('y')
+        ax_pred.set_title(f'{name} - Fit Quality')
+        ax_pred.legend()
+        ax_pred.grid(True, alpha=0.3)
+        
+        print(f"  Final Train Loss: {train_losses[-1]:.4f}")
+        print(f"  Final Test Loss: {test_losses[-1]:.4f}")
+    
+    plt.tight_layout()
+    plt.savefig('overfitting_demo.png', dpi=300, bbox_inches='tight')
+    print(f"\nSaved visualization to: overfitting_demo.png")
+    plt.show()
+    print()
+
+if __name__ == "__main__":
+    print("\n" + "=" * 70)
+    print("NEURAL NETWORK TRAINING VISUALIZATION SUITE")
+    print("=" * 70 + "\n")
+    
+    example_regression_training()
+    example_classification_training()
+    example_multiclass_training()
+    example_overfitting_demo()
+    
+    print("=" * 70)
+    print("All training examples completed!")
+    print("Generated visualizations:")
+    print("  - regression_training.png")
+    print("  - classification_training.png")
+    print("  - multiclass_training.png")
+    print("  - overfitting_demo.png")
+    print("=" * 70)

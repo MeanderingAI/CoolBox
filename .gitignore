@@ -1,2 +1,11 @@
 build
 Testing
+**/a.out
+_libraries/gen_docs/html/
+_libraries/gen_docs/CMakeFiles/
+*.log
+gen_docs/
+**/*.o
+**/.DS_Store
+**/*.bak
+*.bak

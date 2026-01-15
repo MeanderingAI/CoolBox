@@ -1,0 +1,35 @@
+name: CI Build and Test
+
+on:
+  push:
+    branches:
+      - 'deb/*'
+  pull_request:
+    branches:
+      - 'deb/*'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make libeigen3-dev
+
+      - name: Build all targets
+        run: |
+          cmake -S . -B build
+          make -C build
+
+      - name: Build all tests
+        run: |
+          cmake -S _test -B build/_test
+          cmake --build build/_test
+
+      - name: Run all tests
+        run: |
+          ctest --test-dir build/_test --output-on-failure

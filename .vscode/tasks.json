@@ -1,0 +1,43 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build-test-rest_api",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test_rest_api"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-test-rest_api",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"build-test_rest_api"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-test-rest_api",
+			"type": "shell",
+			"command": "cmake --build build/test --target test_rest_api",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-test-rest_api",
+			"type": "shell",
+			"command": "cmake --build build/test --target test_rest_api || make build-tests",
+			"args": [],
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

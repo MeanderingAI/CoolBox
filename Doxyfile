@@ -1,0 +1,12 @@
+# Doxyfile for ExplorerTools
+PROJECT_NAME           = "ExplorerTools"
+OUTPUT_DIRECTORY       = gen_docs/html
+INPUT                  = _libraries/include
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h *.hpp
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTRACT_ALL            = YES
+QUIET                  = NO
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
