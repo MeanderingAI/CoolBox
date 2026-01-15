@@ -1,0 +1,62 @@
+name: CI Build, Test, and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-test-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make libeigen3-dev
+
+      - name: Build all targets
+        run: |
+          cmake -S . -B build
+          make -C build
+
+      - name: Build all tests
+        run: |
+          cmake -S _test -B build/_test
+          cmake --build build/_test
+
+      - name: Run all tests
+        run: |
+          ctest --test-dir build/_test --output-on-failure
+
+      - name: Find build artifacts
+        id: artifacts
+        run: |
+          mkdir -p release-artifacts
+          find build -type f \( -perm -111 -o -name '*.dylib' -o -name '*.a' \) -exec cp --parents {} release-artifacts/ \;
+          echo "::set-output name=files::$(find release-artifacts -type f | tr '\n' ' ')"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release-artifacts
+          asset_name: release-artifacts-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip
+        run: |
+          tar -czf release-artifacts-${{ github.ref_name }}.tar.gz -C release-artifacts .
