@@ -617,5 +617,10 @@ std::string MailUtils::sanitize_header(const std::string& header) {
     return sanitized;
 }
 
+
 } // namespace mail_server
 } // namespace services
+
+int main() {
+    return 0;
+}

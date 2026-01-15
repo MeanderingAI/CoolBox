@@ -32,16 +32,16 @@
 #include <dlfcn.h>
 
 // Project headers
-#include "networking/rest_api_DEPRECATED/http2_servlet.h"
-#include "dataformats/json/json.h"
-#include "networking/http/request_response.h"
-#include "utils.hpp"
-#include "request_handlers.h"
-#include "server_constants.hpp"
-
-#include "binary_info.hpp"
-#include "shared_library.hpp"
-#include "advanced_logging/advanced_logging.h"
+#include "IO/servlets/http_server.h"
+#include "IO/servlets/HttpVersion.h"
+#include "IO/dataformats/json/json.h"
+#include "IO/dataformats/http/request_response.h"
+#include "include/utils.hpp"
+#include "include/request_handlers.h"
+#include "include/server_constants.hpp"
+#include "utils/elf_management/binary_info.hpp"
+#include "utils/elf_management/shared_library.hpp"
+#include "IO/advanced_logging/advanced_logging.h"
 
 
 

@@ -554,4 +554,9 @@ bool CacheClient::del(const std::string& key) {
     return response.find(":1") == 0;
 }
 
+
 } // namespace services
+
+int main() {
+    return 0;
+}

@@ -1,11 +1,12 @@
-#ifndef SERVICE_MANAGER_BINARY_INFO_HPP
-#define SERVICE_MANAGER_BINARY_INFO_HPP
-
+#pragma once
 #include <string>
 #include <ctime>
 #include <vector>
 #include <sys/stat.h>
 #include <dirent.h>
+
+namespace utils {
+namespace elf_management {
 
 struct BinaryInfo {
     std::string name;
@@ -37,4 +38,5 @@ inline std::vector<BinaryInfo> scan_binaries(const std::string& workspace_path) 
     return bins;
 }
 
-#endif // SERVICE_MANAGER_BINARY_INFO_HPP
+} // namespace elf_management
+} // namespace utils

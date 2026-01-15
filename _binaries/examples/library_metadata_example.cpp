@@ -5,7 +5,8 @@
 
 // Embed full metadata
 LIBRARY_METADATA(
-    "cache_server",
+    cache_server,
+    "Cache Server",
     "1.0.0",
     "High-performance in-memory caching system with LRU eviction and TTL support",
     "ToolBox Team"
@@ -33,4 +34,9 @@ extern "C" {
     void cache_clear() {
         // implementation
     }
+}
+
+int main() {
+    // Minimal entry point for linker
+    return 0;
 }

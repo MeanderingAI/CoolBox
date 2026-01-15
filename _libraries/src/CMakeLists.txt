@@ -1,13 +1,17 @@
 
 
 # Organized library structure (valid subdirectories only)
+
+
 add_subdirectory(IO/advanced_logging)
 add_subdirectory(IO/data_structures)
 add_subdirectory(IO/databases/sql)
 add_subdirectory(IO/dataformats/json)
 add_subdirectory(IO/distributed)
 add_subdirectory(IO/file_system)
-# IO/servlets does not have a CMakeLists.txt, so not added
+add_subdirectory(IO/servlets)
+add_subdirectory(utils/system_stats)
+
 
 
 add_subdirectory(security)

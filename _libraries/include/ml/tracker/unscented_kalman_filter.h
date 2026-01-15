@@ -8,10 +8,6 @@
  *
  * @class UnscentedKalmanFilter
  *
- *
-
-#include <Eigen/Dense>
- *
  * @brief Public Methods:
  *   - UnscentedKalmanFilter(int state_dim, int meas_dim):
  *       Constructor specifying the dimensions of the state and measurement vectors.

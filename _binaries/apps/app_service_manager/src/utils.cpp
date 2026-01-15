@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <iostream>
 
-namespace nhh = networking::http;
 namespace dj = dataformats::json;
 
 // Implementations for API handler functions
@@ -26,11 +25,11 @@ std::string handle_api_routes() {
 }
 
 
-#include "binary_info.hpp"
+#include "utils/elf_management/binary_info.hpp"
 #include <dirent.h>
 
 std::string handle_api_binaries(const std::string& workspace_path) {
-    auto bins = scan_binaries(workspace_path);
+    auto bins = utils::elf_management::scan_binaries(workspace_path);
     dj::Array arr;
     for (const auto& bin : bins) {
         arr.push(
@@ -47,10 +46,10 @@ std::string handle_api_binaries(const std::string& workspace_path) {
 }
 
 
-#include "shared_library.hpp"
+#include "utils/elf_management/shared_library.hpp"
 
 std::string handle_api_libraries(const std::string& workspace_path) {
-    auto libs = scan_libraries(workspace_path);
+    auto libs = utils::elf_management::scan_libraries(workspace_path);
     dj::Array arr;
     for (const auto& lib : libs) {
         arr.push(

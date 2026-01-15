@@ -1,9 +1,11 @@
+
 cmake_minimum_required(VERSION 3.12)
 project(PE_Tests)
+enable_testing()
+include_directories(${CMAKE_SOURCE_DIR}/build/googletest-src/googletest/include)
 find_package(Eigen3 REQUIRED)
 add_subdirectory(ml)
 add_subdirectory(datastructures)
 add_subdirectory(networking)
 add_subdirectory(utils)
 add_subdirectory(servlets)
-enable_testing()

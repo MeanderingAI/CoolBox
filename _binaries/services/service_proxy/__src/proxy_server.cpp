@@ -1,4 +1,4 @@
-#include "../__rej_proxy_service/include/proxy_server.h"
+#include "../../__rej_proxy_service/include/proxy_server.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -371,5 +371,10 @@ bool ReverseProxy::check_backend_health(std::shared_ptr<Backend> backend) {
     return true; // Simplified
 }
 
+
 } // namespace proxy
 } // namespace services
+
+int main() {
+    return 0;
+}

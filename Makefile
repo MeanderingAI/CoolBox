@@ -4,6 +4,7 @@ clean:
 	rm -rf build _binaries/CMakeFiles _binaries/apps/*/CMakeFiles _binaries/services/*/CMakeFiles _binaries/services/*/Makefile _binaries/apps/*/Makefile _binaries/services/*/cmake_install.cmake _binaries/apps/*/cmake_install.cmake _libraries/CMakeFiles _libraries/src/*/CMakeFiles _libraries/src/*/Makefile _libraries/src/*/cmake_install.cmake _test/CMakeFiles _test/*/CMakeFiles _test/*/Makefile _test/*/cmake_install.cmake Testing Temporary
 	@echo "Clean complete."
 
+
 all: help
 
 help:
@@ -111,11 +112,11 @@ run-%:
 	fi
 
 test: build
-	@echo "Building tests in _test..."
+	@echo "Building all tests in _test..."
 	cmake -S _test -B build/_test
 	cmake --build build/_test
-	@echo "Running CTest for all registered tests..."
-	@cd build/_test && ctest --output-on-failure
+	@echo "Running CTest for all registered tests in build/_test..."
+	ctest --test-dir build/_test --output-on-failure
 
 test-%:
 	@echo "Testing: $*"

@@ -10,14 +10,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include "request_handlers.h"
-#include "dataformats/json/json.h"
-#include "networking/http/request_response.h"
-#include "networking/rest_api_DEPRECATED/unified_http_server.h"
+#include "IO/dataformats/json/json.h"
+#include "IO/dataformats/http/request_response.h"
 
 namespace dj = dataformats::json;
-namespace nhh = networking::http;
+
 // Main HTTP request handler declaration (should match your route handler signatures)
-nhh::Response handle_request(const nhh::Request& req);
+Response handle_request(const Request& req);
 
 class Commands {
 public:
