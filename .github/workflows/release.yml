@@ -31,12 +31,16 @@ jobs:
         run: |
           ctest --test-dir build/_test --output-on-failure
 
+
       - name: Find build artifacts
         id: artifacts
         run: |
           mkdir -p release-artifacts
           find build -type f \( -perm -111 -o -name '*.dylib' -o -name '*.a' \) -exec cp --parents {} release-artifacts/ \;
-          echo "::set-output name=files::$(find release-artifacts -type f | tr '\n' ' ')"
+          find release-artifacts -type f > artifact-list.txt
+          echo "ARTIFACTS<<EOF" >> $GITHUB_ENV
+          cat artifact-list.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         id: create_release
@@ -49,14 +53,16 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload each artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release-artifacts
-          asset_name: release-artifacts-${{ github.ref_name }}.tar.gz
-          asset_content_type: application/gzip
-        run: |
-          tar -czf release-artifacts-${{ github.ref_name }}.tar.gz -C release-artifacts .
+          asset_path: ${{ matrix.asset }}
+          asset_name: ${{ matrix.asset }}
+          asset_content_type: application/octet-stream
+        if: env.ARTIFACTS != ''
+        strategy:
+          matrix:
+            asset: ${{ fromJson('[' + env.ARTIFACTS.replace('\n', '\",\"') + ']') }}
