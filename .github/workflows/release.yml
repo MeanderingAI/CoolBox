@@ -54,15 +54,15 @@ jobs:
           prerelease: false
 
       - name: Upload each artifact
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ matrix.asset }}
-          asset_name: ${{ matrix.asset }}
-          asset_content_type: application/octet-stream
-        if: env.ARTIFACTS != ''
-        strategy:
-          matrix:
-            asset: ${{ fromJson('[' + env.ARTIFACTS.replace('\n', '\",\"') + ']') }}
+        run: |
+          upload_url="${{ steps.create_release.outputs.upload_url }}"
+          for file in $(find release-artifacts -type f); do
+            echo "Uploading $file..."
+            curl -sSL -X POST \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$file" \
+              "$upload_url?name=$(basename $file)"
+          done
