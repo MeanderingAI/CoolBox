@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
-#include "ml/distribution/normal_distribution.h"
-#include "ml/distribution/binomial_distribution.h"
+#include "ML/distribution/normal_distribution.h"
+#include "ML/distribution/binomial_distribution.h"
 
 void demo_normal_distribution() {
     std::cout << "\n╔════════════════════════════════════════╗\n";

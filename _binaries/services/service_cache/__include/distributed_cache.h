@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 #include <chrono>
-#include "IO/data_structures/concurrent_hash_map.h"
-#include "IO/data_structures/concurrent_linked_list.h"
+#include "concurrent_hash_map.h"
+#include "concurrent_linked_list.h"
 
 namespace services {
 

@@ -1,6 +1,6 @@
 # Utilities/Other Tests
 
-set(JSON_LIB_PATH "${CMAKE_BINARY_DIR}/../_libraries/src/IO/dataformats/json/libjson.dylib")
+set(JSON_LIB_PATH "${CMAKE_BINARY_DIR}/../_libraries/packages/IO/dataformats/json/libjson.dylib")
 set(GTEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/../build/lib/libgtest_main.a")
 set(GTEST_PATH "${CMAKE_SOURCE_DIR}/../build/lib/libgtest.a")
 add_executable(json_tests test_json.cpp)

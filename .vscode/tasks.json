@@ -38,6 +38,44 @@
 			"args": [],
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Run make test_rest_api",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test_rest_api"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "build-internal-gui",
+			"type": "shell",
+			"command": "go build -o internal_gui ./main.go",
+			"options": {
+				"cwd": "${workspaceFolder}/internal_gui"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "go-mod-tidy-and-build-internal-gui",
+			"type": "shell",
+			"command": "go mod tidy && go build -o internal_gui ./main.go",
+			"options": {
+				"cwd": "${workspaceFolder}/internal_gui"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "run-internal-gui",
+			"type": "shell",
+			"command": "./internal_gui --gui",
+			"options": {
+				"cwd": "${workspaceFolder}/internal_gui"
+			},
+			"problemMatcher": []
 		}
 	]
 }

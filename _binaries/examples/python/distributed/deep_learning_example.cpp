@@ -1,8 +1,8 @@
-#include "ml/deep_learning/neural_network.h"
-#include "ml/deep_learning/layer.h"
-#include "ml/deep_learning/loss.h"
-#include "ml/deep_learning/optimizer.h"
-#include "ml/deep_learning/tensor.h"
+#include "ML/deep_learning/neural_network.h"
+#include "ML/deep_learning/layer.h"
+#include "ML/deep_learning/loss.h"
+#include "ML/deep_learning/optimizer.h"
+#include "ML/deep_learning/tensor.h"
 #include <iostream>
 #include <vector>
 #include <memory>

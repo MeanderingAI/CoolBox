@@ -5,7 +5,7 @@
 #include <atomic>
 #include <thread>
 #include <vector>
-#include "IO/data_structures/concurrent_hash_map.h"
+#include "concurrent_hash_map.h"
 
 namespace services {
 namespace proxy {

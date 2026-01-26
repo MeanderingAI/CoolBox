@@ -5,7 +5,7 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -O2
 INCLUDES = -I../include
-LIBDIRS = -L../build/_libraries/src/json -L../build/_libraries/src/rest_api -L../build/_libraries/src/sql
+LIBDIRS = -L../build/_libraries/packages/IO/dataformats/json -L../build/_libraries/packages/IO/rest_api -L../build/_libraries/packages/IO/sql
 LIBS = -lrest_api -ljson -lsql -lpthread -lsqlite3
 
 # Build directory

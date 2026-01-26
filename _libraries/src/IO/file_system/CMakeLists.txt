@@ -1,2 +1,0 @@
-add_library(file_system_file_watcher STATIC file_watcher.cpp)
-target_include_directories(file_system_file_watcher PUBLIC ${CMAKE_SOURCE_DIR}/_libraries/include)

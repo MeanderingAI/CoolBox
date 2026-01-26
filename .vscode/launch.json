@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Run internal_gui (GUI mode)",
+                "type": "pwa-node",
+                "request": "launch",
+                "cwd": "${workspaceFolder}/internal_gui",
+                "preLaunchTask": "go-mod-tidy-and-build-internal-gui",
+                "program": "${workspaceFolder}/internal_gui/internal_gui",
+                "args": ["--gui"]
+            },
+            {
+                "name": "Run internal_gui (TUI mode)",
+                "type": "pwa-node",
+                "request": "launch",
+                "cwd": "${workspaceFolder}/internal_gui",
+                "preLaunchTask": "go-mod-tidy-and-build-internal-gui",
+                "program": "${workspaceFolder}/internal_gui/internal_gui"
+            }
+        ]
+}

@@ -1,28 +1,33 @@
-#ifndef SERVICE_MANAGER_REQUEST_HANDLERS_H
-#define SERVICE_MANAGER_REQUEST_HANDLERS_H
-
-#include "IO/servlets/http_server.h"
-#include "IO/servlets/HttpVersion.h"
-#include "IO/dataformats/http/request_response.h"
-#include "IO/dataformats/json/json.h"
-#include <vector>
+#pragma once
+#include "request_response.h"
+#include "request_handle.h"
 #include <string>
-
 
 namespace service_manager {
 
+// Handler declarations
+io::http_server::RequestHandle make_help_handler();
+io::http_server::RequestHandle html_handler();
+io::http_server::RequestHandle test_handler();
+
+// API handler declarations
+Response handle_demos(const Request& req);
+Response handle_services(const Request& req);
+Response handle_apps(const Request& req);
 Response handle_routes(const Request& req);
 Response handle_binaries(const Request& req);
 Response handle_libdocs(const Request& req);
 Response handle_libraries(const Request& req);
-Response handle_demos(const Request& req);
-Response handle_services(const Request& req);
-Response handle_apps(const Request& req);
 Response handle_rebuild(const Request& req);
 Response handle_docs_rebuild(const Request& req);
-Response handle_ui(const Request& req); // Serves / and /index
+Response handle_ui(const Request& req);
 Response handle_docs(const Request& req);
 
-} // namespace service_manager
+// Per-asset static handlers
+io::http_server::RequestHandle service_manager_js_handler();
+io::http_server::RequestHandle service_manager_css_handler();
+io::http_server::RequestHandle make_help_tables_js_handler();
+io::http_server::RequestHandle make_help_table_js_handler();
+io::http_server::RequestHandle notification_center_js_handler();
 
-#endif // SERVICE_MANAGER_REQUEST_HANDLERS_H
+} // namespace service_manager

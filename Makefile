@@ -1,3 +1,45 @@
+# Regenerate all static asset headers (html, js, css)
+static_assets_headers:
+	@echo "Generating C++ headers for all static assets in _static_assets/resources using html_to_cpp.py"
+	python3 _static_assets/resources/html_to_cpp.py _static_assets/resources
+
+# Build, install, and run the service_manager executable (with static assets)
+service_manager: static_assets_headers
+	@if [ ! -d build ]; then \
+		echo "[Makefile] Running CMake configuration (cmake -S . -B build)..."; \
+		cmake -S . -B build; \
+	fi
+	$(MAKE) build
+	$(MAKE) install
+	$(MAKE) build-service_manager
+	@if [ $$? -ne 0 ]; then \
+		echo "Build failed, aborting run."; \
+		exit 1; \
+	fi
+	@echo "Running service_manager..."
+	if [ -x "build/_binaries/apps/app_service_manager/service_manager" ]; then \
+		build/_binaries/apps/app_service_manager/service_manager; \
+	elif [ -x "./bin/tool_box/service_manager" ]; then \
+		./bin/tool_box/service_manager; \
+	else \
+		echo "service_manager executable not found."; \
+		exit 1; \
+	fi
+# Build, install, and run the service_manager executable
+service_manager-run: build-service_manager install-service_manager
+	@echo "Running service_manager..."
+	if [ -x "./bin/tool_box/service_manager" ]; then \
+		./bin/tool_box/service_manager; \
+	elif [ -x "build/_binaries/apps/app_service_manager/service_manager" ]; then \
+		build/_binaries/apps/app_service_manager/service_manager; \
+	else \
+		echo "service_manager executable not found."; \
+		exit 1; \
+	fi
+# Manual rule to generate service_manager_html.h from service_manager.html
+html_to_cpp:
+	@echo "Generating C++ headers for all static assets in _static_assets/resources using html_to_cpp.py"
+	python3 _static_assets/resources/html_to_cpp.py _static_assets/resources
 .PHONY: all help build run test install build-% run-% test-% install-% completion clean
 clean:
 	@echo "Cleaning build artifacts..."
@@ -100,17 +142,38 @@ run:
 	@for n in $$(grep -h -E '^add_executable' _binaries/demos/CMakeLists.txt 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do $(MAKE) -s run-$$n; done
 	@for n in $$(grep -h -E '^add_executable' _binaries/services/*/CMakeLists.txt 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do $(MAKE) -s run-$$n; done
 
-run-%:
-	@echo "Running: $*"
-	if [ ! -x "$*" ]; then \
-		$(MAKE) -s build-$*; \
-	fi; \
-	if [ -x "$*" ]; then \
+
+
+run-%: install-%
+	@echo "Running: $* (installed in ./bin/tool_box if available)"
+	if [ -x "./bin/tool_box/$*" ]; then \
+		./bin/tool_box/$*; \
+	elif [ -x "$*" ]; then \
 		./$*; \
+	elif [ -x "build/_binaries/apps/$*/$*" ]; then \
+		./build/_binaries/apps/$*/$*; \
+	elif [ -x "build/_binaries/demos/$*" ]; then \
+		./build/_binaries/demos/$*; \
+	elif [ -x "build/_binaries/services/$*/$*" ]; then \
+		./build/_binaries/services/$*/$*; \
 	else \
-		echo "Executable $* not found in PATH or current directory."; \
+		echo "Executable $* not found in PATH, current directory, build output, or ./bin/tool_box."; \
 	fi
 
+
+
+	@echo "Installing executable: $* to ./bin/tool_box"
+	mkdir -p bin/tool_box
+	if [ -x "$*" ]; then cp "$*" bin/tool_box/; \
+	elif [ -x "build/_binaries/apps/$*/$*" ]; then cp "build/_binaries/apps/$*/$*" bin/tool_box/; \
+	elif [ -x "build/_binaries/demos/$*" ]; then cp "build/_binaries/demos/$*" bin/tool_box/; \
+	elif [ -x "build/_binaries/services/$*/$*" ]; then cp "build/_binaries/services/$*/$*" bin/tool_box/; \
+	else echo "Executable $* not found for install."; exit 1; fi
+
+add-toolbox-to-bash-path:
+	@echo "Adding ./bin/tool_box to your PATH in ~/.bash_profile if not already present..."
+	grep -qxF 'export PATH="$(PWD)/bin/tool_box:$$PATH"' ~/.bash_profile || echo 'export PATH="$(PWD)/bin/tool_box:$$PATH"' >> ~/.bash_profile
+	@echo "Done. Restart your terminal or run 'source ~/.bash_profile' to update your PATH."
 test: build
 	@echo "Building all tests in _test..."
 	cmake -S _test -B build/_test
@@ -134,10 +197,18 @@ install:
 	@mkdir -p lib
 	@find build -name '*.dylib' -exec cp -v {} lib/ \;
 
+
+# Install executable if found, otherwise try to install as library (.dylib)
 install-%:
-	@echo "Installing library: $*"
-	@mkdir -p lib
-	@find build -name '$*.dylib' -exec cp -v {} lib/ \; || echo "No .dylib found for $*"
+	@if find build -type f -perm +111 -name "$*" | grep -q .; then \
+		echo "Installing executable: $* to ./bin/tool_box"; \
+		mkdir -p bin/tool_box; \
+		find build -type f -perm +111 -name "$*" -exec cp -v {} bin/tool_box/ \;; \
+	else \
+		echo "Installing library: $*"; \
+		mkdir -p lib; \
+		find build -name '$*.dylib' -exec cp -v {} lib/ \; || echo "No .dylib found for $*"; \
+	fi
 
 completion:
 	@echo '# bash/zsh completion for make targets in this Makefile'

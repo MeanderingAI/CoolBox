@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMO</title>
+    <link rel="stylesheet" href="/_static_assets/resources/css/service_manager.css">
+    <script type="module" src="/_static_assets/resources/js/make-help-tables.js"></script>
+    <script type="module" src="/_static_assets/resources/js/notification-center.js"></script>
+    <script src="/_static_assets/resources/js/service_manager.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Service Manager</h1>
+        <div class="actions" style="gap:12px; align-items:center;">
+            <button class="btn" id="refreshBtn" title="Refresh Make Help"
+                style="background:linear-gradient(90deg,#3b82f6 0%,#6366f1 100%)">Refresh</button>
+            <span id="loading-indicator" style="display:none; margin-right:auto; color:#a78bfa; font-size:1.1em;">⏳
+                Loading...</span>
+            <button class="btn" id="rebuildAllBtn">Rebuild All</button>
+        </div>
+
+        <div id="tables-root">
+            <make-help-tables id="tables-root"></make-help-tables>
+        </div>
+    </div>
+    <notification-center id="notification-center"></notification-center>
+    
+</body>
+
+</html>

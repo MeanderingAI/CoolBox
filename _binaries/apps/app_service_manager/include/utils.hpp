@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include "request_handlers.h"
-#include "IO/dataformats/json/json.h"
-#include "IO/dataformats/http/request_response.h"
+#include "json.h"
+#include "request_response.h"
 
 namespace dj = dataformats::json;
 

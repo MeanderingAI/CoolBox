@@ -2,12 +2,17 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -73,6 +78,9 @@ func categorizeOptions(options []MakeOption) []Tab {
 }
 
 func main() {
+	guiFlag := flag.Bool("gui", false, "Launch graphical UI instead of terminal UI")
+	flag.Parse()
+
 	options, err := parseMakefile("../Makefile")
 	if err != nil {
 		fmt.Println("Error reading Makefile:", err)
@@ -80,6 +88,15 @@ func main() {
 	}
 
 	tabs := categorizeOptions(options)
+
+	if *guiFlag {
+		runGUI(tabs)
+	} else {
+		runTUI(tabs)
+	}
+}
+
+func runTUI(tabs []Tab) {
 	app := tview.NewApplication()
 	tabBar := tview.NewTextView().SetDynamicColors(true)
 	list := tview.NewList()
@@ -108,7 +125,6 @@ func main() {
 			}
 			idx := i // capture for closure
 			list.AddItem(label, "", 0, func() {
-				// Top option always runs the command
 				cmd := exec.Command("make", opts[idx].Target)
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
@@ -168,4 +184,78 @@ func main() {
 	if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
 		fmt.Println(err)
 	}
+}
+
+func runGUI(tabs []Tab) {
+	fmt.Println("Launching Fyne GUI...")
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "Fyne GUI crashed: %v\n", r)
+		}
+	}()
+	fyneApp := app.New()
+	w := fyneApp.NewWindow("Makefile GUI")
+
+	tabNames := make([]string, len(tabs))
+	for idx, t := range tabs {
+		tabNames[idx] = t.Name
+	}
+	tabSelect := widget.NewSelect(tabNames, nil)
+	list := widget.NewList(
+		func() int { return len(tabs[0].Options) },
+		func() fyne.CanvasObject { return widget.NewButton("", nil) },
+		func(i int, obj fyne.CanvasObject) {
+			btn := obj.(*widget.Button)
+			opt := tabs[0].Options[i]
+			label := opt.Target
+			if opt.Comment != "" {
+				label += " - " + opt.Comment
+			}
+			btn.SetText(label)
+			btn.OnTapped = func() {
+				go func() {
+					cmd := exec.Command("make", opt.Target)
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+					cmd.Run()
+				}()
+			}
+		},
+	)
+
+	tabSelect.OnChanged = func(name string) {
+		for _, t := range tabs {
+			if t.Name == name {
+				list.Length = func() int { return len(t.Options) }
+				list.UpdateItem = func(idx int, obj fyne.CanvasObject) {
+					btn := obj.(*widget.Button)
+					opt := t.Options[idx]
+					label := opt.Target
+					if opt.Comment != "" {
+						label += " - " + opt.Comment
+					}
+					btn.SetText(label)
+					btn.OnTapped = func() {
+						go func() {
+							cmd := exec.Command("make", opt.Target)
+							cmd.Stdout = os.Stdout
+							cmd.Stderr = os.Stderr
+							cmd.Run()
+						}()
+					}
+				}
+				list.Refresh()
+				break
+			}
+		}
+	}
+
+	w.SetContent(container.NewVBox(
+		widget.NewLabel("Select Category:"),
+		tabSelect,
+		widget.NewLabel("Makefile Targets:"),
+		list,
+	))
+	w.Resize(fyne.NewSize(600, 400))
+	w.ShowAndRun()
 }

@@ -1,5 +1,0 @@
-add_library(latent_sentiment_analysis SHARED
-	latent_sentiment_analysis.cpp
-)
-target_link_libraries(latent_sentiment_analysis PRIVATE Eigen3::Eigen)
-target_include_directories(latent_sentiment_analysis PUBLIC ${CMAKE_SOURCE_DIR}/include)
