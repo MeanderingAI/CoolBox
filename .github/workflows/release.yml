@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev libgsl-dev
+          sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev libgsl-dev doxygen
 
       - name: Configure CMake (libraries only)
         run: cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
