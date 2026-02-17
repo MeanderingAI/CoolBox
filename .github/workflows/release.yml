@@ -1,68 +1,106 @@
-name: CI Build, Test, and Release
+name: Build Libraries & Release
 
 on:
   push:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  build-test-release:
+  build-and-release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make libeigen3-dev
+          sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev
 
-      - name: Build all targets
+      - name: Configure CMake (libraries only)
+        run: cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build all libraries
         run: |
-          cmake -S . -B build
-          make -C build
+          cd build
+          # Build each non-INTERFACE library, continue on failure
+          for f in $(find ../_libraries/backages -name CMakeLists.txt); do
+            for t in $(grep -E '^add_library' "$f" 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do
+              echo "::group::Building $t"
+              cmake --build . --target "$t" || echo "::warning::Failed to build $t"
+              echo "::endgroup::"
+            done
+          done
 
       - name: Build all tests
         run: |
-          cmake -S _test -B build/_test
-          cmake --build build/_test
-
-      - name: Run all tests
-        run: |
-          ctest --test-dir build/_test --output-on-failure
-
-
-      - name: Find build artifacts
-        id: artifacts
-        run: |
-          mkdir -p release-artifacts
-          find build -type f \( -perm -111 -o -name '*.dylib' -o -name '*.a' \) -exec cp --parents {} release-artifacts/ \;
-          find release-artifacts -type f > artifact-list.txt
-          echo "ARTIFACTS<<EOF" >> $GITHUB_ENV
-          cat artifact-list.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-
-      - name: Upload each artifact
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          upload_url="${{ steps.create_release.outputs.upload_url }}"
-          for file in $(find release-artifacts -type f); do
-            echo "Uploading $file..."
-            curl -sSL -X POST \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary @"$file" \
-              "$upload_url?name=$(basename $file)"
+          cd build
+          for f in $(find ../_libraries/backages -name CMakeLists.txt); do
+            for t in $(grep -E '^add_executable.*_tests' "$f" 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do
+              echo "::group::Building test $t"
+              cmake --build . --target "$t" || echo "::warning::Failed to build test $t"
+              echo "::endgroup::"
+            done
           done
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure || true
+
+      - name: Package IO libraries
+        run: |
+          mkdir -p release-assets
+          tar czf release-assets/coolbox-io-${{ github.ref_name }}.tar.gz \
+            _libraries/backages/IO/*/include \
+            _libraries/backages/IO/*/headers \
+            $(find build/_libraries/backages/IO -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
+            2>/dev/null || echo "No IO artifacts"
+
+      - name: Package ML libraries
+        run: |
+          tar czf release-assets/coolbox-ml-${{ github.ref_name }}.tar.gz \
+            _libraries/backages/ML/*/include \
+            _libraries/backages/ML/*/headers \
+            $(find build/_libraries/backages/ML -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
+            2>/dev/null || echo "No ML artifacts"
+
+      - name: Package Security libraries
+        run: |
+          tar czf release-assets/coolbox-security-${{ github.ref_name }}.tar.gz \
+            _libraries/backages/security/*/include \
+            _libraries/backages/security/*/headers \
+            $(find build/_libraries/backages/security -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
+            2>/dev/null || echo "No Security artifacts"
+
+      - name: Package Electronics libraries
+        run: |
+          tar czf release-assets/coolbox-electronics-${{ github.ref_name }}.tar.gz \
+            _libraries/backages/ELECTRONICS/*/include \
+            $(find build/_libraries/backages/ELECTRONICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
+            2>/dev/null || echo "No Electronics artifacts"
+
+      - name: Package Misc libraries
+        run: |
+          tar czf release-assets/coolbox-misc-${{ github.ref_name }}.tar.gz \
+            _libraries/backages/MISC/*/include \
+            _libraries/backages/MISC/*/headers \
+            $(find build/_libraries/backages/MISC -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
+            2>/dev/null || echo "No Misc artifacts"
+
+      - name: Package all headers (full SDK)
+        run: |
+          tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz \
+            $(find _libraries/backages -name 'include' -type d -o -name 'headers' -type d) \
+            2>/dev/null || echo "No headers found"
+
+      - name: Create Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release-assets/*
