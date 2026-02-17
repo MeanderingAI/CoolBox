@@ -1,2 +1,0 @@
-/usr/bin/ar qc liburl_shortener.a CMakeFiles/url_shortener.dir/url_shortener/url_shortener.cpp.o
-/usr/bin/ranlib liburl_shortener.a

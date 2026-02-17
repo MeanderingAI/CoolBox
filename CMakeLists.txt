@@ -24,8 +24,12 @@ set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox sourc
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_subdirectory(_test)
-add_subdirectory(_binaries)
+# Option to skip building apps/services/demos
+option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
+if(BUILD_BINARIES)
+    add_subdirectory(_binaries)
+endif()
+
 add_subdirectory(_libraries)
 
 # Option to build Python bindings

@@ -9,3 +9,5 @@ gen_docs/
 **/.DS_Store
 **/*.bak
 *.bak
+_binaries/abbs/CmakeFiles/
+_deps/

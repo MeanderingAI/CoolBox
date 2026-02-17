@@ -1,0 +1,103 @@
+// Auto-generated from service_manager.css
+#pragma once
+
+namespace resources {
+    constexpr const char* service_manager_css = R"CSS(
+body {
+  font-family: system-ui, sans-serif;
+  background: #181825;
+  color: #f3f3f3;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.container {
+  width: 100%;
+  max-width: 700px;
+  margin-top: 48px;
+  background: #232336;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 32px 24px 24px 24px;
+}
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #a78bfa;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+.btn {
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(139,92,246,0.12);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.swipe-table-container {
+  overflow-x: auto;
+  margin-bottom: 24px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(139,92,246,0.08);
+  padding: 8px 0;
+  scrollbar-width: thin;
+}
+.swipe-table-container::-webkit-scrollbar {
+  height: 8px;
+  background: rgba(139,92,246,0.05);
+}
+.swipe-table-container::-webkit-scrollbar-thumb {
+  background: rgba(139,92,246,0.15);
+  border-radius: 8px;
+}
+table.swipe-table {
+  min-width: 500px;
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+}
+th {
+  background: #2d2d44;
+  color: #a78bfa;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-bottom: 2px solid #8b5cf6;
+}
+tr {
+  border-bottom: 1px solid #232336;
+}
+tr:last-child {
+  border-bottom: none;
+}
+td {
+  font-size: 0.97rem;
+}
+@media (max-width: 600px) {
+  .container { padding: 16px 4px; }
+  th, td { padding: 8px 8px; }
+}
+
+)CSS";
+}
