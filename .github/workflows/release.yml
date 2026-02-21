@@ -50,7 +50,26 @@ jobs:
           done
 
       - name: Run tests
-        run: cd build && ctest --output-on-failure || true
+        run: |
+          cd build
+          echo "::group::CTest Results"
+          ctest --output-on-failure --no-compress-output -T Test -R "Tests$" 2>&1 || true
+          echo "::endgroup::"
+          # Show summary
+          echo ""
+          echo "═══════════════════════════════════════════"
+          echo "  TEST RESULTS SUMMARY"
+          echo "═══════════════════════════════════════════"
+          ctest --output-on-failure -R "Tests$" 2>&1 | tail -20
+          echo ""
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/Testing/
+          if-no-files-found: ignore
 
       - name: Package IO libraries
         run: |

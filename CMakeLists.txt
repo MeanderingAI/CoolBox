@@ -24,6 +24,9 @@ set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox sourc
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Enable CTest so add_test() calls in subdirectories are discovered
+enable_testing()
+
 # Option to skip building apps/services/demos
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 if(BUILD_BINARIES)

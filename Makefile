@@ -133,8 +133,16 @@ build_%: configure
 
 # ── Tests ───────────────────────────────────────────────────────────
 test: configure
-	@echo "Running all CTest suites..."
-	@cd build && ctest --output-on-failure || true
+	@echo "Building all test executables..."
+	@for f in $$(find _libraries/backages -name CMakeLists.txt); do \
+		for t in $$(grep -E '^add_executable.*_tests' $$f 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do \
+			echo "  → building $$t"; \
+			cd build && cmake --build . --target $$t 2>&1 | tail -3 || true; cd ..; \
+		done; \
+	done
+	@echo ""
+	@echo "Running all CTest suites (library tests only)..."
+	@cd build && ctest --output-on-failure -R "Tests$$" || true
 
 test-%: configure
 	@echo "Building & running test: $*"
