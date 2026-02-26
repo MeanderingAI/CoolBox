@@ -1,7 +1,7 @@
 #ifndef BINOMIAL_DISTRIBUTION_H
 #define BINOMIAL_DISTRIBUTION_H
 
-#include <discrete_distribution.h>
+#include "discrete_distribution.h"
 #include <random>
 
 /**

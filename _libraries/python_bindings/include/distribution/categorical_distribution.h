@@ -1,7 +1,7 @@
 #ifndef CATEGORICAL_DISTRIBUTION_H
 #define CATEGORICAL_DISTRIBUTION_H
 
-#include <discrete_distribution.h>
+#include "discrete_distribution.h"
 #include <random>
 
 /**

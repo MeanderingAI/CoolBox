@@ -2,7 +2,7 @@
 #ifndef LINEAR_KERNEL_H
 #define LINEAR_KERNEL_H
 
-#include <kernel.h>
+#include "kernel.h"
 
 class LinearKernel : public Kernel {
 public:

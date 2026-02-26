@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <Eigen/Dense>
-#include <kernel.h>
+#include "kernel.h"
 
 class SVM {
 public:

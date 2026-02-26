@@ -58,3 +58,19 @@ class RMSprop : public Optimizer {
 public:
     RMSprop(double learning_rate = 0.001, double decay = 0.9, double epsilon = 1e-8);
     
+    void step(Tensor& parameters, const Tensor& gradients) override;
+    std::string name() const override { return "RMSprop"; }
+    void reset() override;
+    
+private:
+    double learning_rate_;
+    double decay_;
+    double epsilon_;
+    Tensor cache_;
+    bool initialized_;
+};
+
+} // namespace deep_learning
+} // namespace ml
+
+#endif // OPTIMIZER_H

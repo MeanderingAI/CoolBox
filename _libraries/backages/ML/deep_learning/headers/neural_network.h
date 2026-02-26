@@ -57,4 +57,35 @@
  * // If built with MODULARIZE=0, you can use the Module object directly after script load.
  * @endcode
  */
+
+namespace ml {
+namespace deep_learning {
+
+class NeuralNetwork {
+public:
+    NeuralNetwork() = default;
+
+    void add_layer(std::shared_ptr<Layer> layer);
+    void set_loss(std::shared_ptr<Loss> loss);
+    void set_optimizer(std::shared_ptr<Optimizer> optimizer);
+
+    Tensor forward(const Tensor& input);
+    void backward(const Tensor& target);
+    void train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
+               int epochs = 10, int batch_size = 32, bool verbose = false);
+    Tensor predict(const Tensor& input);
+
+    double get_last_loss() const { return last_loss_; }
+    size_t num_layers() const { return layers_.size(); }
+
+private:
+    std::vector<std::shared_ptr<Layer>> layers_;
+    std::shared_ptr<Loss> loss_;
+    std::shared_ptr<Optimizer> optimizer_;
+    double last_loss_ = 0.0;
+};
+
+} // namespace deep_learning
+} // namespace ml
+
 #endif // NEURAL_NETWORK_H

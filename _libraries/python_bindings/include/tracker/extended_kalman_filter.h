@@ -50,7 +50,7 @@
 #define EXTENDED_KALMAN_FILTER_H
 
 #include <Eigen/Dense>
-#include <base_kalman_filter.h>
+#include "base_kalman_filter.h"
 
 class ExtendedKalmanFilter : public BaseKalmanFilter {
 public:

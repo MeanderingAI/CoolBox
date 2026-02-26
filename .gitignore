@@ -11,3 +11,4 @@ gen_docs/
 *.bak
 _binaries/abbs/CmakeFiles/
 _deps/
+build-emscripten

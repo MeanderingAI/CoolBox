@@ -57,4 +57,19 @@ public:
     void fill(double value);
     void randomize(double min = -1.0, double max = 1.0);
     Tensor clone() const;
+
+    // Reduction
+    double sum() const;
+    double mean() const;
+
+private:
+    std::vector<double> data_;
+    std::vector<size_t> shape_;
     
+    size_t flat_index(const std::vector<size_t>& indices) const;
+};
+
+} // namespace deep_learning
+} // namespace ml
+
+#endif // TENSOR_H

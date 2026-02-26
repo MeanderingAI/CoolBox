@@ -2,7 +2,7 @@
 #define LINEAR_REGRESSION_H
 
 #include <random>
-#include "ml/generalized_linear_model/generalized_linear_model.h"
+#include "generalized_linear_model.h"
 
 class LinearRegressionFitMethod: public FitMethod {
 public:
@@ -57,4 +57,12 @@ public:
      * @return A pair containing the vector of weights and the bias.
      */
     std::pair<std::vector<double>, double> get_coefficients() const;
+
+protected:
+    double link_function(double linear_combination) const override;
+    double inverse_link_function(double predicted_value) const override;
+    double cost_function_derivative(double predicted_y, double actual_y) const override;
+};
+
+#endif // LINEAR_REGRESSION_H
 

@@ -1,5 +1,5 @@
 #include <emscripten/bind.h>
-#include "advanced_logging/advanced_logging.h"
+#include "advanced_logging.h"
 
 using namespace emscripten;
 using namespace advanced_logging;

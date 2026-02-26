@@ -2,7 +2,7 @@
 #define PCA_H
 
 #include <Eigen/Dense>
-#include "ml/dimensionality_reduction/svd.h"
+#include "dimensionality_reduction/svd.h"
 
 namespace dimensionality_reduction {
 

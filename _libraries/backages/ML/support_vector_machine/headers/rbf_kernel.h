@@ -2,7 +2,7 @@
 #ifndef RBF_KERNEL_H
 #define RBF_KERNEL_H
 
-#include "ml/support_vector_machine/kernel.h"
+#include "kernel.h"
 
 class RBFKernel : public Kernel {
 public:

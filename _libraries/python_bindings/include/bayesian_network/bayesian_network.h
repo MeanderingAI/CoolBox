@@ -2,15 +2,6 @@
 #ifndef BAYESIAN_NETWORK_H
 #define BAYESIAN_NETWORK_H
 
-#include "lib_metadata.h"
-
-LIBRARY_METADATA(
-    "BayesianNetwork",
-    "1.0",
-    "Bayesian Network for probabilistic graphical modeling.",
-    "ToolBox Authors"
-)
-
 #include <vector>
 #include <string>
 #include <map>

@@ -1,7 +1,7 @@
 #ifndef DECAYING_EPSILON_GREEDY_AGENT_H
 #define DECAYING_EPSILON_GREEDY_AGENT_H
 
-#include <bandit_agent.h>
+#include "bandit_agent.h"
 #include <random>
 
 class DecayingEpsilonGreedyAgent : public BanditAgent {

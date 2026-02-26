@@ -58,3 +58,9 @@ private:
     int input_channels_;
     int input_height_;
     int input_width_;
+};
+
+} // namespace deep_learning
+} // namespace ml
+
+#endif // ML_DEEP_LEARNING_TEMPLATES_H

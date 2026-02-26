@@ -38,7 +38,7 @@ struct PointHash {
     size_t operator()(const Point& p) const {
         auto h1 = std::hash<double>{}(p.x);
         auto h2 = std::hash<double>{}(p.y);
-        return h1 ^ (h2 << 32);
+        return h1 ^ (h2 * 2654435761u);
     }
 };
 

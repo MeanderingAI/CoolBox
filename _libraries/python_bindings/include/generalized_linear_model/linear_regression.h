@@ -2,7 +2,7 @@
 #define LINEAR_REGRESSION_H
 
 #include <random>
-#include <generalized_linear_model.h>
+#include "generalized_linear_model.h"
 
 class LinearRegressionFitMethod: public FitMethod {
 public:

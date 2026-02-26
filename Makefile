@@ -1,3 +1,34 @@
+# Set Python executable
+PYTHON := python3
+
+# Emscripten SDK location (override with EMSDK=/your/path)
+EMSDK ?= $(HOME)/emsdk
+
+# Ensure pybind11 is installed before building Python bindings
+install_pybind11:
+	@echo "Checking for setuptools and pybind11..."
+	@$(PYTHON) -c "import setuptools" 2>/dev/null || (echo "Installing setuptools..." && $(PYTHON) -m pip install --break-system-packages setuptools)
+	@$(PYTHON) -c "import pybind11" 2>/dev/null || (echo "Installing pybind11..." && $(PYTHON) -m pip install --break-system-packages pybind11)
+
+# Install Emscripten SDK and ensure emcmake is on PATH
+install_emcmake:
+	@if command -v emcmake >/dev/null 2>&1; then \
+		echo "emcmake is already available:"; \
+		emcc --version | head -1; \
+	elif [ -f "$(EMSDK)/emsdk_env.sh" ]; then \
+		echo "emsdk found at $(EMSDK), activating..."; \
+		. "$(EMSDK)/emsdk_env.sh" 2>/dev/null; \
+	else \
+		echo "Installing Emscripten SDK to $(EMSDK) ..."; \
+		git clone https://github.com/emscripten-core/emsdk.git "$(EMSDK)" && \
+		cd "$(EMSDK)" && ./emsdk install latest && ./emsdk activate latest; \
+		echo ""; \
+		echo "✓ Emscripten SDK installed to $(EMSDK)"; \
+		echo "  To use, first run:"; \
+		echo "    source $(EMSDK)/emsdk_env.sh"; \
+		echo "  Then:"; \
+		echo "    make build-emscripten"; \
+	fi
 # Set global DYLD_LIBRARY_PATH for all run/install commands
 DYLD_LIBRARY_PATH := $(CURDIR)/lib:$(DYLD_LIBRARY_PATH)
 
@@ -65,7 +96,9 @@ help:
 
 .PHONY: all help configure build build_all clean test install completion \
         build_libraries build_libraries_io build_libraries_ml \
-        build_libraries_security build_libraries_misc build_libraries_electronics
+        build_libraries_security build_libraries_misc build_libraries_electronics \
+        build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
+        build_python_bindings clean_python_bindings install_python_bindings install_pybind11
 
 all: build_all
 
@@ -170,3 +203,55 @@ install-%:
 completion:
 	@echo '# bash/zsh completion for make targets in this Makefile'
 	@echo 'complete -W "$$(grep -oE "^[a-zA-Z0-9_-]+:" Makefile | sed "s/://" | sort -u)" make'
+
+# ── Python Bindings ───────────────────────────────────────────────
+build_python_bindings: install_pybind11
+	@echo "Building Python bindings..."
+	@cd _libraries/python_bindings && $(PYTHON) setup.py build
+
+clean_python_bindings:
+	@echo "Cleaning Python bindings build artifacts..."
+	@cd _libraries/python_bindings && $(PYTHON) setup.py clean --all
+
+install_python_bindings:
+	@echo "Installing Python bindings..."
+	@cd _libraries/python_bindings && $(PYTHON) setup.py install
+
+# ── Emscripten / JavaScript Bindings ────────────────────────────────
+build_js_bindings: install_emcmake
+	@echo "========================================"
+	@echo "Building Emscripten JS/WASM bindings"
+	@echo "========================================"
+	@mkdir -p build-emscripten
+	@if command -v emcmake >/dev/null 2>&1; then \
+		cd build-emscripten && emcmake cmake -G "Unix Makefiles" \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DEMSCRIPTEN_MODULARIZE=$(or $(EMS_MODULARIZE),ON) \
+			../_libraries/emscripten_bindings && \
+			$(MAKE); \
+	elif [ -f "$(EMSDK)/emsdk_env.sh" ]; then \
+		cd build-emscripten && . "$(EMSDK)/emsdk_env.sh" && emcmake cmake -G "Unix Makefiles" \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DEMSCRIPTEN_MODULARIZE=$(or $(EMS_MODULARIZE),ON) \
+			../_libraries/emscripten_bindings && \
+			$(MAKE); \
+	else \
+		echo "Error: emcmake not found and no emsdk at $(EMSDK)."; \
+		echo "  Run: make install_emcmake"; \
+		echo "  Then: source $(EMSDK)/emsdk_env.sh"; \
+		exit 1; \
+	fi
+	@echo "✓ Emscripten bindings built! (MODULARIZE=$(or $(EMS_MODULARIZE),ON))"
+	@ls -lh build-emscripten/*.js 2>/dev/null || echo "(no .js files found)"
+	@echo ""
+
+clean_js_bindings:
+	@echo "Cleaning Emscripten build artifacts..."
+	rm -rf build-emscripten
+	@echo "Clean complete."
+
+install_js_bindings:
+	@echo "Installing JS bindings to ./lib/js ..."
+	@mkdir -p lib/js
+	@find build-emscripten -name '*.js' -exec cp -v {} lib/js/ \; 2>/dev/null || echo "No .js files found. Run 'make build_js_bindings' first."
+	@find build-emscripten -name '*.wasm' -exec cp -v {} lib/js/ \; 2>/dev/null || true

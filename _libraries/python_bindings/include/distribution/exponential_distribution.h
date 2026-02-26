@@ -1,7 +1,7 @@
 #ifndef EXPONENTIAL_DISTRIBUTION_H
 #define EXPONENTIAL_DISTRIBUTION_H
 
-#include <distribution.h>
+#include "distribution.h"
 #include <random>
 
 /**

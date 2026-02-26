@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "ml/decision_tree/decision_tree.h"
+#include "decision_tree.h"
 
 class RuleSet {
 public:

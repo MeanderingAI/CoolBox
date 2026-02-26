@@ -1,7 +1,7 @@
 #ifndef BERNOULLI_DISTRIBUTION_H
 #define BERNOULLI_DISTRIBUTION_H
 
-#include <discrete_distribution.h>
+#include "discrete_distribution.h"
 #include <random>
 
 /**

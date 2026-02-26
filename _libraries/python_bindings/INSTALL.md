@@ -1,4 +1,4 @@
-# ML Core Python Bindings - Quick Installation Guide
+# CB Python Bindings - Quick Installation Guide
 
 ## Quick Start
 

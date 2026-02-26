@@ -4,42 +4,41 @@
 #include <pybind11/numpy.h>
 
 // Include all the ML headers
-#include "ml/decision_tree/decision_tree.h"
-#include "ml/decision_tree/random_forest.h"
-// #include "ml/decision_tree/decision_tree_regressor.h"  // TODO: Implement this class
-#include "ml/support_vector_machine/support_vector_machine.h"
-#include "ml/support_vector_machine/linear_kernel.h"
-#include "ml/support_vector_machine/rbf_kernel.h"
-#include "ml/support_vector_machine/polynomial_kernel.h"
-#include "ml/support_vector_machine/sigmoid_kernel.h"
-#include "ml/bayesian_network/bayesian_network.h"
-#include "ml/hidden_markov_model/hidden_markov_model.h"
-#include "ml/generalized_linear_model/linear_regression.h"
-#include "ml/multi_arm_bandit/bandit_arm.h"
-#include "ml/multi_arm_bandit/decaying_epsilon_agent.h"
-#include "ml/tracker/kalman_filter.h"
-#include "ml/tracker/unscented_kalman_filter.h"
-#include "ml/dimensionality_reduction/svd.h"
-#include "ml/dimensionality_reduction/pca.h"
-#include "ml/dimensionality_reduction/knn.h"
-#include "ml/dimensionality_reduction/umap.h"
-#include "ml/deep_learning/tensor.h"
-#include "ml/deep_learning/layer.h"
-#include "ml/deep_learning/loss.h"
-#include "ml/deep_learning/optimizer.h"
-#include "ml/deep_learning/neural_network.h"
-#include "ml/deep_learning/templates.h"
-#include "ml/computer_vision/image.h"
-#include "ml/computer_vision/transforms.h"
-#include "ml/computer_vision/pipeline.h"
-#include "ml/computer_vision/layers.h"
-#include "ml/time_series/time_series.h"
-#include "ml/nlp/text_processor.h"
-#include "ml/nlp/embeddings.h"
-#include "networking/distributed/message_passing.h"
-#include "networking/distributed/distributed_trainer.h"
-#include "networking/rest_api/server.h"
-// #include "networking/rest_api/model_server.h" (removed)
+#include "decision_tree/decision_tree.h"
+#include "decision_tree/random_forest.h"
+// #include "decision_tree/decision_tree_regressor.h"  // TODO: Implement this class
+#include "support_vector_machine/support_vector_machine.h"
+#include "support_vector_machine/linear_kernel.h"
+#include "support_vector_machine/rbf_kernel.h"
+#include "support_vector_machine/polynomial_kernel.h"
+#include "support_vector_machine/sigmoid_kernel.h"
+#include "bayesian_network/bayesian_network.h"
+#include "hidden_markov_model/hidden_markov_model.h"
+#include "generalized_linear_model/linear_regression.h"
+#include "multi_arm_bandit/bandit_arm.h"
+#include "multi_arm_bandit/decaying_epsilon_agent.h"
+#include "tracker/kalman_filter.h"
+#include "tracker/unscented_kalman_filter.h"
+#include "dimensionality_reduction/svd.h"
+#include "dimensionality_reduction/pca.h"
+#include "dimensionality_reduction/knn.h"
+#include "dimensionality_reduction/umap.h"
+#include "deep_learning/tensor.h"
+#include "deep_learning/layer.h"
+#include "deep_learning/loss.h"
+#include "deep_learning/optimizer.h"
+#include "deep_learning/neural_network.h"
+#include "deep_learning/templates.h"
+#include "computer_vision/image.h"
+#include "computer_vision/transforms.h"
+#include "computer_vision/pipeline.h"
+#include "computer_vision/layers.h"
+#include "time_series/time_series.h"
+#include "nlp/text_processor.h"
+#include "nlp/embeddings.h"
+#include "distributed/message_passing.h"
+#include "distributed/distributed_trainer.h"
+#include "rest_api/server.h"
 
 namespace py = pybind11;
 
@@ -582,6 +581,7 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("targets"),
              py::arg("epochs"),
              py::arg("batch_size") = 32,
+             py::arg("verbose") = true);
     
     // =========================================================================
     // NEURAL NETWORK TEMPLATES
@@ -1473,7 +1473,7 @@ PYBIND11_MODULE(ml_core, m) {
     // Utility functions
     dist_module.def("partition_data", &distributed::utils::partition_data);
     dist_module.def("compute_distributed_accuracy", &distributed::utils::compute_distributed_accuracy);
-}
-   nlp_module.def("average_embeddings", &ml::nlp::average_embeddings);
+
+    nlp_module.def("average_embeddings", &ml::nlp::average_embeddings);
     nlp_module.def("max_pooling_embeddings", &ml::nlp::max_pooling_embeddings);
 }

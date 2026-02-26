@@ -1,7 +1,7 @@
 #ifndef NORMAL_DISTRIBUTION_H
 #define NORMAL_DISTRIBUTION_H
 
-#include <distribution.h>
+#include "distribution.h"
 #include <random>
 
 /**

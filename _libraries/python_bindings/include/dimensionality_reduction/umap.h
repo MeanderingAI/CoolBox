@@ -2,7 +2,7 @@
 #define UMAP_H
 
 #include <Eigen/Dense>
-#include "ml/dimensionality_reduction/knn.h"
+#include "dimensionality_reduction/knn.h"
 #include <vector>
 #include <random>
 

@@ -13,21 +13,15 @@ parent_dir = os.path.dirname(project_root)
 include_dirs = [
     # pybind11 includes
     pybind11.get_include(),
-    # Project includes
-    os.path.join(parent_dir, "include"),
-    os.path.join(parent_dir, "include", "bayesian_network"),
-    os.path.join(parent_dir, "include", "decision_tree"),
-    os.path.join(parent_dir, "include", "dimensionality_reduction"),
-    os.path.join(parent_dir, "include", "generalized_linear_model"),
-    os.path.join(parent_dir, "include", "hidden_markov_model"),
-    os.path.join(parent_dir, "include", "multi_arm_bandit"),
-    os.path.join(parent_dir, "include", "support_vector_machine"),
-    os.path.join(parent_dir, "include", "tracker"),
-    # Eigen includes (assuming it's in the build directory)
+    # Project includes (headers are in python_bindings/include/)
+    os.path.join(project_root, "include"),
+    # Eigen includes
+    os.path.join(parent_dir, "..", "eigen-src"),
     os.path.join(parent_dir, "build", "eigen-src"),
     # System includes for Eigen
     "/usr/include/eigen3",
     "/usr/local/include/eigen3",
+    "/opt/homebrew/include/eigen3",
 ]
 
 # Source files - collect all .cpp files from src directories
