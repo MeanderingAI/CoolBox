@@ -35,7 +35,10 @@ add_subdirectory_if_exists(backages/ML/nlp)
 add_subdirectory_if_exists(backages/ML/support_vector_machine)
 add_subdirectory_if_exists(backages/ML/time_series)
 add_subdirectory_if_exists(backages/ML/tracker)
-# add_subdirectory_if_exists(backages/ML/knn)  # incomplete: missing source/knn.cpp
+add_subdirectory_if_exists(backages/ML/self_organizing_maps)
+add_subdirectory_if_exists(backages/ML/vae)
+add_subdirectory_if_exists(backages/ML/knn)
+add_subdirectory_if_exists(backages/ML/gabor_patches)
 
 # Security backages
 add_subdirectory_if_exists(backages/security/auth)

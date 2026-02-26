@@ -63,11 +63,17 @@ help:
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo ""
 
-.PHONY: all help configure build clean test install completion \
+.PHONY: all help configure build build_all clean test install completion \
         build_libraries build_libraries_io build_libraries_ml \
         build_libraries_security build_libraries_misc build_libraries_electronics
 
-all: help
+all: build_all
+
+# ── Build All (every CMake target: libraries + tests) ───────────────
+build_all: configure
+	@echo "[Makefile] Building ALL targets..."
+	@cmake --build build
+	@echo "[Makefile] Build complete."
 
 # ── CMake Configuration (libraries only, skip binaries) ─────────────
 configure:
