@@ -5,6 +5,7 @@ add_library(dimensionality_reduction SHARED
     source/umap.cpp
 )
 target_include_directories(dimensionality_reduction PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_link_libraries(dimensionality_reduction PRIVATE Eigen3::Eigen metadata_management)
 
 # Tests
 enable_testing()

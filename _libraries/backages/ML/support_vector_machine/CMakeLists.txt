@@ -6,6 +6,7 @@ add_library(support_vector_machine SHARED
     source/support_vector_machine.cpp
 )
 target_include_directories(support_vector_machine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_link_libraries(support_vector_machine PRIVATE Eigen3::Eigen)
 
 # Tests
 enable_testing()

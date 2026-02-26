@@ -1,0 +1,42 @@
+Metadata-Version: 2.4
+Name: ml-toolbox
+Version: 0.2.0
+Summary: Comprehensive C++ Machine Learning Library with Python Bindings
+Home-page: https://github.com/yourusername/ToolBox
+Author: ML Core Team
+Author-email: 
+License: MIT
+Project-URL: Homepage, https://github.com/yourusername/ToolBox
+Project-URL: Documentation, https://github.com/yourusername/ToolBox/blob/main/README.md
+Project-URL: Repository, https://github.com/yourusername/ToolBox
+Project-URL: Issues, https://github.com/yourusername/ToolBox/issues
+Keywords: machine-learning,deep-learning,neural-networks,decision-trees,svm,bayesian-networks,distributed-training,computer-vision,nlp
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: C++
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.19.0
+Requires-Dist: pybind11>=2.6.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: mypy>=0.900; extra == "dev"
+Provides-Extra: examples
+Requires-Dist: matplotlib>=3.3.0; extra == "examples"
+Requires-Dist: scikit-learn>=0.24.0; extra == "examples"
+Provides-Extra: all
+Requires-Dist: ml-toolbox[dev,examples]; extra == "all"
+Dynamic: home-page
+Dynamic: requires-python

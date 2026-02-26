@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/matlab_platform_app.dir/matlab_platform_app/matlab_platform_app.cpp.o -o matlab_platform_app  -lauth -lhtml_processor liburl_shortener.a _binaries/services/system_monitor/libsystem_monitor_lib.a libservice_breaker.a -lpthread

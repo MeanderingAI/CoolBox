@@ -2,6 +2,7 @@ add_library(hidden_markov_model SHARED
     source/hidden_markov_model.cpp
 )
 target_include_directories(hidden_markov_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_link_libraries(hidden_markov_model PRIVATE Eigen3::Eigen)
 
 # Tests
 enable_testing()

@@ -19,8 +19,13 @@ add_subdirectory_if_exists(backages/IO/http_server)
 add_subdirectory_if_exists(backages/IO/servlets)
 add_subdirectory_if_exists(gen_docs)
 
+# Utils backages (before ML — metadata_management is a dependency)
+add_subdirectory_if_exists(backages/MISC/metadata_management)
+add_subdirectory_if_exists(backages/MISC/unix_commands)
+add_subdirectory_if_exists(backages/MISC/system_stats)
+
 # ML backages
-add_subdirectory_if_exists(backages/ML/bayesian_network)
+add_subdirectory_if_exists(backages/ML/bayesian_network_ai)
 add_subdirectory_if_exists(backages/ML/computer_vision)
 add_subdirectory_if_exists(backages/ML/decision_tree)
 add_subdirectory_if_exists(backages/ML/deep_learning)
@@ -45,10 +50,6 @@ add_subdirectory_if_exists(backages/security/auth)
 add_subdirectory_if_exists(backages/security/fuzzer)
 add_subdirectory_if_exists(backages/security/malware_scanner)
 add_subdirectory_if_exists(backages/security/network_scanner)
-
-# Utils backages
-add_subdirectory_if_exists(backages/MISC/unix_commands)
-add_subdirectory_if_exists(backages/MISC/system_stats)
 
 # Electronics backages
 add_subdirectory_if_exists(backages/ELECTRONICS/curcuitry)
