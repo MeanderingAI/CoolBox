@@ -12,3 +12,5 @@ gen_docs/
 _binaries/abbs/CmakeFiles/
 _deps/
 build-emscripten
+eigen-src
+eigen-build
