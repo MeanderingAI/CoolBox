@@ -1,4 +1,5 @@
 build
+build-test
 Testing
 **/a.out
 _libraries/gen_docs/html/
@@ -14,4 +15,3 @@ _deps/
 build-emscripten
 eigen-src
 eigen-build
-

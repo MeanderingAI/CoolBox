@@ -103,6 +103,14 @@ jobs:
             $(find build/_libraries/backages/ELECTRONICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
             2>/dev/null || echo "No Electronics artifacts"
 
+      - name: Package Graphics libraries
+        run: |
+          tar czf release-assets/coolbox-graphics-${{ github.ref_name }}.tar.gz \
+            _libraries/backages/GRAPHICS/*/include \
+            _libraries/backages/GRAPHICS/*/headers \
+            $(find build/_libraries/backages/GRAPHICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
+            2>/dev/null || echo "No Graphics artifacts"
+
       - name: Package Misc libraries
         run: |
           tar czf release-assets/coolbox-misc-${{ github.ref_name }}.tar.gz \

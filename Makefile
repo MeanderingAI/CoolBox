@@ -48,6 +48,7 @@ help:
 	@echo "  make build_libraries_ml          Build ML libraries only"
 	@echo "  make build_libraries_security    Build Security libraries only"
 	@echo "  make build_libraries_misc        Build Misc libraries only"
+	@echo "  make build_libraries_graphics    Build Graphics libraries only"
 	@echo "  make build_libraries_electronics Build Electronics libraries only"
 	@echo "  make build_NAME                  Build a specific target by name"
 	@echo ""
@@ -78,6 +79,10 @@ help:
 	@find _libraries/backages/security -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
 		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
 	@echo ""
+	@echo "  [Graphics]                                make build_libraries_graphics"
+	@find _libraries/backages/GRAPHICS -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
+		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo ""
 	@echo "  [Electronics]                             make build_libraries_electronics"
 	@find _libraries/backages/ELECTRONICS -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
 		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
@@ -97,6 +102,7 @@ help:
 .PHONY: all help configure build build_all clean test install completion \
         build_libraries build_libraries_io build_libraries_ml \
         build_libraries_security build_libraries_misc build_libraries_electronics \
+        build_libraries_graphics \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
         build_python_bindings clean_python_bindings install_python_bindings install_pybind11
 
@@ -164,6 +170,9 @@ build_libraries_misc: configure
 
 build_libraries_electronics: configure
 	$(call BUILD_LIBS_IN,ELECTRONICS)
+
+build_libraries_graphics: configure
+	$(call BUILD_LIBS_IN,GRAPHICS)
 
 # Build a specific target by name
 build_%: configure

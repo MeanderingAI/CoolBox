@@ -51,6 +51,9 @@ add_subdirectory_if_exists(backages/security/fuzzer)
 add_subdirectory_if_exists(backages/security/malware_scanner)
 add_subdirectory_if_exists(backages/security/network_scanner)
 
+# Graphics backages
+add_subdirectory_if_exists(backages/GRAPHICS/charts)
+
 # Electronics backages
 add_subdirectory_if_exists(backages/ELECTRONICS/curcuitry)
 add_subdirectory_if_exists(backages/ELECTRONICS/battery)
