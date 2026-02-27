@@ -9,19 +9,35 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            lib_ext: "*.a -o -name *.so"
+          - os: macos-latest
+            platform: macos-arm64
+            lib_ext: "*.a -o -name *.dylib"
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.platform }})
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        #with:
-        #  submodules: recursive
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev libgsl-dev doxygen
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake eigen googletest gsl doxygen
 
       - name: Configure CMake (libraries only)
         run: cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
@@ -29,7 +45,6 @@ jobs:
       - name: Build all libraries
         run: |
           cd build
-          # Build each non-INTERFACE library, continue on failure
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E '^add_library' "$f" 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do
               echo "::group::Building $t"
@@ -55,10 +70,9 @@ jobs:
           echo "::group::CTest Results"
           ctest --output-on-failure --no-compress-output -T Test -R "Tests$" 2>&1 || true
           echo "::endgroup::"
-          # Show summary
           echo ""
           echo "═══════════════════════════════════════════"
-          echo "  TEST RESULTS SUMMARY"
+          echo "  TEST RESULTS SUMMARY (${{ matrix.platform }})"
           echo "═══════════════════════════════════════════"
           ctest --output-on-failure -R "Tests$" 2>&1 | tail -20
           echo ""
@@ -67,14 +81,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ matrix.platform }}
           path: build/Testing/
           if-no-files-found: ignore
 
       - name: Package IO libraries
         run: |
           mkdir -p release-assets
-          tar czf release-assets/coolbox-io-${{ github.ref_name }}.tar.gz \
+          tar czf release-assets/coolbox-io-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
             _libraries/backages/IO/*/include \
             _libraries/backages/IO/*/headers \
             $(find build/_libraries/backages/IO -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
@@ -82,7 +96,7 @@ jobs:
 
       - name: Package ML libraries
         run: |
-          tar czf release-assets/coolbox-ml-${{ github.ref_name }}.tar.gz \
+          tar czf release-assets/coolbox-ml-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
             _libraries/backages/ML/*/include \
             _libraries/backages/ML/*/headers \
             $(find build/_libraries/backages/ML -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
@@ -90,7 +104,7 @@ jobs:
 
       - name: Package Security libraries
         run: |
-          tar czf release-assets/coolbox-security-${{ github.ref_name }}.tar.gz \
+          tar czf release-assets/coolbox-security-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
             _libraries/backages/security/*/include \
             _libraries/backages/security/*/headers \
             $(find build/_libraries/backages/security -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
@@ -98,14 +112,14 @@ jobs:
 
       - name: Package Electronics libraries
         run: |
-          tar czf release-assets/coolbox-electronics-${{ github.ref_name }}.tar.gz \
+          tar czf release-assets/coolbox-electronics-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
             _libraries/backages/ELECTRONICS/*/include \
             $(find build/_libraries/backages/ELECTRONICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
             2>/dev/null || echo "No Electronics artifacts"
 
       - name: Package Graphics libraries
         run: |
-          tar czf release-assets/coolbox-graphics-${{ github.ref_name }}.tar.gz \
+          tar czf release-assets/coolbox-graphics-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
             _libraries/backages/GRAPHICS/*/include \
             _libraries/backages/GRAPHICS/*/headers \
             $(find build/_libraries/backages/GRAPHICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
@@ -113,21 +127,41 @@ jobs:
 
       - name: Package Misc libraries
         run: |
-          tar czf release-assets/coolbox-misc-${{ github.ref_name }}.tar.gz \
+          tar czf release-assets/coolbox-misc-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
             _libraries/backages/MISC/*/include \
             _libraries/backages/MISC/*/headers \
             $(find build/_libraries/backages/MISC -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
             2>/dev/null || echo "No Misc artifacts"
 
-      - name: Package all headers (full SDK)
+      - name: Package all headers (full SDK, platform-independent)
+        if: matrix.platform == 'linux-x86_64'
         run: |
           tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz \
             $(find _libraries/backages -name 'include' -type d -o -name 'headers' -type d) \
             2>/dev/null || echo "No headers found"
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ matrix.platform }}
+          path: release-assets/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Create Release
+
+    steps:
+      - name: Download all release assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-assets-*
+          path: all-assets
+          merge-multiple: true
 
       - name: Create Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
           generate_release_notes: true
-          files: release-assets/*
+          files: all-assets/*
