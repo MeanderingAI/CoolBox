@@ -11,15 +11,20 @@
 #include <string>
 
 // Platform-specific section attribute for embedding metadata
-#ifdef __APPLE__
+#if defined(_MSC_VER)
+  // MSVC: use __declspec(allocate) with a pragma section, or simply skip section embedding
+  #define LIB_META_SECTION
+  #define LIB_META_EXPORT __declspec(dllexport)
+#elif defined(__APPLE__)
   #define LIB_META_SECTION __attribute__((used, section("__DATA,__lib_meta")))
+  #define LIB_META_EXPORT __attribute__((visibility("default")))
 #else
   #define LIB_META_SECTION __attribute__((used, section(".lib_meta")))
+  #define LIB_META_EXPORT __attribute__((visibility("default")))
 #endif
 
 // Macro to embed library metadata and Doxygen doc block with unique function names
 #define LIBRARY_METADATA_DOXYGEN(libid, name, version, description, author) \
-    /** \addtogroup Libraries \{ \brief """ name """ (v" version ")\n *  \details " description "\n *  \author " author "\n */ \
     extern "C" { \
         LIB_META_SECTION \
         static const char _lib_##libid##_name[] = name; \
@@ -29,29 +34,27 @@
         static const char _lib_##libid##_description[] = description; \
         LIB_META_SECTION \
         static const char _lib_##libid##_author[] = author; \
-        __attribute__((visibility("default"))) \
+        LIB_META_EXPORT \
         const char* get_##libid##_library_name() { return name; } \
-        __attribute__((visibility("default"))) \
+        LIB_META_EXPORT \
         const char* get_##libid##_library_version() { return version; } \
-        __attribute__((visibility("default"))) \
+        LIB_META_EXPORT \
         const char* get_##libid##_library_description() { return description; } \
-        __attribute__((visibility("default"))) \
+        LIB_META_EXPORT \
         const char* get_##libid##_library_author() { return author; } \
     }
 
 // Simpler version - just description, with Doxygen
 #define LIBRARY_DOC_DOXYGEN(description) \
-    /** \brief " description " */ \
     extern "C" { \
-        __attribute__((visibility("default"), used)) \
+        LIB_META_EXPORT \
         const char* get_library_doc() { return description; } \
     }
 
 // Function info metadata with Doxygen
 #define FUNCTION_DOC_DOXYGEN(func_name, doc) \
-    /** \brief " doc " */ \
     extern "C" { \
-        __attribute__((visibility("default"), used)) \
+        LIB_META_EXPORT \
         const char* func_name##_doc() { return doc; } \
     }
 

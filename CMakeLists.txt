@@ -16,6 +16,9 @@ include_directories(${CMAKE_SOURCE_DIR}/_libraries/include)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# On Windows/MSVC, auto-export all symbols so SHARED libs produce import .lib files
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 # Include the external dependencies from the sub-directory
 include(cmake/ExternalDependencies.cmake)
 
