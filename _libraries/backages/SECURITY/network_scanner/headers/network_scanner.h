@@ -5,7 +5,7 @@
 #include <map>
 #include <set>
 #include <memory>
-#include "security/fuzzer/fuzzer.h"
+#include "fuzzer.h"
 
 namespace security {
 

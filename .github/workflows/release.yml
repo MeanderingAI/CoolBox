@@ -20,9 +20,15 @@ jobs:
           - os: macos-latest
             platform: macos-arm64
             lib_ext: "*.a -o -name *.dylib"
+          - os: windows-latest
+            platform: windows-x86_64
+            lib_ext: "*.lib -o -name *.dll"
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.platform }})
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout repository
@@ -41,6 +47,11 @@ jobs:
             brew list "$pkg" &>/dev/null || brew install "$pkg"
           done
 
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install doxygen.install -y
+        shell: powershell
+
       - name: Configure CMake (libraries only)
         run: cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
 
@@ -50,7 +61,7 @@ jobs:
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E '^add_library' "$f" 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do
               echo "::group::Building $t"
-              cmake --build . --target "$t" || echo "::warning::Failed to build $t"
+              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build $t"
               echo "::endgroup::"
             done
           done
@@ -61,7 +72,7 @@ jobs:
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E '^add_executable.*_tests' "$f" 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do
               echo "::group::Building test $t"
-              cmake --build . --target "$t" || echo "::warning::Failed to build test $t"
+              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
               echo "::endgroup::"
             done
           done
@@ -90,7 +101,7 @@ jobs:
       - name: Debug - list built library files
         run: |
           echo "=== All built library files ==="
-          find build/_libraries -name '*.so' -o -name '*.dylib' -o -name '*.a' 2>/dev/null || echo "None found"
+          find build/_libraries \( -name '*.so' -o -name '*.dylib' -o -name '*.a' -o -name '*.dll' -o -name '*.lib' \) 2>/dev/null || echo "None found"
 
       - name: Package libraries by category
         run: |
@@ -112,7 +123,7 @@ jobs:
             local lib_count=0
             while IFS= read -r f; do
               [ -n "$f" ] && cp -v "$f" "${staging}/lib/" && lib_count=$((lib_count + 1))
-            done < <(find "${build_dir}" -name '*.so' -o -name '*.dylib' -o -name '*.a' 2>/dev/null)
+            done < <(find "${build_dir}" \( -name '*.so' -o -name '*.dylib' -o -name '*.a' -o -name '*.dll' -o -name '*.lib' \) 2>/dev/null)
 
             # Copy header files from include/ and headers/ directories
             local hdr_count=0
