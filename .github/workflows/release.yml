@@ -37,7 +37,9 @@ jobs:
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install cmake eigen googletest gsl doxygen
+          for pkg in cmake eigen googletest gsl doxygen; do
+            brew list "$pkg" &>/dev/null || brew install "$pkg"
+          done
 
       - name: Configure CMake (libraries only)
         run: cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release

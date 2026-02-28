@@ -10,19 +10,24 @@
 
 #include <string>
 
-
+// Platform-specific section attribute for embedding metadata
+#ifdef __APPLE__
+  #define LIB_META_SECTION __attribute__((used, section("__DATA,__lib_meta")))
+#else
+  #define LIB_META_SECTION __attribute__((used, section(".lib_meta")))
+#endif
 
 // Macro to embed library metadata and Doxygen doc block with unique function names
 #define LIBRARY_METADATA_DOXYGEN(libid, name, version, description, author) \
     /** \addtogroup Libraries \{ \brief """ name """ (v" version ")\n *  \details " description "\n *  \author " author "\n */ \
     extern "C" { \
-        __attribute__((used, section("__DATA,__lib_meta"))) \
+        LIB_META_SECTION \
         static const char _lib_##libid##_name[] = name; \
-        __attribute__((used, section("__DATA,__lib_meta"))) \
+        LIB_META_SECTION \
         static const char _lib_##libid##_version[] = version; \
-        __attribute__((used, section("__DATA,__lib_meta"))) \
+        LIB_META_SECTION \
         static const char _lib_##libid##_description[] = description; \
-        __attribute__((used, section("__DATA,__lib_meta"))) \
+        LIB_META_SECTION \
         static const char _lib_##libid##_author[] = author; \
         __attribute__((visibility("default"))) \
         const char* get_##libid##_library_name() { return name; } \
