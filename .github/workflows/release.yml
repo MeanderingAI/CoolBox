@@ -49,11 +49,19 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        run: choco install doxygen.install -y
+        run: |
+          choco install doxygen.install -y
+          vcpkg install gsl:x64-windows
+          echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
         shell: powershell
 
       - name: Configure CMake (libraries only)
-        run: cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
+        run: |
+          CMAKE_EXTRA_ARGS=""
+          if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
+            CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
+          fi
+          cmake -S . -B build -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS
 
       - name: Build all libraries
         run: |

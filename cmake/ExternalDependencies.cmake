@@ -44,6 +44,10 @@ FetchContent_Declare(
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/quiche
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+# Use FetchContent_Populate directly (quiche is Rust/Cargo, not CMake)
+# Suppress CMP0169 deprecation warning
+cmake_policy(SET CMP0169 OLD)
 FetchContent_Populate(quiche)
+cmake_policy(SET CMP0169 NEW)
 
 find_package(GSL REQUIRED)
