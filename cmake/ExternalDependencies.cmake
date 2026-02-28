@@ -34,6 +34,8 @@ endif()
 # =============================
 # Fetch quiche (QUIC/HTTP3)
 # =============================
+# quiche is a Rust/Cargo project, not CMake. We fetch it for its C headers
+# but do NOT call FetchContent_MakeAvailable (which would try to add_subdirectory).
 include(FetchContent)
 FetchContent_Declare(
   quiche
@@ -42,6 +44,6 @@ FetchContent_Declare(
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/quiche
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-FetchContent_MakeAvailable(quiche)
+FetchContent_Populate(quiche)
 
 find_package(GSL REQUIRED)

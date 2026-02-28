@@ -93,8 +93,8 @@ help:
 	@echo ""
 	@echo "━━━ Discovered Test Targets ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@find _libraries/backages -name CMakeLists.txt -exec grep -h -E '^add_executable.*_tests' {} + 2>/dev/null \
-		| sed -E 's/add_executable\(([^ )]+).*/    make test-\1/' | sort -u || echo "    (none found)"
+	@find _libraries/backages -name CMakeLists.txt -exec grep -h -E 'add_executable.*_tests' {} + 2>/dev/null \
+		| sed -E 's/.*add_executable\(([^ )]+).*/    make test-\1/' | sort -u || echo "    (none found)"
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo ""
@@ -183,7 +183,7 @@ build_%: configure
 test: configure
 	@echo "Building all test executables..."
 	@for f in $$(find _libraries/backages -name CMakeLists.txt); do \
-		for t in $$(grep -E '^add_executable.*_tests' $$f 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do \
+		for t in $$(grep -E 'add_executable.*_tests' $$f 2>/dev/null | sed -E 's/.*add_executable\(([^ ]+).*/\1/'); do \
 			echo "  → building $$t"; \
 			cd build && cmake --build . --target $$t 2>&1 | tail -3 || true; cd ..; \
 		done; \

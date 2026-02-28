@@ -70,7 +70,7 @@ jobs:
         run: |
           cd build
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
-            for t in $(grep -E '^add_executable.*_tests' "$f" 2>/dev/null | sed -E 's/add_executable\(([^ ]+).*/\1/'); do
+            for t in $(grep -E 'add_executable.*_tests' "$f" 2>/dev/null | sed -E 's/.*add_executable\(([^ ]+).*/\1/'); do
               echo "::group::Building test $t"
               cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
               echo "::endgroup::"
