@@ -85,60 +85,73 @@ jobs:
           path: build/Testing/
           if-no-files-found: ignore
 
-      - name: Package IO libraries
+      - name: Debug - list built library files
+        run: |
+          echo "=== All built library files ==="
+          find build/_libraries -name '*.so' -o -name '*.dylib' -o -name '*.a' 2>/dev/null || echo "None found"
+
+      - name: Package libraries by category
         run: |
           mkdir -p release-assets
-          tar czf release-assets/coolbox-io-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
-            _libraries/backages/IO/*/include \
-            _libraries/backages/IO/*/headers \
-            $(find build/_libraries/backages/IO -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
-            2>/dev/null || echo "No IO artifacts"
 
-      - name: Package ML libraries
-        run: |
-          tar czf release-assets/coolbox-ml-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
-            _libraries/backages/ML/*/include \
-            _libraries/backages/ML/*/headers \
-            $(find build/_libraries/backages/ML -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
-            2>/dev/null || echo "No ML artifacts"
+          package_category() {
+            local category="$1"    # e.g. IO, ML, security, ELECTRONICS, GRAPHICS, MISC
+            local label="$2"       # e.g. io, ml, security, electronics, graphics, misc
+            local src_dir="_libraries/backages/${category}"
+            local build_dir="build/_libraries/backages/${category}"
+            local staging="staging-${label}"
 
-      - name: Package Security libraries
-        run: |
-          tar czf release-assets/coolbox-security-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
-            _libraries/backages/security/*/include \
-            _libraries/backages/security/*/headers \
-            $(find build/_libraries/backages/security -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
-            2>/dev/null || echo "No Security artifacts"
+            echo "::group::Packaging ${label}"
 
-      - name: Package Electronics libraries
-        run: |
-          tar czf release-assets/coolbox-electronics-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
-            _libraries/backages/ELECTRONICS/*/include \
-            $(find build/_libraries/backages/ELECTRONICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
-            2>/dev/null || echo "No Electronics artifacts"
+            # Create staging with lib/ and include/ subdirectories
+            mkdir -p "${staging}/lib" "${staging}/include"
 
-      - name: Package Graphics libraries
-        run: |
-          tar czf release-assets/coolbox-graphics-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
-            _libraries/backages/GRAPHICS/*/include \
-            _libraries/backages/GRAPHICS/*/headers \
-            $(find build/_libraries/backages/GRAPHICS -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
-            2>/dev/null || echo "No Graphics artifacts"
+            # Copy built shared libraries (.so, .dylib) and static archives (.a)
+            local lib_count=0
+            while IFS= read -r f; do
+              [ -n "$f" ] && cp -v "$f" "${staging}/lib/" && lib_count=$((lib_count + 1))
+            done < <(find "${build_dir}" -name '*.so' -o -name '*.dylib' -o -name '*.a' 2>/dev/null)
 
-      - name: Package Misc libraries
-        run: |
-          tar czf release-assets/coolbox-misc-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz \
-            _libraries/backages/MISC/*/include \
-            _libraries/backages/MISC/*/headers \
-            $(find build/_libraries/backages/MISC -name '*.a' -o -name '*.so' -o -name '*.dylib' 2>/dev/null) \
-            2>/dev/null || echo "No Misc artifacts"
+            # Copy header files from include/ and headers/ directories
+            local hdr_count=0
+            for hdr_dir in $(find "${src_dir}" -type d \( -name 'include' -o -name 'headers' \) 2>/dev/null); do
+              lib_name=$(basename "$(dirname "$hdr_dir")")
+              mkdir -p "${staging}/include/${lib_name}"
+              cp -v "${hdr_dir}"/*.h "${staging}/include/${lib_name}/" 2>/dev/null && hdr_count=$((hdr_count + 1))
+              cp -v "${hdr_dir}"/*.hpp "${staging}/include/${lib_name}/" 2>/dev/null && hdr_count=$((hdr_count + 1))
+            done
+
+            if [ "$lib_count" -gt 0 ] || [ "$hdr_count" -gt 0 ]; then
+              tar czf "release-assets/coolbox-${label}-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz" \
+                -C "${staging}" lib include
+              echo "✓ Packaged ${label}: ${lib_count} libraries, headers from ${hdr_count} dirs"
+            else
+              echo "⚠ No artifacts found for ${label}"
+            fi
+
+            rm -rf "${staging}"
+            echo "::endgroup::"
+          }
+
+          package_category IO          io
+          package_category ML          ml
+          package_category security    security
+          package_category ELECTRONICS electronics
+          package_category GRAPHICS    graphics
+          package_category MISC        misc
 
       - name: Package all headers (full SDK, platform-independent)
         if: matrix.platform == 'linux-x86_64'
         run: |
-          tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz \
-            $(find _libraries/backages -name 'include' -type d -o -name 'headers' -type d) \
-            2>/dev/null || echo "No headers found"
+          mkdir -p staging-headers
+          find _libraries/backages -type d \( -name 'include' -o -name 'headers' \) | while read -r hdr_dir; do
+            lib_name=$(basename "$(dirname "$hdr_dir")")
+            mkdir -p "staging-headers/${lib_name}"
+            cp "${hdr_dir}"/*.h "staging-headers/${lib_name}/" 2>/dev/null || true
+            cp "${hdr_dir}"/*.hpp "staging-headers/${lib_name}/" 2>/dev/null || true
+          done
+          tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz -C staging-headers .
+          rm -rf staging-headers
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
