@@ -46,10 +46,10 @@ add_subdirectory_if_exists(backages/ML/knn)
 add_subdirectory_if_exists(backages/ML/gabor_patches)
 
 # Security backages
-add_subdirectory_if_exists(backages/security/auth)
-add_subdirectory_if_exists(backages/security/fuzzer)
-add_subdirectory_if_exists(backages/security/malware_scanner)
-add_subdirectory_if_exists(backages/security/network_scanner)
+add_subdirectory_if_exists(backages/SECURITY/auth)
+add_subdirectory_if_exists(backages/SECURITY/fuzzer)
+add_subdirectory_if_exists(backages/SECURITY/malware_scanner)
+add_subdirectory_if_exists(backages/SECURITY/network_scanner)
 
 # Graphics backages
 add_subdirectory_if_exists(backages/GRAPHICS/charts)
