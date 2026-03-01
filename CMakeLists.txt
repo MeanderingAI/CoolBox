@@ -2,7 +2,7 @@
 option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async JS loading)" ON)
 
 cmake_minimum_required(VERSION 3.12)
-project(Models)
+project(Models LANGUAGES C CXX)
 
 # Ensure std::filesystem is available on macOS
 if(APPLE)
