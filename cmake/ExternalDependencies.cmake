@@ -58,11 +58,6 @@ cmake_policy(SET CMP0169 OLD)
 FetchContent_Populate(quiche)
 cmake_policy(SET CMP0169 NEW)
 
-# On Windows/vcpkg, prefer CONFIG mode to avoid CMake's FindGSL triggering
-# a Fortran compiler search (via FindBLAS).  Fall back to MODULE mode for
-# Linux/macOS where the system-installed GSL ships a .pc / FindGSL works fine.
-if(WIN32)
-  find_package(GSL CONFIG REQUIRED)
-else()
-  find_package(GSL REQUIRED)
-endif()
+# FindGSL (MODULE mode) may trigger FindBLAS which probes for a Fortran
+# compiler.  Ensure gfortran is on the PATH in CI (see release.yml).
+find_package(GSL REQUIRED)
