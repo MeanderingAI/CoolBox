@@ -53,6 +53,10 @@ jobs:
           choco install doxygen.install -y
           choco install mingw -y
           vcpkg install gsl:x64-windows sqlite3:x64-windows
+          # Ensure MinGW gfortran is on the PATH for FindBLAS/FindGSL
+          $mingwBin = "C:\ProgramData\mingw64\mingw64\bin"
+          if (!(Test-Path $mingwBin)) { $mingwBin = "C:\tools\mingw64\bin" }
+          echo "$mingwBin" >> $env:GITHUB_PATH
           echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
         shell: powershell
 
