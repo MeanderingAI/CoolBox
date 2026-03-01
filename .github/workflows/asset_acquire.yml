@@ -20,9 +20,6 @@ jobs:
           - os: macos-latest
             platform: macos-arm64
             lib_ext: "*.a -o -name *.dylib"
-          - os: windows-latest
-            platform: windows-x86_64
-            lib_ext: "*.lib -o -name *.dll"
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.platform }})
