@@ -51,6 +51,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install doxygen.install -y
+          choco install mingw -y
           vcpkg install gsl:x64-windows sqlite3:x64-windows
           echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
         shell: powershell
