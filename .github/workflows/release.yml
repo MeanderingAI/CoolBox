@@ -64,7 +64,7 @@ jobs:
         run: |
           CMAKE_EXTRA_ARGS=""
           if [ "${{ runner.os }}" = "Windows" ]; then
-            CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+            CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_Fortran_COMPILER=FALSE"
           elif [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
             CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
           fi
