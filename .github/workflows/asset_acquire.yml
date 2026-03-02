@@ -49,21 +49,30 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: |
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-gcc
+
+      - name: Ensure mingw64 in PATH (Windows)
+        if: runner.os == 'Windows'
         run: |
-          choco install doxygen.install -y
-          choco install msys2 -y
-          # Install mingw-w64 toolchain (includes gfortran) via pacman
-          bash -lc "set -e; pacman -Syu --noconfirm; pacman -S --noconfirm mingw-w64-x86_64-gcc"
-          # Add mingw64 bin to PATH so cmake can find gfortran
           $msysBin = "C:\\msys64\\mingw64\\bin"
           if (!(Test-Path $msysBin)) { $msysBin = "C:\\tools\\msys64\\mingw64\\bin" }
           echo "$msysBin" >> $env:GITHUB_PATH
+        shell: powershell
+
+      - name: Install Windows packages via vcpkg (optional)
+        if: runner.os == 'Windows'
+        run: |
           try {
             & vcpkg install gsl:x64-windows sqlite3:x64-windows
           } catch {
-            Write-Host "vcpkg install failed, continuing"
+            Write-Host "vcpkg install failed or vcpkg not available, continuing"
           }
-          echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
         shell: powershell
 
       - name: Configure CMake (libraries only)
