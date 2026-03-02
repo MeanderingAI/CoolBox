@@ -58,7 +58,11 @@ jobs:
           $msysBin = "C:\\msys64\\mingw64\\bin"
           if (!(Test-Path $msysBin)) { $msysBin = "C:\\tools\\msys64\\mingw64\\bin" }
           echo "$msysBin" >> $env:GITHUB_PATH
-          vcpkg install gsl:x64-windows sqlite3:x64-windows || true
+          try {
+            & vcpkg install gsl:x64-windows sqlite3:x64-windows
+          } catch {
+            Write-Host "vcpkg install failed, continuing"
+          }
           echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
         shell: powershell
 
