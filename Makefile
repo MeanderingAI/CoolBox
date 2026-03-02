@@ -68,33 +68,26 @@ help:
 	@echo "━━━ Discovered Library Targets ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "  [IO]                                      make build_libraries_io"
-	@find _libraries/backages/IO -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
-		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "  [ML]                                      make build_libraries_ml"
-	@find _libraries/backages/ML -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
-		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "  [Security]                                make build_libraries_security"
-	@find _libraries/backages/security -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
-		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "  [Graphics]                                make build_libraries_graphics"
-	@find _libraries/backages/GRAPHICS -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
-		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "  [Electronics]                             make build_libraries_electronics"
-	@find _libraries/backages/ELECTRONICS -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
-		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "  [Misc]                                    make build_libraries_misc"
-	@find _libraries/backages/MISC -name CMakeLists.txt -exec grep -h -E '^add_library' {} + 2>/dev/null \
-		| sed -E 's/add_library\(([^ )]+).*/    make build_\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "━━━ Discovered Test Targets ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@find _libraries/backages -name CMakeLists.txt -exec grep -h -E 'add_executable.*_tests' {} + 2>/dev/null \
-		| sed -E 's/.*add_executable\(([^ )]+).*/    make test-\1/' | sort -u || echo "    (none found)"
+	@echo "    (skipped: requires Unix find/grep/sed; run in WSL/Git-Bash to enable)"
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo ""

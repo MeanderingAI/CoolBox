@@ -36,7 +36,7 @@ foreach(libdir ${LEAF_LIB_DIRS})
         file(GLOB HEADER_FILES "${TOOLBOX_SOURCE_DIR}/_libraries/include/${libdir}/*.h")
         if(HEADER_FILES)
             string(REPLACE "/" "_" libid ${libdir})
-            set(DOC_OUT "${TOOLBOX_SOURCE_DIR}/gen_docs/html/libs/${libdir}")
+            set(DOC_OUT "${CMAKE_CURRENT_BINARY_DIR}/html/libs/${libdir}")
             file(MAKE_DIRECTORY ${DOC_OUT})
             set(DOXYFILE_LIB ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_${libid})
             configure_file(${DOXYGEN_IN} ${DOXYFILE_LIB} @ONLY)
@@ -65,6 +65,7 @@ endforeach()
 
 # Monolithic docs (all headers)
 configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+file(APPEND ${DOXYGEN_OUT} "OUTPUT_DIRECTORY = ${CMAKE_CURRENT_BINARY_DIR}/html\n")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html)
 add_custom_target(doc_doxygen ALL
     COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}

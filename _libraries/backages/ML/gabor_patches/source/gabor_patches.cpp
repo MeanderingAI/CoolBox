@@ -153,15 +153,15 @@ convolve2d(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& image,
 {
     using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 
-    const int ir = image.rows(), ic = image.cols();
-    const int kr = kernel.rows(), kc = kernel.cols();
+    const Eigen::Index ir = image.rows(), ic = image.cols();
+    const Eigen::Index kr = kernel.rows(), kc = kernel.cols();
 
     if (kr > ir || kc > ic)
         throw std::invalid_argument("convolve2d: kernel larger than image");
 
-    const int or_ = ir - kr + 1;
-    const int oc  = ic - kc + 1;
-    MatrixT out(or_, oc);
+    const Eigen::Index or_ = ir - kr + 1;
+    const Eigen::Index oc  = ic - kc + 1;
+    MatrixT out(static_cast<int>(or_), static_cast<int>(oc));
 
     for (int j = 0; j < or_; ++j) {
         for (int i = 0; i < oc; ++i) {
@@ -183,9 +183,9 @@ convolve2d_same(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& ima
 {
     using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 
-    const int ir = image.rows(), ic = image.cols();
-    const int kr = kernel.rows(), kc = kernel.cols();
-    const int pad_r = kr / 2, pad_c = kc / 2;
+    const Eigen::Index ir = image.rows(), ic = image.cols();
+    const Eigen::Index kr = kernel.rows(), kc = kernel.cols();
+    const Eigen::Index pad_r = kr / 2, pad_c = kc / 2;
 
     MatrixT padded = MatrixT::Zero(ir + 2 * pad_r, ic + 2 * pad_c);
     padded.block(pad_r, pad_c, ir, ic) = image;
@@ -289,10 +289,10 @@ template <typename Scalar>
 Eigen::Matrix<Scalar, Eigen::Dynamic, 1>
 GaborFilterBank<Scalar>::mean_response(const MatrixT& image, bool same) const {
     auto responses = apply(image, same);
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> out(responses.size());
-    for (size_t i = 0; i < responses.size(); ++i) {
-        out(static_cast<int>(i)) =
-            responses[i].array().abs().mean();
+    const Eigen::Index n_resp = static_cast<Eigen::Index>(responses.size());
+    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> out(static_cast<int>(n_resp));
+    for (Eigen::Index i = 0; i < n_resp; ++i) {
+        out(static_cast<int>(i)) = responses[static_cast<size_t>(i)].array().abs().mean();
     }
     return out;
 }

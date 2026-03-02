@@ -4,6 +4,14 @@ option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async 
 cmake_minimum_required(VERSION 3.12)
 project(Models LANGUAGES C CXX)
 
+# On MSVC, force a consistent dynamic MSVC runtime to avoid /MT vs /MD mismatches
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+endif()
+if(MSVC)
+    set(gtest_force_shared_crt ON CACHE BOOL "Force googletest to use the shared MSVC CRT" FORCE)
+endif()
+
 # Ensure std::filesystem is available on macOS
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS deployment version")

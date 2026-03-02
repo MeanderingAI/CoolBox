@@ -58,6 +58,17 @@ cmake_policy(SET CMP0169 OLD)
 FetchContent_Populate(quiche)
 cmake_policy(SET CMP0169 NEW)
 
-# FindGSL (MODULE mode) may trigger FindBLAS which probes for a Fortran
-# compiler.  Ensure gfortran is on the PATH in CI (see release.yml).
-find_package(GSL REQUIRED)
+# Make GSL optional; FindGSL (MODULE mode) may trigger FindBLAS which
+# probes for a Fortran compiler. Disabling GSL on Windows avoids failing
+# configuration when GSL isn't installed on developer machines.
+option(ENABLE_GSL "Enable GSL (GNU Scientific Library) support" ON)
+if(WIN32)
+  set(ENABLE_GSL OFF CACHE BOOL "Enable GSL (GNU Scientific Library) support" FORCE)
+endif()
+
+if(ENABLE_GSL)
+  # FindGSL may probe for BLAS/Fortran; ensure toolchain provides them if enabled.
+  find_package(GSL REQUIRED)
+else()
+  message(STATUS "GSL support is disabled (ENABLE_GSL=OFF). To enable, install GSL and reconfigure with -DENABLE_GSL=ON")
+endif()

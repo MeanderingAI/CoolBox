@@ -1,0 +1,44 @@
+# Windows-specific Makefile for CoolBox
+# Usage: make -f Makefile.win <target>
+
+.PHONY: help configure build build_libraries build_libraries_io build_libraries_ml \
+	build_libraries_security build_libraries_misc build_libraries_graphics \
+	build_libraries_electronics build_% test test-% install clean completion
+
+help:
+	@powershell -NoProfile -NonInteractive -Command "Write-Host ''; Write-Host 'CoolBox Build System (Windows)'; Write-Host ''; Write-Host '  make -f Makefile.win configure           Configure CMake (libraries only)'; Write-Host '  make -f Makefile.win build               Build configured CMake project'; Write-Host '  make -f Makefile.win build_NAME          Build a specific CMake target (use target name)'; Write-Host '  make -f Makefile.win build_libraries     Build all libraries (uses cmake --build)'; Write-Host '  make -f Makefile.win test                Build+run tests via ctest (if available)'; Write-Host '  make -f Makefile.win install             Copy built DLLs to ./lib'; Write-Host '  make -f Makefile.win clean               Remove build/ and lib/'; Write-Host ''"
+
+# Configure CMake (libraries only by default)
+configure:
+	@powershell -NoProfile -NonInteractive -Command "if (-not (Test-Path 'build/Makefile')) { Write-Host '[Makefile.win] Running CMake configuration (libraries only)...'; cmake -S . -B build -DBUILD_BINARIES=OFF -DENABLE_GSL=OFF } else { Write-Host '[Makefile.win] Build already configured (build/Makefile exists).' }"
+
+# Build everything configured in `build`
+build: configure
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building project...'; cmake --build build; Write-Host '[Makefile.win] Build complete.'"
+
+# Build all libraries (delegates to CMake build)
+build_libraries: configure
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building libraries (delegating to CMake)...'; cmake --build build --config Release || cmake --build build || Write-Host '[Makefile.win] Build step finished.'"
+
+# Convenience: build a specific target
+build_%: configure
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building target: $*'; cmake --build build --target $* --config Release || (Write-Host '[Makefile.win] Target build failed or not found.')"
+
+# Tests
+test: configure
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Running tests...'; if (Test-Path build) { Push-Location build; try { ctest --output-on-failure } catch { Write-Host '[Makefile.win] ctest not available or tests failed.' } finally { Pop-Location } } else { Write-Host '[Makefile.win] build/ not found; run make -f Makefile.win configure first.' }"
+
+test-%: configure
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building & running test: $*'; cmake --build build --target $* --config Release; if (Test-Path build/$*) { & build\$* } else { Write-Host '[Makefile.win] Could not find executable build/$*' }"
+
+# Install: copy built DLLs into lib/
+install:
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Installing DLLs to ./lib ...'; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $_.FullName -Destination (Join-Path (Resolve-Path .).ToString() 'lib') -Force; Write-Host '  Copied: ' $_.FullName }
+
+# Clean: remove build and lib
+clean:
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Cleaning build artifacts...'; if (Test-Path build) { Remove-Item -LiteralPath build -Recurse -Force -ErrorAction SilentlyContinue }; if (Test-Path lib) { Remove-Item -LiteralPath lib -Recurse -Force -ErrorAction SilentlyContinue }; Write-Host '[Makefile.win] Clean complete.'"
+
+# Simple completion output (bash/zsh) - not useful on Windows, but provided for compatibility
+completion:
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '# completion script not implemented for Windows Makefile'"

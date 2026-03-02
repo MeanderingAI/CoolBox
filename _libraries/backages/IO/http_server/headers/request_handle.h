@@ -12,8 +12,14 @@ namespace http_server {
 #include "HttpMethod.h"
 #include <variant>
 
-#if __cplusplus < 201703L
-#error "RequestHandle with std::variant requires C++17 or newer."
+#if defined(_MSC_VER)
+#  if _MSVC_LANG < 201703L
+#    error "RequestHandle with std::variant requires C++17 or newer."
+#  endif
+#else
+#  if __cplusplus < 201703L
+#    error "RequestHandle with std::variant requires C++17 or newer."
+#  endif
 #endif
 
 // Struct describing a request handle

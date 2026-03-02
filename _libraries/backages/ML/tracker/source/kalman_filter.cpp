@@ -4,8 +4,8 @@ KalmanFilter::KalmanFilter(double dt, const Eigen::MatrixXd& A, const Eigen::Mat
                            const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R,
                            const Eigen::MatrixXd& P)
     : dt(dt), A(A), C(C), Q(Q), R(R), P(P) {
-    int n = A.rows();
-    x = Eigen::VectorXd::Zero(n);
+    Eigen::Index n = A.rows();
+    x = Eigen::VectorXd::Zero(static_cast<int>(n));
 }
 
 void KalmanFilter::init(const Eigen::VectorXd& x0) {
