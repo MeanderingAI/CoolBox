@@ -60,6 +60,58 @@ private:
     int input_width_;
 };
 
+// Recurrent Neural Network Template
+class RNNTemplate : public NetworkTemplate {
+public:
+    enum class CellType {
+        VANILLA_RNN,
+        LSTM,
+        GRU
+    };
+    
+    RNNTemplate(CellType cell_type, int input_size, int hidden_size, int output_size,
+                int num_layers = 1, bool bidirectional = false, double dropout_rate = 0.0);
+    
+    NeuralNetwork build() override;
+    std::string name() const override;
+    
+private:
+    CellType cell_type_;
+    int input_size_;
+    int hidden_size_;
+    int output_size_;
+    int num_layers_;
+    bool bidirectional_;
+    double dropout_rate_;
+};
+
+// Transformer Template
+class TransformerTemplate : public NetworkTemplate {
+public:
+    enum class Architecture {
+        ENCODER_ONLY,   // BERT-style (classification, embeddings)
+        DECODER_ONLY,   // GPT-style (autoregressive generation)
+        ENCODER_DECODER  // T5/original Transformer (seq2seq)
+    };
+    
+    TransformerTemplate(Architecture architecture, int d_model, int num_heads,
+                        int d_ff, int num_layers, int vocab_size, int max_seq_len = 512,
+                        double dropout_rate = 0.1);
+    
+    NeuralNetwork build() override;
+    std::string name() const override;
+    
+private:
+    Architecture architecture_;
+    int d_model_;
+    int num_heads_;
+    int d_ff_;
+    int num_layers_;
+    int vocab_size_;
+    int max_seq_len_;
+    double dropout_rate_;
+};
+
 } // namespace deep_learning
 } // namespace ml
 
