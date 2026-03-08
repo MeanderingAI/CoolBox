@@ -285,3 +285,24 @@ python3 test_bindings.py
 - `ml_core.tracker` - Kalman filters
 
 See `python_bindings/README.md` and `python_bindings/examples/` for comprehensive usage examples.
+
+## CMake Package (External Projects)
+
+CoolBox can now be installed and consumed with `find_package`.
+
+Build + install:
+
+```bash
+cmake -S . -B build -DCOOLBOX_INSTALL_PACKAGE=ON
+cmake --build build --config Debug
+cmake --install build --config Debug --prefix <install-prefix>
+```
+
+Consume from another CMake project:
+
+```cmake
+find_package(CoolBox CONFIG REQUIRED)
+target_link_libraries(your_app PRIVATE CoolBox::deep_learning)
+```
+
+If CoolBox is installed to a custom location, set `CMAKE_PREFIX_PATH` to `<install-prefix>`.
