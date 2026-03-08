@@ -204,10 +204,10 @@ TEST(Conv1DLayerTest, BackwardShape) {
 // ============================================================================
 
 TEST(Conv2DLayerTest, ForwardShape) {
-    Conv2DLayer conv(3, 16, 3, 1, 1); // in=3, out=16, kernel=3, stride=1, pad=1
+    auto conv = Conv2DLayer::create_square(3, 16, 3, 1, 1); // in=3, out=16, kernel=3, stride=1, pad=1
     Tensor input({2, 3, 8, 8}); // batch=2, channels=3, 8x8
     input.randomize();
-    Tensor output = conv.forward(input);
+    Tensor output = conv->forward(input);
     EXPECT_EQ(output.shape()[0], 2);
     EXPECT_EQ(output.shape()[1], 16);
     EXPECT_EQ(output.shape()[2], 8);
@@ -215,30 +215,30 @@ TEST(Conv2DLayerTest, ForwardShape) {
 }
 
 TEST(Conv2DLayerTest, ForwardShapeNoPadding) {
-    Conv2DLayer conv(1, 4, 3, 1, 0);
+    auto conv = Conv2DLayer::create_square(1, 4, 3, 1, 0);
     Tensor input({1, 1, 6, 6});
     input.randomize();
-    Tensor output = conv.forward(input);
+    Tensor output = conv->forward(input);
     EXPECT_EQ(output.shape()[2], 4); // (6-3)/1+1 = 4
     EXPECT_EQ(output.shape()[3], 4);
 }
 
 TEST(Conv2DLayerTest, ForwardShapeStride2) {
-    Conv2DLayer conv(1, 4, 3, 2, 1);
+    auto conv = Conv2DLayer::create_square(1, 4, 3, 2, 1);
     Tensor input({1, 1, 8, 8});
     input.randomize();
-    Tensor output = conv.forward(input);
+    Tensor output = conv->forward(input);
     EXPECT_EQ(output.shape()[2], 4); // (8+2-3)/2+1 = 4
     EXPECT_EQ(output.shape()[3], 4);
 }
 
 TEST(Conv2DLayerTest, BackwardShape) {
-    Conv2DLayer conv(3, 16, 3, 1, 1);
+    auto conv = Conv2DLayer::create_square(3, 16, 3, 1, 1);
     Tensor input({2, 3, 8, 8});
     input.randomize();
-    Tensor output = conv.forward(input);
+    Tensor output = conv->forward(input);
     Tensor grad(output.shape(), 1.0);
-    Tensor input_grad = conv.backward(grad);
+    Tensor input_grad = conv->backward(grad);
     EXPECT_EQ(input_grad.shape()[0], 2);
     EXPECT_EQ(input_grad.shape()[1], 3);
     EXPECT_EQ(input_grad.shape()[2], 8);
