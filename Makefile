@@ -111,7 +111,9 @@ build_all: configure
 configure:
 	@if [ ! -f build/Makefile ]; then \
 		echo "[Makefile] Running CMake configuration (libraries only)..."; \
-		cmake -S . -B build -DBUILD_BINARIES=OFF; \
+		# Ensure SQL backage is enabled by default on non-Windows systems so
+		# targets like sql_parser/sql_ast/grammar_validation are generated.
+		cmake -S . -B build -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON; \
 	else \
 		echo "[Makefile] Build already configured (build/Makefile exists)."; \
 	fi

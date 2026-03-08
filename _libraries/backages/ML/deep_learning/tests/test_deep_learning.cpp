@@ -595,7 +595,7 @@ TEST(AdamTest, Step) {
 TEST(IntegrationTest, ConvPipeline) {
     // Build a small conv pipeline and run forward pass
     NeuralNetwork net;
-    net.add_layer(std::make_shared<Conv2DLayer>(1, 4, 3, 1, 1));
+    net.add_layer(ml::deep_learning::Conv2DLayer::create_square(1, 4, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(2));
     net.add_layer(std::make_shared<FlattenLayer>());

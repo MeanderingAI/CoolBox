@@ -101,11 +101,11 @@ NeuralNetwork CNNTemplate::build() {
 
 void CNNTemplate::build_simple(NeuralNetwork& net) {
     // Simple CNN: Conv -> ReLU -> Pool -> Conv -> ReLU -> Pool -> FC
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 32, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(input_channels_, 32, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
     
-    net.add_layer(std::make_shared<Conv2DLayer>(32, 64, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(32, 64, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
     
@@ -122,11 +122,11 @@ void CNNTemplate::build_simple(NeuralNetwork& net) {
 
 void CNNTemplate::build_lenet(NeuralNetwork& net) {
     // LeNet-5 style architecture
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 6, 5, 1, 0));
+    net.add_layer(Conv2DLayer::create_square(input_channels_, 6, 5, 1, 0));
     net.add_layer(std::make_shared<TanhLayer>());
     net.add_layer(std::make_shared<AvgPool2DLayer>(2, 2));
     
-    net.add_layer(std::make_shared<Conv2DLayer>(6, 16, 5, 1, 0));
+    net.add_layer(Conv2DLayer::create_square(6, 16, 5, 1, 0));
     net.add_layer(std::make_shared<TanhLayer>());
     net.add_layer(std::make_shared<AvgPool2DLayer>(2, 2));
     
@@ -141,23 +141,23 @@ void CNNTemplate::build_lenet(NeuralNetwork& net) {
 void CNNTemplate::build_vgglike(NeuralNetwork& net) {
     // VGG-style with multiple conv blocks
     // Block 1
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 64, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(input_channels_, 64, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<Conv2DLayer>(64, 64, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(64, 64, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
     
     // Block 2
-    net.add_layer(std::make_shared<Conv2DLayer>(64, 128, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(64, 128, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<Conv2DLayer>(128, 128, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(128, 128, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
     
     // Block 3
-    net.add_layer(std::make_shared<Conv2DLayer>(128, 256, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(128, 256, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
-    net.add_layer(std::make_shared<Conv2DLayer>(256, 256, 3, 1, 1));
+    net.add_layer(Conv2DLayer::create_square(256, 256, 3, 1, 1));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(2, 2));
     
@@ -175,14 +175,14 @@ void CNNTemplate::build_vgglike(NeuralNetwork& net) {
 void CNNTemplate::build_resnet(NeuralNetwork& net) {
     // Simplified ResNet-style (without actual residual connections in base framework)
     // This would need additional layer types for true residual connections
-    net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 64, 7, 2, 3));
+    net.add_layer(Conv2DLayer::create_square(input_channels_, 64, 7, 2, 3));
     net.add_layer(std::make_shared<BatchNormLayer>(64));
     net.add_layer(std::make_shared<ReLULayer>());
     net.add_layer(std::make_shared<MaxPool2DLayer>(3, 2));
     
     // Residual blocks (simplified)
     for (int i = 0; i < 3; ++i) {
-        net.add_layer(std::make_shared<Conv2DLayer>(64, 64, 3, 1, 1));
+        net.add_layer(Conv2DLayer::create_square(64, 64, 3, 1, 1));
         net.add_layer(std::make_shared<BatchNormLayer>(64));
         net.add_layer(std::make_shared<ReLULayer>());
     }
@@ -429,9 +429,9 @@ NeuralNetwork UNetTemplate::build() {
     int filters = base_filters_;
     for (int i = 0; i < depth_; ++i) {
         int in_ch = (i == 0) ? input_channels_ : filters / 2;
-        net.add_layer(std::make_shared<Conv2DLayer>(in_ch, filters, 3, 1, 1));
+        net.add_layer(Conv2DLayer::create_square(in_ch, filters, 3, 1, 1));
         net.add_layer(std::make_shared<ReLULayer>());
-        net.add_layer(std::make_shared<Conv2DLayer>(filters, filters, 3, 1, 1));
+        net.add_layer(Conv2DLayer::create_square(filters, filters, 3, 1, 1));
         net.add_layer(std::make_shared<ReLULayer>());
         
         if (i < depth_ - 1) {
@@ -444,14 +444,14 @@ NeuralNetwork UNetTemplate::build() {
     for (int i = depth_ - 2; i >= 0; --i) {
         filters /= 2;
         net.add_layer(std::make_shared<ConvTranspose2DLayer>(filters * 2, filters, 2, 2));
-        net.add_layer(std::make_shared<Conv2DLayer>(filters, filters, 3, 1, 1));
+        net.add_layer(Conv2DLayer::create_square(filters, filters, 3, 1, 1));
         net.add_layer(std::make_shared<ReLULayer>());
-        net.add_layer(std::make_shared<Conv2DLayer>(filters, filters, 3, 1, 1));
+        net.add_layer(Conv2DLayer::create_square(filters, filters, 3, 1, 1));
         net.add_layer(std::make_shared<ReLULayer>());
     }
     
     // Final layer
-    net.add_layer(std::make_shared<Conv2DLayer>(base_filters_, num_classes_, 1, 1, 0));
+    net.add_layer(Conv2DLayer::create_square(base_filters_, num_classes_, 1, 1, 0));
     
     return net;
 }

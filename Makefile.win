@@ -18,11 +18,11 @@ build: configure
 
 # Build all libraries (delegates to CMake build)
 build_libraries: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building libraries (delegating to CMake)...'; cmake --build build --config Release || cmake --build build || Write-Host '[Makefile.win] Build step finished.'"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building libraries (delegating to CMake)...'; & cmake --build build --config Release; if ($LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Release build failed, retrying default configuration...'; & cmake --build build; if ($LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Both Release and default builds failed.' } } ; Write-Host '[Makefile.win] Build step finished.'"
 
 # Convenience: build a specific target
 build_%: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building target: $*'; cmake --build build --target $* --config Release || (Write-Host '[Makefile.win] Target build failed or not found.')"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building target: $*'; & cmake --build build --target $* --config Release; if ($LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Target build failed or not found.' }"
 
 # Tests
 test: configure

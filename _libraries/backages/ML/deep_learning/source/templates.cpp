@@ -51,10 +51,10 @@ NeuralNetwork CNNTemplate::build() {
     switch (architecture_) {
         case Architecture::SIMPLE: {
             // Simple: Conv -> ReLU -> Pool -> Conv -> ReLU -> Pool -> Flatten -> Dense
-            net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 16, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(input_channels_, 16, 3, 1, 1));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<MaxPool2DLayer>(2));
-            net.add_layer(std::make_shared<Conv2DLayer>(16, 32, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(16, 32, 3, 1, 1));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<MaxPool2DLayer>(2));
             net.add_layer(std::make_shared<FlattenLayer>());
@@ -67,10 +67,10 @@ NeuralNetwork CNNTemplate::build() {
         }
         case Architecture::LENET: {
             // LeNet-5 style
-            net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 6, 5, 1, 0));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(input_channels_, 6, 5, 1, 0));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<AvgPool2DLayer>(2));
-            net.add_layer(std::make_shared<Conv2DLayer>(6, 16, 5, 1, 0));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(6, 16, 5, 1, 0));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<AvgPool2DLayer>(2));
             net.add_layer(std::make_shared<FlattenLayer>());
@@ -94,9 +94,9 @@ NeuralNetwork CNNTemplate::build() {
             int h = input_height_, w = input_width_;
             
             // Block 1
-            net.add_layer(std::make_shared<Conv2DLayer>(prev_channels, channels, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(prev_channels, channels, 3, 1, 1));
             net.add_layer(std::make_shared<ReLULayer>());
-            net.add_layer(std::make_shared<Conv2DLayer>(channels, channels, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(channels, channels, 3, 1, 1));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<MaxPool2DLayer>(2));
             h /= 2; w /= 2;
@@ -104,9 +104,9 @@ NeuralNetwork CNNTemplate::build() {
             // Block 2
             prev_channels = channels;
             channels = 128;
-            net.add_layer(std::make_shared<Conv2DLayer>(prev_channels, channels, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(prev_channels, channels, 3, 1, 1));
             net.add_layer(std::make_shared<ReLULayer>());
-            net.add_layer(std::make_shared<Conv2DLayer>(channels, channels, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(channels, channels, 3, 1, 1));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<MaxPool2DLayer>(2));
             h /= 2; w /= 2;
@@ -122,14 +122,14 @@ NeuralNetwork CNNTemplate::build() {
         case Architecture::RESNET:
         default: {
             // ResNet-style fallback (simplified - no actual skip connections in sequential model)
-            net.add_layer(std::make_shared<Conv2DLayer>(input_channels_, 64, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(input_channels_, 64, 3, 1, 1));
             net.add_layer(std::make_shared<BatchNormLayer>(64));
             net.add_layer(std::make_shared<ReLULayer>());
-            net.add_layer(std::make_shared<Conv2DLayer>(64, 64, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(64, 64, 3, 1, 1));
             net.add_layer(std::make_shared<BatchNormLayer>(64));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<MaxPool2DLayer>(2));
-            net.add_layer(std::make_shared<Conv2DLayer>(64, 128, 3, 1, 1));
+            net.add_layer(ml::deep_learning::Conv2DLayer::create_square(64, 128, 3, 1, 1));
             net.add_layer(std::make_shared<BatchNormLayer>(128));
             net.add_layer(std::make_shared<ReLULayer>());
             net.add_layer(std::make_shared<MaxPool2DLayer>(2));

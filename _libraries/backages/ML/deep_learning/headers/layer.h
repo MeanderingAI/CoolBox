@@ -214,9 +214,10 @@ public:
                 size_t stride_h = 1, size_t stride_w = 1,
                 size_t pad_h = 0, size_t pad_w = 0);
     
-    // Convenience: square kernel/stride/padding
-    Conv2DLayer(size_t in_channels, size_t out_channels, size_t kernel_size,
-                size_t stride = 1, size_t padding = 0);
+    // Factory for square kernels to avoid overload ambiguity
+    static std::shared_ptr<Conv2DLayer> create_square(size_t in_channels, size_t out_channels,
+                                                     size_t kernel_size, size_t stride = 1,
+                                                     size_t padding = 0);
     
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
@@ -579,4 +580,14 @@ private:
 
 } // namespace deep_learning
 } // namespace ml
+#include <memory>
+
+// Inline factory definition
+inline std::shared_ptr<ml::deep_learning::Conv2DLayer> ml::deep_learning::Conv2DLayer::create_square(size_t in_channels, size_t out_channels,
+                                                                                                  size_t kernel_size, size_t stride, size_t padding) {
+    return std::make_shared<ml::deep_learning::Conv2DLayer>(in_channels, out_channels,
+                                                           kernel_size, kernel_size,
+                                                           stride, stride,
+                                                           padding, padding);
+}
 #endif // LAYER_H
