@@ -20,6 +20,9 @@ jobs:
           - os: macos-latest
             platform: macos-arm64
             lib_ext: "*.a -o -name *.dylib"
+          - os: windows-latest
+            platform: windows-x86_64
+            lib_ext: "*.lib -o -name *.dll"
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.platform }})
@@ -53,6 +56,7 @@ jobs:
           install: |
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-fortran
 
       - name: Ensure mingw64 in PATH (Windows)
         if: runner.os == 'Windows'
