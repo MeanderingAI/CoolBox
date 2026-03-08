@@ -58,7 +58,6 @@ jobs:
           else
             echo "No CMakeCache.txt found"
           fi
-          done
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
