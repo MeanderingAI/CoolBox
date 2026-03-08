@@ -31,42 +31,42 @@ double KNN::compute_distance(const Eigen::VectorXd& x1, const Eigen::VectorXd& x
     return (x1 - x2).norm(); // default euclidean
 }
 
-std::pair<std::vector<int>, std::vector<double>> KNN::find_neighbors_single(
-    const Eigen::VectorXd& query, bool exclude_self, int self_index) const {
+std::pair<std::vector<Eigen::Index>, std::vector<double>> KNN::find_neighbors_single(
+    const Eigen::VectorXd& query, bool exclude_self, Eigen::Index self_index) const {
     
-    int n = X_train_.rows();
-    std::vector<std::pair<double, int>> distances;
-    distances.reserve(n);
+    Eigen::Index n = X_train_.rows();
+    std::vector<std::pair<double, Eigen::Index>> distances;
+    distances.reserve(static_cast<size_t>(n));
     
-    for (int i = 0; i < n; ++i) {
+    for (Eigen::Index i = 0; i < n; ++i) {
         if (exclude_self && i == self_index) continue;
         double d = compute_distance(query, X_train_.row(i));
         distances.push_back({d, i});
     }
     
-    int actual_k = std::min(k_, (int)distances.size());
+    Eigen::Index actual_k = std::min(static_cast<Eigen::Index>(k_), static_cast<Eigen::Index>(distances.size()));
     std::partial_sort(distances.begin(), distances.begin() + actual_k, distances.end());
     
-    std::vector<int> indices(actual_k);
-    std::vector<double> dists(actual_k);
-    for (int i = 0; i < actual_k; ++i) {
-        indices[i] = distances[i].second;
-        dists[i] = distances[i].first;
+    std::vector<Eigen::Index> indices(static_cast<size_t>(actual_k));
+    std::vector<double> dists(static_cast<size_t>(actual_k));
+    for (Eigen::Index i = 0; i < actual_k; ++i) {
+        indices[static_cast<size_t>(i)] = distances[static_cast<size_t>(i)].second;
+        dists[static_cast<size_t>(i)] = distances[static_cast<size_t>(i)].first;
     }
     return {indices, dists};
 }
 
 std::pair<Eigen::MatrixXi, Eigen::MatrixXd> KNN::kneighbors(const Eigen::MatrixXd& X_query) const {
     if (!fitted_) throw std::runtime_error("KNN not fitted yet");
-    int n = X_query.rows();
+    Eigen::Index n = X_query.rows();
     Eigen::MatrixXi indices(n, k_);
     Eigen::MatrixXd distances(n, k_);
     
-    for (int i = 0; i < n; ++i) {
+    for (Eigen::Index i = 0; i < n; ++i) {
         auto [idx, dist] = find_neighbors_single(X_query.row(i));
-        for (int j = 0; j < k_ && j < (int)idx.size(); ++j) {
-            indices(i, j) = idx[j];
-            distances(i, j) = dist[j];
+        for (Eigen::Index j = 0; j < static_cast<Eigen::Index>(k_) && j < static_cast<Eigen::Index>(idx.size()); ++j) {
+            indices(static_cast<int>(i), static_cast<int>(j)) = static_cast<int>(idx[static_cast<size_t>(j)]);
+            distances(static_cast<int>(i), static_cast<int>(j)) = dist[static_cast<size_t>(j)];
         }
     }
     return {indices, distances};
@@ -74,27 +74,27 @@ std::pair<Eigen::MatrixXi, Eigen::MatrixXd> KNN::kneighbors(const Eigen::MatrixX
 
 std::pair<Eigen::MatrixXi, Eigen::MatrixXd> KNN::kneighbors() const {
     if (!fitted_) throw std::runtime_error("KNN not fitted yet");
-    int n = X_train_.rows();
+    Eigen::Index n = X_train_.rows();
     Eigen::MatrixXi indices(n, k_);
     Eigen::MatrixXd distances(n, k_);
     
-    for (int i = 0; i < n; ++i) {
+    for (Eigen::Index i = 0; i < n; ++i) {
         auto [idx, dist] = find_neighbors_single(X_train_.row(i), true, i);
-        for (int j = 0; j < k_ && j < (int)idx.size(); ++j) {
-            indices(i, j) = idx[j];
-            distances(i, j) = dist[j];
+        for (Eigen::Index j = 0; j < static_cast<Eigen::Index>(k_) && j < static_cast<Eigen::Index>(idx.size()); ++j) {
+            indices(static_cast<int>(i), static_cast<int>(j)) = static_cast<int>(idx[static_cast<size_t>(j)]);
+            distances(static_cast<int>(i), static_cast<int>(j)) = dist[static_cast<size_t>(j)];
         }
     }
     return {indices, distances};
 }
 
 Eigen::MatrixXd KNN::pairwise_distances(const Eigen::MatrixXd& X, const Eigen::MatrixXd& Y) const {
-    int n = X.rows();
-    int m = Y.rows();
-    Eigen::MatrixXd D(n, m);
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < m; ++j)
-            D(i, j) = compute_distance(X.row(i), Y.row(j));
+    Eigen::Index n = X.rows();
+    Eigen::Index m = Y.rows();
+    Eigen::MatrixXd D(static_cast<int>(n), static_cast<int>(m));
+    for (Eigen::Index i = 0; i < n; ++i)
+        for (Eigen::Index j = 0; j < m; ++j)
+            D(static_cast<int>(i), static_cast<int>(j)) = compute_distance(X.row(i), Y.row(j));
     return D;
 }
 

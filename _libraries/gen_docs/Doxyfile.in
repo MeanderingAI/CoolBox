@@ -1,7 +1,7 @@
 # Doxyfile.in for gen_docs
 PROJECT_NAME           = "ToolBox API Documentation"
 OUTPUT_DIRECTORY       = @TOOLBOX_SOURCE_DIR@/gen_docs/html
-INPUT                  = @TOOLBOX_SOURCE_DIR@/include
+INPUT                  = @TOOLBOX_SOURCE_DIR@/_libraries/include
 RECURSIVE              = YES
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO

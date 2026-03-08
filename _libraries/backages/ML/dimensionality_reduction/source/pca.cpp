@@ -25,9 +25,9 @@ Eigen::MatrixXd PCA::preprocess(const Eigen::MatrixXd& X) const {
         result = result.rowwise() - mean_.transpose();
     }
     if (scale_data_ && scale_.size() > 0) {
-        for (int j = 0; j < result.cols(); ++j) {
-            if (scale_(j) > 1e-10) {
-                result.col(j) /= scale_(j);
+        for (Eigen::Index j = 0; j < result.cols(); ++j) {
+            if (scale_(static_cast<int>(j)) > 1e-10) {
+                result.col(static_cast<int>(j)) /= scale_(static_cast<int>(j));
             }
         }
     }
@@ -35,8 +35,8 @@ Eigen::MatrixXd PCA::preprocess(const Eigen::MatrixXd& X) const {
 }
 
 void PCA::fit(const Eigen::MatrixXd& X) {
-    int n_samples = X.rows();
-    int n_features = X.cols();
+    Eigen::Index n_samples = X.rows();
+    Eigen::Index n_features = X.cols();
 
     mean_ = compute_mean(X);
     scale_ = compute_std(X, mean_);
@@ -50,15 +50,16 @@ void PCA::fit(const Eigen::MatrixXd& X) {
 
     // Determine number of components
     if (n_components_ <= 0) {
-        n_components_ = std::min(n_samples, n_features);
+        n_components_ = static_cast<int>(std::min(n_samples, n_features));
     }
-    n_components_ = std::min(n_components_, std::min(n_samples, n_features));
+    n_components_ = std::min(n_components_, static_cast<int>(std::min(n_samples, n_features)));
 
     components_ = V.leftCols(n_components_);
 
     // Explained variance
-    explained_variance_ = (singular_values_.head(n_components_).array().square() / (n_samples - 1)).matrix();
-    double total_var = (singular_values_.array().square() / (n_samples - 1)).sum();
+    double denom = static_cast<double>(n_samples - 1);
+    explained_variance_ = (singular_values_.head(n_components_).array().square() / denom).matrix();
+    double total_var = (singular_values_.array().square() / denom).sum();
     explained_variance_ratio_ = explained_variance_ / total_var;
 
     fitted_ = true;

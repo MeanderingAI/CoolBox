@@ -6,7 +6,7 @@
 SVM::SVM(const Kernel& kernel) : bias_(0.0), kernel_(kernel) {}
 
 void SVM::fit(const Eigen::MatrixXd& X, const Eigen::VectorXd& y) {
-    int n = X.rows();
+    Eigen::Index n = X.rows();
     int max_iter = 1000;
     double C = 1.0;
     double tol = 1e-5;
@@ -16,9 +16,9 @@ void SVM::fit(const Eigen::MatrixXd& X, const Eigen::VectorXd& y) {
     // Simplified SMO algorithm
     for (int iter = 0; iter < max_iter; ++iter) {
         int num_changed = 0;
-        for (int i = 0; i < n; ++i) {
+        for (Eigen::Index i = 0; i < n; ++i) {
             double Ei = 0.0;
-            for (int k = 0; k < n; ++k) {
+            for (Eigen::Index k = 0; k < n; ++k) {
                 Ei += alphas_(k) * y(k) * kernel_.calculate(X.row(k), X.row(i));
             }
             Ei += bias_ - y(i);
@@ -26,10 +26,10 @@ void SVM::fit(const Eigen::MatrixXd& X, const Eigen::VectorXd& y) {
             if ((y(i) * Ei < -tol && alphas_(i) < C) ||
                 (y(i) * Ei > tol && alphas_(i) > 0)) {
                 // Pick j randomly (simplified: just use sequential)
-                int j = (i + 1) % n;
+                Eigen::Index j = static_cast<Eigen::Index>((i + 1) % n);
 
                 double Ej = 0.0;
-                for (int k = 0; k < n; ++k) {
+                for (Eigen::Index k = 0; k < n; ++k) {
                     Ej += alphas_(k) * y(k) * kernel_.calculate(X.row(k), X.row(j));
                 }
                 Ej += bias_ - y(j);
@@ -77,20 +77,21 @@ void SVM::fit(const Eigen::MatrixXd& X, const Eigen::VectorXd& y) {
     }
 
     // Store support vectors
-    std::vector<int> sv_indices;
-    for (int i = 0; i < n; ++i) {
+    std::vector<Eigen::Index> sv_indices;
+    for (Eigen::Index i = 0; i < n; ++i) {
         if (alphas_(i) > 1e-8) {
             sv_indices.push_back(i);
         }
     }
 
-    support_vectors_.resize(sv_indices.size(), X.cols());
-    support_vector_labels_.resize(sv_indices.size());
-    Eigen::VectorXd sv_alphas(sv_indices.size());
-    for (size_t i = 0; i < sv_indices.size(); ++i) {
-        support_vectors_.row(i) = X.row(sv_indices[i]);
-        support_vector_labels_(i) = y(sv_indices[i]);
-        sv_alphas(i) = alphas_(sv_indices[i]);
+    Eigen::Index m = static_cast<Eigen::Index>(sv_indices.size());
+    support_vectors_.resize(m, X.cols());
+    support_vector_labels_.resize(m);
+    Eigen::VectorXd sv_alphas(m);
+    for (Eigen::Index i = 0; i < m; ++i) {
+        support_vectors_.row(i) = X.row(sv_indices[static_cast<size_t>(i)]);
+        support_vector_labels_(i) = y(sv_indices[static_cast<size_t>(i)]);
+        sv_alphas(i) = alphas_(sv_indices[static_cast<size_t>(i)]);
     }
     alphas_ = sv_alphas;
 }

@@ -63,12 +63,23 @@ foreach(libdir ${LEAF_LIB_DIRS})
     endif()
 endforeach()
 
-# Monolithic docs (all headers)
-configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-file(APPEND ${DOXYGEN_OUT} "OUTPUT_DIRECTORY = ${CMAKE_CURRENT_BINARY_DIR}/html\n")
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html)
-add_custom_target(doc_doxygen ALL
-    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating API documentation with Doxygen"
-    VERBATIM)
+ # Monolithic docs (all headers)
+ if(EXISTS "${TOOLBOX_SOURCE_DIR}/_libraries/include")
+     file(GLOB_RECURSE MONO_HEADER_FILES LIST_DIRECTORIES false
+         "${TOOLBOX_SOURCE_DIR}/_libraries/include/*.h"
+         "${TOOLBOX_SOURCE_DIR}/_libraries/include/*.hpp")
+     if(MONO_HEADER_FILES)
+         configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+         file(APPEND ${DOXYGEN_OUT} "OUTPUT_DIRECTORY = ${CMAKE_CURRENT_BINARY_DIR}/html\n")
+         file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html)
+         add_custom_target(doc_doxygen ALL
+             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+             COMMENT "Generating API documentation with Doxygen"
+             VERBATIM)
+    else()
+        message(STATUS "No header files found under ${TOOLBOX_SOURCE_DIR}/_libraries/include; skipping monolithic Doxygen target")
+    endif()
+ else()
+     message(STATUS "${TOOLBOX_SOURCE_DIR}/_libraries/include does not exist; skipping monolithic Doxygen target")
+ endif()

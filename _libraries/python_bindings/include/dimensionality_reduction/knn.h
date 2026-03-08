@@ -85,10 +85,10 @@ private:
     /**
      * @brief Find k nearest neighbors for a single point
      */
-    std::pair<std::vector<int>, std::vector<double>> find_neighbors_single(
+    std::pair<std::vector<Eigen::Index>, std::vector<double>> find_neighbors_single(
         const Eigen::VectorXd& query, 
         bool exclude_self = false,
-        int self_index = -1) const;
+        Eigen::Index self_index = -1) const;
 };
 
 } // namespace dimensionality_reduction

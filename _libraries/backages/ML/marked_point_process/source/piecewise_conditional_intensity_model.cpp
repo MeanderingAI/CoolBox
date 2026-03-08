@@ -6,12 +6,12 @@
 #include <numeric>
 
 PiecewiseConditionalIntensityModel::PiecewiseConditionalIntensityModel(
-    int num_intervals, double learning_rate, int max_iterations)
-    : num_intervals_(num_intervals), learning_rate_(learning_rate),
-      max_iterations_(max_iterations) {
-    for (int i = 0; i < num_intervals; ++i) {
-        intervals_.emplace_back(static_cast<double>(i), static_cast<double>(i + 1), IntensityType::CONSTANT);
-    }
+        int num_intervals, double learning_rate, int max_iterations)
+        : num_intervals_(num_intervals), learning_rate_(learning_rate),
+            max_iterations_(max_iterations) {
+        for (int i = 0; i < num_intervals; ++i) {
+                intervals_.emplace_back(static_cast<double>(i), static_cast<double>(i + 1), IntensityType::CONSTANT);
+        }
 }
 
 void PiecewiseConditionalIntensityModel::set_intervals(const std::vector<TimeInterval>& intervals) {
@@ -39,11 +39,11 @@ void PiecewiseConditionalIntensityModel::create_adaptive_intervals(
     create_uniform_intervals(t_min, t_max + 0.01, type);
 }
 
-int PiecewiseConditionalIntensityModel::find_interval(double time) const {
-    for (int i = 0; i < static_cast<int>(intervals_.size()); ++i) {
+Eigen::Index PiecewiseConditionalIntensityModel::find_interval(double time) const {
+    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(intervals_.size()); ++i) {
         if (time >= intervals_[i].start_time && time < intervals_[i].end_time) return i;
     }
-    return static_cast<int>(intervals_.size()) - 1;
+    return static_cast<Eigen::Index>(intervals_.size()) - 1;
 }
 
 int PiecewiseConditionalIntensityModel::get_num_parameters(IntensityType type) const {
@@ -102,8 +102,8 @@ double PiecewiseConditionalIntensityModel::compute_cox_intensity(
 
 double PiecewiseConditionalIntensityModel::predict_intensity(
     double time, const std::vector<double>& history_times) const {
-    int idx = find_interval(time);
-    if (idx < 0 || idx >= static_cast<int>(intervals_.size())) return 0.0;
+    Eigen::Index idx = find_interval(time);
+    if (idx < 0 || idx >= static_cast<Eigen::Index>(intervals_.size())) return 0.0;
     const auto& interval = intervals_[idx];
     switch (interval.intensity_type) {
         case IntensityType::CONSTANT: return compute_constant_intensity(time, interval.parameters, history_times);
@@ -116,7 +116,7 @@ double PiecewiseConditionalIntensityModel::predict_intensity(
 
 double PiecewiseConditionalIntensityModel::predict_intensity_with_covariates(
     double time, const std::vector<double>& history_times, const Eigen::VectorXd& covariates) const {
-    int idx = find_interval(time);
+    Eigen::Index idx = find_interval(time);
     if (idx < 0) return 0.0;
     const auto& interval = intervals_[idx];
     if (interval.intensity_type == IntensityType::COX) {
@@ -126,7 +126,7 @@ double PiecewiseConditionalIntensityModel::predict_intensity_with_covariates(
 }
 
 double PiecewiseConditionalIntensityModel::compute_interval_compensator(
-    int interval_idx, const std::vector<double>& event_times,
+    Eigen::Index interval_idx, const std::vector<double>& event_times,
     const std::vector<double>& all_history) const {
     const auto& interval = intervals_[interval_idx];
     double dt = interval.end_time - interval.start_time;
@@ -135,16 +135,16 @@ double PiecewiseConditionalIntensityModel::compute_interval_compensator(
 }
 
 Eigen::VectorXd PiecewiseConditionalIntensityModel::compute_gradient(
-    int interval_idx, const std::vector<double>& event_times,
+    Eigen::Index interval_idx, const std::vector<double>& event_times,
     const std::vector<double>& all_history) const {
     const auto& interval = intervals_[interval_idx];
-    int np = interval.parameters.size();
+    Eigen::Index np = interval.parameters.size();
     Eigen::VectorXd grad = Eigen::VectorXd::Zero(np);
     
     // Numerical gradient
     double eps = 1e-5;
     Eigen::VectorXd params = interval.parameters;
-    for (int p = 0; p < np; ++p) {
+    for (Eigen::Index p = 0; p < np; ++p) {
         Eigen::VectorXd params_plus = params; params_plus(p) += eps;
         Eigen::VectorXd params_minus = params; params_minus(p) -= eps;
         // Simplified gradient based on intensity difference
@@ -154,7 +154,7 @@ Eigen::VectorXd PiecewiseConditionalIntensityModel::compute_gradient(
 }
 
 void PiecewiseConditionalIntensityModel::update_interval_parameters(
-    int interval_idx, const std::vector<double>& event_times,
+    Eigen::Index interval_idx, const std::vector<double>& event_times,
     const std::vector<double>& all_history) {
     Eigen::VectorXd grad = compute_gradient(interval_idx, event_times, all_history);
     intervals_[interval_idx].parameters += learning_rate_ * grad;
@@ -173,7 +173,7 @@ void PiecewiseConditionalIntensityModel::fit(const std::vector<std::vector<doubl
     
     for (int iter = 0; iter < max_iterations_; ++iter) {
         for (const auto& seq : event_times) {
-            for (int idx = 0; idx < static_cast<int>(intervals_.size()); ++idx) {
+            for (Eigen::Index idx = 0; idx < static_cast<Eigen::Index>(intervals_.size()); ++idx) {
                 update_interval_parameters(idx, seq, seq);
             }
         }
@@ -210,7 +210,7 @@ double PiecewiseConditionalIntensityModel::log_likelihood(
             ll += std::log(predict_intensity(seq[i], seq));
         }
         // Subtract compensator
-        for (int idx = 0; idx < static_cast<int>(intervals_.size()); ++idx) {
+        for (Eigen::Index idx = 0; idx < static_cast<Eigen::Index>(intervals_.size()); ++idx) {
             ll -= compute_interval_compensator(idx, seq, seq);
         }
     }
@@ -220,11 +220,11 @@ double PiecewiseConditionalIntensityModel::log_likelihood(
 std::vector<PiecewiseConditionalIntensityModel::TimeInterval>
 PiecewiseConditionalIntensityModel::get_intervals() const { return intervals_; }
 
-Eigen::VectorXd PiecewiseConditionalIntensityModel::get_interval_parameters(int idx) const {
+Eigen::VectorXd PiecewiseConditionalIntensityModel::get_interval_parameters(Eigen::Index idx) const {
     return intervals_[idx].parameters;
 }
 
-void PiecewiseConditionalIntensityModel::set_interval_parameters(int idx, const Eigen::VectorXd& params) {
+void PiecewiseConditionalIntensityModel::set_interval_parameters(Eigen::Index idx, const Eigen::VectorXd& params) {
     intervals_[idx].parameters = params;
 }
 
@@ -233,8 +233,8 @@ Eigen::VectorXd PiecewiseConditionalIntensityModel::get_expected_counts(
     Eigen::VectorXd counts = Eigen::VectorXd::Zero(intervals_.size());
     for (const auto& seq : event_times) {
         for (double t : seq) {
-            int idx = find_interval(t);
-            if (idx >= 0 && idx < static_cast<int>(counts.size())) counts(idx) += 1.0;
+            Eigen::Index idx = find_interval(t);
+            if (idx >= 0 && idx < static_cast<Eigen::Index>(counts.size())) counts(idx) += 1.0;
         }
     }
     return counts / static_cast<double>(event_times.size());
@@ -243,11 +243,11 @@ Eigen::VectorXd PiecewiseConditionalIntensityModel::get_expected_counts(
 std::pair<double, double> PiecewiseConditionalIntensityModel::compute_information_criteria(
     const std::vector<std::vector<double>>& event_times) const {
     double ll = log_likelihood(event_times);
-    int k = 0;
-    for (const auto& interval : intervals_) k += interval.parameters.size();
-    int n = 0;
-    for (const auto& seq : event_times) n += seq.size();
-    double aic = -2.0 * ll + 2.0 * k;
-    double bic = -2.0 * ll + k * std::log(static_cast<double>(n));
+    Eigen::Index k = 0;
+    for (const auto& interval : intervals_) k += static_cast<Eigen::Index>(interval.parameters.size());
+    Eigen::Index n = 0;
+    for (const auto& seq : event_times) n += static_cast<Eigen::Index>(seq.size());
+    double aic = -2.0 * ll + 2.0 * static_cast<double>(k);
+    double bic = -2.0 * ll + static_cast<double>(k) * std::log(static_cast<double>(n));
     return {aic, bic};
 }

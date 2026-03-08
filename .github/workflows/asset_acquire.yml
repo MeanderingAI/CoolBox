@@ -38,13 +38,26 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev libgsl-dev doxygen gfortran
+          sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev libgsl-dev libsqlite3-dev doxygen gfortran
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           for pkg in cmake eigen googletest gsl doxygen gcc; do
             brew list "$pkg" &>/dev/null || brew install "$pkg"
+          done
+          # Ensure sqlite is available for find_package(SQLite3)
+          brew list sqlite &>/dev/null || brew install sqlite
+          
+      - name: Show CMake cache (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          echo "=== build/CMakeCache.txt ==="
+          if [ -f build/CMakeCache.txt ]; then
+            grep -i 'BUILD_IO_SQL\|SQLite3' build/CMakeCache.txt || true
+          else
+            echo "No CMakeCache.txt found"
+          fi
           done
 
       - name: Install dependencies (Windows)
@@ -57,6 +70,7 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-gcc-fortran
+              mingw-w64-x86_64-sqlite3
 
       - name: Ensure mingw64 in PATH (Windows)
         if: runner.os == 'Windows'
@@ -79,18 +93,28 @@ jobs:
       - name: Configure CMake (Windows / MSYS2)
         if: runner.os == 'Windows'
         run: |
-          echo "Running CMake inside MSYS2 so mingw/gfortran is available"
+          echo "Running CMake inside MSYS2 so mingw/gfortran/sqlite is available"
           CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
-          bash -lc "cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS"
+          bash -lc "cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS"
+
+      - name: Show CMake cache (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "=== build/CMakeCache.txt ==="
+          if [ -f build/CMakeCache.txt ]; then
+            grep -i 'BUILD_IO_SQL\|SQLite3' build/CMakeCache.txt || true
+          else
+            echo "No CMakeCache.txt found"
+          fi
 
       - name: Configure CMake (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
             CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
-            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS
+            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS
           else
-            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DCMAKE_BUILD_TYPE=Release
           fi
       - name: Build all libraries
         run: |

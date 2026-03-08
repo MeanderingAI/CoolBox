@@ -6,20 +6,20 @@ LatentSentimentAnalysis::LatentSentimentAnalysis(int latent_features,
     : K(latent_features), alpha(learning_rate), lambda(lambda),
       max_iter(max_iterations), num_documents(0), num_terms(0) {}
 
-void LatentSentimentAnalysis::initialize_matrices(int rows_U, int rows_V) {
+void LatentSentimentAnalysis::initialize_matrices(Eigen::Index rows_U, Eigen::Index rows_V) {
     std::mt19937 gen(42);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
     U = Eigen::MatrixXd(rows_U, K);
     V = Eigen::MatrixXd(rows_V, K);
-    for (int i = 0; i < rows_U; ++i)
+    for (Eigen::Index i = 0; i < rows_U; ++i)
         for (int j = 0; j < K; ++j)
             U(i, j) = dist(gen) * 0.1;
-    for (int i = 0; i < rows_V; ++i)
+    for (Eigen::Index i = 0; i < rows_V; ++i)
         for (int j = 0; j < K; ++j)
             V(i, j) = dist(gen) * 0.1;
 }
 
-void LatentSentimentAnalysis::sgd_step(int i, int j, double error) {
+void LatentSentimentAnalysis::sgd_step(Eigen::Index i, Eigen::Index j, double error) {
     Eigen::VectorXd u_i = U.row(i);
     Eigen::VectorXd v_j = V.row(j);
     U.row(i) += alpha * (error * v_j.transpose() - lambda * u_i.transpose());
@@ -32,8 +32,8 @@ void LatentSentimentAnalysis::train(const Eigen::MatrixXd& document_term_matrix)
     initialize_matrices(num_documents, num_terms);
 
     for (int iter = 0; iter < max_iter; ++iter) {
-        for (int i = 0; i < num_documents; ++i) {
-            for (int j = 0; j < num_terms; ++j) {
+        for (Eigen::Index i = 0; i < num_documents; ++i) {
+            for (Eigen::Index j = 0; j < num_terms; ++j) {
                 if (document_term_matrix(i, j) > 0) {
                     double pred = U.row(i).dot(V.row(j));
                     double error = document_term_matrix(i, j) - pred;
@@ -44,7 +44,7 @@ void LatentSentimentAnalysis::train(const Eigen::MatrixXd& document_term_matrix)
     }
 }
 
-double LatentSentimentAnalysis::predict_score(int doc_index, int term_index) const {
+double LatentSentimentAnalysis::predict_score(Eigen::Index doc_index, Eigen::Index term_index) const {
     if (doc_index < 0 || doc_index >= num_documents ||
         term_index < 0 || term_index >= num_terms) {
         return 0.0;

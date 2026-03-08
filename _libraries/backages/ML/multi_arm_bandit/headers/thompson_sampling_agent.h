@@ -12,7 +12,7 @@ protected:
     void choose_and_pull() override;
 
 private:
-    int get_best_sampled_index();
+    size_t get_best_sampled_index();
 
     std::vector<double> alphas_;
     std::vector<double> betas_;

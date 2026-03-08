@@ -70,7 +70,23 @@ std::string Logger::timestamp() {
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
     std::stringstream ss;
-    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S");
+    // Use thread-safe localtime variants when available
+#if defined(_MSC_VER)
+    struct tm buf;
+    localtime_s(&buf, &in_time_t);
+    ss << std::put_time(&buf, "%Y-%m-%d %H:%M:%S");
+#elif defined(__unix__) || defined(__APPLE__)
+    struct tm buf;
+    localtime_r(&in_time_t, &buf);
+    ss << std::put_time(&buf, "%Y-%m-%d %H:%M:%S");
+#else
+    struct tm buf;
+    static std::mutex localtime_mutex;
+    std::lock_guard<std::mutex> lock(localtime_mutex);
+    std::tm* tm_ptr = std::localtime(&in_time_t);
+    if (tm_ptr) buf = *tm_ptr;
+    ss << std::put_time(&buf, "%Y-%m-%d %H:%M:%S");
+#endif
     return ss.str();
 }
 

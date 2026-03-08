@@ -43,7 +43,7 @@ public:
      * @param term_index The index of the term (row in V).
      * @return The predicted score.
      */
-    double predict_score(int doc_index, int term_index) const;
+    double predict_score(Eigen::Index doc_index, Eigen::Index term_index) const;
 
     /**
      * @brief Gets the Document-Feature Matrix (U).
@@ -63,8 +63,8 @@ private:
     double lambda; // Regularization parameter
     int max_iter; // Max training iterations
 
-    int num_documents;
-    int num_terms;
+    Eigen::Index num_documents;
+    Eigen::Index num_terms;
 
     // U: Document-Feature Matrix (D x K)
     Eigen::MatrixXd U; 
@@ -75,7 +75,7 @@ private:
     /**
      * @brief Initializes the matrices U and V using Eigen's random functions.
      */
-    void initialize_matrices(int rows_U, int rows_V);
+    void initialize_matrices(Eigen::Index rows_U, Eigen::Index rows_V);
 
     /**
      * @brief Performs one step of Stochastic Gradient Descent for a single entry M(i, j).
@@ -84,7 +84,7 @@ private:
      * @param error The current prediction error (M(i, j) - prediction).
      * @param M Reference to the Document-Term Matrix.
      */
-    void sgd_step(int i, int j, double error);
+    void sgd_step(Eigen::Index i, Eigen::Index j, double error);
 };
 
 #endif // LATENT_SENTIMENT_ANALYSIS_H

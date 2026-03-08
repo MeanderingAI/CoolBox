@@ -157,14 +157,14 @@ public:
      * @param interval_index Index of the interval.
      * @return Parameter vector for that interval.
      */
-    Eigen::VectorXd get_interval_parameters(int interval_index) const;
+    Eigen::VectorXd get_interval_parameters(Eigen::Index interval_index) const;
 
     /**
      * @brief Set parameters for a specific interval.
      * @param interval_index Index of the interval.
      * @param parameters Parameter vector to set.
      */
-    void set_interval_parameters(int interval_index, const Eigen::VectorXd& parameters);
+    void set_interval_parameters(Eigen::Index interval_index, const Eigen::VectorXd& parameters);
 
     /**
      * @brief Get the expected number of events in each interval.
@@ -229,7 +229,7 @@ private:
      * @param time The time point.
      * @return Index of the interval, or -1 if not found.
      */
-    int find_interval(double time) const;
+    Eigen::Index find_interval(double time) const;
 
     /**
      * @brief Initialize parameters for all intervals.
@@ -244,7 +244,7 @@ private:
      * @return Compensator value.
      */
     double compute_interval_compensator(
-        int interval_idx,
+        Eigen::Index interval_idx,
         const std::vector<double>& event_times,
         const std::vector<double>& all_history
     ) const;
@@ -256,7 +256,7 @@ private:
      * @param all_history Events before this interval.
      */
     void update_interval_parameters(
-        int interval_idx,
+        Eigen::Index interval_idx,
         const std::vector<double>& event_times,
         const std::vector<double>& all_history
     );
@@ -265,7 +265,7 @@ private:
      * @brief Compute gradient for different intensity types.
      */
     Eigen::VectorXd compute_gradient(
-        int interval_idx,
+        Eigen::Index interval_idx,
         const std::vector<double>& event_times,
         const std::vector<double>& all_history
     ) const;

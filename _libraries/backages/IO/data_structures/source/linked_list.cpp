@@ -287,6 +287,61 @@ void DoublyLinkedList<T>::clear() {
     size_ = 0;
 }
 
+template<typename T>
+void DoublyLinkedList<T>::insert_at(size_t index, const T& value) {
+    if (index > size_) {
+        throw std::out_of_range("Index out of range");
+    }
+
+    if (index == 0) {
+        push_front(value);
+        return;
+    }
+
+    if (index == size_) {
+        push_back(value);
+        return;
+    }
+
+    auto current = head_;
+    for (size_t i = 0; i < index - 1; ++i) {
+        current = current->next;
+    }
+
+    auto new_node = std::make_shared<Node>(value);
+    auto next = current->next;
+    new_node->next = next;
+    new_node->prev = current;
+    current->next = new_node;
+    if (next) next->prev = new_node;
+    size_++;
+}
+
+template<typename T>
+bool DoublyLinkedList<T>::remove_at(size_t index) {
+    if (index >= size_) return false;
+
+    if (index == 0) {
+        return pop_front();
+    }
+
+    if (index == size_ - 1) {
+        return pop_back();
+    }
+
+    auto current = head_;
+    for (size_t i = 0; i < index; ++i) {
+        current = current->next;
+    }
+
+    auto prev = current->prev;
+    auto next = current->next;
+    if (prev) prev->next = next;
+    if (next) next->prev = prev;
+    size_--;
+    return true;
+}
+
 // Explicit template instantiations
 template class LinkedList<int>;
 template class LinkedList<double>;
