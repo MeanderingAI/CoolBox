@@ -72,25 +72,22 @@ jobs:
           }
         shell: powershell
 
-      - name: Configure CMake (libraries only)
+      - name: Configure CMake (Windows / MSYS2)
+        if: runner.os == 'Windows'
         run: |
-          CMAKE_EXTRA_ARGS=""
-          if [ "${{ runner.os }}" = "Windows" ]; then
-<<<<<<< HEAD
-            CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
-            echo "Running CMake inside MSYS2 so mingw/gfortran is available"
-            bash -lc "cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS"
-=======
-            CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_Fortran_COMPILER=FALSE"
->>>>>>> 3408a225badcc543eeabbda706c9bad4dc58091e
-          elif [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
+          echo "Running CMake inside MSYS2 so mingw/gfortran is available"
+          CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+          bash -lc "cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS"
+
+      - name: Configure CMake (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
             CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
             cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS
           else
             cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DCMAKE_BUILD_TYPE=Release
           fi
-          
-
       - name: Build all libraries
         run: |
           cd build
