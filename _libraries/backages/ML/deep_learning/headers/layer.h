@@ -213,6 +213,9 @@ public:
                 size_t kernel_h, size_t kernel_w,
                 size_t stride_h = 1, size_t stride_w = 1,
                 size_t pad_h = 0, size_t pad_w = 0);
+    // Convenience constructor for square kernels (keeps parity with source)
+    Conv2DLayer(size_t in_channels, size_t out_channels,
+                size_t kernel_size, size_t stride = 1, size_t padding = 0);
     
     // Factory for square kernels to avoid overload ambiguity
     static std::shared_ptr<Conv2DLayer> create_square(size_t in_channels, size_t out_channels,

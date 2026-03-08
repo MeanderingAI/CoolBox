@@ -11,7 +11,10 @@ endmacro()
 # IO backages
 option(BUILD_IO_SQL "Build IO SQL backage (requires SQLite3)" ON)
 if(WIN32)
-    set(BUILD_IO_SQL OFF CACHE BOOL "Build IO SQL backage (requires SQLite3)" FORCE)
+    # Do not force-disable the IO SQL backage unconditionally; allow the
+    # user or command-line to override this flag (e.g. -DBUILD_IO_SQL=ON).
+    # Previously this used FORCE which prevented enabling SQL on Windows.
+    set(BUILD_IO_SQL OFF CACHE BOOL "Build IO SQL backage (requires SQLite3)")
 endif()
 add_subdirectory_if_exists(backages/IO/advanced_logging)
 add_subdirectory_if_exists(backages/IO/data_structures)

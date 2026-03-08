@@ -511,8 +511,8 @@ Conv2DLayer::Conv2DLayer(size_t in_channels, size_t out_channels,
     weight_gradient_ = Tensor({out_channels, in_channels, kernel_h, kernel_w}, 0.0);
     bias_gradient_ = Tensor({out_channels}, 0.0);
     
-    double fan_in = in_channels * kernel_h * kernel_w;
-    double fan_out = out_channels * kernel_h * kernel_w;
+    double fan_in = static_cast<double>(in_channels) * static_cast<double>(kernel_h) * static_cast<double>(kernel_w);
+    double fan_out = static_cast<double>(out_channels) * static_cast<double>(kernel_h) * static_cast<double>(kernel_w);
     double limit = std::sqrt(6.0 / (fan_in + fan_out));
     weights_.randomize(-limit, limit);
 }
