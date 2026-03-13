@@ -1,0 +1,29 @@
+Package: coolboxr
+Type: Package
+Title: R Bindings for CoolBox
+Version: 0.1.0
+Authors@R: c(
+    person("CoolBox", "Maintainers", email = "opensource@example.com", role = c("aut", "cre"))
+)
+Description: Minimal R bindings for selected CoolBox C++ components.
+    The initial package exposes linear regression helpers backed by the
+    existing native implementation and is set up for roxygen2 and pkgdown.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 4.1.0)
+Imports:
+    stats,
+    utils,
+    Rcpp
+LinkingTo:
+    Rcpp
+Suggests:
+    devtools,
+    pkgdown,
+    roxygen2,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/Needs/website: pkgdown
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

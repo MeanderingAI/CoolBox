@@ -1,0 +1,12 @@
+template:
+  bootstrap: 5
+
+home:
+  title: coolboxr
+  description: R bindings for selected CoolBox C++ features.
+
+reference:
+  - title: Modeling
+    contents:
+      - coolbox_linear_regression
+      - matches("^predict\\.coolbox_linear_regression$")

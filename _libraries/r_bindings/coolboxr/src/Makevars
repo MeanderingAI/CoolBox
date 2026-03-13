@@ -1,0 +1,2 @@
+CXX_STD = CXX17
+PKG_CPPFLAGS = -I../../../backages/ML/generalized_linear_model/headers

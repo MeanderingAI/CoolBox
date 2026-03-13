@@ -97,7 +97,8 @@ help:
         build_libraries_security build_libraries_misc build_libraries_electronics \
         build_libraries_graphics \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
-        build_python_bindings clean_python_bindings install_python_bindings install_pybind11
+	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
+	document_r_bindings build_r_bindings install_r_bindings site_r_bindings build_docs_portal
 
 all: build_all
 
@@ -259,3 +260,24 @@ install_js_bindings:
 	@mkdir -p lib/js
 	@find build-emscripten -name '*.js' -exec cp -v {} lib/js/ \; 2>/dev/null || echo "No .js files found. Run 'make build_js_bindings' first."
 	@find build-emscripten -name '*.wasm' -exec cp -v {} lib/js/ \; 2>/dev/null || true
+
+# ── R Bindings / Docs ───────────────────────────────────────────────
+document_r_bindings:
+	@echo "Generating roxygen2 docs for R bindings..."
+	@Rscript -e "devtools::document('_libraries/r_bindings/coolboxr')"
+
+build_r_bindings:
+	@echo "Building R package bundle..."
+	@R CMD build _libraries/r_bindings/coolboxr
+
+install_r_bindings:
+	@echo "Installing R bindings package..."
+	@R CMD INSTALL _libraries/r_bindings/coolboxr
+
+site_r_bindings:
+	@echo "Building pkgdown site for R bindings..."
+	@Rscript -e "pkgdown::build_site('_libraries/r_bindings/coolboxr')"
+
+build_docs_portal:
+	@echo "Building unified documentation portal..."
+	@bash ./_scripts/generate_docs_hub.sh "$(CURDIR)/.site"
