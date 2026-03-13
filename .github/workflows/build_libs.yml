@@ -1,9 +1,8 @@
 name: Build Libraries & Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: write

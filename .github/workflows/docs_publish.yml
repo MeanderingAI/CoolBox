@@ -1,11 +1,15 @@
 name: Publish documentation
 
 on:
+  workflow_call:
+    inputs:
+      publish_branch:
+        description: Branch that should receive the generated documentation site
+        required: false
+        type: string
   push:
     branches:
       - main
-    tags:
-      - 'v*'
   pull_request:
     branches:
       - main
@@ -41,7 +45,9 @@ jobs:
       - name: Resolve publish branch
         id: resolve-branch
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ -n "${{ inputs.publish_branch }}" ]; then
+            branch="${{ inputs.publish_branch }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             branch="${{ inputs.publish_branch }}"
           elif [ -n "${{ vars.DOCS_PUBLISH_BRANCH }}" ]; then
             branch="${{ vars.DOCS_PUBLISH_BRANCH }}"

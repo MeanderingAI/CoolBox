@@ -1,9 +1,7 @@
 name: build_ext_python
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

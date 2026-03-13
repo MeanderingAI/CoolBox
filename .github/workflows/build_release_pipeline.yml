@@ -1,0 +1,53 @@
+name: build_release_pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish_branch:
+        description: Branch that should receive the generated documentation site
+        required: false
+        default: gh-pages
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_libs:
+    uses: ./.github/workflows/build_libs.yml
+    secrets: inherit
+
+  build_ext_python:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_python.yml
+    secrets: inherit
+
+  build_ext_js:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_js.yml
+    secrets: inherit
+
+  build_ext_r:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_r.yml
+    secrets: inherit
+
+  docs_publish:
+    needs:
+      - build_ext_python
+      - build_ext_js
+      - build_ext_r
+    uses: ./.github/workflows/docs_publish.yml
+    with:
+      publish_branch: ${{ inputs.publish_branch }}
+    secrets: inherit
