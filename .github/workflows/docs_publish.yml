@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
@@ -50,6 +52,46 @@ jobs:
           echo "Using publish branch: ${branch}"
           echo "publish_branch=${branch}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve release tag
+        id: resolve-release-tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+          else
+            release_tag="$(python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          repo = os.environ.get('GITHUB_REPOSITORY', '')
+          token = os.environ.get('GITHUB_TOKEN', '')
+          if not repo:
+            print('')
+            raise SystemExit(0)
+
+          request = urllib.request.Request(
+            f'https://api.github.com/repos/{repo}/releases/latest',
+            headers={
+              'Accept': 'application/vnd.github+json',
+              **({'Authorization': f'Bearer {token}'} if token else {}),
+            },
+          )
+
+          try:
+            with urllib.request.urlopen(request) as response:
+              payload = json.load(response)
+              print(payload.get('tag_name', ''))
+          except Exception:
+            print('')
+          PY
+          )"
+          fi
+
+          echo "Resolved release tag: ${release_tag}"
+          echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+
       - name: Set up Pandoc
         uses: r-lib/actions/setup-pandoc@v2
 
@@ -78,6 +120,9 @@ jobs:
           make build_js_bindings
 
       - name: Build unified docs site
+        env:
+          DOCS_REPOSITORY: ${{ github.repository }}
+          DOCS_RELEASE_TAG: ${{ steps.resolve-release-tag.outputs.release_tag }}
         run: |
           bash ./_scripts/generate_docs_hub.sh "$GITHUB_WORKSPACE/.site"
 

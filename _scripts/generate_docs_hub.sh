@@ -11,6 +11,8 @@ PYTHON_BINDINGS_DIR="${ROOT_DIR}/_libraries/python_bindings"
 PYTHON_BUILD_DIR="${PYTHON_BINDINGS_DIR}/build"
 PYTHON_DIST_DIR="${PYTHON_BINDINGS_DIR}/dist"
 JS_BUILD_DIR="${ROOT_DIR}/build-emscripten"
+REPOSITORY_SLUG="${DOCS_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
+RELEASE_TAG="${DOCS_RELEASE_TAG:-}"
 
 rm -rf "${SITE_DIR}"
 mkdir -p "${SITE_DIR}" "${SITE_DIR}/extensions" "${SITE_DIR}/artifacts"
@@ -22,6 +24,50 @@ has_python_docs=false
 has_js_docs=false
 has_python_artifacts=false
 has_js_artifacts=false
+
+release_asset_url() {
+  local asset_name="$1"
+
+  if [ -z "${REPOSITORY_SLUG}" ] || [ -z "${RELEASE_TAG}" ]; then
+    return 1
+  fi
+
+  printf 'https://github.com/%s/releases/download/%s/%s' "${REPOSITORY_SLUG}" "${RELEASE_TAG}" "${asset_name}"
+}
+
+release_links_html() {
+  local extension_name="$1"
+  shift
+  local html=''
+  local platform
+
+  if [ -z "${REPOSITORY_SLUG}" ] || [ -z "${RELEASE_TAG}" ]; then
+    printf ''
+    return 0
+  fi
+
+  for platform in "$@"; do
+    local asset_name="coolbox-${extension_name}-${platform}-${RELEASE_TAG}.tar.gz"
+    local label
+    case "${platform}" in
+      linux-x86_64) label='Linux' ;;
+      macos-arm64) label='macOS' ;;
+      windows-x86_64) label='Windows' ;;
+      *) label="${platform}" ;;
+    esac
+
+    local asset_url
+    asset_url="$(release_asset_url "${asset_name}")"
+    if [ -n "${html}" ]; then
+      html="${html} · "
+    fi
+    html="${html}<a href=\"${asset_url}\">${label}</a>"
+  done
+
+  if [ -n "${html}" ]; then
+    printf '<p class="muted">Release assets (%s): %s</p>' "${RELEASE_TAG}" "${html}"
+  fi
+}
 
 if command -v doxygen >/dev/null 2>&1 && [ -d "${CPP_INPUT_DIR}" ]; then
   cat > "${SITE_DIR}/Doxyfile" <<EOF
@@ -198,18 +244,25 @@ python_link=''
 js_link=''
 python_artifacts_link=''
 js_artifacts_link=''
+python_release_links=''
+js_release_links=''
+r_release_links=''
+
+python_release_links="$(release_links_html 'python-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
+js_release_links="$(release_links_html 'js-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
+r_release_links="$(release_links_html 'r-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 
 if [ "${has_cpp_docs}" = true ]; then
   cpp_link='<li><a href="cpp/index.html">C++ API Reference</a><p>Doxygen output for the native CoolBox headers.</p></li>'
 fi
 if [ "${has_r_docs}" = true ]; then
-  r_link='<li><a href="extensions/r/index.html">R Extension Docs</a><p>pkgdown site for the R package bindings.</p></li>'
+  r_link="<li><a href=\"extensions/r/index.html\">R Extension Docs</a><p>pkgdown site for the R package bindings.</p>${r_release_links}</li>"
 fi
 if [ "${has_python_docs}" = true ]; then
-  python_link='<li><a href="extensions/python/index.html">Python Extension Docs</a><p>Rendered documentation for the Python bindings.</p></li>'
+  python_link="<li><a href=\"extensions/python/index.html\">Python Extension Docs</a><p>Rendered documentation for the Python bindings.</p>${python_release_links}</li>"
 fi
 if [ "${has_js_docs}" = true ]; then
-  js_link='<li><a href="extensions/javascript/index.html">JavaScript Extension Index</a><p>Inventory of Emscripten binding modules.</p></li>'
+  js_link="<li><a href=\"extensions/javascript/index.html\">JavaScript Extension Index</a><p>Inventory of Emscripten binding modules.</p>${js_release_links}</li>"
 fi
 if [ "${has_python_artifacts}" = true ]; then
   python_artifacts_link='<li><a href="artifacts/python/index.html">Python Binding Artifacts</a><p>Built Python extension outputs and package artifacts.</p></li>'

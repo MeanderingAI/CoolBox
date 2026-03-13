@@ -1,0 +1,84 @@
+name: build_ext_js
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ext-js-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_js:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja -y
+        shell: powershell
+
+      - name: Set up Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Configure JavaScript bindings
+        run: |
+          emcmake cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+
+      - name: Build JavaScript bindings
+        run: |
+          cmake --build build-emscripten --config Release
+
+      - name: Package JavaScript tarball
+        run: |
+          rm -rf release-assets staging-js
+          mkdir -p release-assets staging-js
+          cp -R build-emscripten/. staging-js/ 2>/dev/null || true
+          tar -C staging-js -czf release-assets/coolbox-js-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+
+      - name: Upload JavaScript tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: javascript-extension-${{ matrix.platform }}-${{ github.ref_name }}
+          path: release-assets/coolbox-js-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          retention-days: 14
+
+      - name: Attach JavaScript tarball to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/coolbox-js-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz

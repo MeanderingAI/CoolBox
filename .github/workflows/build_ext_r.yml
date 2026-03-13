@@ -1,0 +1,74 @@
+name: build_ext_r
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ext-r-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_r:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libxml2 openssl curl || true
+
+      - name: Install R packages
+        run: |
+          Rscript -e "install.packages(c('Rcpp'), repos = 'https://cloud.r-project.org')"
+
+      - name: Build R package tarball
+        run: |
+          rm -rf release-assets
+          mkdir -p release-assets
+          R CMD build _libraries/r_bindings/coolboxr
+          mv coolboxr_*.tar.gz release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz
+
+      - name: Upload R tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-extension-${{ matrix.platform }}-${{ github.ref_name }}
+          path: release-assets/coolbox-r-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          retention-days: 14
+
+      - name: Attach R tarball to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/coolbox-r-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz

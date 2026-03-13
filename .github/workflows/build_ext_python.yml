@@ -1,0 +1,92 @@
+name: build_ext_python
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ext-python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_python:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make libeigen3-dev libsqlite3-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake eigen sqlite
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake -y
+          if command -v vcpkg >/dev/null 2>&1; then
+            vcpkg install eigen3:x64-windows sqlite3:x64-windows || true
+            echo "EIGEN3_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include/eigen3" >> "$GITHUB_ENV"
+            echo "SQLITE3_LIB_DIR=C:/vcpkg/installed/x64-windows/lib" >> "$GITHUB_ENV"
+          fi
+        shell: powershell
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
+
+      - name: Build Python bindings
+        run: |
+          make build_python_bindings
+          python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
+
+      - name: Package Python tarball
+        run: |
+          rm -rf release-assets staging-python
+          mkdir -p release-assets staging-python
+          cp -R _libraries/python_bindings/dist/. staging-python/ 2>/dev/null || true
+          find _libraries/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -exec cp {} staging-python/ \;
+          tar -C staging-python -czf release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+
+      - name: Upload Python tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-extension-${{ matrix.platform }}-${{ github.ref_name }}
+          path: release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          retention-days: 14
+
+      - name: Attach Python tarball to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
