@@ -81,14 +81,53 @@ jobs:
             rm -f "$BUILD_DIR"
           fi
           mkdir -p "$BUILD_DIR"
-          for d in /opt/homebrew/include/eigen3 /usr/local/include/eigen3 /usr/include/eigen3; do
+
+          candidates=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            if brew_prefix="$(brew --prefix eigen 2>/dev/null)"; then
+              candidates+=("$brew_prefix/include/eigen3")
+            fi
+          fi
+          candidates+=(
+            /opt/homebrew/include/eigen3
+            /opt/homebrew/opt/eigen/include/eigen3
+            /usr/local/include/eigen3
+            /usr/local/opt/eigen/include/eigen3
+            /usr/include/eigen3
+          )
+
+          found_eigen=0
+          for d in "${candidates[@]}"; do
             if [[ -d "$d" ]]; then
               rm -rf "$BUILD_DIR/eigen-src"
               cp -R "$d" "$BUILD_DIR/eigen-src"
-              break
+
+              if [[ -f "$BUILD_DIR/eigen-src/Eigen/Core" ]]; then
+                echo "Using Eigen headers from $d"
+                found_eigen=1
+                break
+              fi
+
+              if [[ -f "$BUILD_DIR/eigen-src/eigen3/Eigen/Core" ]]; then
+                rm -rf "$BUILD_DIR/eigen-src"
+                cp -R "$d" "$BUILD_DIR/eigen-src"
+                mv "$BUILD_DIR/eigen-src/eigen3" "$BUILD_DIR/eigen-src.tmp"
+                rm -rf "$BUILD_DIR/eigen-src"
+                mv "$BUILD_DIR/eigen-src.tmp" "$BUILD_DIR/eigen-src"
+                echo "Using Eigen headers from nested path in $d"
+                found_eigen=1
+                break
+              fi
+
+              rm -rf "$BUILD_DIR/eigen-src"
             fi
           done
-          test -d "$BUILD_DIR/eigen-src"
+
+          if [[ "$found_eigen" -ne 1 ]]; then
+            echo "Checked Eigen candidates:"
+            printf ' - %s\n' "${candidates[@]}"
+            exit 1
+          fi
 
       - name: Prepare Eigen headers (Windows)
         if: runner.os == 'Windows'

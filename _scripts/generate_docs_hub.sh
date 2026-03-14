@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SITE_DIR="${1:-${ROOT_DIR}/.site}"
 CPP_INPUT_DIR="${ROOT_DIR}/_libraries/include"
 R_PKG_DIR="${ROOT_DIR}/_libraries/r_bindings/coolboxr"
+R_DOCS_DIR="${DOCS_R_DIR:-${R_PKG_DIR}/docs}"
 PYTHON_DOC_MD="${ROOT_DIR}/__GENERATED_CONTENT/read_mes/python_bindings_README.md"
 EMSCRIPTEN_DIR="${ROOT_DIR}/_libraries/emscripten_bindings"
 PYTHON_BINDINGS_DIR="${ROOT_DIR}/_libraries/python_bindings"
@@ -94,16 +95,10 @@ EOF
   has_cpp_docs=true
 fi
 
-if command -v Rscript >/dev/null 2>&1 && [ -d "${R_PKG_DIR}" ]; then
-  pushd "${R_PKG_DIR}" >/dev/null
-  Rscript -e "devtools::document()"
-  Rscript -e "pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)"
-  popd >/dev/null
-  if [ -d "${R_PKG_DIR}/docs" ]; then
-    mkdir -p "${SITE_DIR}/extensions/r"
-    cp -R "${R_PKG_DIR}/docs/." "${SITE_DIR}/extensions/r/"
-    has_r_docs=true
-  fi
+if [ -d "${R_DOCS_DIR}" ]; then
+  mkdir -p "${SITE_DIR}/extensions/r"
+  cp -R "${R_DOCS_DIR}/." "${SITE_DIR}/extensions/r/"
+  has_r_docs=true
 fi
 
 if command -v pandoc >/dev/null 2>&1 && [ -f "${PYTHON_DOC_MD}" ]; then
