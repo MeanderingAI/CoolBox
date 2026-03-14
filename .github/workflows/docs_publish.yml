@@ -47,6 +47,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
       - name: Resolve publish branch
         id: resolve-branch
         run: |
@@ -112,6 +119,26 @@ jobs:
           name: cpp-doxygen-site
           path: .prebuilt/cpp-docs
 
+      - name: Download prebuilt tutorials site
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: tutorials-site
+          path: .prebuilt/tutorials
+
+      - name: Build tutorials site fallback
+        if: github.event_name != 'workflow_call'
+        run: |
+          python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
+
+      - name: Ensure tutorials site exists
+        if: github.event_name == 'workflow_call'
+        run: |
+          if [ ! -f ./.prebuilt/tutorials/index.html ]; then
+            python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
+          fi
+
       - name: Download prebuilt Python bindings
         if: github.event_name == 'workflow_call'
         continue-on-error: true
@@ -119,6 +146,14 @@ jobs:
         with:
           name: python-extension-linux-x86_64-${{ github.ref_name }}
           path: .prebuilt/python
+
+      - name: Download prebuilt C bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: c-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/c
 
       - name: Restore prebuilt Python artifacts
         id: restore-python
@@ -150,6 +185,32 @@ jobs:
             echo "restored=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Restore prebuilt C artifacts
+        id: restore-c
+        run: |
+          rm -rf _libraries/c_bindings/target
+          mkdir -p .prebuilt/c/unpacked _libraries/c_bindings/target
+
+          shopt -s nullglob
+          archives=(.prebuilt/c/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C .prebuilt/c/unpacked
+          done
+
+          cp -R .prebuilt/c/unpacked/. _libraries/c_bindings/target/
+
+          if find _libraries/c_bindings/target -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download prebuilt JavaScript bindings
         if: github.event_name == 'workflow_call'
         continue-on-error: true
@@ -157,6 +218,40 @@ jobs:
         with:
           name: javascript-extension-linux-x86_64-${{ github.ref_name }}
           path: .prebuilt/javascript
+
+      - name: Download prebuilt Java bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: java-extension-${{ github.ref_name }}
+          path: .prebuilt/java
+
+      - name: Restore prebuilt Java artifacts
+        id: restore-java
+        run: |
+          rm -rf _libraries/java_bindings/target
+          mkdir -p .prebuilt/java/unpacked _libraries/java_bindings/target
+
+          shopt -s nullglob
+          archives=(.prebuilt/java/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C .prebuilt/java/unpacked
+          done
+
+          cp -R .prebuilt/java/unpacked/. _libraries/java_bindings/target/
+
+          if find _libraries/java_bindings/target -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Restore prebuilt JavaScript artifacts
         id: restore-javascript
@@ -233,17 +328,37 @@ jobs:
         run: |
           python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
 
+      - name: Build C bindings
+        if: steps.restore-c.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          rm -rf _libraries/c_bindings/build _libraries/c_bindings/target
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+          cmake --build _libraries/c_bindings/build --config Release
+          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+          doxygen _libraries/c_bindings/Doxyfile
+          mkdir -p _libraries/c_bindings/target/include _libraries/c_bindings/target/lib
+          cp -R _libraries/c_bindings/include/. _libraries/c_bindings/target/include/
+          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} _libraries/c_bindings/target/lib/ \;
+
       - name: Build JavaScript bindings
         if: steps.restore-javascript.outputs.restored != 'true'
         continue-on-error: true
         run: |
           make build_js_bindings
 
+      - name: Build Java bindings
+        if: steps.restore-java.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          mvn -f _libraries/java_bindings/pom.xml test package javadoc:javadoc
+
       - name: Build unified docs site
         env:
           DOCS_REPOSITORY: ${{ github.repository }}
           DOCS_RELEASE_TAG: ${{ steps.resolve-release-tag.outputs.release_tag }}
           DOCS_CPP_DIR: ${{ github.workspace }}/.prebuilt/cpp-docs
+          DOCS_TUTORIALS_DIR: ${{ github.workspace }}/.prebuilt/tutorials
         run: |
           bash ./_scripts/generate_docs_hub.sh "$GITHUB_WORKSPACE/.site"
 

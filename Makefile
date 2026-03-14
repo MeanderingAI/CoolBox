@@ -64,6 +64,9 @@ help:
 	@echo "  make configure          Run CMake configuration"
 	@echo "  make clean              Remove all build artifacts"
 	@echo "  make completion         Output shell completion script"
+	@echo "  make launch_editor      Launch the tutorial editor app"
+	@echo "  make build_c_bindings   Build the plain C bindings"
+	@echo "  make build_java_bindings Build the plain Java bindings"
 	@echo ""
 	@echo "━━━ Discovered Library Targets ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -97,9 +100,11 @@ help:
         build_libraries_security build_libraries_misc build_libraries_electronics \
         build_libraries_graphics \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
+		build_c_bindings \
+		build_java_bindings \
 	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
 	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
-	build_rust_bindings test_rust_bindings build_docs_portal
+		build_rust_bindings test_rust_bindings build_docs_portal launch_editor
 
 all: build_all
 
@@ -222,6 +227,20 @@ clean_python_bindings:
 install_python_bindings:
 	@echo "Installing Python bindings..."
 	@cd _libraries/python_bindings && $(PYTHON) setup.py install
+
+launch_editor:
+	@echo "Launching tutorial editor..."
+	@$(PYTHON) apps/tutorial_editor.py
+
+build_c_bindings:
+	@echo "Building plain C bindings..."
+	@cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+	@cmake --build _libraries/c_bindings/build --config Release
+	@ctest --test-dir _libraries/c_bindings/build --output-on-failure
+
+build_java_bindings:
+	@echo "Building plain Java bindings..."
+	@mvn -f _libraries/java_bindings/pom.xml test package javadoc:javadoc
 
 # ── Emscripten / JavaScript Bindings ────────────────────────────────
 build_js_bindings: install_emcmake

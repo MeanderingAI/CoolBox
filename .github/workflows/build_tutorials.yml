@@ -1,0 +1,40 @@
+name: build_tutorials
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-tutorials-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_tutorials:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Build tutorials site
+        run: |
+          python ./_scripts/build_tutorials.py ./tutorials ./tutorials-site
+
+      - name: Upload tutorials artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: tutorials-site
+          path: tutorials-site/
+          retention-days: 14

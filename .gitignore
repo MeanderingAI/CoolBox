@@ -2,6 +2,7 @@ build
 build-test
 build-emscripten-local-check
 build-emscripten-local-check-default
+bin
 Testing
 **/a.out
 _libraries/gen_docs/html/

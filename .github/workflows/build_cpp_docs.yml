@@ -27,16 +27,30 @@ jobs:
         run: |
           rm -rf cpp-docs-site
           mkdir -p cpp-docs-site
+          cpp_inputs=()
+          if [ -d "${GITHUB_WORKSPACE}/_libraries/include" ]; then
+            cpp_inputs+=("${GITHUB_WORKSPACE}/_libraries/include")
+          fi
+          if [ -d "${GITHUB_WORKSPACE}/_libraries/backages" ]; then
+            cpp_inputs+=("${GITHUB_WORKSPACE}/_libraries/backages")
+          fi
+
+          if [ ${#cpp_inputs[@]} -eq 0 ]; then
+            echo "No C++ header roots found for Doxygen." >&2
+            exit 1
+          fi
+
           cat > cpp-docs-site/Doxyfile <<EOF
           PROJECT_NAME = "CoolBox C++ API"
           OUTPUT_DIRECTORY = ${GITHUB_WORKSPACE}/cpp-docs-site
-          INPUT = ${GITHUB_WORKSPACE}/_libraries/include
+          INPUT = ${cpp_inputs[*]}
           RECURSIVE = YES
           FILE_PATTERNS = *.h *.hpp
           GENERATE_HTML = YES
           HTML_OUTPUT = .
           GENERATE_LATEX = NO
           EXTRACT_ALL = YES
+          EXCLUDE_PATTERNS = */build/* */_deps/* */googletest-*/* */eigen-*/*
           QUIET = YES
           WARN_IF_UNDOCUMENTED = NO
           WARN_IF_DOC_ERROR = YES
