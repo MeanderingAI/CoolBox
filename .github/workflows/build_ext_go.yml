@@ -76,38 +76,83 @@ jobs:
       - name: Prepare Eigen headers (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          mkdir -p build
+          BUILD_DIR="$GITHUB_WORKSPACE/build"
+          if [[ -e "$BUILD_DIR" && ! -d "$BUILD_DIR" ]]; then
+            rm -f "$BUILD_DIR"
+          fi
+          mkdir -p "$BUILD_DIR"
           for d in /opt/homebrew/include/eigen3 /usr/local/include/eigen3 /usr/include/eigen3; do
             if [[ -d "$d" ]]; then
-              rm -rf build/eigen-src
-              cp -R "$d" build/eigen-src
+              rm -rf "$BUILD_DIR/eigen-src"
+              cp -R "$d" "$BUILD_DIR/eigen-src"
               break
             fi
           done
-          test -d build/eigen-src
+          test -d "$BUILD_DIR/eigen-src"
 
       - name: Prepare Eigen headers (Windows)
         if: runner.os == 'Windows'
         run: |
+          $gcc = Get-Command g++.exe -ErrorAction SilentlyContinue
+          if ($null -eq $gcc) {
+            $gcc = Get-Command gcc.exe -ErrorAction SilentlyContinue
+          }
+
+          $derivedCandidates = @()
+          if ($null -ne $gcc) {
+            $mingwBin = Split-Path $gcc.Source -Parent
+            $mingwRoot = Split-Path $mingwBin -Parent
+            $derivedCandidates += @(
+              (Join-Path $mingwRoot "include\eigen3"),
+              (Join-Path $mingwRoot "include")
+            )
+          }
+
           $candidates = @(
+            (Join-Path $env:RUNNER_TEMP "msys64\mingw64\include\eigen3"),
+            (Join-Path $env:RUNNER_TEMP "msys64\mingw64\include"),
             "C:\msys64\mingw64\include\eigen3",
+            "C:\msys64\mingw64\include",
             "C:\tools\msys64\mingw64\include\eigen3",
+            "C:\tools\msys64\mingw64\include",
             "C:\vcpkg\installed\x64-windows\include\eigen3",
             "C:\vcpkg\installed\x64-windows\include"
-          )
-          New-Item -ItemType Directory -Force -Path build | Out-Null
+          ) + $derivedCandidates
+
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build"
+          if ((Test-Path $buildDir) -and -not (Test-Path $buildDir -PathType Container)) {
+            Remove-Item -Force $buildDir
+          }
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+
           foreach ($candidate in $candidates) {
+            if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
             if (Test-Path $candidate) {
-              if (Test-Path "build\eigen-src") {
-                Remove-Item -Recurse -Force "build\eigen-src"
+              $eigenDest = Join-Path $buildDir "eigen-src"
+              if (Test-Path $eigenDest) {
+                Remove-Item -Recurse -Force $eigenDest
               }
-              Copy-Item -Recurse -Force $candidate "build\eigen-src"
-              break
+              Copy-Item -Recurse -Force $candidate $eigenDest
+
+              if (Test-Path (Join-Path $eigenDest "Eigen\Core")) {
+                Write-Host "Using Eigen headers from $candidate"
+                exit 0
+              }
+
+              $nestedEigen = Join-Path $eigenDest "eigen3"
+              if (Test-Path (Join-Path $nestedEigen "Eigen\Core")) {
+                Remove-Item -Recurse -Force $eigenDest
+                Copy-Item -Recurse -Force $nestedEigen $eigenDest
+                Write-Host "Using Eigen headers from nested path in $candidate"
+                exit 0
+              }
+
+              Remove-Item -Recurse -Force $eigenDest -ErrorAction SilentlyContinue
             }
           }
-          if (!(Test-Path "build\eigen-src")) {
-            throw "Unable to locate Eigen headers for Go bindings"
-          }
+          Write-Host "Checked Eigen candidates:"
+          $candidates | ForEach-Object { Write-Host " - $_" }
+          throw "Unable to locate Eigen headers for Go bindings"
         shell: powershell
 
       - name: Show Go toolchain

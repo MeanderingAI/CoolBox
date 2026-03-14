@@ -88,11 +88,33 @@ func cDoublePtr(values []float64) *C.double {
 	return (*C.double)(unsafe.Pointer(&values[0]))
 }
 
-func cIntPtr(values []int) *C.int {
+func cCIntPtr(values []C.int) *C.int {
 	if len(values) == 0 {
 		return nil
 	}
 	return (*C.int)(unsafe.Pointer(&values[0]))
+}
+
+func toCIntSlice(values []int) []C.int {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]C.int, len(values))
+	for i, value := range values {
+		out[i] = C.int(value)
+	}
+	return out
+}
+
+func fromCIntSlice(values []C.int) []int {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]int, len(values))
+	for i, value := range values {
+		out[i] = int(value)
+	}
+	return out
 }
 
 func flattenFloatMatrix(x [][]float64) ([]float64, int, int, error) {
@@ -306,14 +328,16 @@ func (t *DecisionTree) Fit(x [][]int, y []int, maxDepth int) error {
 	if len(y) != rows {
 		return fmt.Errorf("target vector length must match the number of feature rows")
 	}
+	xFlatC := toCIntSlice(xFlat)
+	yC := toCIntSlice(y)
 
 	var cErr *C.char
 	ok := C.coolbox_decision_tree_fit(
 		t.handle,
-		cIntPtr(xFlat),
+		cCIntPtr(xFlatC),
 		C.size_t(rows),
 		C.size_t(cols),
-		cIntPtr(y),
+		cCIntPtr(yC),
 		C.int(maxDepth),
 		&cErr,
 	)
@@ -330,9 +354,10 @@ func (t *DecisionTree) Predict(sample []int) (int, error) {
 	if t == nil || t.handle == nil {
 		return 0, fmt.Errorf("decision tree is nil")
 	}
+	sampleC := toCIntSlice(sample)
 	var label C.int
 	var cErr *C.char
-	ok := C.coolbox_decision_tree_predict(t.handle, cIntPtr(sample), C.size_t(len(sample)), &label, &cErr)
+	ok := C.coolbox_decision_tree_predict(t.handle, cCIntPtr(sampleC), C.size_t(len(sampleC)), &label, &cErr)
 	if err := cError(cErr); err != nil {
 		return 0, err
 	}
@@ -437,14 +462,16 @@ func (bn *BayesianNetwork) Query(queryNode int, evidence map[int]int) ([]float64
 		nodeIDs = append(nodeIDs, nodeID)
 		stateIDs = append(stateIDs, stateID)
 	}
+	nodeIDsC := toCIntSlice(nodeIDs)
+	stateIDsC := toCIntSlice(stateIDs)
 
 	out := make([]float64, stateCount)
 	var cErr *C.char
 	ok := C.coolbox_bayesian_network_query(
 		bn.handle,
 		C.int(queryNode),
-		cIntPtr(nodeIDs),
-		cIntPtr(stateIDs),
+		cCIntPtr(nodeIDsC),
+		cCIntPtr(stateIDsC),
 		C.size_t(len(nodeIDs)),
 		cDoublePtr(out),
 		C.size_t(len(out)),
@@ -631,9 +658,10 @@ func (h *HMM) LogLikelihood(observations []int) (float64, error) {
 	if h == nil || h.handle == nil {
 		return 0, fmt.Errorf("hmm is nil")
 	}
+	observationsC := toCIntSlice(observations)
 	var out C.double
 	var cErr *C.char
-	ok := C.coolbox_hmm_log_likelihood(h.handle, cIntPtr(observations), C.size_t(len(observations)), &out, &cErr)
+	ok := C.coolbox_hmm_log_likelihood(h.handle, cCIntPtr(observationsC), C.size_t(len(observationsC)), &out, &cErr)
 	if err := cError(cErr); err != nil {
 		return 0, err
 	}
@@ -647,16 +675,17 @@ func (h *HMM) MostLikelyStates(observations []int) ([]int, error) {
 	if h == nil || h.handle == nil {
 		return nil, fmt.Errorf("hmm is nil")
 	}
-	out := make([]int, len(observations))
+	observationsC := toCIntSlice(observations)
+	outC := make([]C.int, len(observations))
 	var cErr *C.char
-	ok := C.coolbox_hmm_get_most_likely_states(h.handle, cIntPtr(observations), C.size_t(len(observations)), cIntPtr(out), C.size_t(len(out)), &cErr)
+	ok := C.coolbox_hmm_get_most_likely_states(h.handle, cCIntPtr(observationsC), C.size_t(len(observationsC)), cCIntPtr(outC), C.size_t(len(outC)), &cErr)
 	if err := cError(cErr); err != nil {
 		return nil, err
 	}
 	if ok == 0 {
 		return nil, fmt.Errorf("state decoding failed")
 	}
-	return out, nil
+	return fromCIntSlice(outC), nil
 }
 
 func (h *HMM) Train(sequences [][]int, maxIterations int, tolerance float64, smoothingFactor float64, seed uint32) error {
@@ -667,10 +696,11 @@ func (h *HMM) Train(sequences [][]int, maxIterations int, tolerance float64, smo
 	if err != nil {
 		return err
 	}
+	flatC := toCIntSlice(flat)
 	var cErr *C.char
 	ok := C.coolbox_hmm_train(
 		h.handle,
-		cIntPtr(flat),
+		cCIntPtr(flatC),
 		(*C.size_t)(unsafe.Pointer(&lengths[0])),
 		C.size_t(len(lengths)),
 		C.int(maxIterations),
@@ -1150,12 +1180,13 @@ func (a *BanditAgent) Results() (SimulationResult, error) {
 	trueProbs := make([]float64, count)
 	estimated := make([]float64, count)
 	pulls := make([]int, count)
+	pullsC := make([]C.int, count)
 	var cErr *C.char
 	ok := C.coolbox_bandit_agent_get_results(
 		a.handle,
 		cDoublePtr(trueProbs),
 		cDoublePtr(estimated),
-		cIntPtr(pulls),
+		cCIntPtr(pullsC),
 		C.size_t(count),
 		&cErr,
 	)
@@ -1167,6 +1198,7 @@ func (a *BanditAgent) Results() (SimulationResult, error) {
 	}
 
 	result := SimulationResult{Bandits: make([]BanditStats, count)}
+	pulls = fromCIntSlice(pullsC)
 	for i := range result.Bandits {
 		result.Bandits[i] = BanditStats{
 			TrueProbability:      trueProbs[i],

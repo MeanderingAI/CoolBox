@@ -6,6 +6,10 @@
 namespace ml {
 namespace cv {
 
+namespace {
+constexpr float kPi = 3.14159265358979323846f;
+}
+
 // Helper function for bilinear interpolation
 static float bilinear_interpolate(const Image& img, float y, float x, int c) {
     int y0 = static_cast<int>(std::floor(y));
@@ -238,7 +242,7 @@ Image Rotate::apply(const Image& image) const {
     Image result(image.height(), image.width(), image.format());
     result.fill(0.0f);
     
-    float angle_rad = angle_degrees_ * M_PI / 180.0f;
+    float angle_rad = angle_degrees_ * kPi / 180.0f;
     float cos_a = std::cos(angle_rad);
     float sin_a = std::sin(angle_rad);
     
