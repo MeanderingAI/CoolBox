@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Doxygen dependencies
         run: |
@@ -45,7 +45,7 @@ jobs:
           rm -f cpp-docs-site/Doxyfile
 
       - name: Upload C++ Doxygen artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cpp-doxygen-site
           path: cpp-docs-site/

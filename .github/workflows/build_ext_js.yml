@@ -29,7 +29,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Ninja (Linux)
         if: runner.os == 'Linux'
@@ -69,7 +69,7 @@ jobs:
           tar -C staging-js -czf release-assets/coolbox-js-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
 
       - name: Upload JavaScript tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: javascript-extension-${{ matrix.platform }}-${{ github.ref_name }}
           path: release-assets/coolbox-js-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz

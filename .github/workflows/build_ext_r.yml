@@ -29,7 +29,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
@@ -59,7 +59,7 @@ jobs:
           mv coolboxr_*.tar.gz release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz
 
       - name: Upload R tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: r-extension-${{ matrix.platform }}-${{ github.ref_name }}
           path: release-assets/coolbox-r-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz

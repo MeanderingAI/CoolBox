@@ -32,5 +32,8 @@ endif()
 add_executable(curcuitry_tests
     tests/circuit_test.cpp
 )
+target_include_directories(curcuitry_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 target_link_libraries(curcuitry_tests PRIVATE curcuitry GTest::gtest_main)
 add_test(NAME CurcuitryTests COMMAND curcuitry_tests)

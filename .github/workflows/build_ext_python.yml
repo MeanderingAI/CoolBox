@@ -29,7 +29,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -77,7 +77,7 @@ jobs:
           tar -C staging-python -czf release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
 
       - name: Upload Python tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: python-extension-${{ matrix.platform }}-${{ github.ref_name }}
           path: release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
