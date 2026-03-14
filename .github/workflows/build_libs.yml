@@ -7,8 +7,13 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -242,6 +247,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     name: Create Release
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Download all release assets
@@ -252,7 +259,7 @@ jobs:
           merge-multiple: true
 
       - name: Create Release & Upload Assets
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
           generate_release_notes: true

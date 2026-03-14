@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
 
-
+namespace io {
+namespace http_server {
 
 enum class HttpMethod {
     GET,
@@ -37,4 +38,7 @@ inline HttpMethod from_string(const std::string& method) {
     if (method == "HEAD") return HttpMethod::HEAD;
     return HttpMethod::UNKNOWN;
 }
+
+} // namespace http_server
+} // namespace io
 

@@ -24,13 +24,18 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: docs-publish-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-publish:
+  build_and_publish:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -38,7 +43,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -117,7 +122,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y doxygen graphviz libcurl4-openssl-dev libssl-dev libxml2-dev libeigen3-dev python3-dev emscripten
           python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
-          Rscript -e "install.packages(c('Rcpp', 'devtools', 'roxygen2', 'pkgdown', 'testthat'), repos = 'https://cloud.r-project.org')"
+
+      - name: Suppress third-party R compile warnings
+        run: |
+          cat > "$RUNNER_TEMP/r-makevars" <<'EOF'
+          CFLAGS += -w
+          CXXFLAGS += -w
+          CXX11FLAGS += -w
+          CXX14FLAGS += -w
+          CXX17FLAGS += -w
+          CXX20FLAGS += -w
+          FCFLAGS += -w
+          FFLAGS += -w
+          EOF
+          echo "R_MAKEVARS_USER=$RUNNER_TEMP/r-makevars" >> "$GITHUB_ENV"
+          echo "R_LIBS_USER=$GITHUB_WORKSPACE/.r-library" >> "$GITHUB_ENV"
+          mkdir -p "$GITHUB_WORKSPACE/.r-library"
+
+      - name: Install and verify R documentation packages
+        run: |
+          Rscript -e "lib <- Sys.getenv('R_LIBS_USER'); dir.create(lib, recursive = TRUE, showWarnings = FALSE); .libPaths(c(lib, .libPaths())); if (!requireNamespace('pak', quietly = TRUE)) install.packages('pak', repos = 'https://cloud.r-project.org', lib = lib); pak::pkg_install(c('cran::Rcpp', 'cran::devtools', 'cran::roxygen2', 'cran::pkgdown', 'cran::testthat'), ask = FALSE, lib = lib); print(.libPaths()); missing <- c('devtools', 'roxygen2', 'pkgdown')[!vapply(c('devtools', 'roxygen2', 'pkgdown'), requireNamespace, logical(1), quietly = TRUE)]; if (length(missing)) stop(sprintf('Missing R documentation packages: %s', paste(missing, collapse = ', ')))"
 
       - name: Build Python bindings
         continue-on-error: true

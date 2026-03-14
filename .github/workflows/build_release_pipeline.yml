@@ -15,6 +15,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: build-release-pipeline-${{ github.ref }}
   cancel-in-progress: true
@@ -40,6 +43,12 @@ jobs:
     uses: ./.github/workflows/build_ext_js.yml
     secrets: inherit
 
+  build_ext_go:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_go.yml
+    secrets: inherit
+
   build_ext_r:
     needs:
       - build_libs
@@ -58,6 +67,7 @@ jobs:
       - build_cpp_docs
       - build_ext_python
       - build_ext_js
+      - build_ext_go
       - build_ext_r
       - build_ext_rust
     uses: ./.github/workflows/docs_publish.yml

@@ -1,0 +1,142 @@
+name: build_ext_go
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-ext-go-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_go:
+    runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: _libraries/go_bindings/go.mod
+          cache-dependency-path: _libraries/go_bindings/go.mod
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make libeigen3-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew list cmake &>/dev/null || brew install cmake
+          brew list eigen &>/dev/null || brew install eigen
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: |
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-eigen3
+
+      - name: Ensure mingw64 in PATH (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $msysBin = "C:\msys64\mingw64\bin"
+          if (!(Test-Path $msysBin)) { $msysBin = "C:\tools\msys64\mingw64\bin" }
+          echo "$msysBin" >> $env:GITHUB_PATH
+        shell: powershell
+
+      - name: Prepare Eigen headers (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p build
+          for d in /opt/homebrew/include/eigen3 /usr/local/include/eigen3 /usr/include/eigen3; do
+            if [[ -d "$d" ]]; then
+              rm -rf build/eigen-src
+              cp -R "$d" build/eigen-src
+              break
+            fi
+          done
+          test -d build/eigen-src
+
+      - name: Prepare Eigen headers (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $candidates = @(
+            "C:\msys64\mingw64\include\eigen3",
+            "C:\tools\msys64\mingw64\include\eigen3",
+            "C:\vcpkg\installed\x64-windows\include\eigen3",
+            "C:\vcpkg\installed\x64-windows\include"
+          )
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          foreach ($candidate in $candidates) {
+            if (Test-Path $candidate) {
+              if (Test-Path "build\eigen-src") {
+                Remove-Item -Recurse -Force "build\eigen-src"
+              }
+              Copy-Item -Recurse -Force $candidate "build\eigen-src"
+              break
+            }
+          }
+          if (!(Test-Path "build\eigen-src")) {
+            throw "Unable to locate Eigen headers for Go bindings"
+          }
+        shell: powershell
+
+      - name: Show Go toolchain
+        run: |
+          go version
+          go env
+
+      - name: Build and test Go bindings
+        run: |
+          cd _libraries/go_bindings
+          go test ./...
+
+      - name: Package Go bindings
+        run: |
+          rm -rf release-assets staging-go
+          mkdir -p release-assets staging-go
+          cp -R _libraries/go_bindings/. staging-go/
+          rm -rf staging-go/.git staging-go/.github
+          tar -C staging-go -czf release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+
+      - name: Upload Go tarball
+        uses: actions/upload-artifact@v6
+        with:
+          name: go-extension-${{ matrix.platform }}-${{ github.ref_name }}
+          path: release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          retention-days: 14
+
+      - name: Attach Go tarball to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz

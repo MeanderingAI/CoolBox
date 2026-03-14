@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 import glob
+import sys
 
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
@@ -29,16 +31,76 @@ module_dirs = [
 
 source_modules = [module_dir for module_dir in module_dirs if module_dir != "rest_api"]
 
+
+def existing_dirs(paths):
+    seen = set()
+    result = []
+    for path in paths:
+        if not path:
+            continue
+        normalized = str(Path(path))
+        if normalized in seen:
+            continue
+        if Path(normalized).exists():
+            seen.add(normalized)
+            result.append(normalized)
+    return result
+
+
+def resolve_eigen_include_dirs(paths):
+    seen = set()
+    resolved = []
+    for raw_path in paths:
+        if not raw_path:
+            continue
+
+        candidate = Path(raw_path)
+        variants = [candidate]
+
+        if candidate.name.lower() != "eigen3":
+            variants.append(candidate / "eigen3")
+
+        for variant in variants:
+            eigen_core = variant / "Eigen" / "Core"
+            unsupported = variant / "unsupported"
+            if not eigen_core.exists() and not unsupported.exists():
+                continue
+
+            normalized = str(variant)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            resolved.append(normalized)
+
+    return resolved
+
+
+eigen_candidates = [
+    os.environ.get("EIGEN3_INCLUDE_DIR"),
+    os.environ.get("EIGEN_INCLUDE_DIR"),
+    str(project_root.parent.parent / "eigen-src"),
+    str(project_root.parent.parent / "eigen-src" / "eigen3"),
+    str(project_root.parent.parent / "build" / "eigen-src"),
+    str(project_root.parent.parent / "build" / "eigen-src" / "eigen3"),
+    "/usr/include/eigen3",
+    "/usr/local/include/eigen3",
+    "/opt/homebrew/include/eigen3",
+    r"C:\vcpkg\installed\x64-windows\include\eigen3",
+    r"C:\vcpkg\installed\x64-windows\include",
+    r"C:\msys64\mingw64\include\eigen3",
+    r"C:\msys64\mingw64\include",
+    r"C:\tools\msys64\mingw64\include\eigen3",
+    r"C:\tools\msys64\mingw64\include",
+]
+
 include_dirs = [
     pybind11.get_include(),
     str(include_root),
     *(str(include_root / module_dir) for module_dir in module_dirs),
-    str(project_root.parent.parent / "eigen-src"),
-    str(project_root.parent.parent / "build" / "eigen-src"),
-    "/usr/include/eigen3",
-    "/usr/local/include/eigen3",
-    "/opt/homebrew/include/eigen3",
+    *resolve_eigen_include_dirs(eigen_candidates),
 ]
+
+extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall"]
 
 source_files = [project_root / "py_ml_core.cpp"]
 for module_dir in source_modules:
@@ -55,7 +117,7 @@ ext_modules = [
         source_files,
         include_dirs=include_dirs,
         cxx_std=17,
-        extra_compile_args=["-O3", "-Wall"],
+        extra_compile_args=extra_compile_args,
     ),
 ]
 

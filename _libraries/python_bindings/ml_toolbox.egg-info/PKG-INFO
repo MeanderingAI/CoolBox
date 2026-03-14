@@ -2,10 +2,8 @@ Metadata-Version: 2.4
 Name: ml-toolbox
 Version: 0.2.0
 Summary: Comprehensive C++ Machine Learning Library with Python Bindings
-Home-page: https://github.com/yourusername/ToolBox
 Author: ML Core Team
-Author-email: 
-License: MIT
+License-Expression: GPL-3.0-or-later
 Project-URL: Homepage, https://github.com/yourusername/ToolBox
 Project-URL: Documentation, https://github.com/yourusername/ToolBox/blob/main/README.md
 Project-URL: Repository, https://github.com/yourusername/ToolBox
@@ -14,7 +12,6 @@ Keywords: machine-learning,deep-learning,neural-networks,decision-trees,svm,baye
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: Intended Audience :: Science/Research
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
@@ -25,7 +22,7 @@ Classifier: Programming Language :: Python :: 3.12
 Classifier: Programming Language :: C++
 Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
-Requires-Python: >=3.6
+Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 Requires-Dist: numpy>=1.19.0
 Requires-Dist: pybind11>=2.6.0
@@ -38,5 +35,36 @@ Requires-Dist: matplotlib>=3.3.0; extra == "examples"
 Requires-Dist: scikit-learn>=0.24.0; extra == "examples"
 Provides-Extra: all
 Requires-Dist: ml-toolbox[dev,examples]; extra == "all"
-Dynamic: home-page
-Dynamic: requires-python
+
+# CoolBox Python Bindings
+
+Python bindings for the CoolBox C++ machine learning toolkit.
+
+## Included modules
+
+- `decision_tree`
+- `svm`
+- `bayesian_network`
+- `hmm`
+- `glm`
+- `multi_arm_bandit`
+- `tracker`
+- `dimensionality_reduction`
+- `deep_learning`
+- `computer_vision`
+- `time_series`
+- `nlp`
+- `distributed`
+- `rest_api`
+
+## Build
+
+From the repository root:
+
+- `make build_python_bindings`
+
+Or directly:
+
+- `cd _libraries/python_bindings && python -m build`
+
+See `INSTALL.md` for more details.
