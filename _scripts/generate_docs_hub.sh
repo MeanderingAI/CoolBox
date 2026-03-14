@@ -37,6 +37,22 @@ release_asset_url() {
   printf 'https://github.com/%s/releases/download/%s/%s' "${REPOSITORY_SLUG}" "${RELEASE_TAG}" "${asset_name}"
 }
 
+latest_release_page_url() {
+  if [ -z "${REPOSITORY_SLUG}" ]; then
+    return 1
+  fi
+
+  printf 'https://github.com/%s/releases/latest' "${REPOSITORY_SLUG}"
+}
+
+releases_page_url() {
+  if [ -z "${REPOSITORY_SLUG}" ]; then
+    return 1
+  fi
+
+  printf 'https://github.com/%s/releases' "${REPOSITORY_SLUG}"
+}
+
 release_links_html() {
   local extension_name="$1"
   shift
@@ -247,10 +263,17 @@ js_artifacts_link=''
 python_release_links=''
 js_release_links=''
 r_release_links=''
+latest_release_link=''
 
 python_release_links="$(release_links_html 'python-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 js_release_links="$(release_links_html 'js-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 r_release_links="$(release_links_html 'r-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
+
+if [ -n "${REPOSITORY_SLUG}" ]; then
+  latest_release_url="$(latest_release_page_url)"
+  releases_url="$(releases_page_url)"
+  latest_release_link="<p class=\"muted\">GitHub releases: <a href=\"${latest_release_url}\">Latest release</a> · <a href=\"${releases_url}\">All releases</a></p>"
+fi
 
 if [ "${has_cpp_docs}" = true ]; then
   cpp_link='<li><a href="cpp/index.html">C++ API Reference</a><p>Doxygen output for the native CoolBox headers.</p></li>'
@@ -289,12 +312,15 @@ cat > "${SITE_DIR}/index.html" <<EOF
     a:hover { text-decoration: underline; }
     p { margin: 0.25rem 0 0; color: #475569; }
     .muted { color: #64748b; font-size: 0.95rem; }
+    .brand-mark { margin-right: 0.35rem; }
+    footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
   </style>
 </head>
 <body>
   <main>
-    <h1>CoolBox Documentation Portal</h1>
+    <h1><span class="brand-mark">𓂀</span>CoolBox Documentation Portal</h1>
     <p class="muted">Unified entry point for native C++ documentation and extension-specific docs.</p>
+    ${latest_release_link}
     <ul>
       ${cpp_link}
       ${r_link}
@@ -303,6 +329,9 @@ cat > "${SITE_DIR}/index.html" <<EOF
       ${python_artifacts_link}
       ${js_artifacts_link}
     </ul>
+    <footer>
+      <p>𓂀 Meandering LLC © 2026</p>
+    </footer>
   </main>
 </body>
 </html>

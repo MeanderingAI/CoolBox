@@ -112,6 +112,76 @@ jobs:
           name: cpp-doxygen-site
           path: .prebuilt/cpp-docs
 
+      - name: Download prebuilt Python bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: python-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/python
+
+      - name: Restore prebuilt Python artifacts
+        id: restore-python
+        run: |
+          rm -rf .prebuilt/python/unpacked
+          mkdir -p .prebuilt/python/unpacked _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+
+          shopt -s nullglob
+          archives=(.prebuilt/python/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          rm -rf _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+          mkdir -p _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C .prebuilt/python/unpacked
+          done
+
+          find .prebuilt/python/unpacked -maxdepth 1 -type f \( -name '*.whl' -o -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} _libraries/python_bindings/dist/ \;
+          find .prebuilt/python/unpacked -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -exec cp {} _libraries/python_bindings/build/reused/ \;
+
+          if find _libraries/python_bindings/dist -maxdepth 1 -type f | grep -q . || find _libraries/python_bindings/build/reused -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download prebuilt JavaScript bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: javascript-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/javascript
+
+      - name: Restore prebuilt JavaScript artifacts
+        id: restore-javascript
+        run: |
+          rm -rf build-emscripten
+          mkdir -p build-emscripten
+
+          shopt -s nullglob
+          archives=(.prebuilt/javascript/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C build-emscripten
+          done
+
+          if find build-emscripten -maxdepth 1 -type f \( -name '*.js' -o -name '*.wasm' \) | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
@@ -152,16 +222,19 @@ jobs:
           popd >/dev/null
 
       - name: Build Python bindings
+        if: steps.restore-python.outputs.restored != 'true'
         continue-on-error: true
         run: |
           make build_python_bindings
 
       - name: Build Python distribution artifacts
+        if: steps.restore-python.outputs.restored != 'true'
         continue-on-error: true
         run: |
           python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
 
       - name: Build JavaScript bindings
+        if: steps.restore-javascript.outputs.restored != 'true'
         continue-on-error: true
         run: |
           make build_js_bindings
