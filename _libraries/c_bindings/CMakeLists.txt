@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(CoolBoxCBindings LANGUAGES C)
+project(CoolBoxCBindings LANGUAGES C CXX)
 
 include(CTest)
 include(GNUInstallDirs)
@@ -8,7 +8,14 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-add_library(coolbox_c_bindings STATIC
+if(NOT TARGET metadata_management)
+    add_subdirectory(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../backages/MISC/metadata_management
+        ${CMAKE_CURRENT_BINARY_DIR}/metadata_management
+    )
+endif()
+
+add_library(coolbox_c_bindings SHARED
     src/coolbox_c.c
 )
 
@@ -16,6 +23,7 @@ add_library(CoolBox::c_bindings ALIAS coolbox_c_bindings)
 
 set_target_properties(coolbox_c_bindings PROPERTIES
     OUTPUT_NAME coolbox_c_bindings
+    LINKER_LANGUAGE CXX
     POSITION_INDEPENDENT_CODE ON
 )
 
@@ -23,6 +31,11 @@ target_include_directories(coolbox_c_bindings
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+target_link_libraries(coolbox_c_bindings
+    PRIVATE
+        metadata_management
 )
 
 install(TARGETS coolbox_c_bindings

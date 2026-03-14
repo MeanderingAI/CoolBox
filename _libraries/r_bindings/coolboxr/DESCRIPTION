@@ -5,9 +5,13 @@ Version: 0.1.0
 Authors@R: c(
     person("CoolBox", "Maintainers", email = "opensource@example.com", role = c("aut", "cre"))
     )
-Description: Minimal R bindings for selected CoolBox C++ components.
-    The initial package exposes linear regression helpers backed by the
-    existing native implementation and is set up for roxygen2 and pkgdown.
+Description: R bindings for a broad set of CoolBox C++ components.
+    The package exposes native decision trees, support vector machines,
+    Bayesian networks, hidden Markov models, linear regression, multi-arm
+    bandits, marked point processes, piecewise conditional intensity models,
+    latent sentiment analysis, singular value decomposition, principal
+    component analysis, k-nearest neighbors, UMAP, and time-series utilities
+    backed by existing CoolBox implementations.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

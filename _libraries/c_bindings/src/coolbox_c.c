@@ -1,17 +1,36 @@
 #include "coolbox/coolbox_c.h"
 
+#include <stdio.h>
+
 static const char *const COOLBOX_C_CAPABILITIES[] = {
     "metadata",
     "version",
-    "plain-c-sdk-scaffold"
+    "metadata_management"
 };
 
+extern const char *get_metadata_management_library_name(void);
+extern const char *get_metadata_management_library_version(void);
+extern const char *get_metadata_management_library_description(void);
+extern const char *get_metadata_management_library_author(void);
+
 const char *coolbox_c_version(void) {
-    return "0.1.0";
+    return get_metadata_management_library_version();
 }
 
 const char *coolbox_c_describe(void) {
-    return "CoolBox C bindings ready for plain C integrations.";
+    static char description[256];
+
+    snprintf(
+        description,
+        sizeof(description),
+        "CoolBox C bindings linked to %s %s by %s: %s",
+        get_metadata_management_library_name(),
+        get_metadata_management_library_version(),
+        get_metadata_management_library_author(),
+        get_metadata_management_library_description()
+    );
+
+    return description;
 }
 
 size_t coolbox_c_capability_count(void) {
@@ -27,5 +46,5 @@ const char *coolbox_c_capability_at(size_t index) {
 }
 
 int coolbox_c_is_ready(void) {
-    return 1;
+    return get_metadata_management_library_version() != NULL;
 }

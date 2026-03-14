@@ -1,23 +1,26 @@
 # CoolBox C Bindings
 
-Plain C bindings scaffold for CoolBox.
+Plain C bindings for CoolBox backed by the native `metadata_management` library.
 
 ## Features
 
 - Stable C header for external consumers
 - Small metadata-oriented API surface
+- Direct link against the CoolBox `metadata_management` shared library
 - CMake build with CTest coverage
 - Doxygen-ready API documentation
 
 ## Public API
 
-The current scaffold exposes:
+The current bindings expose:
 
 - `coolbox_c_version()`
 - `coolbox_c_describe()`
 - `coolbox_c_capability_count()`
 - `coolbox_c_capability_at()`
 - `coolbox_c_is_ready()`
+
+All metadata values are sourced from the linked native CoolBox library rather than duplicated in the C layer.
 
 ## Build
 

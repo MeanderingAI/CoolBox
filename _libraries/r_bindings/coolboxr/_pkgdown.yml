@@ -10,3 +10,9 @@ reference:
     contents:
       - coolbox_linear_regression
       - matches("^predict\\.coolbox_linear_regression$")
+  - title: Time series
+    contents:
+      - coolbox_time_series_summary
+      - coolbox_time_series_transform
+      - coolbox_time_series_forecast
+      - coolbox_time_series_outliers

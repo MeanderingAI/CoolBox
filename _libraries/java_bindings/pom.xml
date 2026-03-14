@@ -19,6 +19,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>net.java.dev.jna</groupId>
+      <artifactId>jna</artifactId>
+      <version>5.17.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
@@ -37,6 +42,11 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
+        <configuration>
+          <systemPropertyVariables>
+            <coolbox.c.bindings.dir>${project.basedir}/../c_bindings/build</coolbox.c.bindings.dir>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -46,6 +56,48 @@
           <source>17</source>
           <failOnError>false</failOnError>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.1</version>
+        <executions>
+          <execution>
+            <id>configure-c-bindings</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}</workingDirectory>
+              <executable>cmake</executable>
+              <arguments>
+                <argument>-S</argument>
+                <argument>${project.basedir}/../c_bindings</argument>
+                <argument>-B</argument>
+                <argument>${project.basedir}/../c_bindings/build</argument>
+                <argument>-DBUILD_TESTING=ON</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>build-c-bindings</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}</workingDirectory>
+              <executable>cmake</executable>
+              <arguments>
+                <argument>--build</argument>
+                <argument>${project.basedir}/../c_bindings/build</argument>
+                <argument>--config</argument>
+                <argument>Release</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -1,19 +1,21 @@
 # CoolBox Java Bindings
 
-This module provides a plain Java extension scaffold for CoolBox.
+This module provides Java bindings for CoolBox through the native C bindings.
 
 ## Current scope
 
 - Maven-based Java package
-- simple `CoolBoxClient` entry point
-- version and metadata accessors
-- ready for future JNI, REST, or generated bindings integration
+- `CoolBoxClient` entry point backed by the native C bindings
+- version and metadata accessors delegated to the linked CoolBox library
+- automatic native build during Maven runs
 
 ## Build
 
 ```bash
 mvn -f _libraries/java_bindings/pom.xml test package
 ```
+
+During the Maven build, the project configures and builds the native C bindings in `_libraries/c_bindings/build`.
 
 ## Use
 
