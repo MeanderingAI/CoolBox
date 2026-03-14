@@ -17,3 +17,5 @@ _deps/
 build-emscripten
 eigen-src
 eigen-build
+_libraries/rust_bindings/target/
+_libraries/rust_bindings/Cargo.lock

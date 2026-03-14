@@ -46,6 +46,12 @@ jobs:
     uses: ./.github/workflows/build_ext_r.yml
     secrets: inherit
 
+  build_ext_rust:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_rust.yml
+    secrets: inherit
+
   docs_publish:
     if: ${{ always() && needs.build_cpp_docs.result == 'success' }}
     needs:
@@ -53,6 +59,7 @@ jobs:
       - build_ext_python
       - build_ext_js
       - build_ext_r
+      - build_ext_rust
     uses: ./.github/workflows/docs_publish.yml
     with:
       publish_branch: ${{ inputs.publish_branch }}

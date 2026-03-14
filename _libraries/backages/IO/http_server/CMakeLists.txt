@@ -6,3 +6,7 @@ target_include_directories(http_server PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/../dataformats/http/headers
 )
+
+if(WIN32)
+    target_link_libraries(http_server PUBLIC ws2_32)
+endif()

@@ -98,7 +98,8 @@ help:
         build_libraries_graphics \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
 	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
-	document_r_bindings build_r_bindings install_r_bindings site_r_bindings build_docs_portal
+	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
+	build_rust_bindings test_rust_bindings build_docs_portal
 
 all: build_all
 
@@ -277,6 +278,15 @@ install_r_bindings:
 site_r_bindings:
 	@echo "Building pkgdown site for R bindings..."
 	@Rscript -e "pkgdown::build_site('_libraries/r_bindings/coolboxr')"
+
+# ── Rust Bindings ───────────────────────────────────────────────────
+build_rust_bindings:
+	@echo "Building Rust bindings..."
+	@cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
+
+test_rust_bindings:
+	@echo "Testing Rust bindings..."
+	@cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
 
 build_docs_portal:
 	@echo "Building unified documentation portal..."

@@ -1,0 +1,21 @@
+[package]
+name = "coolbox-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Rust bindings for selected CoolBox C++ components"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+repository = "https://github.com/yourusername/ToolBox"
+keywords = ["machine-learning", "bindings", "rust", "cpp"]
+categories = ["api-bindings", "science"]
+build = "build.rs"
+
+[lib]
+name = "coolbox_rs"
+crate-type = ["rlib"]
+
+[dependencies]
+cxx = "1.0"
+
+[build-dependencies]
+cxx-build = "1.0"
