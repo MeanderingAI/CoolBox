@@ -336,7 +336,7 @@ jobs:
           cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
           cmake --build _libraries/c_bindings/build --config Release
           ctest --test-dir _libraries/c_bindings/build --output-on-failure
-          doxygen _libraries/c_bindings/Doxyfile
+          bash _libraries/c_bindings/generate_docs.sh
           mkdir -p _libraries/c_bindings/target/include _libraries/c_bindings/target/lib
           cp -R _libraries/c_bindings/include/. _libraries/c_bindings/target/include/
           find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} _libraries/c_bindings/target/lib/ \;

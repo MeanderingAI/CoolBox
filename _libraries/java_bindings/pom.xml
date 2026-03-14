@@ -15,6 +15,8 @@
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>5.11.4</junit.version>
+    <coolbox.c.bindings.dir>${project.basedir}/../c_bindings/build</coolbox.c.bindings.dir>
+    <skip.c.bindings.build>false</skip.c.bindings.build>
   </properties>
 
   <dependencies>
@@ -44,7 +46,7 @@
         <version>3.5.2</version>
         <configuration>
           <systemPropertyVariables>
-            <coolbox.c.bindings.dir>${project.basedir}/../c_bindings/build</coolbox.c.bindings.dir>
+            <coolbox.c.bindings.dir>${coolbox.c.bindings.dir}</coolbox.c.bindings.dir>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -61,6 +63,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.1</version>
+        <configuration>
+          <skip>${skip.c.bindings.build}</skip>
+        </configuration>
         <executions>
           <execution>
             <id>configure-c-bindings</id>

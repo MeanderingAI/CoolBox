@@ -37,3 +37,11 @@ Or directly with CMake:
 ## Docs
 
 API docs are generated with Doxygen using `_libraries/c_bindings/Doxyfile`.
+
+From the repository root, run:
+
+- `bash _libraries/c_bindings/generate_docs.sh`
+
+From inside `_libraries/c_bindings`, run:
+
+- `bash ./generate_docs.sh`

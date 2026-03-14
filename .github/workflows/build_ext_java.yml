@@ -30,15 +30,43 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Build Java bindings
+      - name: Download prebuilt library assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets-linux-x86_64
+          path: .prebuilt/release-assets
+
+      - name: Download prebuilt C bindings
+        uses: actions/download-artifact@v8
+        with:
+          name: c-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/c-extension
+
+      - name: Prepare native runtime assets
         run: |
-          mvn -f _libraries/java_bindings/pom.xml test package javadoc:javadoc
+          rm -rf .prebuilt/java-native
+          mkdir -p .prebuilt/java-native
+          tar -xzf .prebuilt/release-assets/coolbox-misc-linux-x86_64-${GITHUB_REF_NAME}.tar.gz -C .prebuilt/java-native
+          tar -xzf .prebuilt/c-extension/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz -C .prebuilt/java-native
+
+      - name: Build Java bindings
+        env:
+          COOLBOX_C_BINDINGS_DIR: ${{ github.workspace }}/.prebuilt/java-native/lib
+          LD_LIBRARY_PATH: ${{ github.workspace }}/.prebuilt/java-native/lib
+        run: |
+          mvn \
+            -f _libraries/java_bindings/pom.xml \
+            -Dskip.c.bindings.build=true \
+            -Dcoolbox.c.bindings.dir=${GITHUB_WORKSPACE}/.prebuilt/java-native/lib \
+            test package javadoc:javadoc
 
       - name: Package Java bindings
         run: |
           rm -rf release-assets staging-java
           mkdir -p release-assets staging-java
           cp -R _libraries/java_bindings/target/. staging-java/
+          mkdir -p staging-java/native
+          cp -R .prebuilt/java-native/. staging-java/native/
           tar -C staging-java -czf release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.tar.gz .
 
       - name: Upload Java tarball

@@ -43,7 +43,7 @@ jobs:
       - name: Generate C binding docs
         run: |
           rm -rf _libraries/c_bindings/target
-          doxygen _libraries/c_bindings/Doxyfile
+          bash _libraries/c_bindings/generate_docs.sh
 
       - name: Stage C bindings package
         run: |

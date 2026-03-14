@@ -62,6 +62,7 @@ jobs:
   build_ext_java:
     needs:
       - build_libs
+      - build_ext_c
     uses: ./.github/workflows/build_ext_java.yml
     secrets: inherit
 
