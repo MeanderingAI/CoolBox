@@ -1,4 +1,4 @@
-#include "../../libraries/include/computer_vision/layers.h"
+#include <layers.h>
 #include <cmath>
 #include <stdexcept>
 #include <random>

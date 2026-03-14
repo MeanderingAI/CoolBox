@@ -1,4 +1,4 @@
-#include "../../libraries/include/computer_vision/image.h"
+#include <image.h>
 #include <cmath>
 #include <algorithm>
 #include <numeric>

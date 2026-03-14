@@ -55,7 +55,7 @@ else()
 endif()
 
 # ── curcuitry bindings ──────────────────────────────────────────────
-set(CURCUITRY_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/ELECTRONICS/CURCUITRY")
+set(CURCUITRY_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/ELECTRONICS/curcuitry")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/curcuitry_bindings.cpp")
     add_executable(curcuitry_js

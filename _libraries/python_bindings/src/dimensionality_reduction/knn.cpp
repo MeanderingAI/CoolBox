@@ -1,4 +1,4 @@
-#include "ml/dimensionality_reduction/knn.h"
+#include <knn.h>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -54,21 +54,21 @@ double KNN::compute_distance(const Eigen::VectorXd& x1, const Eigen::VectorXd& x
     return 0.0;  // Should never reach here
 }
 
-std::pair<std::vector<int>, std::vector<double>> KNN::find_neighbors_single(
+std::pair<std::vector<Eigen::Index>, std::vector<double>> KNN::find_neighbors_single(
     const Eigen::VectorXd& query, 
     bool exclude_self,
-    int self_index) const {
+    Eigen::Index self_index) const {
     
     // Create a priority queue (max heap) to keep top k smallest distances
-    auto cmp = [](const std::pair<double, int>& a, const std::pair<double, int>& b) {
+    auto cmp = [](const std::pair<double, Eigen::Index>& a, const std::pair<double, Eigen::Index>& b) {
         return a.first < b.first;  // Max heap based on distance
     };
-    std::priority_queue<std::pair<double, int>, 
-                       std::vector<std::pair<double, int>>, 
+    std::priority_queue<std::pair<double, Eigen::Index>, 
+                       std::vector<std::pair<double, Eigen::Index>>, 
                        decltype(cmp)> pq(cmp);
     
     // Compute distances to all training points
-    for (int i = 0; i < X_train_.rows(); ++i) {
+    for (Eigen::Index i = 0; i < X_train_.rows(); ++i) {
         // Skip self if requested
         if (exclude_self && i == self_index) {
             continue;
@@ -85,7 +85,7 @@ std::pair<std::vector<int>, std::vector<double>> KNN::find_neighbors_single(
     }
     
     // Extract results (reverse order to get smallest first)
-    std::vector<int> indices;
+    std::vector<Eigen::Index> indices;
     std::vector<double> distances;
     
     while (!pq.empty()) {

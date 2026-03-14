@@ -101,6 +101,12 @@ jobs:
       - name: Set up Pandoc
         uses: r-lib/actions/setup-pandoc@v2
 
+      - name: Download prebuilt C++ docs
+        uses: actions/download-artifact@v8
+        with:
+          name: cpp-doxygen-site
+          path: .prebuilt/cpp-docs
+
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
@@ -114,14 +120,17 @@ jobs:
           Rscript -e "install.packages(c('Rcpp', 'devtools', 'roxygen2', 'pkgdown', 'testthat'), repos = 'https://cloud.r-project.org')"
 
       - name: Build Python bindings
+        continue-on-error: true
         run: |
           make build_python_bindings
 
       - name: Build Python distribution artifacts
+        continue-on-error: true
         run: |
           python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
 
       - name: Build JavaScript bindings
+        continue-on-error: true
         run: |
           make build_js_bindings
 
@@ -129,6 +138,7 @@ jobs:
         env:
           DOCS_REPOSITORY: ${{ github.repository }}
           DOCS_RELEASE_TAG: ${{ steps.resolve-release-tag.outputs.release_tag }}
+          DOCS_CPP_DIR: ${{ github.workspace }}/.prebuilt/cpp-docs
         run: |
           bash ./_scripts/generate_docs_hub.sh "$GITHUB_WORKSPACE/.site"
 

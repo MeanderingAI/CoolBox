@@ -1,4 +1,4 @@
-#include "../../libraries/include/distributed/message_passing.h"
+#include <message_passing.h>
 #include <algorithm>
 #include <numeric>
 #include <cmath>

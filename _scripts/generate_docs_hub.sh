@@ -13,6 +13,7 @@ PYTHON_DIST_DIR="${PYTHON_BINDINGS_DIR}/dist"
 JS_BUILD_DIR="${ROOT_DIR}/build-emscripten"
 REPOSITORY_SLUG="${DOCS_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
 RELEASE_TAG="${DOCS_RELEASE_TAG:-}"
+PREBUILT_CPP_DOCS_DIR="${DOCS_CPP_DIR:-}"
 
 rm -rf "${SITE_DIR}"
 mkdir -p "${SITE_DIR}" "${SITE_DIR}/extensions" "${SITE_DIR}/artifacts"
@@ -69,7 +70,11 @@ release_links_html() {
   fi
 }
 
-if command -v doxygen >/dev/null 2>&1 && [ -d "${CPP_INPUT_DIR}" ]; then
+if [ -n "${PREBUILT_CPP_DOCS_DIR}" ] && [ -d "${PREBUILT_CPP_DOCS_DIR}" ]; then
+  mkdir -p "${SITE_DIR}/cpp"
+  cp -R "${PREBUILT_CPP_DOCS_DIR}/." "${SITE_DIR}/cpp/"
+  has_cpp_docs=true
+elif command -v doxygen >/dev/null 2>&1 && [ -d "${CPP_INPUT_DIR}" ]; then
   cat > "${SITE_DIR}/Doxyfile" <<EOF
 PROJECT_NAME = "CoolBox C++ API"
 OUTPUT_DIRECTORY = ${SITE_DIR}

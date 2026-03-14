@@ -1,5 +1,7 @@
 build
 build-test
+build-emscripten-local-check
+build-emscripten-local-check-default
 Testing
 **/a.out
 _libraries/gen_docs/html/

@@ -24,6 +24,10 @@ jobs:
     uses: ./.github/workflows/build_libs.yml
     secrets: inherit
 
+  build_cpp_docs:
+    uses: ./.github/workflows/build_cpp_docs.yml
+    secrets: inherit
+
   build_ext_python:
     needs:
       - build_libs
@@ -43,7 +47,9 @@ jobs:
     secrets: inherit
 
   docs_publish:
+    if: ${{ always() && needs.build_cpp_docs.result == 'success' }}
     needs:
+      - build_cpp_docs
       - build_ext_python
       - build_ext_js
       - build_ext_r
