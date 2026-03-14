@@ -174,6 +174,7 @@ endif()
 
 # Global include for lib_metadata.h and other shared headers
 set(BACKAGES_ROOT "${COOLBOX_ROOT}/_libraries/backages")
+set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/backages/MISC/metadata_management/headers")
 
 # ===================================================================
 # Helper macro: add an emscripten JS module from a bindings file + sources
@@ -181,7 +182,7 @@ set(BACKAGES_ROOT "${COOLBOX_ROOT}/_libraries/backages")
 macro(add_emscripten_module NAME EXPORT_NAME BINDING_FILE SOURCES INCLUDE_DIRS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${BINDING_FILE}")
         add_executable(${NAME} ${BINDING_FILE} ${SOURCES})
-        target_include_directories(${NAME} PRIVATE ${INCLUDE_DIRS} ${BACKAGES_ROOT} ${COOLBOX_ROOT}/_libraries/include)
+        target_include_directories(${NAME} PRIVATE ${INCLUDE_DIRS} ${METADATA_HEADERS_DIR} ${BACKAGES_ROOT} ${COOLBOX_ROOT}/_libraries/include)
         if(EMSCRIPTEN)
             set_target_properties(${NAME} PROPERTIES SUFFIX ".js")
             if(EMSCRIPTEN_MODULARIZE)

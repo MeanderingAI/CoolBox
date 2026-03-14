@@ -53,9 +53,16 @@ jobs:
         with:
           version: latest
 
-      - name: Configure JavaScript bindings
+      - name: Configure JavaScript bindings (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           emcmake cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+
+      - name: Configure JavaScript bindings (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          emcmake.bat cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+        shell: powershell
 
       - name: Build JavaScript bindings
         run: |
