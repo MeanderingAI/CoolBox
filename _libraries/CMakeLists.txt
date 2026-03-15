@@ -21,6 +21,12 @@ endif()
 add_subdirectory_if_exists(backages/IO/dataformats/json)
 add_subdirectory_if_exists(backages/IO/distributed)
 add_subdirectory_if_exists(backages/IO/file_system)
+
+# Utils/security backages needed by auth/http
+add_subdirectory_if_exists(backages/MISC/hash)
+add_subdirectory_if_exists(backages/MISC/cryptocurrency)
+add_subdirectory_if_exists(backages/SECURITY/auth)
+
 add_subdirectory_if_exists(backages/IO/servlets)
 add_subdirectory_if_exists(backages/IO/http_server)
 add_subdirectory_if_exists(gen_docs)
@@ -52,7 +58,6 @@ add_subdirectory_if_exists(backages/ML/knn)
 add_subdirectory_if_exists(backages/ML/gabor_patches)
 
 # Security backages
-add_subdirectory_if_exists(backages/SECURITY/auth)
 add_subdirectory_if_exists(backages/SECURITY/fuzzer)
 add_subdirectory_if_exists(backages/SECURITY/malware_scanner)
 add_subdirectory_if_exists(backages/SECURITY/network_scanner)

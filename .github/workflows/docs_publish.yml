@@ -365,6 +365,10 @@ jobs:
         run: |
           bash ./_scripts/generate_docs_hub.sh "$GITHUB_WORKSPACE/.site"
 
+      - name: Generate translated docs variants
+        run: |
+          python ./_scripts/translate_docs.py "$GITHUB_WORKSPACE/.site"
+
       - name: Publish documentation branch
         if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4

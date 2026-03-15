@@ -13,6 +13,7 @@ target_include_directories(http_server PUBLIC
 target_link_libraries(http_server PUBLIC
     servlets
     advanced_logging
+    auth
     thread_pool_utils
 )
 
