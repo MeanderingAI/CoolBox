@@ -93,4 +93,5 @@ jobs:
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
-            --clobber
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

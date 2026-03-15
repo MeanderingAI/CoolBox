@@ -72,4 +72,5 @@ jobs:
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate \
-            --clobber
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"
