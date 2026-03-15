@@ -59,9 +59,9 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           EMSDK_DIR="$RUNNER_TEMP/emsdk"
+          rm -rf "$EMSDK_DIR"
           git clone https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
           cd "$EMSDK_DIR"
-          ./emsdk update
           ./emsdk install latest
           ./emsdk activate latest --embedded
           source ./emsdk_env.sh >/dev/null
@@ -80,12 +80,12 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           $EMSDK_DIR = Join-Path $env:RUNNER_TEMP 'emsdk'
-          if (-not (Test-Path $EMSDK_DIR)) {
-            git clone https://github.com/emscripten-core/emsdk.git $EMSDK_DIR
+          if (Test-Path $EMSDK_DIR) {
+            Remove-Item -Recurse -Force $EMSDK_DIR
           }
+          git clone https://github.com/emscripten-core/emsdk.git $EMSDK_DIR
 
           Push-Location $EMSDK_DIR
-          .\emsdk.bat update
           .\emsdk.bat install latest
           .\emsdk.bat activate latest --embedded
           Pop-Location
