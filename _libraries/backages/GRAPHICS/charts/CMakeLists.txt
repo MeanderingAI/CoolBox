@@ -2,6 +2,12 @@
 
 include(FetchContent)
 
+set(CHARTS_LIBRARY_TYPE SHARED)
+if(WIN32)
+    # Avoid passing STL-owned objects like `Canvas` across a DLL boundary in tests.
+    set(CHARTS_LIBRARY_TYPE STATIC)
+endif()
+
 # Fetch stb (single-header image write library) for PNG/JPG export
 FetchContent_Declare(
     stb
@@ -11,7 +17,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
-add_library(charts SHARED
+add_library(charts ${CHARTS_LIBRARY_TYPE}
     source/graphics.cpp
 )
 

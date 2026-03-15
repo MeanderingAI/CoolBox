@@ -5,7 +5,6 @@
 #' documentation generation, and pkgdown site publishing.
 #'
 #' @keywords internal
-#' @docType package
-#' @name coolboxr
+#' @aliases coolboxr-package coolboxr
 #' @useDynLib coolboxr, .registration = TRUE
-NULL
+"_PACKAGE"

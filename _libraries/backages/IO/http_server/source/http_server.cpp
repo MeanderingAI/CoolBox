@@ -11,8 +11,6 @@
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
 #  pragma comment(lib, "Ws2_32.lib")
-    using socklen_t = int;
-    using ssize_t = int;
 #else
 #  include <sys/socket.h>
 #  include <netinet/in.h>
@@ -100,8 +98,8 @@ void HttpServer::start() {
 
     while (running_) {
         sockaddr_in client_addr;
-        socklen_t client_len = sizeof(client_addr);
 #ifdef _WIN32
+        int client_len = sizeof(client_addr);
         SOCKET client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
         if (client_fd == INVALID_SOCKET) {
             if (running_) {
@@ -112,6 +110,7 @@ void HttpServer::start() {
 
         thread_pool_->enqueue([this, client_fd]() {
 #else
+        socklen_t client_len = sizeof(client_addr);
         int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
         if (client_fd < 0) {
             if (running_) {
@@ -123,11 +122,10 @@ void HttpServer::start() {
         thread_pool_->enqueue([this, client_fd]() {
 #endif
             char buffer[4096];
-            ssize_t bytes_read =
 #ifdef _WIN32
-                recv(client_fd, buffer, static_cast<int>(sizeof(buffer) - 1), 0);
+            int bytes_read = recv(client_fd, buffer, static_cast<int>(sizeof(buffer) - 1), 0);
 #else
-                read(client_fd, buffer, sizeof(buffer) - 1);
+            ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
 #endif
             if (bytes_read > 0) {
                 buffer[bytes_read] = '\0';

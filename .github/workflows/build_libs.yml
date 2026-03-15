@@ -8,12 +8,12 @@ permissions:
   contents: write
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   build:
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +65,7 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@main
         with:
           msystem: MINGW64
           update: true
@@ -73,6 +73,7 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-gsl
             mingw-w64-x86_64-sqlite3
 
       - name: Ensure mingw64 in PATH (Windows)
@@ -83,22 +84,11 @@ jobs:
           echo "$msysBin" >> $env:GITHUB_PATH
         shell: powershell
 
-      - name: Install Windows packages via vcpkg (optional)
-        if: runner.os == 'Windows'
-        run: |
-          try {
-            & vcpkg install gsl:x64-windows sqlite3:x64-windows
-          } catch {
-            Write-Host "vcpkg install failed or vcpkg not available, continuing"
-          }
-        shell: powershell
-
       - name: Configure CMake (Windows / MSYS2)
         if: runner.os == 'Windows'
         run: |
-          echo "Running CMake inside MSYS2 so mingw/gfortran/sqlite is available"
-          CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
-          bash -lc "cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS"
+          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/mingw64
+        shell: msys2 {0}
 
       - name: Show CMake cache (Windows)
         if: runner.os == 'Windows'
@@ -155,11 +145,6 @@ jobs:
           # Also show a concise summary
           ctest -C Release --output-on-failure -R "Tests$" 2>&1 | tail -20 || true
           echo ""
-          # If some CI tooling expects a DartConfiguration.tcl, generate it via a dashboard run
-          if [ ! -f DartConfiguration.tcl ]; then
-            echo "Generating DartConfiguration.tcl via 'ctest -D Experimental'"
-            ctest -D Experimental || true
-          fi
 
       - name: Upload test results
         if: always()
