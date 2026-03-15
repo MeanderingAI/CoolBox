@@ -129,20 +129,25 @@ jobs:
           cp -R _libraries/python_bindings/dist/. staging-python/ 2>/dev/null || true
           find _libraries/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -exec cp {} staging-python/ \;
           tar -C staging-python -czf release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-python release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip
 
-      - name: Upload Python tarball
+      - name: Upload Python archives
         uses: actions/upload-artifact@v6
         with:
           name: python-extension-${{ matrix.platform }}-${{ github.ref_name }}
-          path: release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          path: |
+            release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.zip
           retention-days: 14
 
-      - name: Attach Python tarball to release
+      - name: Attach Python archives to release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"

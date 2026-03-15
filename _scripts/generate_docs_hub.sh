@@ -9,6 +9,7 @@ R_PKG_DIR="${ROOT_DIR}/_libraries/r_bindings/coolboxr"
 R_DOCS_DIR="${DOCS_R_DIR:-${R_PKG_DIR}/docs}"
 PYTHON_DOC_MD="${ROOT_DIR}/__GENERATED_CONTENT/read_mes/python_bindings_README.md"
 EMSCRIPTEN_DIR="${ROOT_DIR}/_libraries/emscripten_bindings"
+RUST_DOC_MD="${ROOT_DIR}/_libraries/rust_bindings/README.md"
 PYTHON_BINDINGS_DIR="${ROOT_DIR}/_libraries/python_bindings"
 PYTHON_BUILD_DIR="${PYTHON_BINDINGS_DIR}/build"
 PYTHON_DIST_DIR="${PYTHON_BINDINGS_DIR}/dist"
@@ -32,11 +33,13 @@ has_python_docs=false
 has_js_docs=false
 has_c_docs=false
 has_java_docs=false
+has_rust_docs=false
 has_tutorials=false
 has_c_artifacts=false
 has_python_artifacts=false
 has_js_artifacts=false
 has_java_artifacts=false
+tutorials_latest_posts=''
 
 release_asset_url() {
   local asset_name="$1"
@@ -76,7 +79,7 @@ release_links_html() {
   fi
 
   for platform in "$@"; do
-    local asset_name="coolbox-${extension_name}-${platform}-${RELEASE_TAG}.tar.gz"
+    local asset_base="coolbox-${extension_name}-${platform}-${RELEASE_TAG}"
     local label
     case "${platform}" in
       linux-x86_64) label='Linux' ;;
@@ -85,16 +88,47 @@ release_links_html() {
       *) label="${platform}" ;;
     esac
 
-    local asset_url
-    asset_url="$(release_asset_url "${asset_name}")"
+    local tar_url zip_url asset_links
+    tar_url="$(release_asset_url "${asset_base}.tar.gz")"
+    zip_url="$(release_asset_url "${asset_base}.zip")"
+    asset_links="<a href=\"${tar_url}\">tar.gz</a> · <a href=\"${zip_url}\">zip</a>"
     if [ -n "${html}" ]; then
       html="${html} · "
     fi
-    html="${html}<a href=\"${asset_url}\">${label}</a>"
+    html="${html}${label} (${asset_links})"
   done
 
   if [ -n "${html}" ]; then
     printf '<p class="muted">Release assets (%s): %s</p>' "${RELEASE_TAG}" "${html}"
+  fi
+}
+
+single_release_links_html() {
+  local label="$1"
+  shift
+
+  if [ -z "${REPOSITORY_SLUG}" ] || [ -z "${RELEASE_TAG}" ]; then
+    printf ''
+    return 0
+  fi
+
+  local html=''
+  local item_text asset_name asset_url
+
+  while [ "$#" -gt 1 ]; do
+    item_text="$1"
+    asset_name="$2"
+    shift 2
+
+    asset_url="$(release_asset_url "${asset_name}")"
+    if [ -n "${html}" ]; then
+      html="${html} · "
+    fi
+    html="${html}<a href=\"${asset_url}\">${item_text}</a>"
+  done
+
+  if [ -n "${html}" ]; then
+    printf '<p class="muted">Release assets (%s): %s (%s)</p>' "${RELEASE_TAG}" "${label}" "${html}"
   fi
 }
 
@@ -144,6 +178,15 @@ if command -v pandoc >/dev/null 2>&1 && [ -f "${PYTHON_DOC_MD}" ]; then
     --metadata title="CoolBox Python Bindings" \
     --output "${SITE_DIR}/extensions/python/index.html"
   has_python_docs=true
+fi
+
+if command -v pandoc >/dev/null 2>&1 && [ -f "${RUST_DOC_MD}" ]; then
+  mkdir -p "${SITE_DIR}/extensions/rust"
+  pandoc "${RUST_DOC_MD}" \
+    --standalone \
+    --metadata title="CoolBox Rust Bindings" \
+    --output "${SITE_DIR}/extensions/rust/index.html"
+  has_rust_docs=true
 fi
 
 if [ -d "${PYTHON_DIST_DIR}" ] || [ -d "${PYTHON_BUILD_DIR}" ]; then
@@ -382,6 +425,40 @@ if [ -d "${TUTORIALS_INPUT_DIR}" ] && [ -f "${TUTORIALS_INPUT_DIR}/index.html" ]
   mkdir -p "${SITE_DIR}/tutorials"
   cp -R "${TUTORIALS_INPUT_DIR}/." "${SITE_DIR}/tutorials/"
   has_tutorials=true
+  tutorials_latest_posts="$(TUTORIALS_DIR="${SITE_DIR}/tutorials" python - <<'PY'
+import html
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+
+tutorials_dir = Path(os.environ["TUTORIALS_DIR"])
+pages = [page for page in tutorials_dir.glob("*.html") if page.name != "index.html"]
+pages.sort(key=lambda page: page.stat().st_mtime, reverse=True)
+
+def title_for(page: Path) -> str:
+    text = page.read_text(encoding="utf-8", errors="ignore")
+    match = re.search(r"<h1>(.*?)</h1>", text, re.S)
+    if match:
+        title = re.sub(r"<[^>]+>", "", match.group(1)).strip()
+        if title:
+            return html.unescape(title)
+    match = re.search(r"<title>(.*?)</title>", text, re.S)
+    if match:
+        title = html.unescape(match.group(1).split("|", 1)[0].strip())
+        if title:
+            return title
+    return page.stem.replace("-", " ").title()
+
+items = []
+for page in pages[:3]:
+    title = html.escape(title_for(page))
+    stamp = datetime.utcfromtimestamp(page.stat().st_mtime).strftime("%Y-%m-%d")
+    items.append(f'<li><a href="tutorials/{page.name}">{title}</a><p class="muted">Latest tutorial post · updated {stamp}</p></li>')
+
+print("".join(items))
+PY
+)"
 fi
 
 cpp_link=''
@@ -390,6 +467,7 @@ python_link=''
 js_link=''
 c_link=''
 java_link=''
+rust_link=''
 tutorials_link=''
 c_artifacts_link=''
 python_artifacts_link=''
@@ -400,6 +478,7 @@ python_release_links=''
 js_release_links=''
 r_release_links=''
 java_release_links=''
+rust_release_links=''
 latest_release_link=''
 
 python_release_links="$(release_links_html 'python-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
@@ -407,7 +486,8 @@ js_release_links="$(release_links_html 'js-bindings' linux-x86_64 macos-arm64 wi
 r_release_links="$(release_links_html 'r-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 c_release_links="$(release_links_html 'c-bindings' linux-x86_64)"
 if [ -n "${REPOSITORY_SLUG}" ] && [ -n "${RELEASE_TAG}" ]; then
-  java_release_links="<p class=\"muted\">Release assets (${RELEASE_TAG}): <a href=\"https://github.com/${REPOSITORY_SLUG}/releases/download/${RELEASE_TAG}/coolbox-java-bindings-${RELEASE_TAG}.tar.gz\">Java package</a></p>"
+  java_release_links="$(single_release_links_html 'Java package' 'tar.gz' "coolbox-java-bindings-${RELEASE_TAG}.tar.gz" 'zip' "coolbox-java-bindings-${RELEASE_TAG}.zip")"
+  rust_release_links="$(single_release_links_html 'Rust package' 'crate' "coolbox-rust-bindings-${RELEASE_TAG}.crate" 'tar.gz' "coolbox-rust-bindings-${RELEASE_TAG}.tar.gz" 'zip' "coolbox-rust-bindings-${RELEASE_TAG}.zip")"
 fi
 
 if [ -n "${REPOSITORY_SLUG}" ]; then
@@ -434,8 +514,16 @@ fi
 if [ "${has_java_docs}" = true ]; then
   java_link="<li><a href=\"extensions/java/index.html\">Java Extension Docs</a><p>Javadoc output for the plain Java bindings.</p>${java_release_links}</li>"
 fi
+if [ "${has_rust_docs}" = true ]; then
+  rust_link="<li><a href=\"extensions/rust/index.html\">Rust Extension Docs</a><p>Rendered documentation for the Rust crate bindings.</p>${rust_release_links}</li>"
+elif [ -n "${rust_release_links}" ]; then
+  rust_link="<li><span>Rust Extension Docs</span><p>Rust crate release packages for the published bindings.</p>${rust_release_links}</li>"
+fi
 if [ "${has_tutorials}" = true ]; then
   tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Interactive-style tutorial pages generated from .tut source files.</p></li>'
+fi
+if [ -z "${tutorials_latest_posts}" ]; then
+  tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
 fi
 if [ "${has_python_artifacts}" = true ]; then
   python_artifacts_link='<li><a href="artifacts/python/index.html">Python Binding Artifacts</a><p>Built Python extension outputs and package artifacts.</p></li>'
@@ -467,6 +555,9 @@ cat > "${SITE_DIR}/index.html" <<EOF
     a { color: #2563eb; text-decoration: none; font-weight: 600; }
     a:hover { text-decoration: underline; }
     p { margin: 0.25rem 0 0; color: #475569; }
+    .section-title { margin: 0 0 0.75rem; }
+    .section-divider { border: 0; border-top: 2px solid #cbd5e1; margin: 2rem 0; }
+    .tutorials-list li { margin: 0.85rem 0; }
     .muted { color: #64748b; font-size: 0.95rem; }
     .brand-mark { margin-right: 0.35rem; }
     footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
@@ -477,6 +568,7 @@ cat > "${SITE_DIR}/index.html" <<EOF
     <h1><span class="brand-mark">☉ 𓂀</span>CoolBox Documentation Portal</h1>
     <p class="muted">Unified entry point for native C++ documentation and extension-specific docs.</p>
     ${latest_release_link}
+    <h2 class="section-title">Documentation & Downloads</h2>
     <ul>
       ${cpp_link}
       ${r_link}
@@ -484,12 +576,20 @@ cat > "${SITE_DIR}/index.html" <<EOF
       ${js_link}
       ${c_link}
       ${java_link}
-      ${tutorials_link}
+      ${rust_link}
       ${c_artifacts_link}
       ${python_artifacts_link}
       ${js_artifacts_link}
       ${java_artifacts_link}
     </ul>
+    <hr class="section-divider">
+    <section>
+      <h2 class="section-title">Tutorials</h2>
+      <ul class="tutorials-list">
+        ${tutorials_link}
+        ${tutorials_latest_posts}
+      </ul>
+    </section>
     <footer>
       <p>☉ 𓂀 Meandering LLC © 2026</p>
     </footer>

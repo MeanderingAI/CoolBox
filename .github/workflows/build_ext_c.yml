@@ -53,20 +53,25 @@ jobs:
           cp -R _libraries/c_bindings/target/. staging-c/
           find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c/lib/ \;
           tar -C staging-c -czf release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-c release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip
 
-      - name: Upload C tarball
+      - name: Upload C archives
         uses: actions/upload-artifact@v6
         with:
           name: c-extension-linux-x86_64-${{ github.ref_name }}
-          path: release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.tar.gz
+          path: |
+            release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.zip
           retention-days: 14
 
-      - name: Attach C tarball to release
+      - name: Attach C archives to release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"

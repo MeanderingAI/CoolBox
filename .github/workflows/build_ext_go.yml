@@ -230,20 +230,25 @@ jobs:
           cp -R _libraries/go_bindings/. staging-go/
           rm -rf staging-go/.git staging-go/.github
           tar -C staging-go -czf release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+              python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            "staging-go" "release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip"
 
-      - name: Upload Go tarball
+      - name: Upload Go archives
         uses: actions/upload-artifact@v6
         with:
           name: go-extension-${{ matrix.platform }}-${{ github.ref_name }}
-          path: release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          path: |
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.zip
           retention-days: 14
 
-      - name: Attach Go tarball to release
+      - name: Attach Go archives to release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"

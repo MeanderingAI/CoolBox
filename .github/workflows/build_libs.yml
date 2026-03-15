@@ -188,6 +188,15 @@ jobs:
         run: |
           mkdir -p release-assets
 
+          create_archives() {
+            local source_dir="$1"
+            local base_name="$2"
+
+            tar czf "release-assets/${base_name}.tar.gz" -C "${source_dir}" .
+            python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+              "$source_dir" "release-assets/${base_name}.zip"
+          }
+
           package_category() {
             local category="$1"    # e.g. IO, ML, security, ELECTRONICS, GRAPHICS, MISC
             local label="$2"       # e.g. io, ml, security, electronics, graphics, misc
@@ -216,8 +225,7 @@ jobs:
             done
 
             if [ "$lib_count" -gt 0 ] || [ "$hdr_count" -gt 0 ]; then
-              tar czf "release-assets/coolbox-${label}-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz" \
-                -C "${staging}" lib include
+              create_archives "${staging}" "coolbox-${label}-${{ matrix.platform }}-${{ github.ref_name }}"
               echo "✓ Packaged ${label}: ${lib_count} libraries, headers from ${hdr_count} dirs"
             else
               echo "⚠ No artifacts found for ${label}"
@@ -244,7 +252,9 @@ jobs:
             cp "${hdr_dir}"/*.h "staging-headers/${lib_name}/" 2>/dev/null || true
             cp "${hdr_dir}"/*.hpp "staging-headers/${lib_name}/" 2>/dev/null || true
           done
-          tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz -C staging-headers .
+            tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz -C staging-headers .
+                python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+              "staging-headers" "release-assets/coolbox-headers-${{ github.ref_name }}.zip"
           rm -rf staging-headers
 
       - name: Upload release assets
