@@ -65,13 +65,20 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+        id: msys2
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+        uses: msys2/setup-msys2@v2.30.0
         with:
           msystem: MINGW64
+          path-type: inherit
           update: true
           install: |
+            make
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-eigen3
             mingw-w64-x86_64-gcc-fortran
             mingw-w64-x86_64-gsl
             mingw-w64-x86_64-sqlite3
@@ -79,10 +86,23 @@ jobs:
       - name: Ensure mingw64 in PATH (Windows)
         if: runner.os == 'Windows'
         run: |
-          $msysBin = "C:\\msys64\\mingw64\\bin"
-          if (!(Test-Path $msysBin)) { $msysBin = "C:\\tools\\msys64\\mingw64\\bin" }
+          $msysRoot = "${{ steps.msys2.outputs.msys2-location }}"
+          if ([string]::IsNullOrWhiteSpace($msysRoot) -or !(Test-Path $msysRoot)) {
+            $msysRoot = "C:\\msys64"
+          }
+          if (!(Test-Path $msysRoot)) { $msysRoot = "C:\\tools\\msys64" }
+          $msysUsrBin = Join-Path $msysRoot "usr\\bin"
+          $msysBin = Join-Path $msysRoot "mingw64\\bin"
+          if (Test-Path $msysUsrBin) { echo "$msysUsrBin" >> $env:GITHUB_PATH }
           echo "$msysBin" >> $env:GITHUB_PATH
         shell: powershell
+
+      - name: Verify CMake is available (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          command -v cmake
+          cmake --version
+        shell: msys2 {0}
 
       - name: Configure CMake (Windows / MSYS2)
         if: runner.os == 'Windows'
