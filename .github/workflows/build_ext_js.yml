@@ -55,36 +55,97 @@ jobs:
           choco install ninja -y
         shell: powershell
 
-      - name: Set up Emscripten SDK
+      - name: Set up Emscripten SDK (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
           EMSDK_DIR="$RUNNER_TEMP/emsdk"
           git clone https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
           cd "$EMSDK_DIR"
+          ./emsdk update
           ./emsdk install latest
-          ./emsdk activate latest
+          ./emsdk activate latest --embedded
           source ./emsdk_env.sh >/dev/null
+          EM_CONFIG="$EMSDK_DIR/.emscripten"
+          BINARYEN_ROOT="$EMSDK_DIR/upstream/bin"
           {
-            echo "PATH=$PATH"
-            echo "EMSDK=$EMSDK"
+            echo "PATH=$EMSDK_DIR:$EMSDK_DIR/upstream/emscripten:$EMSDK_DIR/upstream/bin:$EMSDK_NODE:$PATH"
+            echo "EMSDK=$EMSDK_DIR"
             echo "EM_CONFIG=$EM_CONFIG"
+            echo "BINARYEN_ROOT=$BINARYEN_ROOT"
             echo "EMSDK_NODE=$EMSDK_NODE"
             echo "EMSDK_PYTHON=$EMSDK_PYTHON"
           } >> "$GITHUB_ENV"
 
+      - name: Set up Emscripten SDK (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $EMSDK_DIR = Join-Path $env:RUNNER_TEMP 'emsdk'
+          if (-not (Test-Path $EMSDK_DIR)) {
+            git clone https://github.com/emscripten-core/emsdk.git $EMSDK_DIR
+          }
+
+          Push-Location $EMSDK_DIR
+          .\emsdk.bat update
+          .\emsdk.bat install latest
+          .\emsdk.bat activate latest --embedded
+          Pop-Location
+
+          $emscriptenDir = Join-Path $EMSDK_DIR 'upstream\emscripten'
+          $binaryenDir = Join-Path $EMSDK_DIR 'upstream\bin'
+          $nodeDir = Join-Path $EMSDK_DIR 'node'
+          $pythonDir = Join-Path $EMSDK_DIR 'python'
+          $emConfig = Join-Path $EMSDK_DIR '.emscripten'
+
+          @(
+            $emscriptenDir,
+            $binaryenDir,
+            $nodeDir,
+            $pythonDir,
+            $EMSDK_DIR
+          ) | ForEach-Object {
+            if (Test-Path $_) {
+              $_ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
+          }
+
+          "EMSDK=$EMSDK_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EM_CONFIG=$emConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "BINARYEN_ROOT=$binaryenDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: powershell
+
       - name: Configure JavaScript bindings (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          emcmake cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh" >/dev/null
+          export EMSDK="$RUNNER_TEMP/emsdk"
+          export EM_CONFIG="$RUNNER_TEMP/emsdk/.emscripten"
+          export BINARYEN_ROOT="$RUNNER_TEMP/emsdk/upstream/bin"
+          "$RUNNER_TEMP/emsdk/upstream/emscripten/emcmake" cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
 
       - name: Configure JavaScript bindings (Windows)
         if: runner.os == 'Windows'
         run: |
-          emcmake.bat cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          $emcmake = Join-Path $env:RUNNER_TEMP 'emsdk\upstream\emscripten\emcmake.bat'
+          if (-not (Test-Path $emcmake)) {
+            throw "emcmake.bat not found at $emcmake"
+          }
+          & $emcmake cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
         shell: powershell
 
-      - name: Build JavaScript bindings
+      - name: Build JavaScript bindings (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh" >/dev/null
+          export EMSDK="$RUNNER_TEMP/emsdk"
+          export EM_CONFIG="$RUNNER_TEMP/emsdk/.emscripten"
+          export BINARYEN_ROOT="$RUNNER_TEMP/emsdk/upstream/bin"
+          cmake --build build-emscripten --config Release
+
+      - name: Build JavaScript bindings (Windows)
+        if: runner.os == 'Windows'
         run: |
           cmake --build build-emscripten --config Release
+        shell: powershell
 
       - name: Package JavaScript tarball
         run: |

@@ -10,6 +10,7 @@ endmacro()
 
 # IO backages
 option(BUILD_IO_SQL "Build IO SQL backage (requires SQLite3)" ON)
+add_subdirectory_if_exists(backages/MISC/thread_pool)
 add_subdirectory_if_exists(backages/IO/advanced_logging)
 add_subdirectory_if_exists(backages/IO/data_structures)
 if(BUILD_IO_SQL)
@@ -20,8 +21,8 @@ endif()
 add_subdirectory_if_exists(backages/IO/dataformats/json)
 add_subdirectory_if_exists(backages/IO/distributed)
 add_subdirectory_if_exists(backages/IO/file_system)
-add_subdirectory_if_exists(backages/IO/http_server)
 add_subdirectory_if_exists(backages/IO/servlets)
+add_subdirectory_if_exists(backages/IO/http_server)
 add_subdirectory_if_exists(gen_docs)
 
 # Utils backages (before ML — metadata_management is a dependency)

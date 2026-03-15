@@ -313,6 +313,7 @@ jobs:
       - name: Build R extension documentation
         run: |
           pushd ./_libraries/r_bindings/coolboxr >/dev/null
+          find src -maxdepth 1 -type f \( -name '*.o' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name '*.a' -o -name '*.lib' \) -delete
           Rscript -e "lib <- Sys.getenv('R_LIBS_USER'); dir.create(lib, recursive = TRUE, showWarnings = FALSE); .libPaths(c(lib, .libPaths())); devtools::document(quiet = TRUE)"
           R CMD INSTALL . --library="$R_LIBS_USER"
           Rscript -e "lib <- Sys.getenv('R_LIBS_USER'); .libPaths(c(lib, .libPaths())); pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)"

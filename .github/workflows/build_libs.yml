@@ -65,7 +65,7 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2.30.0
+        uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
@@ -73,7 +73,7 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-gcc-fortran
-              mingw-w64-x86_64-sqlite3
+            mingw-w64-x86_64-sqlite3
 
       - name: Ensure mingw64 in PATH (Windows)
         if: runner.os == 'Windows'
