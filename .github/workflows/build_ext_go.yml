@@ -56,7 +56,7 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@v2.30.0
         with:
           msystem: MINGW64
           update: true
@@ -221,6 +221,9 @@ jobs:
 
       - name: Attach Go tarball to release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            --clobber

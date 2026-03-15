@@ -36,15 +36,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
+      - name: Set up R (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y r-base r-base-dev
+
+      - name: Set up R (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew list r &>/dev/null || brew install r
+
+      - name: Set up R (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install r.project -y
+          $rBin = Get-ChildItem 'C:\Program Files\R' -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName 'bin\x64' }
+          if (-not $rBin) { throw 'R installation directory was not found.' }
+          echo "$rBin" >> $env:GITHUB_PATH
+        shell: powershell
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
       - name: Install dependencies (macOS)
@@ -74,6 +88,9 @@ jobs:
 
       - name: Attach R tarball to release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/coolbox-r-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            --clobber

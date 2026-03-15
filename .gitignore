@@ -3,6 +3,7 @@ build-test
 build-emscripten-local-check
 build-emscripten-local-check-default
 bin
+.local-cpp-docs
 Testing
 **/a.out
 _libraries/gen_docs/html/

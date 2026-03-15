@@ -139,6 +139,9 @@ jobs:
 
       - name: Attach Python tarball to release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/coolbox-python-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            --clobber

@@ -11,4 +11,9 @@ PKG_CPPFLAGS = \
 	-I../../../backages/ML/marked_point_process/headers \
 	-I../../../backages/ML/latent_sentiment_analysis/headers \
 	-I../../../backages/ML/dimensionality_reduction/headers \
-	-I../../../../build/eigen-src
+	-I../../../../build/eigen-src \
+	-I/usr/include/eigen3 \
+	-I/usr/local/include/eigen3 \
+	-I/opt/homebrew/include/eigen3 \
+	-I/opt/homebrew/opt/eigen/include/eigen3 \
+	-I/usr/local/opt/eigen/include/eigen3

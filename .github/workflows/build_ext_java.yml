@@ -30,17 +30,35 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Download prebuilt library assets
+      - name: Download prebuilt library assets (non-tag fallback)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/download-artifact@v8
         with:
           name: release-assets-linux-x86_64
           path: .prebuilt/release-assets
 
-      - name: Download prebuilt C bindings
+      - name: Download prebuilt C bindings (non-tag fallback)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/download-artifact@v8
         with:
           name: c-extension-linux-x86_64-${{ github.ref_name }}
           path: .prebuilt/c-extension
+
+      - name: Download prebuilt native release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf .prebuilt/release-assets .prebuilt/c-extension
+          mkdir -p .prebuilt/release-assets .prebuilt/c-extension
+
+          gh release download "${GITHUB_REF_NAME}" \
+            --pattern "coolbox-misc-linux-x86_64-${GITHUB_REF_NAME}.tar.gz" \
+            --dir .prebuilt/release-assets
+
+          gh release download "${GITHUB_REF_NAME}" \
+            --pattern "coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz" \
+            --dir .prebuilt/c-extension
 
       - name: Prepare native runtime assets
         run: |
@@ -78,6 +96,9 @@ jobs:
 
       - name: Attach Java tarball to release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/coolbox-java-bindings-${{ github.ref_name }}.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.tar.gz \
+            --clobber
