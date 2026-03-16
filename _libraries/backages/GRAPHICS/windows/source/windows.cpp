@@ -62,8 +62,45 @@ dataformats::json::Value to_json_value(PanelKind kind) {
             return dataformats::json::Value("chart");
         case PanelKind::CadViewport:
             return dataformats::json::Value("cadViewport");
+        case PanelKind::ComponentGroup:
+            return dataformats::json::Value("componentGroup");
     }
     return dataformats::json::Value("generic");
+}
+
+dataformats::json::Object to_json_object(const ::graphics::components::Component& component) {
+    dataformats::json::Object object;
+    object.set("type", dataformats::json::Value(::graphics::components::component_type_name(component.type())));
+    object.set("label", dataformats::json::Value(component.label()));
+    object.set("text", dataformats::json::Value(component.text()));
+    object.set("enabled", dataformats::json::Value(component.enabled()));
+    object.set("selected", dataformats::json::Value(component.selected()));
+    object.set("checked", dataformats::json::Value(component.checked()));
+    object.set("pressed", dataformats::json::Value(component.pressed()));
+    object.set("focused", dataformats::json::Value(component.focused()));
+    object.set("width", dataformats::json::Value(static_cast<int>(component.width())));
+    object.set("cursorPosition", dataformats::json::Value(static_cast<int>(component.cursor_position())));
+    object.set("rendered", dataformats::json::Value(to_json_array(component.render())));
+
+    dataformats::json::Object layout_group;
+    if (const auto* holder = component.layout_group()) {
+        layout_group.set("present", dataformats::json::Value(true));
+        layout_group.set("layout", dataformats::json::Value(::graphics::components::layout_type_name(holder->layout())));
+        layout_group.set("columns", dataformats::json::Value(static_cast<int>(holder->columns())));
+
+        dataformats::json::Array nested_components;
+        for (const auto& nested : holder->components()) {
+            nested_components.push(dataformats::json::Value(to_json_object(nested)));
+        }
+        layout_group.set("components", dataformats::json::Value(nested_components));
+    } else {
+        layout_group.set("present", dataformats::json::Value(false));
+        layout_group.set("layout", dataformats::json::Value(""));
+        layout_group.set("columns", dataformats::json::Value(0));
+        layout_group.set("components", dataformats::json::Value(dataformats::json::Array{}));
+    }
+    object.set("layoutGroup", dataformats::json::Value(layout_group));
+    return object;
 }
 
 dataformats::json::Object to_json_object(const MenuItem& item) {
@@ -112,6 +149,14 @@ dataformats::json::Object to_json_object(const Panel& panel) {
     embedded_chart.set("height", dataformats::json::Value(static_cast<int>(panel.embedded_chart_height)));
     embedded_chart.set("preview", dataformats::json::Value(to_json_array(panel.embedded_chart_preview)));
     object.set("embeddedChart", dataformats::json::Value(embedded_chart));
+
+    dataformats::json::Array components;
+    for (const auto& component : panel.embedded_components) {
+        components.push(dataformats::json::Value(to_json_object(component)));
+    }
+    object.set("components", dataformats::json::Value(components));
+    object.set("componentLayout", dataformats::json::Value(panel.embedded_component_layout));
+    object.set("componentColumns", dataformats::json::Value(static_cast<int>(panel.embedded_component_columns)));
 
     object.set("cadViewport", dataformats::json::Value(to_json_object(panel.cad_viewport_state, panel.has_cad_viewport)));
     return object;
@@ -187,6 +232,8 @@ std::vector<std::string> render_panel_lines(const Panel& panel, std::size_t widt
         lines[0] = truncate_or_pad("[Chart] " + panel.title, width);
     } else if (panel.kind == PanelKind::CadViewport && !lines.empty()) {
         lines[0] = truncate_or_pad("[3D CAD " + platform_label(platform) + "] " + panel.title, width);
+    } else if (panel.kind == PanelKind::ComponentGroup && !lines.empty()) {
+        lines[0] = truncate_or_pad("[Components] " + panel.title, width);
     }
     return lines;
 }
@@ -290,6 +337,48 @@ Panel Panel::chart_preview(std::string title,
     auto rendered = graph.render();
     summary_lines.insert(summary_lines.begin(), "Source: graphics::Graph");
     return Panel::chart_preview(std::move(title), rendered, std::move(summary_lines));
+}
+
+Panel Panel::component_group(std::string title,
+                             const std::vector<::graphics::components::Component>& components,
+                             std::size_t preferred_height,
+                             bool bordered) {
+    Panel panel;
+    panel.kind = PanelKind::ComponentGroup;
+    panel.title = std::move(title);
+    panel.bordered = bordered;
+    panel.embedded_components = components;
+
+    for (std::size_t i = 0; i < components.size(); ++i) {
+        const auto rendered = components[i].render();
+        panel.lines.insert(panel.lines.end(), rendered.begin(), rendered.end());
+        if (i + 1 < components.size()) {
+            panel.lines.push_back("");
+        }
+    }
+
+    panel.preferred_height = preferred_height == 0
+        ? std::max<std::size_t>(panel.lines.size() + (bordered ? 2 : 1), 4)
+        : preferred_height;
+    return panel;
+}
+
+Panel Panel::component_group(std::string title,
+                             const ::graphics::components::ComponentHolder& holder,
+                             std::size_t preferred_height,
+                             bool bordered) {
+    Panel panel;
+    panel.kind = PanelKind::ComponentGroup;
+    panel.title = std::move(title);
+    panel.bordered = bordered;
+    panel.embedded_components = holder.components();
+    panel.embedded_component_layout = ::graphics::components::layout_type_name(holder.layout());
+    panel.embedded_component_columns = holder.columns();
+    panel.lines = holder.render();
+    panel.preferred_height = preferred_height == 0
+        ? std::max<std::size_t>(panel.lines.size() + (bordered ? 2 : 1), 4)
+        : preferred_height;
+    return panel;
 }
 
 Panel Panel::cad_viewport(const CadViewport& viewport, std::size_t preferred_height) {

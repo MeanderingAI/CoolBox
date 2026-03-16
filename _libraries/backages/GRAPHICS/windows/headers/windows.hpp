@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "../../charts/headers/graphics.h"
+#include "../../components/headers/components.hpp"
 
 namespace graphics {
 namespace windows {
@@ -43,7 +44,8 @@ struct Menu {
 enum class PanelKind {
     Generic,
     Chart,
-    CadViewport
+    CadViewport,
+    ComponentGroup
 };
 
 struct CadViewport {
@@ -67,6 +69,9 @@ struct Panel {
     std::size_t embedded_chart_width = 0;
     std::size_t embedded_chart_height = 0;
     std::vector<std::string> embedded_chart_preview;
+    std::vector<::graphics::components::Component> embedded_components;
+    std::string embedded_component_layout = "vertical";
+    std::size_t embedded_component_columns = 1;
     bool has_cad_viewport = false;
     CadViewport cad_viewport_state;
 
@@ -80,6 +85,14 @@ struct Panel {
     static Panel chart_preview(std::string title,
                                const ::graphics::Graph& graph,
                                std::vector<std::string> summary_lines = {});
+    static Panel component_group(std::string title,
+                                 const std::vector<::graphics::components::Component>& components,
+                                 std::size_t preferred_height = 0,
+                                 bool bordered = true);
+    static Panel component_group(std::string title,
+                                 const ::graphics::components::ComponentHolder& holder,
+                                 std::size_t preferred_height = 0,
+                                 bool bordered = true);
     static Panel cad_viewport(const CadViewport& viewport,
                               std::size_t preferred_height = 8);
 };

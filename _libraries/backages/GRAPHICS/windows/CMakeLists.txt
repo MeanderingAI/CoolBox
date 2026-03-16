@@ -4,7 +4,7 @@ add_library(windows SHARED
 
 target_include_directories(windows PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_compile_features(windows PUBLIC cxx_std_17)
-target_link_libraries(windows PUBLIC charts json)
+target_link_libraries(windows PUBLIC charts components json)
 
 if(BUILD_TESTING AND TARGET GTest::gtest_main)
     enable_testing()

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "components.hpp"
 #include "graphics.h"
 #include "json.h"
 #include "windows.hpp"
@@ -108,4 +109,80 @@ TEST(WindowSimulatorTest, ExportsWindowLayoutToJson) {
     ASSERT_TRUE(std::filesystem::exists(export_path));
 
     std::filesystem::remove(export_path);
+}
+
+TEST(WindowSimulatorTest, EmbedsGraphicsComponentsInsideWindowsPanels) {
+    const std::vector<graphics::components::Component> widgets = {
+        graphics::components::Component::button("Apply", true, false, 12),
+        graphics::components::Component::text_view("Status text appears in a compact panel.", 20),
+        graphics::components::Component::editable_text_view("Notes", 5, true, 16),
+        graphics::components::Component::radio_button("Metric Units", true),
+        graphics::components::Component::check_box("Enable Grid", true)
+    };
+
+    graphics::windows::WindowSimulator window("UI Designer", 74, 26, graphics::windows::PlatformStyle::MacOS);
+    window.add_panel(graphics::windows::Panel::component_group("Controls", widgets))
+          .set_status_text("Component panel ready");
+
+    const std::string rendered = window.render();
+    EXPECT_NE(rendered.find("[Components] Controls"), std::string::npos);
+    EXPECT_NE(rendered.find("Apply"), std::string::npos);
+    EXPECT_NE(rendered.find("Notes|"), std::string::npos);
+    EXPECT_NE(rendered.find("(o) Metric Units"), std::string::npos);
+    EXPECT_NE(rendered.find("[x] Enable Grid"), std::string::npos);
+}
+
+TEST(WindowSimulatorTest, ExportsEmbeddedComponentsToJson) {
+    const std::vector<graphics::components::Component> widgets = {
+        graphics::components::Component::button("Save", true, true, 10),
+        graphics::components::Component::check_box("Autosave", false)
+    };
+
+    graphics::windows::WindowSimulator window("Component Export", 68, 22, graphics::windows::PlatformStyle::Linux);
+    window.add_panel(graphics::windows::Panel::component_group("Toolbar", widgets));
+
+    const auto parsed = dataformats::json::Parser::parse(window.to_json()).as_object();
+    const auto panels = parsed.get("panels").as_array();
+    ASSERT_EQ(panels.size(), 1U);
+
+    const auto panel = panels.get(0).as_object();
+    EXPECT_EQ(panel.get("kind").as_string(), "componentGroup");
+
+    const auto components = panel.get("components").as_array();
+    ASSERT_EQ(components.size(), 2U);
+    EXPECT_EQ(components.get(0).as_object().get("type").as_string(), "button");
+    EXPECT_EQ(components.get(0).as_object().get("pressed").as_bool(), true);
+    EXPECT_EQ(components.get(1).as_object().get("type").as_string(), "checkBox");
+}
+
+TEST(WindowSimulatorTest, EmbedsComponentHolderLayoutsInWindowsPanels) {
+    const auto nested_toolbar = graphics::components::ComponentHolder::horizontal({
+        graphics::components::Component::button("Open", true, false, 10),
+        graphics::components::Component::button("Close", true, false, 10)
+    }, 2);
+
+    const auto holder = graphics::components::ComponentHolder::grid({
+        graphics::components::Component::layout_group(nested_toolbar, "Toolbar"),
+        graphics::components::Component::editable_text_view("Draft", 5, true, 12),
+        graphics::components::Component::check_box("Autosave", true),
+        graphics::components::Component::radio_button("Sync", true)
+    }, 2, 3, 1);
+
+    graphics::windows::WindowSimulator window("Layout Studio", 78, 24, graphics::windows::PlatformStyle::Windows);
+    window.add_panel(graphics::windows::Panel::component_group("Grid Controls", holder))
+          .set_status_text("Holder embedded");
+
+    const std::string rendered = window.render();
+    EXPECT_NE(rendered.find("[Components] Grid Controls"), std::string::npos);
+    EXPECT_NE(rendered.find("Toolbar"), std::string::npos);
+    EXPECT_NE(rendered.find("Open"), std::string::npos);
+    EXPECT_NE(rendered.find("Draft|"), std::string::npos);
+
+    const auto parsed = dataformats::json::Parser::parse(window.to_json()).as_object();
+    const auto panel = parsed.get("panels").as_array().get(0).as_object();
+    EXPECT_EQ(panel.get("componentLayout").as_string(), "grid");
+    EXPECT_EQ(static_cast<int>(panel.get("componentColumns").as_number()), 2);
+    const auto components = panel.get("components").as_array();
+    EXPECT_EQ(components.get(0).as_object().get("type").as_string(), "layoutGroup");
+    EXPECT_EQ(components.get(0).as_object().get("layoutGroup").as_object().get("layout").as_string(), "horizontal");
 }
