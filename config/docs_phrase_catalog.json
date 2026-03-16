@@ -57,11 +57,11 @@
       "ja": "チュートリアル"
     },
     "88ef1a3d-8ab2-4d5f-862a-fb1c36de6f09": {
-      "en": "☉ Tutorials",
-      "es": "☉ Tutoriales",
-      "fr": "☉ Tutoriels",
-      "de": "☉ Tutorials",
-      "ja": "☉ チュートリアル"
+      "en": "𓂀 Tutorials",
+      "es": "𓂀 Tutoriales",
+      "fr": "𓂀 Tutoriels",
+      "de": "𓂀 Tutorials",
+      "ja": "𓂀 チュートリアル"
     },
     "95bdb5ef-2718-4fe3-8b59-c10f41cfcf10": {
       "en": "Publications",
@@ -83,6 +83,13 @@
       "fr": "Dossiers de publication avec métadonnées et PDF téléchargeables.",
       "de": "Publikationsdatensätze mit Metadaten und herunterladbaren PDFs.",
       "ja": "メタデータとダウンロード可能な PDF を含む出版物レコードです。"
+    },
+    "b7d5caec-4c1f-47d2-b28b-465d0be5bf47": {
+      "en": "Recent publication · updated ",
+      "es": "Publicación reciente · actualizada ",
+      "fr": "Publication récente · mise à jour le ",
+      "de": "Neueste Publikation · aktualisiert ",
+      "ja": "最近の出版物・更新日 "
     },
     "c1a4e67d-5cb2-4573-8e1d-8bcbeb7b8a13": {
       "en": "Metadata records and downloadable PDFs for CoolBox publications.",
@@ -111,6 +118,13 @@
       "fr": "Les détails de la publication seront ajoutés plus tard.",
       "de": "Die Publikationsdetails werden später hinzugefügt.",
       "ja": "出版物の詳細は後で追加されます。"
+    },
+    "fcf6be6d-0a8a-480d-8f7f-afdd4e5c2c20": {
+      "en": "No recent publications are available yet.",
+      "es": "Todavía no hay publicaciones recientes disponibles.",
+      "fr": "Aucune publication récente n'est encore disponible.",
+      "de": "Derzeit sind noch keine aktuellen Publikationen verfügbar.",
+      "ja": "最近の出版物はまだありません。"
     },
     "0a47f73d-5d90-4d10-8b61-5223104f6c17": {
       "en": "Abstract coming soon.",

@@ -40,6 +40,7 @@ has_python_artifacts=false
 has_js_artifacts=false
 has_java_artifacts=false
 tutorials_latest_posts=''
+publications_latest_posts=''
 
 release_asset_url() {
   local asset_name="$1"
@@ -459,6 +460,38 @@ for page in pages[:3]:
 print("".join(items))
 PY
 )"
+
+  if [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
+  publications_latest_posts="$(PUBLICATIONS_DIR="${SITE_DIR}/tutorials/publications" python - <<'PY'
+import html
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+
+publications_dir = Path(os.environ["PUBLICATIONS_DIR"])
+metadata_files = sorted(publications_dir.glob("*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
+
+items = []
+for metadata_path in metadata_files[:3]:
+  try:
+    payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+  except json.JSONDecodeError:
+    payload = {}
+
+  title = str(payload.get("title", "") or "").strip()
+  if not title:
+    title = metadata_path.stem.replace("-", " ").replace("_", " ").title()
+
+  stamp = datetime.utcfromtimestamp(metadata_path.stat().st_mtime).strftime("%Y-%m-%d")
+  items.append(
+    f'<li><a href="tutorials/publications/index.html">{html.escape(title)}</a><p class="muted">Recent publication · updated {stamp}</p></li>'
+  )
+
+print("".join(items))
+PY
+)"
+  fi
 fi
 
 cpp_link=''
@@ -523,11 +556,14 @@ fi
 if [ "${has_tutorials}" = true ]; then
   tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Interactive-style tutorial pages generated from .tut source files.</p></li>'
   if [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
-    publications_link='<li><a href="tutorials/publications/index.html">இ Publications</a><p>Publication records with metadata and downloadable PDFs.</p></li>'
+    publications_link='<li><a href="tutorials/publications/index.html">Publications</a><p>Publication records with metadata and downloadable PDFs.</p></li>'
   fi
 fi
 if [ -z "${publications_link}" ]; then
   publications_link='<li><p class="muted">No publications are available yet.</p></li>'
+fi
+if [ -n "${publications_link}" ] && [ -z "${publications_latest_posts}" ] && [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
+  publications_latest_posts='<li><p class="muted">No recent publications are available yet.</p></li>'
 fi
 if [ -z "${tutorials_latest_posts}" ]; then
   tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
@@ -556,7 +592,8 @@ cat > "${SITE_DIR}/index.html" <<EOF
     :root { color-scheme: light dark; }
     body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
     main { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
-    h1 { margin-top: 0; }
+    .page-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+    h1 { margin-top: 0; margin-bottom: 0; }
     ul { padding-left: 1.25rem; }
     li { margin: 1rem 0; }
     a { color: #2563eb; text-decoration: none; font-weight: 600; }
@@ -567,11 +604,15 @@ cat > "${SITE_DIR}/index.html" <<EOF
     .tutorials-list li { margin: 0.85rem 0; }
     .muted { color: #64748b; font-size: 0.95rem; }
     footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
+    .footer-left-mark { color: #64748b; font-weight: 700; }
   </style>
 </head>
 <body>
   <main>
-    <h1>☉ CoolBox Documentation Portal</h1>
+    <div class="page-header">
+      <h1>☉ CoolBox Documentation Portal</h1>
+      <p class="muted">𓁿 Meandering LLC © 2026</p>
+    </div>
     <p class="muted">Unified entry point for native C++ documentation and extension-specific docs.</p>
     ${latest_release_link}
     <h2 class="section-title">Documentation & Downloads</h2>
@@ -596,18 +637,28 @@ cat > "${SITE_DIR}/index.html" <<EOF
         ${tutorials_latest_posts}
       </ul>
     </section>
+    <hr class="section-divider">
     <section>
       <h2 class="section-title">இ Publications</h2>
       <ul class="tutorials-list">
         ${publications_link}
+        ${publications_latest_posts}
       </ul>
     </section>
     <footer>
-      <p>𓁿 Meandering LLC © 2026</p>
+      <span class="footer-left-mark">𓎱</span>
     </footer>
   </main>
 </body>
 </html>
 EOF
+
+if [ -f "${ROOT_DIR}/_scripts/translate_docs.py" ]; then
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "${ROOT_DIR}/_scripts/translate_docs.py" "${SITE_DIR}"
+  elif command -v python >/dev/null 2>&1; then
+    python "${ROOT_DIR}/_scripts/translate_docs.py" "${SITE_DIR}"
+  fi
+fi
 
 echo "Unified docs site generated at ${SITE_DIR}"
