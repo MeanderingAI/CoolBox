@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import json
 import re
 import shutil
 from dataclasses import dataclass, field
@@ -32,6 +33,17 @@ class TutorialPage:
     blocks: list[Block] = field(default_factory=list)
     excerpt: str = ""
     output_path: Path | None = None
+
+
+@dataclass
+class PublicationEntry:
+    metadata_path: Path
+    title: str = ""
+    authors: list[str] = field(default_factory=list)
+    abstract: str = ""
+    year: str = ""
+    tags: list[str] = field(default_factory=list)
+    pdf: str = ""
 
 
 def slugify(value: str) -> str:
@@ -255,9 +267,104 @@ def render_page(page: TutorialPage, output_dir: Path) -> None:
 """,
         encoding="utf-8",
     )
+def load_publications(source_dir: Path, output_dir: Path) -> list[PublicationEntry]:
+    publications_source = source_dir / "publications"
+    if not publications_source.exists():
+        return []
+
+    publications_output = output_dir / "publications"
+    publications_output.mkdir(parents=True, exist_ok=True)
+
+    entries: list[PublicationEntry] = []
+    for metadata_path in sorted(publications_source.glob("*.json")):
+        try:
+            payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            payload = {}
+        entry = PublicationEntry(
+            metadata_path=metadata_path,
+            title=str(payload.get("title", "") or ""),
+            authors=[str(item) for item in payload.get("authors", [])],
+            abstract=str(payload.get("abstract", "") or ""),
+            year=str(payload.get("year", "") or ""),
+            tags=[str(item) for item in (payload.get("tags") or payload.get("keywords") or [])],
+            pdf=str(payload.get("pdf", "") or ""),
+        )
+        entries.append(entry)
+        shutil.copy2(metadata_path, publications_output / metadata_path.name)
+
+    for pdf_path in sorted(publications_source.glob("*.pdf")):
+        shutil.copy2(pdf_path, publications_output / pdf_path.name)
+
+    return entries
 
 
-def render_index(pages: Iterable[TutorialPage], output_dir: Path) -> None:
+def render_publications(entries: list[PublicationEntry], output_dir: Path) -> None:
+    publications_dir = output_dir / "publications"
+    publications_dir.mkdir(parents=True, exist_ok=True)
+
+    cards: list[str] = []
+    for entry in entries:
+        title = html.escape(entry.title or "Untitled publication")
+        authors = ", ".join(html.escape(author) for author in entry.authors) or ""
+        abstract = html.escape(entry.abstract or "")
+        year = html.escape(entry.year or "")
+        tags_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in entry.tags)
+        metadata_name = html.escape(entry.metadata_path.name)
+        links: list[str] = [f'<a href="{metadata_name}">Metadata</a>']
+        if entry.pdf:
+            links.append(f'<a href="{html.escape(entry.pdf)}">PDF</a>')
+        elif any(publications_dir.glob("*.pdf")):
+            links.append('<a href="blank.pdf">PDF</a>')
+
+        details = " · ".join(links)
+        meta_line = " · ".join(item for item in [authors, year] if item)
+        cards.append(
+            '<article class="card">'
+            f'<h2>{title}</h2>'
+            + (f'<p class="muted">{meta_line}</p>' if meta_line else '<p class="muted">Publication details will be added later.</p>')
+            + (f'<div class="tag-row">{tags_html}</div>' if tags_html else '')
+            + (f'<p>{abstract}</p>' if abstract else '<p>Abstract coming soon.</p>')
+            + f'<p>{details}</p>'
+            + '</article>'
+        )
+
+    if not cards:
+        cards.append('<article class="card"><h2>Publications</h2><p>Publication metadata and PDFs will appear here.</p></article>')
+
+    (publications_dir / "index.html").write_text(
+        f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoolBox Publications</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }}
+    main {{ background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }}
+    .card {{ border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem 1.25rem; margin: 1rem 0; background: #fff; }}
+    .tag-row {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0; }}
+    .tag {{ background: #dbeafe; color: #1d4ed8; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.9rem; font-weight: 600; }}
+    a {{ color: #2563eb; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+    .muted {{ color: #64748b; font-size: 0.95rem; }}
+  </style>
+</head>
+<body>
+  <main>
+    <a href="../index.html">← Back to tutorials</a>
+    <h1>இ Publications</h1>
+    <p class="muted">Metadata records and downloadable PDFs for CoolBox publications.</p>
+    {''.join(cards)}
+  </main>
+</body>
+</html>
+''',
+        encoding="utf-8",
+    )
+
+
+def render_index(pages: Iterable[TutorialPage], output_dir: Path, publications: list[PublicationEntry]) -> None:
     page_cards = []
     tag_map: dict[str, list[TutorialPage]] = {}
 
@@ -278,6 +385,14 @@ def render_index(pages: Iterable[TutorialPage], output_dir: Path) -> None:
             for page in sorted(tag_map[tag], key=lambda item: item.title.lower())
         )
         tag_sections.append(f'<li><strong>{html.escape(tag)}</strong>: {links}</li>')
+
+    publications_section = (
+        '<section>'
+        '<h2>இ Publications</h2>'
+        + ('<p class="muted">Browse metadata and blank starter PDFs for publications.</p>' if publications else '<p class="muted">No publications are available yet.</p>')
+        + '<p><a href="publications/index.html">Open publications</a></p>'
+        '</section>'
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "index.html").write_text(
@@ -305,19 +420,20 @@ def render_index(pages: Iterable[TutorialPage], output_dir: Path) -> None:
 <body>
   <main>
     <section class=\"hero\">
-      <h1>𓂀 CoolBox Tutorials</h1>
+            <h1>☉ 𓂀 CoolBox Tutorials</h1>
       <p class=\"muted\">Static tutorials generated from `.tut` files with support for headings, media, links, and tags.</p>
     </section>
     {''.join(page_cards)}
+        {publications_section}
     <section>
       <h2>Tags</h2>
       <ul>
         {''.join(tag_sections) or '<li>No tags defined yet.</li>'}
       </ul>
     </section>
-    <footer>
-      <p>Meandering LLC © 2026</p>
-    </footer>
+        <footer>
+            <p>𓁿 Meandering LLC © 2026</p>
+        </footer>
   </main>
 </body>
 </html>
@@ -340,7 +456,9 @@ def build_tutorial_site(source_dir: Path, output_dir: Path) -> None:
         render_page(page, output_dir)
         pages.append(page)
 
-    render_index(pages, output_dir)
+    publications = load_publications(source_dir, output_dir)
+    render_publications(publications, output_dir)
+    render_index(pages, output_dir, publications)
 
 
 if __name__ == "__main__":

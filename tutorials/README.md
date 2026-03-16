@@ -12,3 +12,16 @@ Tutorial source files live in this folder and use the `.tut` format.
 - Plain text paragraphs on regular lines
 
 Blank lines separate paragraphs. Local image and video assets can be stored next to the tutorial file and will be copied into the generated static site.
+
+## Publications
+
+The tutorials folder also contains a publications area at [tutorials/publications](publications). It can start empty.
+
+When publication metadata files are added, they can include:
+
+- `title`
+- `authors`
+- `abstract`
+- `year`
+- `tags`
+- `pdf`

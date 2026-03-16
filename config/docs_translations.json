@@ -1,6 +1,18 @@
 {
-  "es": {},
-  "fr": {},
-  "de": {},
-  "ja": {}
+  "es": {
+    "phrases": {},
+    "paragraphs": {}
+  },
+  "fr": {
+    "phrases": {},
+    "paragraphs": {}
+  },
+  "de": {
+    "phrases": {},
+    "paragraphs": {}
+  },
+  "ja": {
+    "phrases": {},
+    "paragraphs": {}
+  }
 }

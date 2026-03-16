@@ -1,0 +1,215 @@
+{
+  "phrases": {
+    "0f2b8b4e-92cb-45e8-8d77-8d594df0bb01": {
+      "en": "CoolBox Documentation",
+      "es": "Documentación de CoolBox",
+      "fr": "Documentation CoolBox",
+      "de": "CoolBox-Dokumentation",
+      "ja": "CoolBox ドキュメント"
+    },
+    "16b5c4d8-5412-4f39-8f39-8de73e086f02": {
+      "en": "CoolBox Documentation Portal",
+      "es": "Portal de documentación de CoolBox",
+      "fr": "Portail de documentation CoolBox",
+      "de": "CoolBox-Dokumentationsportal",
+      "ja": "CoolBox ドキュメントポータル"
+    },
+    "23edbe8b-0d15-4b72-92a1-4d3205711203": {
+      "en": "Unified entry point for native C++ documentation and extension-specific docs.",
+      "es": "Punto de entrada unificado para la documentación nativa de C++ y la documentación de extensiones.",
+      "fr": "Point d'entrée unifié pour la documentation C++ native et la documentation spécifique aux extensions.",
+      "de": "Einheitlicher Einstiegspunkt für native C++-Dokumentation und erweiterungsspezifische Dokumentation.",
+      "ja": "ネイティブ C++ ドキュメントと拡張機能別ドキュメントの統合入口です。"
+    },
+    "34d0ff22-67fa-4016-88a7-d5f70b6f3d04": {
+      "en": "GitHub releases:",
+      "es": "Versiones de GitHub:",
+      "fr": "Versions GitHub :",
+      "de": "GitHub-Releases:",
+      "ja": "GitHub リリース:"
+    },
+    "4533eb73-02cb-4d24-9b04-b6d7408a1905": {
+      "en": "Latest release",
+      "es": "Última versión",
+      "fr": "Dernière version",
+      "de": "Neueste Version",
+      "ja": "最新リリース"
+    },
+    "5a8c3d1f-385f-45d0-8fd4-84db28b82306": {
+      "en": "All releases",
+      "es": "Todas las versiones",
+      "fr": "Toutes les versions",
+      "de": "Alle Versionen",
+      "ja": "すべてのリリース"
+    },
+    "69f72568-5e91-4301-8eaa-5fb52ecc8a07": {
+      "en": "Documentation & Downloads",
+      "es": "Documentación y descargas",
+      "fr": "Documentation et téléchargements",
+      "de": "Dokumentation und Downloads",
+      "ja": "ドキュメントとダウンロード"
+    },
+    "71d9a204-55e7-4a89-86a3-59420b287f08": {
+      "en": "Tutorials",
+      "es": "Tutoriales",
+      "fr": "Tutoriels",
+      "de": "Tutorials",
+      "ja": "チュートリアル"
+    },
+    "88ef1a3d-8ab2-4d5f-862a-fb1c36de6f09": {
+      "en": "☉ Tutorials",
+      "es": "☉ Tutoriales",
+      "fr": "☉ Tutoriels",
+      "de": "☉ Tutorials",
+      "ja": "☉ チュートリアル"
+    },
+    "95bdb5ef-2718-4fe3-8b59-c10f41cfcf10": {
+      "en": "Publications",
+      "es": "Publicaciones",
+      "fr": "Publications",
+      "de": "Publikationen",
+      "ja": "出版物"
+    },
+    "a4c4d793-0d8f-4ae8-8d47-0187061d8c11": {
+      "en": "இ Publications",
+      "es": "இ Publicaciones",
+      "fr": "இ Publications",
+      "de": "இ Publikationen",
+      "ja": "இ 出版物"
+    },
+    "b3fd2110-3b98-46f4-9523-c20f99391612": {
+      "en": "Publication records with metadata and downloadable PDFs.",
+      "es": "Registros de publicaciones con metadatos y archivos PDF descargables.",
+      "fr": "Dossiers de publication avec métadonnées et PDF téléchargeables.",
+      "de": "Publikationsdatensätze mit Metadaten und herunterladbaren PDFs.",
+      "ja": "メタデータとダウンロード可能な PDF を含む出版物レコードです。"
+    },
+    "c1a4e67d-5cb2-4573-8e1d-8bcbeb7b8a13": {
+      "en": "Metadata records and downloadable PDFs for CoolBox publications.",
+      "es": "Registros de metadatos y archivos PDF descargables para las publicaciones de CoolBox.",
+      "fr": "Enregistrements de métadonnées et PDF téléchargeables pour les publications CoolBox.",
+      "de": "Metadatensätze und herunterladbare PDFs für CoolBox-Publikationen.",
+      "ja": "CoolBox 出版物のメタデータ記録とダウンロード可能な PDF です。"
+    },
+    "d28bc2ab-6f9f-4243-8ac5-9ab4b392f714": {
+      "en": "Browse metadata and blank starter PDFs for publications.",
+      "es": "Explora metadatos y PDF iniciales en blanco para publicaciones.",
+      "fr": "Parcourez les métadonnées et les PDF de départ vierges pour les publications.",
+      "de": "Metadaten und leere Starter-PDFs für Publikationen durchsuchen.",
+      "ja": "出版物向けのメタデータと空のスターター PDF を参照できます。"
+    },
+    "e2c71ae7-a313-4380-8c79-0567da372115": {
+      "en": "Open publications",
+      "es": "Abrir publicaciones",
+      "fr": "Ouvrir les publications",
+      "de": "Publikationen öffnen",
+      "ja": "出版物を開く"
+    },
+    "f17ae62e-bcd0-4437-87bb-97f6dd11ad16": {
+      "en": "Publication details will be added later.",
+      "es": "Los detalles de la publicación se añadirán más adelante.",
+      "fr": "Les détails de la publication seront ajoutés plus tard.",
+      "de": "Die Publikationsdetails werden später hinzugefügt.",
+      "ja": "出版物の詳細は後で追加されます。"
+    },
+    "0a47f73d-5d90-4d10-8b61-5223104f6c17": {
+      "en": "Abstract coming soon.",
+      "es": "Resumen próximamente.",
+      "fr": "Résumé à venir.",
+      "de": "Zusammenfassung folgt.",
+      "ja": "要約は近日公開です。"
+    },
+    "1bf5ad3a-28bb-4f7e-86a0-3b929f835218": {
+      "en": "Latest tutorial post · updated ",
+      "es": "Última publicación del tutorial · actualizado ",
+      "fr": "Dernier tutoriel · mis à jour le ",
+      "de": "Neuester Tutorial-Beitrag · aktualisiert ",
+      "ja": "最新チュートリアル投稿・更新日 "
+    },
+    "2c5dc5f5-3d8c-44ca-8a31-8f3570cfd919": {
+      "en": "No recent tutorial posts are available yet.",
+      "es": "Todavía no hay publicaciones recientes de tutoriales.",
+      "fr": "Aucun tutoriel récent n'est encore disponible.",
+      "de": "Derzeit sind noch keine aktuellen Tutorial-Beiträge verfügbar.",
+      "ja": "最近のチュートリアル投稿はまだありません。"
+    },
+    "36c8936f-2f47-42e1-8ee3-eb1b8d7fd120": {
+      "en": "Back to docs index",
+      "es": "Volver al índice de documentación",
+      "fr": "Retour à l'index de la documentation",
+      "de": "Zurück zum Dokumentationsindex",
+      "ja": "ドキュメント索引に戻る"
+    },
+    "4d2997b4-75c8-4ffe-83ce-d8a3cf95ab21": {
+      "en": "CoolBox Tutorials",
+      "es": "Tutoriales de CoolBox",
+      "fr": "Tutoriels CoolBox",
+      "de": "CoolBox-Tutorials",
+      "ja": "CoolBox チュートリアル"
+    },
+    "5ef32f70-7efa-497c-86ac-c9ea6ef25c22": {
+      "en": "Static tutorials generated from `.tut` files with support for headings, media, links, and tags.",
+      "es": "Tutoriales estáticos generados a partir de archivos `.tut` con soporte para encabezados, medios, enlaces y etiquetas.",
+      "fr": "Tutoriels statiques générés à partir de fichiers `.tut` avec prise en charge des titres, médias, liens et étiquettes.",
+      "de": "Statische Tutorials, die aus `.tut`-Dateien mit Unterstützung für Überschriften, Medien, Links und Tags erzeugt werden.",
+      "ja": "見出し、メディア、リンク、タグに対応した `.tut` ファイルから生成された静的チュートリアルです。"
+    },
+    "6a1bc0b7-740d-49b7-8552-26fd9ef8fb23": {
+      "en": "Back to tutorials",
+      "es": "Volver a los tutoriales",
+      "fr": "Retour aux tutoriels",
+      "de": "Zurück zu den Tutorials",
+      "ja": "チュートリアルに戻る"
+    },
+    "7928bc71-bcdf-4f6a-8e8e-86277083ef24": {
+      "en": "Tags",
+      "es": "Etiquetas",
+      "fr": "Étiquettes",
+      "de": "Tags",
+      "ja": "タグ"
+    },
+    "8af6a2b8-1db3-4bc6-8b33-07f90983e125": {
+      "en": "No tags defined yet.",
+      "es": "Todavía no se han definido etiquetas.",
+      "fr": "Aucune étiquette n'est encore définie.",
+      "de": "Es sind noch keine Tags definiert.",
+      "ja": "まだタグは定義されていません。"
+    },
+    "9b625e43-c286-4382-89b8-4bd2f9300b26": {
+      "en": "Generated from ",
+      "es": "Generado a partir de ",
+      "fr": "Généré à partir de ",
+      "de": "Generiert aus ",
+      "ja": "生成元: "
+    },
+    "af17d8d0-af77-4fca-8b76-1cd6fd48a027": {
+      "en": "Language translations",
+      "es": "Traducciones de idioma",
+      "fr": "Traductions linguistiques",
+      "de": "Sprachübersetzungen",
+      "ja": "言語翻訳"
+    },
+    "bde17f05-eb7d-4f7f-8bf3-f0ae56294628": {
+      "en": "Browse localized copies of the generated docs portal.",
+      "es": "Explora copias localizadas del portal de documentación generado.",
+      "fr": "Parcourez des copies localisées du portail de documentation généré.",
+      "de": "Lokalisierte Kopien des generierten Dokumentationsportals durchsuchen.",
+      "ja": "生成されたドキュメントポータルのローカライズ版を参照できます。"
+    },
+    "c4ee3a88-4487-438d-8d95-a1d765b04b29": {
+      "en": "Languages",
+      "es": "Idiomas",
+      "fr": "Langues",
+      "de": "Sprachen",
+      "ja": "言語"
+    },
+    "da9137af-c38c-4de0-8f09-f38fb3e2bb30": {
+      "en": "𓁿 Meandering LLC © 2026",
+      "es": "𓁿 Meandering LLC © 2026",
+      "fr": "𓁿 Meandering LLC © 2026",
+      "de": "𓁿 Meandering LLC © 2026",
+      "ja": "𓁿 Meandering LLC © 2026"
+    }
+  },
+  "paragraphs": {}
+}

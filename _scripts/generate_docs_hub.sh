@@ -469,6 +469,7 @@ c_link=''
 java_link=''
 rust_link=''
 tutorials_link=''
+publications_link=''
 c_artifacts_link=''
 python_artifacts_link=''
 js_artifacts_link=''
@@ -521,6 +522,12 @@ elif [ -n "${rust_release_links}" ]; then
 fi
 if [ "${has_tutorials}" = true ]; then
   tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Interactive-style tutorial pages generated from .tut source files.</p></li>'
+  if [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
+    publications_link='<li><a href="tutorials/publications/index.html">இ Publications</a><p>Publication records with metadata and downloadable PDFs.</p></li>'
+  fi
+fi
+if [ -z "${publications_link}" ]; then
+  publications_link='<li><p class="muted">No publications are available yet.</p></li>'
 fi
 if [ -z "${tutorials_latest_posts}" ]; then
   tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
@@ -559,13 +566,12 @@ cat > "${SITE_DIR}/index.html" <<EOF
     .section-divider { border: 0; border-top: 2px solid #cbd5e1; margin: 2rem 0; }
     .tutorials-list li { margin: 0.85rem 0; }
     .muted { color: #64748b; font-size: 0.95rem; }
-    .brand-mark { margin-right: 0.35rem; }
     footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
   </style>
 </head>
 <body>
   <main>
-    <h1><span class="brand-mark">☉ 𓂀</span>CoolBox Documentation Portal</h1>
+    <h1>☉ CoolBox Documentation Portal</h1>
     <p class="muted">Unified entry point for native C++ documentation and extension-specific docs.</p>
     ${latest_release_link}
     <h2 class="section-title">Documentation & Downloads</h2>
@@ -584,14 +590,20 @@ cat > "${SITE_DIR}/index.html" <<EOF
     </ul>
     <hr class="section-divider">
     <section>
-      <h2 class="section-title">Tutorials</h2>
+      <h2 class="section-title">𓂀 Tutorials</h2>
       <ul class="tutorials-list">
         ${tutorials_link}
         ${tutorials_latest_posts}
       </ul>
     </section>
+    <section>
+      <h2 class="section-title">இ Publications</h2>
+      <ul class="tutorials-list">
+        ${publications_link}
+      </ul>
+    </section>
     <footer>
-      <p>☉ 𓂀 Meandering LLC © 2026</p>
+      <p>𓁿 Meandering LLC © 2026</p>
     </footer>
   </main>
 </body>
