@@ -16,12 +16,14 @@ TAGS_DIRECTIVE = re.compile(r"^@tags:\s*(.+?)\s*$")
 IMAGE_DIRECTIVE = re.compile(r"^@image:\s*(.+?)\s*$")
 VIDEO_DIRECTIVE = re.compile(r"^@video:\s*(.+?)\s*$")
 LINK_DIRECTIVE = re.compile(r"^@link:\s*(.+?)\s*$")
+CODE_DIRECTIVE = re.compile(r"^@code:\s*(.+?)\s*$")
+ENDCODE_DIRECTIVE = re.compile(r"^@endcode\s*$")
 
 
 @dataclass
 class Block:
     kind: str
-    data: dict[str, str | int]
+    data: dict[str, object]
 
 
 @dataclass
@@ -58,6 +60,13 @@ def split_payload(payload: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
+def parse_code_payload(payload: str) -> tuple[str, list[str]]:
+    language, libraries = split_payload(payload)
+    language = language or "text"
+    libs = [item.strip() for item in libraries.split(",") if item.strip()]
+    return language, libs
+
+
 def is_remote_url(value: str) -> bool:
     parsed = urlparse(value)
     return parsed.scheme in {"http", "https"}
@@ -83,6 +92,10 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
     paragraph_lines: list[str] = []
     title = source_file.stem.replace("-", " ").title()
     excerpt = ""
+    in_code_block = False
+    code_language = "text"
+    code_libraries: list[str] = []
+    code_lines: list[str] = []
 
     def flush_paragraph() -> None:
         nonlocal excerpt
@@ -95,8 +108,35 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
                 excerpt = text
         paragraph_lines.clear()
 
+    def flush_code_block() -> None:
+        nonlocal in_code_block, code_language, code_libraries, code_lines
+        if not in_code_block:
+            return
+        blocks.append(
+            Block(
+                "code",
+                {
+                    "language": code_language,
+                    "libraries": code_libraries.copy(),
+                    "code": "\n".join(code_lines).rstrip("\n"),
+                },
+            )
+        )
+        in_code_block = False
+        code_language = "text"
+        code_libraries = []
+        code_lines = []
+
     for raw_line in source_file.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
+
+        if in_code_block:
+            if ENDCODE_DIRECTIVE.match(line):
+                flush_code_block()
+            else:
+                code_lines.append(raw_line)
+            continue
+
         if not line:
             flush_paragraph()
             continue
@@ -150,9 +190,18 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
             blocks.append(Block("link", {"href": href, "label": label or href}))
             continue
 
+        code_match = CODE_DIRECTIVE.match(line)
+        if code_match:
+            flush_paragraph()
+            code_language, code_libraries = parse_code_payload(code_match.group(1))
+            code_lines = []
+            in_code_block = True
+            continue
+
         paragraph_lines.append(line)
 
     flush_paragraph()
+    flush_code_block()
     return TutorialPage(source=source_file, title=title, slug=slugify(source_file.stem), tags=tags, blocks=blocks, excerpt=excerpt)
 
 
@@ -216,6 +265,19 @@ def render_block(block: Block, page: TutorialPage, output_dir: Path, asset_dir: 
         label = html.escape(str(block.data["label"]))
         return f'<p><a class="inline-link" href="{href}">{label}</a></p>'
 
+    if block.kind == "code":
+        language = html.escape(str(block.data.get("language", "text")))
+        libraries = [html.escape(str(item)) for item in block.data.get("libraries", [])]
+        code = html.escape(str(block.data.get("code", "")))
+        libraries_html = "".join(f'<span class="code-lib">{item}</span>' for item in libraries)
+        meta_html = (
+            '<div class="code-meta">'
+            f'<span class="code-language">{language}</span>'
+            + (f'<div class="code-libraries">{libraries_html}</div>' if libraries_html else "")
+            + '</div>'
+        )
+        return f'<section class="code-card">{meta_html}<pre><code class="language-{language}">{code}</code></pre></section>'
+
     return ""
 
 
@@ -243,6 +305,13 @@ def render_page(page: TutorialPage, output_dir: Path) -> None:
     .tag-row {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1.25rem; }}
     .tag {{ background: #dbeafe; color: #1d4ed8; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.9rem; font-weight: 600; }}
     .media-card {{ margin: 1.5rem 0; }}
+    .code-card {{ margin: 1.5rem 0; border: 1px solid #1e293b; border-radius: 14px; overflow: hidden; background: #0f172a; }}
+    .code-meta {{ display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; background: #111827; border-bottom: 1px solid #334155; }}
+    .code-language {{ color: #93c5fd; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }}
+    .code-libraries {{ display: flex; flex-wrap: wrap; gap: 0.45rem; }}
+    .code-lib {{ background: #1e3a8a; color: #dbeafe; border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.82rem; font-weight: 600; }}
+    pre {{ margin: 0; padding: 1rem; overflow-x: auto; }}
+    code {{ font-family: Menlo, Monaco, Consolas, monospace; font-size: 0.95rem; color: #e2e8f0; white-space: pre; }}
     img, video, iframe {{ width: 100%; border-radius: 14px; border: 1px solid #e2e8f0; background: #0f172a; }}
     img {{ max-height: 420px; object-fit: contain; background: white; }}
     video {{ max-height: 420px; }}

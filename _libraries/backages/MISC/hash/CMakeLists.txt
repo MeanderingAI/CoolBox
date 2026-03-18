@@ -43,6 +43,7 @@ if(BUILD_TESTING AND TARGET GTest::gtest_main)
     enable_testing()
     add_executable(password_hash_utils_tests
         tests/test_password_hash.cpp
+        tests/test_murmur_hash.cpp
     )
     target_link_libraries(password_hash_utils_tests PRIVATE password_hash_utils GTest::gtest_main)
     add_test(NAME PasswordHashUtilsTests COMMAND password_hash_utils_tests)

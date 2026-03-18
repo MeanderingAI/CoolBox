@@ -114,17 +114,21 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
 endif()
 
 # ── data_structures bindings ────────────────────────────────────────
-set(DS_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/IO/data_structures")
+set(DS_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/DATASTRUCTURE")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data_structures_bindings.cpp")
     add_executable(data_structures_js
         data_structures_bindings.cpp
-        ${DS_SRC_DIR}/source/binary_search_tree.cpp
-        ${DS_SRC_DIR}/source/linked_list.cpp
-        ${DS_SRC_DIR}/source/hash_map.cpp
+        ${DS_SRC_DIR}/trees/source/binary_search_tree.cpp
+        ${DS_SRC_DIR}/list/source/linked_list.cpp
+        ${DS_SRC_DIR}/maps/source/hash_map.cpp
     )
     target_include_directories(data_structures_js PRIVATE
         ${DS_SRC_DIR}/headers
+        ${DS_SRC_DIR}/trees/headers
+        ${DS_SRC_DIR}/maps/headers
+        ${DS_SRC_DIR}/list/headers
+        ${DS_SRC_DIR}/filters/headers
     )
     if(EMSCRIPTEN)
         set_target_properties(data_structures_js PROPERTIES

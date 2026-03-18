@@ -11,6 +11,7 @@
 #include <string_view>
 
 #if defined(COOLBOX_HASH_USE_OPENSSL_PROVIDER)
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #endif
@@ -216,6 +217,33 @@ constexpr char kBcryptBase64Alphabet[] =
     return value != 0 && (value & (value - 1)) == 0;
 }
 
+[[nodiscard]] bool openssl_scrypt_available() {
+#if defined(COOLBOX_HASH_USE_OPENSSL_PROVIDER)
+    ByteVector derived(16);
+    const ByteVector salt = {'s', 'a', 'l', 't'};
+    const std::uint64_t cost = 2;
+    const std::uint32_t block_size = 8;
+    const std::uint32_t parallelization = 1;
+    const std::size_t max_memory = 128ull * block_size * cost * parallelization;
+
+    ERR_clear_error();
+    const int ok = EVP_PBE_scrypt("probe",
+                                  5,
+                                  salt.data(),
+                                  salt.size(),
+                                  cost,
+                                  block_size,
+                                  parallelization,
+                                  max_memory,
+                                  derived.data(),
+                                  derived.size());
+    ERR_clear_error();
+    return ok == 1;
+#else
+    return false;
+#endif
+}
+
 } // namespace
 
 std::vector<PasswordHashComparison> compare_password_hashers() {
@@ -245,7 +273,8 @@ bool supports_pbkdf2_sha256() {
 
 bool supports_scrypt() {
 #if defined(COOLBOX_HASH_USE_OPENSSL_PROVIDER)
-    return true;
+    static const bool kScryptAvailable = openssl_scrypt_available();
+    return kScryptAvailable;
 #else
     return false;
 #endif
@@ -344,6 +373,10 @@ ByteVector scrypt_derive(const std::string& password,
                          std::uint32_t parallelization,
                          std::size_t output_length) {
 #if defined(COOLBOX_HASH_USE_OPENSSL_PROVIDER)
+    if (!supports_scrypt()) {
+        throw std::runtime_error("scrypt provider unavailable in the linked OpenSSL runtime");
+    }
+
     if (!is_power_of_two(cost) || cost < 2) {
         throw std::invalid_argument("scrypt cost must be a power of two and at least 2");
     }

@@ -115,11 +115,11 @@ build_all: configure
 	@echo "[Makefile] Build complete."
 
 # ── CMake Configuration (libraries only, skip binaries) ─────────────
+# Configure CMake (libraries only). To enable/disable SQL backage,
+# pass -DBUILD_IO_SQL=ON/OFF on the command line when running cmake.
 configure:
 	@if [ ! -f build/Makefile ]; then \
 		echo "[Makefile] Running CMake configuration (libraries only)..."; \
-		# Configure CMake (libraries only). To enable/disable SQL backage,
-		# pass -DBUILD_IO_SQL=ON/OFF on the command line when running cmake.
 		cmake -S . -B build -DBUILD_BINARIES=OFF; \
 	else \
 		echo "[Makefile] Build already configured (build/Makefile exists)."; \

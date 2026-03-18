@@ -22,6 +22,63 @@ DEFAULT_TEMPLATE = """@title1: New CoolBox Tutorial
 Write your introduction here.
 """
 
+CODE_LANGUAGES = [
+    "text",
+    "python",
+    "cpp",
+    "c",
+    "javascript",
+    "typescript",
+    "java",
+    "go",
+    "rust",
+    "bash",
+    "html",
+    "css",
+    "json",
+    "sql",
+    "yaml",
+]
+
+
+class CodeSectionDialog(simpledialog.Dialog):
+    def body(self, master):
+        self.result = None
+
+        ttk.Label(master, text="Language:").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=(0, 6))
+        self.language_var = tk.StringVar(value="python")
+        self.language_combo = ttk.Combobox(master, textvariable=self.language_var, values=CODE_LANGUAGES, state="normal", width=18)
+        self.language_combo.grid(row=0, column=1, sticky="ew", pady=(0, 6))
+
+        ttk.Label(master, text="Libraries used:").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=(0, 6))
+        self.libs_var = tk.StringVar()
+        ttk.Entry(master, textvariable=self.libs_var).grid(row=1, column=1, sticky="ew", pady=(0, 6))
+
+        ttk.Label(master, text="Code:").grid(row=2, column=0, sticky="nw", padx=(0, 8))
+        self.code_text = tk.Text(master, width=70, height=14, wrap="none", font=("Menlo", 11))
+        self.code_text.grid(row=2, column=1, sticky="nsew")
+
+        scroll = ttk.Scrollbar(master, orient="vertical", command=self.code_text.yview)
+        scroll.grid(row=2, column=2, sticky="ns")
+        self.code_text.configure(yscrollcommand=scroll.set)
+
+        helper = ttk.Label(master, text="Comma-separate libraries, for example: numpy, pandas, requests", foreground="#64748b")
+        helper.grid(row=3, column=1, sticky="w", pady=(6, 0))
+
+        master.columnconfigure(1, weight=1)
+        master.rowconfigure(2, weight=1)
+        return self.language_combo
+
+    def apply(self) -> None:
+        language = self.language_var.get().strip() or "text"
+        libraries = self.libs_var.get().strip()
+        code = self.code_text.get("1.0", tk.END).rstrip()
+        self.result = {
+            "language": language,
+            "libraries": libraries,
+            "code": code,
+        }
+
 
 class TutorialEditor(tk.Tk):
     def __init__(self) -> None:
@@ -45,9 +102,9 @@ class TutorialEditor(tk.Tk):
 
         toolbar = ttk.Frame(self, padding=(12, 10))
         toolbar.grid(row=0, column=0, sticky="ew")
-        for idx in range(12):
+        for idx in range(13):
             toolbar.columnconfigure(idx, weight=0)
-        toolbar.columnconfigure(12, weight=1)
+        toolbar.columnconfigure(13, weight=1)
 
         ttk.Button(toolbar, text="New", command=self.new_file).grid(row=0, column=0, padx=4)
         ttk.Button(toolbar, text="Open", command=self.open_file).grid(row=0, column=1, padx=4)
@@ -61,9 +118,10 @@ class TutorialEditor(tk.Tk):
         ttk.Button(toolbar, text="Link", command=self.insert_link).grid(row=0, column=9, padx=4)
         ttk.Button(toolbar, text="Tags", command=self.insert_tags).grid(row=0, column=10, padx=4)
         ttk.Button(toolbar, text="Paragraph", command=self.insert_paragraph).grid(row=0, column=11, padx=4)
+        ttk.Button(toolbar, text="Code", command=self.insert_code_section).grid(row=0, column=12, padx=4)
 
         self.status_var = tk.StringVar(value="Ready")
-        ttk.Label(toolbar, textvariable=self.status_var, anchor="e").grid(row=0, column=12, sticky="ew", padx=(12, 0))
+        ttk.Label(toolbar, textvariable=self.status_var, anchor="e").grid(row=0, column=13, sticky="ew", padx=(12, 0))
 
         content = ttk.Panedwindow(self, orient=tk.HORIZONTAL)
         content.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
@@ -116,6 +174,10 @@ class TutorialEditor(tk.Tk):
             "@image: assets/example.png | Optional alt text\n"
             "@video: https://example.com/video.mp4 | Optional caption\n"
             "@link: https://example.com | Link label\n\n"
+            "@code: python | numpy, pandas\n"
+            "import numpy as np\n"
+            "print(np.arange(3))\n"
+            "@endcode\n\n"
             "Plain text lines become paragraphs. Blank lines separate paragraphs.\n\n"
             "Tips\n"
             "• Save tutorials into the top-level tutorials/ folder.\n"
@@ -279,6 +341,22 @@ class TutorialEditor(tk.Tk):
             self.insert_text(body + "\n\n")
             self.status_var.set("Inserted paragraph")
 
+    def insert_code_section(self) -> None:
+        dialog = CodeSectionDialog(self, title="Insert code section")
+        if not dialog.result:
+            return
+
+        language = str(dialog.result["language"]).strip() or "text"
+        libraries = str(dialog.result["libraries"]).strip()
+        code = str(dialog.result["code"]).rstrip()
+        header = f"@code: {language}" + (f" | {libraries}" if libraries else "")
+        block = header + "\n"
+        if code:
+            block += code + "\n"
+        block += "@endcode\n\n"
+        self.insert_text(block)
+        self.status_var.set(f"Inserted {language} code block")
+
     def on_text_modified(self, _event: tk.Event[tk.Text]) -> None:
         if self.text.edit_modified():
             self.is_dirty = True
@@ -377,6 +455,13 @@ class TutorialEditor(tk.Tk):
         if block.kind == "video":
             return self.build_video_widget(str(block.data["src"]), str(block.data.get("caption", "")))
 
+        if block.kind == "code":
+            return self.build_code_widget(
+                str(block.data.get("language", "text")),
+                [str(item) for item in block.data.get("libraries", [])],
+                str(block.data.get("code", "")),
+            )
+
         return None
 
     def resolve_media_path(self, reference: str) -> Path | None:
@@ -422,6 +507,33 @@ class TutorialEditor(tk.Tk):
                 ttk.Button(frame, text="Open video", command=lambda p=path: webbrowser.open(p.as_uri())).grid(row=0, column=1, padx=(8, 0))
         if caption:
             ttk.Label(frame, text=caption, foreground="#64748b", wraplength=420, justify="left").grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        return frame
+
+    def build_code_widget(self, language: str, libraries: list[str], code: str):
+        frame = ttk.Frame(self.preview_content)
+        frame.columnconfigure(0, weight=1)
+
+        header = ttk.Frame(frame)
+        header.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+        header.columnconfigure(1, weight=1)
+        ttk.Label(header, text=language.upper(), font=("Arial", 10, "bold"), foreground="#1d4ed8").grid(row=0, column=0, sticky="w")
+        if libraries:
+            ttk.Label(header, text=f"Libraries: {', '.join(libraries)}", foreground="#64748b", wraplength=320, justify="left").grid(row=0, column=1, sticky="e")
+
+        code_view = tk.Text(
+            frame,
+            wrap="none",
+            height=max(4, min(18, code.count("\n") + 1)),
+            font=("Menlo", 11),
+            background="#0f172a",
+            foreground="#e2e8f0",
+            relief="flat",
+            padx=10,
+            pady=10,
+        )
+        code_view.grid(row=1, column=0, sticky="ew")
+        code_view.insert("1.0", code)
+        code_view.configure(state="disabled")
         return frame
 
     def show_preview_error(self, message: str) -> None:
