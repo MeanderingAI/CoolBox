@@ -715,7 +715,6 @@ r_release_links=''
 java_release_links=''
 rust_release_links=''
 latest_release_link=''
-install_from_git_section=''
 
 python_release_links="$(release_links_html 'python-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 go_release_links="$(release_links_html 'go-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
@@ -731,47 +730,6 @@ if [ -n "${REPOSITORY_SLUG}" ]; then
   latest_release_url="$(latest_release_page_url)"
   releases_url="$(releases_page_url)"
   latest_release_link="<p class=\"muted\">GitHub releases: <a href=\"${latest_release_url}\">Latest release</a> · <a href=\"${releases_url}\">All releases</a></p>"
-
-  repo_git_url="https://github.com/${REPOSITORY_SLUG}.git"
-  repo_dir_name="${REPOSITORY_SLUG##*/}"
-  python_git_cmd="$(html_escape "pip install \"git+${repo_git_url}#subdirectory=_libraries/python_bindings\"")"
-  r_git_cmd="$(html_escape "remotes::install_github(\"${REPOSITORY_SLUG}\", subdir = \"_libraries/r_bindings/coolboxr\")")"
-  go_git_cmd="$(html_escape "go get github.com/${REPOSITORY_SLUG}/_libraries/go_bindings@latest")"
-  rust_git_cmd="$(html_escape "cargo add coolbox-rs --git ${repo_git_url}")"
-  java_local_cmd="$(html_escape "git clone ${repo_git_url} && mvn -f ${repo_dir_name}/_libraries/java_bindings/pom.xml install")"
-
-  install_from_git_section="
-    <hr class=\"section-divider\">
-    <section>
-      <h2 class=\"section-title\">Install from GitHub</h2>
-      <div class=\"install-grid\">
-        <article class=\"install-card\">
-          <h3>Python</h3>
-          <p>Install directly from the repository subdirectory with <code>pip</code>.</p>
-          <pre><code>${python_git_cmd}</code></pre>
-        </article>
-        <article class=\"install-card\">
-          <h3>R</h3>
-          <p>Install the <code>coolboxr</code> package from the repository with <code>remotes</code> or <code>devtools</code>.</p>
-          <pre><code>${r_git_cmd}</code></pre>
-        </article>
-        <article class=\"install-card\">
-          <h3>Go</h3>
-          <p>Fetch the Go module directly from the repository.</p>
-          <pre><code>${go_git_cmd}</code></pre>
-        </article>
-        <article class=\"install-card\">
-          <h3>Rust</h3>
-          <p>Git dependencies work for Rust because the repository exposes a top-level Cargo workspace.</p>
-          <pre><code>${rust_git_cmd}</code></pre>
-        </article>
-        <article class=\"install-card\">
-          <h3>Java / Maven</h3>
-          <p>Maven does not install dependencies directly from a Git URL. Build and install locally, or publish the artifact to GitHub Packages or Maven Central.</p>
-          <pre><code>${java_local_cmd}</code></pre>
-        </article>
-      </div>
-    </section>"
 fi
 
 if [ "${has_cpp_docs}" = true ]; then
@@ -861,11 +819,6 @@ cat > "${SITE_DIR}/index.html" <<EOF
     .section-divider { border: 0; border-top: 2px solid #cbd5e1; margin: 2rem 0; }
     .tutorials-list li { margin: 0.85rem 0; }
     .muted { color: #64748b; font-size: 0.95rem; }
-    .install-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
-    .install-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem; }
-    .install-card h3 { margin: 0 0 0.5rem; }
-    .install-card pre { margin: 0.75rem 0 0; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; overflow-x: auto; }
-    .install-card code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
     .footer-left-mark { color: #64748b; font-weight: 700; }
   </style>
@@ -896,7 +849,6 @@ cat > "${SITE_DIR}/index.html" <<EOF
       ${java_artifacts_link}
       ${rust_artifacts_link}
     </ul>
-    ${install_from_git_section}
     <hr class="section-divider">
     <section>
       <h2 class="section-title">𓂀 Tutorials</h2>
