@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import glob
+import shutil
 import sys
 
 import pybind11
@@ -12,6 +13,12 @@ project_root = Path(__file__).resolve().parent
 repo_root = project_root.parent.parent
 include_root = project_root / "include"
 src_root = project_root / "src"
+vendor_include_root = project_root / "vendor_include"
+vendor_src_root = project_root / "vendor_src"
+vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
+vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
+vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
+vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
 
 module_dirs = [
     "decision_tree",
@@ -77,6 +84,35 @@ def resolve_eigen_include_dirs(paths):
     return resolved
 
 
+def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
+    if repo_source.exists():
+        vendored_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repo_source, vendored_path)
+
+    if not vendored_path.exists():
+        raise FileNotFoundError(f"Required vendored file not found: {vendored_path}")
+
+    return vendored_path
+
+
+graphics_header = sync_vendor_file(
+    repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+    project_root / vendor_graphics_header,
+)
+wave_generator_header = sync_vendor_file(
+    repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+    project_root / vendor_wave_header,
+)
+graphics_source = sync_vendor_file(
+    repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
+    project_root / vendor_graphics_source,
+)
+wave_generator_source = sync_vendor_file(
+    repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
+    project_root / vendor_wave_source,
+)
+
+
 eigen_candidates = [
     os.environ.get("EIGEN3_INCLUDE_DIR"),
     os.environ.get("EIGEN_INCLUDE_DIR"),
@@ -99,10 +135,10 @@ include_dirs = [
     pybind11.get_include(),
     str(include_root),
     *(str(include_root / module_dir) for module_dir in module_dirs),
+    str(graphics_header.parent),
+    str(wave_generator_header.parent),
     *existing_dirs(
         [
-            repo_root / "_libraries/backages/GRAPHICS/charts/headers",
-            repo_root / "_libraries/backages/MISC/wave_generator/headers",
             repo_root / "build/_deps/stb-src",
             repo_root / "build/container-check/_deps/stb-src",
             repo_root / "build/crypto-check/_deps/stb-src",
@@ -113,30 +149,19 @@ include_dirs = [
 
 extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall"]
 
-source_files = [project_root / "py_ml_core.cpp"]
+source_files = ["py_ml_core.cpp"]
 for module_dir in source_modules:
-    module_sources = sorted(glob.glob(str(src_root / module_dir / "*.cpp")))
+    module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
         module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
     source_files.extend(module_sources)
 
 source_files.extend(
     [
-        repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
-        repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
+        vendor_graphics_source,
+        vendor_wave_source,
     ]
 )
-
-
-def normalize_source_path(path):
-    path = Path(path)
-    try:
-        return str(path.relative_to(project_root))
-    except ValueError:
-        return str(path)
-
-
-source_files = [normalize_source_path(path) for path in source_files]
 
 ext_modules = [
     Pybind11Extension(

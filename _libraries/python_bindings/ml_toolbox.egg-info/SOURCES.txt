@@ -124,6 +124,7 @@ src/distribution/poisson_distribution.cpp
 src/distribution/util.cpp
 src/generalized_linear_model/generalized_linear_model.cpp
 src/generalized_linear_model/linear_regression.cpp
+src/graphics_misc/bindings.cpp
 src/hidden_markov_model/hidden_markov_model.cpp
 src/latent_sentiment_analysis/latent_sentiment_analysis.cpp
 src/marked_point_process/marked_point_process.cpp
@@ -147,3 +148,7 @@ src/tracker/extended_kalman_filter.cpp
 src/tracker/kalman_filter.cpp
 src/tracker/sequential_monte_carlo.cpp
 src/tracker/unscented_kalman_filter.cpp
+vendor_include/GRAPHICS/charts/headers/graphics.h
+vendor_include/MISC/wave_generator/headers/wave_generator.hpp
+vendor_src/GRAPHICS/charts/source/graphics.cpp
+vendor_src/MISC/wave_generator/source/wave_generator.cpp

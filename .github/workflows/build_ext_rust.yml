@@ -55,8 +55,9 @@ jobs:
           rm -rf release-assets staging-rust
           mkdir -p release-assets staging-rust
           cargo package --manifest-path _libraries/rust_bindings/Cargo.toml --allow-dirty --no-verify
-          cp _libraries/rust_bindings/target/package/*.crate release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate
+          cp target/package/*.crate release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate
           tar -xzf release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate -C staging-rust
+          find staging-rust -exec touch -t 198001010000 {} +
           tar -C staging-rust -czf release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-rust release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.zip

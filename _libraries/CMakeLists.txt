@@ -65,6 +65,7 @@ add_subdirectory_if_exists(backages/SECURITY/network_scanner)
 
 # Graphics backages
 add_subdirectory_if_exists(backages/GRAPHICS/charts)
+add_subdirectory_if_exists(backages/GRAPHICS/fonts)
 add_subdirectory_if_exists(backages/GRAPHICS/components)
 add_subdirectory_if_exists(backages/GRAPHICS/windows)
 

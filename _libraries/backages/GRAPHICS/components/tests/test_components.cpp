@@ -1,3 +1,58 @@
+TEST(GraphicsComponentsTest, RendersToolbarDockPanelLayerListPropertyInspectorFileTreeRadioCheckboxGroup) {
+    using namespace graphics::components;
+    // Toolbar
+    ToolbarModel toolbar({"New", "Open", "Save"}, 1);
+    auto toolbar_lines = Component::toolbar(toolbar).render();
+    ASSERT_EQ(toolbar_lines.size(), 1U);
+    EXPECT_NE(toolbar_lines.front().find("{New}"), std::string::npos);
+    EXPECT_NE(toolbar_lines.front().find("{Open}"), std::string::npos);
+    EXPECT_NE(toolbar_lines.front().find("{Save}"), std::string::npos);
+
+    // DockPanel
+    DockPanelModel dock_panel("Layers", true);
+    auto dock_panel_lines = Component::dock_panel(dock_panel).render();
+    ASSERT_EQ(dock_panel_lines.size(), 1U);
+    EXPECT_NE(dock_panel_lines.front().find("[DockPanel] Layers [floating]"), std::string::npos);
+
+    // LayerList
+    LayerListModel layers({"Background", "Sketch", "Ink"}, 1);
+    auto layer_lines = Component::layer_list(layers).render();
+    ASSERT_GE(layer_lines.size(), 2U);
+    EXPECT_NE(layer_lines[1].find("> Sketch"), std::string::npos);
+
+    // PropertyInspector
+    PropertyInspectorModel props;
+    props.add_property("Color", "Black").add_property("Width", "2px");
+    auto prop_lines = Component::property_inspector(props).render();
+    ASSERT_GE(prop_lines.size(), 2U);
+    EXPECT_NE(prop_lines[1].find("Color: Black"), std::string::npos);
+
+    // FileTree
+    FileTreeModel::Node root{"root", true, {
+        {"file1.txt", false, {}},
+        {"dir1", true, {{"file2.txt", false, {}}}}
+    }};
+    FileTreeModel file_tree(root);
+    auto file_tree_lines = Component::file_tree(file_tree).render();
+    ASSERT_GE(file_tree_lines.size(), 3U);
+    EXPECT_NE(file_tree_lines[0].find("[D] root"), std::string::npos);
+    EXPECT_NE(file_tree_lines[1].find("file1.txt"), std::string::npos);
+    EXPECT_NE(file_tree_lines[2].find("[D] dir1"), std::string::npos);
+
+    // RadioSelector
+    RadioSelectorModel radios({"A", "B", "C"}, 2);
+    auto radio_lines = Component::radio_selector(radios).render();
+    ASSERT_EQ(radio_lines.size(), 3U);
+    EXPECT_EQ(radio_lines[2], "(o) C");
+
+    // CheckboxGroup
+    CheckboxGroupModel checks({"X", "Y", "Z"}, {true, false, true});
+    auto check_lines = Component::checkbox_group(checks).render();
+    ASSERT_EQ(check_lines.size(), 3U);
+    EXPECT_EQ(check_lines[0], "[x] X");
+    EXPECT_EQ(check_lines[1], "[ ] Y");
+    EXPECT_EQ(check_lines[2], "[x] Z");
+}
 #include <gtest/gtest.h>
 
 #include "components.hpp"
@@ -69,4 +124,34 @@ TEST(GraphicsComponentsTest, RendersLayoutGroupAsComponentType) {
     EXPECT_NE(rendered.front().find("Decision Row"), std::string::npos);
     EXPECT_NE(rendered.back().find("Yes"), std::string::npos);
     EXPECT_NE(rendered.back().find("No"), std::string::npos);
+}
+
+TEST(GraphicsComponentsTest, RendersMenuBarAndDropdownIngredients) {
+    graphics::components::MenuModel file_menu("File");
+    file_menu
+        .add_item(graphics::components::MenuItem::action("New", "Ctrl+N"))
+        .add_item(graphics::components::MenuItem::action("Open", "Ctrl+O"))
+        .add_item(graphics::components::MenuItem::divider())
+        .add_item(graphics::components::MenuItem::action("Export", "Ctrl+E", true, false, true))
+        .set_highlighted(true);
+
+    graphics::components::MenuModel edit_menu("Edit");
+    edit_menu.add_item(graphics::components::MenuItem::action("Undo", "Ctrl+Z"));
+
+    graphics::components::MenuBarModel menu_bar;
+    menu_bar.add_menu(file_menu).add_menu(edit_menu).set_spacing(2);
+
+    const auto bar_lines = graphics::components::Component::menu_bar(menu_bar).render();
+    const auto dropdown_lines = graphics::components::Component::dropdown_menu(file_menu, 20).render();
+
+    ASSERT_EQ(bar_lines.size(), 1U);
+    EXPECT_NE(bar_lines.front().find("[File]"), std::string::npos);
+    EXPECT_NE(bar_lines.front().find("Edit"), std::string::npos);
+
+    ASSERT_GE(dropdown_lines.size(), 6U);
+    EXPECT_NE(dropdown_lines[1].find("File"), std::string::npos);
+    EXPECT_NE(dropdown_lines[3].find("New"), std::string::npos);
+    EXPECT_NE(dropdown_lines[3].find("Ctrl+N"), std::string::npos);
+    EXPECT_NE(dropdown_lines[5].find("Export"), std::string::npos);
+    EXPECT_NE(dropdown_lines[5].find("▶"), std::string::npos);
 }

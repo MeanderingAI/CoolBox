@@ -4,10 +4,10 @@ Version: 0.2.0
 Summary: Comprehensive C++ Machine Learning Library with Python Bindings
 Author: ML Core Team
 License-Expression: GPL-3.0-or-later
-Project-URL: Homepage, https://github.com/yourusername/ToolBox
-Project-URL: Documentation, https://github.com/yourusername/ToolBox/blob/main/README.md
-Project-URL: Repository, https://github.com/yourusername/ToolBox
-Project-URL: Issues, https://github.com/yourusername/ToolBox/issues
+Project-URL: Homepage, https://github.com/MeanderingAI/CoolBox
+Project-URL: Documentation, https://github.com/MeanderingAI/CoolBox/blob/main/_libraries/python_bindings/README.md
+Project-URL: Repository, https://github.com/MeanderingAI/CoolBox
+Project-URL: Issues, https://github.com/MeanderingAI/CoolBox/issues
 Keywords: machine-learning,deep-learning,neural-networks,decision-trees,svm,bayesian-networks,distributed-training,computer-vision,nlp
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers

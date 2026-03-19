@@ -98,6 +98,56 @@ std::vector<std::string> join_horizontal(const std::vector<std::vector<std::stri
     return lines;
 }
 
+std::string render_menu_item_label(const MenuItem& item) {
+    if (item.separator) {
+        return "";
+    }
+
+    std::string label;
+    if (item.checked) {
+        label += "✓ ";
+    } else {
+        label += "  ";
+    }
+    label += item.label;
+    if (item.has_submenu) {
+        label += " ▶";
+    }
+    if (!item.enabled) {
+        label += " [disabled]";
+    }
+    return label;
+}
+
+std::vector<std::string> render_dropdown_lines(const MenuModel& menu, std::size_t min_width) {
+    std::size_t width = std::max<std::size_t>(menu.title.size() + 2, min_width);
+    for (const auto& item : menu.items) {
+        if (item.separator) {
+            continue;
+        }
+        width = std::max(width, render_menu_item_label(item).size() + (item.shortcut.empty() ? 0U : item.shortcut.size() + 2U));
+    }
+
+    std::vector<std::string> lines;
+    lines.push_back("+" + std::string(width + 2, '-') + "+");
+    lines.push_back("| " + pad_right(menu.title, width) + " |");
+    lines.push_back("+" + std::string(width + 2, '-') + "+");
+
+    for (const auto& item : menu.items) {
+        if (item.separator) {
+            lines.push_back("|" + std::string(width + 2, '-') + "|");
+            continue;
+        }
+
+        const std::string shortcut = item.shortcut.empty() ? "" : "  " + item.shortcut;
+        const std::size_t content_width = shortcut.size() > width ? 0 : width - shortcut.size();
+        lines.push_back("| " + pad_right(render_menu_item_label(item), content_width) + shortcut + " |");
+    }
+
+    lines.push_back("+" + std::string(width + 2, '-') + "+");
+    return lines;
+}
+
 } // namespace
 
 std::string component_type_name(ComponentType type) {
@@ -108,6 +158,63 @@ std::string component_type_name(ComponentType type) {
         case ComponentType::RadioButton: return "radioButton";
         case ComponentType::CheckBox: return "checkBox";
         case ComponentType::LayoutGroup: return "layoutGroup";
+        case ComponentType::MenuBar: return "menuBar";
+        case ComponentType::DropdownMenu: return "dropdownMenu";
+        case ComponentType::Toolbar: return "toolbar";
+        case ComponentType::DockPanel: return "dockPanel";
+        case ComponentType::LayerList: return "layerList";
+        case ComponentType::PropertyInspector: return "propertyInspector";
+        case ComponentType::FileTree: return "fileTree";
+        case ComponentType::RadioSelector: return "radioSelector";
+        case ComponentType::CheckboxGroup: return "checkboxGroup";
+    }
+    Component Component::toolbar(const ToolbarModel& toolbar) {
+        Component c;
+        c.type_ = ComponentType::Toolbar;
+        c.toolbar_model_ = std::make_shared<ToolbarModel>(toolbar);
+        return c;
+    }
+
+    Component Component::dock_panel(const DockPanelModel& dock_panel) {
+        Component c;
+        c.type_ = ComponentType::DockPanel;
+        c.dock_panel_model_ = std::make_shared<DockPanelModel>(dock_panel);
+        return c;
+    }
+
+    Component Component::layer_list(const LayerListModel& layer_list) {
+        Component c;
+        c.type_ = ComponentType::LayerList;
+        c.layer_list_model_ = std::make_shared<LayerListModel>(layer_list);
+        return c;
+    }
+
+    Component Component::property_inspector(const PropertyInspectorModel& inspector) {
+        Component c;
+        c.type_ = ComponentType::PropertyInspector;
+        c.property_inspector_model_ = std::make_shared<PropertyInspectorModel>(inspector);
+        return c;
+    }
+
+    Component Component::file_tree(const FileTreeModel& file_tree) {
+        Component c;
+        c.type_ = ComponentType::FileTree;
+        c.file_tree_model_ = std::make_shared<FileTreeModel>(file_tree);
+        return c;
+    }
+
+    Component Component::radio_selector(const RadioSelectorModel& radio_selector) {
+        Component c;
+        c.type_ = ComponentType::RadioSelector;
+        c.radio_selector_model_ = std::make_shared<RadioSelectorModel>(radio_selector);
+        return c;
+    }
+
+    Component Component::checkbox_group(const CheckboxGroupModel& checkbox_group) {
+        Component c;
+        c.type_ = ComponentType::CheckboxGroup;
+        c.checkbox_group_model_ = std::make_shared<CheckboxGroupModel>(checkbox_group);
+        return c;
     }
     return "unknown";
 }
@@ -119,6 +226,48 @@ std::string layout_type_name(LayoutType type) {
         case LayoutType::Grid: return "grid";
     }
     return "vertical";
+}
+
+MenuItem MenuItem::action(std::string label, std::string shortcut, bool enabled, bool checked, bool has_submenu) {
+    MenuItem item;
+    item.label = std::move(label);
+    item.shortcut = std::move(shortcut);
+    item.enabled = enabled;
+    item.checked = checked;
+    item.has_submenu = has_submenu;
+    return item;
+}
+
+MenuItem MenuItem::divider() {
+    MenuItem item;
+    item.separator = true;
+    item.enabled = false;
+    return item;
+}
+
+MenuModel::MenuModel(std::string menu_title) : title(std::move(menu_title)) {}
+
+MenuModel& MenuModel::add_item(const MenuItem& item) {
+    items.push_back(item);
+    return *this;
+}
+
+MenuModel& MenuModel::set_highlighted(bool highlighted_state) {
+    highlighted = highlighted_state;
+    return *this;
+}
+
+MenuBarModel::MenuBarModel(std::vector<MenuModel> menu_models, std::size_t spacing_value)
+    : menus(std::move(menu_models)), spacing(spacing_value) {}
+
+MenuBarModel& MenuBarModel::add_menu(const MenuModel& menu) {
+    menus.push_back(menu);
+    return *this;
+}
+
+MenuBarModel& MenuBarModel::set_spacing(std::size_t spacing_value) {
+    spacing = spacing_value;
+    return *this;
 }
 
 Component Component::button(std::string label, bool enabled, bool pressed, std::size_t width) {
@@ -167,6 +316,21 @@ Component Component::check_box(std::string label, bool checked, bool enabled) {
     return component;
 }
 
+Component Component::menu_bar(const MenuBarModel& menu_bar) {
+    Component component;
+    component.type_ = ComponentType::MenuBar;
+    component.menu_bar_model_ = std::make_shared<MenuBarModel>(menu_bar);
+    return component;
+}
+
+Component Component::dropdown_menu(const MenuModel& menu, std::size_t min_width) {
+    Component component;
+    component.type_ = ComponentType::DropdownMenu;
+    component.dropdown_menu_model_ = std::make_shared<MenuModel>(menu);
+    component.width_ = min_width;
+    return component;
+}
+
 Component Component::layout_group(const ComponentHolder& holder, std::string label) {
     Component component;
     component.type_ = ComponentType::LayoutGroup;
@@ -204,6 +368,31 @@ std::vector<std::string> Component::render() const {
             return {(selected_ ? "(o) " : "( ) ") + label_ + (enabled_ ? "" : " [disabled]")};
         case ComponentType::CheckBox:
             return {(checked_ ? "[x] " : "[ ] ") + label_ + (enabled_ ? "" : " [disabled]")};
+        case ComponentType::MenuBar: {
+            if (!menu_bar_model_ || menu_bar_model_->menus.empty()) {
+                return {"<no menus>"};
+            }
+
+            std::vector<std::string> labels;
+            labels.reserve(menu_bar_model_->menus.size());
+            for (const auto& menu : menu_bar_model_->menus) {
+                labels.push_back(menu.highlighted ? "[" + menu.title + "]" : menu.title);
+            }
+
+            std::string line;
+            for (std::size_t i = 0; i < labels.size(); ++i) {
+                if (i != 0) {
+                    line += std::string(menu_bar_model_->spacing, ' ');
+                }
+                line += labels[i];
+            }
+            return {line};
+        }
+        case ComponentType::DropdownMenu:
+            if (!dropdown_menu_model_) {
+                return {};
+            }
+            return render_dropdown_lines(*dropdown_menu_model_, width_);
         case ComponentType::LayoutGroup: {
             if (!layout_group_) {
                 return {};
@@ -211,6 +400,65 @@ std::vector<std::string> Component::render() const {
             auto lines = layout_group_->render();
             if (!label_.empty()) {
                 lines.insert(lines.begin(), "<LayoutGroup: " + label_ + ">");
+            }
+            return lines;
+        }
+        case ComponentType::Toolbar: {
+            if (!toolbar_model_) return {"<no toolbar>"};
+            std::string line;
+            for (std::size_t i = 0; i < toolbar_model_->actions.size(); ++i) {
+                if (i != 0) line += std::string(toolbar_model_->spacing, ' ');
+                line += "{" + toolbar_model_->actions[i] + "}";
+            }
+            return {line};
+        }
+        case ComponentType::DockPanel: {
+            if (!dock_panel_model_) return {"<no dock panel>"};
+            std::string title = dock_panel_model_->title + (dock_panel_model_->floating ? " [floating]" : "");
+            return {"[DockPanel] " + title};
+        }
+        case ComponentType::LayerList: {
+            if (!layer_list_model_) return {"<no layers>"};
+            std::vector<std::string> lines = {"Layers:"};
+            for (std::size_t i = 0; i < layer_list_model_->layers.size(); ++i) {
+                std::string prefix = (i == layer_list_model_->selected ? "> " : "  ");
+                lines.push_back(prefix + layer_list_model_->layers[i]);
+            }
+            return lines;
+        }
+        case ComponentType::PropertyInspector: {
+            if (!property_inspector_model_) return {"<no properties>"};
+            std::vector<std::string> lines = {"Properties:"};
+            for (const auto& kv : property_inspector_model_->properties) {
+                lines.push_back("- " + kv.first + ": " + kv.second);
+            }
+            return lines;
+        }
+        case ComponentType::FileTree: {
+            if (!file_tree_model_) return {"<no file tree>"};
+            std::vector<std::string> lines;
+            std::function<void(const FileTreeModel::Node&, std::string)> walk = [&](const FileTreeModel::Node& n, std::string prefix) {
+                lines.push_back(prefix + (n.is_dir ? "[D] " : "    ") + n.name);
+                for (const auto& c : n.children) walk(c, prefix + "  ");
+            };
+            walk(file_tree_model_->root, "");
+            return lines;
+        }
+        case ComponentType::RadioSelector: {
+            if (!radio_selector_model_) return {"<no radio selector>"};
+            std::vector<std::string> lines;
+            for (std::size_t i = 0; i < radio_selector_model_->options.size(); ++i) {
+                std::string prefix = (i == radio_selector_model_->selected ? "(o) " : "( ) ");
+                lines.push_back(prefix + radio_selector_model_->options[i]);
+            }
+            return lines;
+        }
+        case ComponentType::CheckboxGroup: {
+            if (!checkbox_group_model_) return {"<no checkbox group>"};
+            std::vector<std::string> lines;
+            for (std::size_t i = 0; i < checkbox_group_model_->options.size(); ++i) {
+                std::string prefix = (i < checkbox_group_model_->checked.size() && checkbox_group_model_->checked[i]) ? "[x] " : "[ ] ";
+                lines.push_back(prefix + checkbox_group_model_->options[i]);
             }
             return lines;
         }

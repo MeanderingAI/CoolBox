@@ -120,6 +120,7 @@ jobs:
       - name: Build Python bindings
         run: |
           cd _libraries/python_bindings
+          rm -rf build dist ml_toolbox.egg-info vendor_include vendor_src
           python setup.py build
           python -m build --outdir ./dist
 
