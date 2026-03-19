@@ -64,10 +64,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/ToolBox"
-Documentation = "https://github.com/yourusername/ToolBox/blob/main/README.md"
-Repository = "https://github.com/yourusername/ToolBox"
-Issues = "https://github.com/yourusername/ToolBox/issues"
+Homepage = "https://github.com/MeanderingAI/CoolBox"
+Documentation = "https://github.com/MeanderingAI/CoolBox/blob/main/_libraries/python_bindings/README.md"
+Repository = "https://github.com/MeanderingAI/CoolBox"
+Issues = "https://github.com/MeanderingAI/CoolBox/issues"
 
 [tool.setuptools]
 packages = ["ml_toolbox"]

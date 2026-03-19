@@ -31,6 +31,12 @@ def test_imports():
         
         import ml_core.multi_arm_bandit
         print("✓ multi_arm_bandit module available")
+
+        import ml_core.graphics
+        print("✓ graphics module available")
+
+        import ml_core.misc.wave_generator
+        print("✓ misc.wave_generator module available")
         
         return True
         
@@ -234,6 +240,75 @@ def test_bandit():
         print(f"✗ Multi-arm Bandit test failed: {e}")
         return False
 
+def test_graphics():
+    """Test graphics bindings"""
+    print("\nTesting Graphics...")
+    try:
+        import ml_core
+
+        graph = ml_core.graphics.Graph(320, 240, ml_core.graphics.GraphType.LINE)
+        graph.set_title("Demo")
+        graph.set_x_label("x")
+        graph.set_y_label("y")
+        graph.add_series(
+            ml_core.graphics.DataSeries(
+                "sample",
+                [0.0, 1.0, 2.0, 3.0],
+                [1.0, 3.0, 2.0, 4.0],
+                ml_core.graphics.BLUE,
+            )
+        )
+
+        canvas = graph.render()
+        pixels = canvas.to_numpy()
+        print(f"  Rendered canvas shape: {pixels.shape}")
+
+        table = ml_core.graphics.Table()
+        table.set_headers(["Name", "Value"])
+        table.add_row(["alpha", "1"])
+        table.add_row(["beta", "2"])
+        table_canvas = table.render()
+        print(f"  Table canvas size: {table_canvas.width()}x{table_canvas.height()}")
+
+        print("✓ Graphics test passed")
+        return True
+
+    except Exception as e:
+        print(f"✗ Graphics test failed: {e}")
+        return False
+
+def test_wave_generator():
+    """Test wave generator bindings"""
+    print("\nTesting Wave Generator...")
+    try:
+        import ml_core
+
+        config = ml_core.misc.wave_generator.WaveConfig()
+        config.amplitude = 2.0
+        config.frequency_hz = 5.0
+
+        sample = ml_core.misc.wave_generator.sample_at(
+            0.05,
+            ml_core.misc.wave_generator.WavePattern.SINE,
+            config,
+        )
+        samples = ml_core.misc.wave_generator.generate_samples_for_duration(
+            0.5,
+            20.0,
+            ml_core.misc.wave_generator.WavePattern.SAWTOOTH,
+            config,
+        )
+
+        print(f"  Sample at t=0.05s: {sample}")
+        print(f"  Generated {len(samples)} samples")
+
+        print("✓ Wave Generator test passed")
+        return True
+
+    except Exception as e:
+        print(f"✗ Wave Generator test failed: {e}")
+        return False
+
 def main():
     """Run all tests"""
     print("Running ML Core Python Bindings Test Suite")
@@ -246,7 +321,9 @@ def main():
         test_hmm,
         test_linear_regression,
         test_bayesian_network,
-        test_bandit
+        test_bandit,
+        test_graphics,
+        test_wave_generator,
     ]
     
     passed = 0

@@ -9,6 +9,7 @@ from setuptools import setup
 
 
 project_root = Path(__file__).resolve().parent
+repo_root = project_root.parent.parent
 include_root = project_root / "include"
 src_root = project_root / "src"
 
@@ -26,6 +27,7 @@ module_dirs = [
     "time_series",
     "nlp",
     "distributed",
+    "graphics_misc",
     "rest_api",
 ]
 
@@ -97,6 +99,15 @@ include_dirs = [
     pybind11.get_include(),
     str(include_root),
     *(str(include_root / module_dir) for module_dir in module_dirs),
+    *existing_dirs(
+        [
+            repo_root / "_libraries/backages/GRAPHICS/charts/headers",
+            repo_root / "_libraries/backages/MISC/wave_generator/headers",
+            repo_root / "build/_deps/stb-src",
+            repo_root / "build/container-check/_deps/stb-src",
+            repo_root / "build/crypto-check/_deps/stb-src",
+        ]
+    ),
     *resolve_eigen_include_dirs(eigen_candidates),
 ]
 
@@ -109,7 +120,23 @@ for module_dir in source_modules:
         module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
     source_files.extend(module_sources)
 
-source_files = [str(Path(path).relative_to(project_root)) for path in source_files]
+source_files.extend(
+    [
+        repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
+        repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
+    ]
+)
+
+
+def normalize_source_path(path):
+    path = Path(path)
+    try:
+        return str(path.relative_to(project_root))
+    except ValueError:
+        return str(path)
+
+
+source_files = [normalize_source_path(path) for path in source_files]
 
 ext_modules = [
     Pybind11Extension(

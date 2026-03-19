@@ -3,6 +3,8 @@
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 
+#include "graphics_misc/bindings.hpp"
+
 // Include all the ML headers
 #include "decision_tree/decision_tree.h"
 #include "decision_tree/random_forest.h"
@@ -43,6 +45,9 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
+
+     bind_graphics(m);
+     bind_misc(m);
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");

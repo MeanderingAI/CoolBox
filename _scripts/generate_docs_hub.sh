@@ -7,9 +7,14 @@ CPP_INPUT_DIR="${ROOT_DIR}/_libraries/include"
 CPP_BACKAGES_DIR="${ROOT_DIR}/_libraries/backages"
 R_PKG_DIR="${ROOT_DIR}/_libraries/r_bindings/coolboxr"
 R_DOCS_DIR="${DOCS_R_DIR:-${R_PKG_DIR}/docs}"
+R_DIST_DIR="${R_PKG_DIR}/dist"
 PYTHON_DOC_MD="${ROOT_DIR}/__GENERATED_CONTENT/read_mes/python_bindings_README.md"
 EMSCRIPTEN_DIR="${ROOT_DIR}/_libraries/emscripten_bindings"
+GO_BINDINGS_DIR="${ROOT_DIR}/_libraries/go_bindings"
+GO_DIST_DIR="${GO_BINDINGS_DIR}/dist"
 RUST_DOC_MD="${ROOT_DIR}/_libraries/rust_bindings/README.md"
+RUST_BINDINGS_DIR="${ROOT_DIR}/_libraries/rust_bindings"
+RUST_DIST_DIR="${RUST_BINDINGS_DIR}/dist"
 PYTHON_BINDINGS_DIR="${ROOT_DIR}/_libraries/python_bindings"
 PYTHON_BUILD_DIR="${PYTHON_BINDINGS_DIR}/build"
 PYTHON_DIST_DIR="${PYTHON_BINDINGS_DIR}/dist"
@@ -23,6 +28,20 @@ RELEASE_TAG="${DOCS_RELEASE_TAG:-}"
 PREBUILT_CPP_DOCS_DIR="${DOCS_CPP_DIR:-}"
 TUTORIALS_INPUT_DIR="${DOCS_TUTORIALS_DIR:-${ROOT_DIR}/build/tutorials-site}"
 
+if [ -z "${REPOSITORY_SLUG}" ] && command -v git >/dev/null 2>&1; then
+  remote_url="$(git -C "${ROOT_DIR}" config --get remote.origin.url 2>/dev/null || true)"
+  case "${remote_url}" in
+    https://github.com/*)
+      REPOSITORY_SLUG="${remote_url#https://github.com/}"
+      REPOSITORY_SLUG="${REPOSITORY_SLUG%.git}"
+      ;;
+    git@github.com:*)
+      REPOSITORY_SLUG="${remote_url#git@github.com:}"
+      REPOSITORY_SLUG="${REPOSITORY_SLUG%.git}"
+      ;;
+  esac
+fi
+
 rm -rf "${SITE_DIR}"
 mkdir -p "${SITE_DIR}" "${SITE_DIR}/extensions" "${SITE_DIR}/artifacts"
 printf '' > "${SITE_DIR}/.nojekyll"
@@ -30,15 +49,19 @@ printf '' > "${SITE_DIR}/.nojekyll"
 has_cpp_docs=false
 has_r_docs=false
 has_python_docs=false
+has_go_docs=false
 has_js_docs=false
 has_c_docs=false
 has_java_docs=false
 has_rust_docs=false
 has_tutorials=false
 has_c_artifacts=false
+has_r_artifacts=false
 has_python_artifacts=false
+has_go_artifacts=false
 has_js_artifacts=false
 has_java_artifacts=false
+has_rust_artifacts=false
 tutorials_latest_posts=''
 publications_latest_posts=''
 
@@ -66,6 +89,10 @@ releases_page_url() {
   fi
 
   printf 'https://github.com/%s/releases' "${REPOSITORY_SLUG}"
+}
+
+html_escape() {
+  printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
 }
 
 release_links_html() {
@@ -172,6 +199,48 @@ if [ -d "${R_DOCS_DIR}" ]; then
   has_r_docs=true
 fi
 
+if [ -d "${R_DIST_DIR}" ]; then
+  mkdir -p "${SITE_DIR}/artifacts/r"
+  while IFS= read -r artifact; do
+    cp "${artifact}" "${SITE_DIR}/artifacts/r/"
+    has_r_artifacts=true
+  done < <(find "${R_DIST_DIR}" -maxdepth 1 -type f \( -name '*.tar.gz' -o -name '*.zip' \) 2>/dev/null)
+
+  if [ "${has_r_artifacts}" = true ]; then
+    {
+      cat <<'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoolBox R Binding Artifacts</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #1f2937; }
+    h1 { color: #111827; }
+    li { margin: 0.5rem 0; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>CoolBox R Binding Artifacts</h1>
+  <ul>
+EOF
+      find "${SITE_DIR}/artifacts/r" -maxdepth 1 -type f ! -name 'index.html' | sort | while read -r file; do
+        base="$(basename "${file}")"
+        printf '    <li><a href="%s">%s</a></li>\n' "${base}" "${base}"
+      done
+      cat <<'EOF'
+  </ul>
+  <p><a href="../../index.html">Back to docs index</a></p>
+</body>
+</html>
+EOF
+    } > "${SITE_DIR}/artifacts/r/index.html"
+  fi
+fi
+
 if command -v pandoc >/dev/null 2>&1 && [ -f "${PYTHON_DOC_MD}" ]; then
   mkdir -p "${SITE_DIR}/extensions/python"
   pandoc "${PYTHON_DOC_MD}" \
@@ -181,6 +250,91 @@ if command -v pandoc >/dev/null 2>&1 && [ -f "${PYTHON_DOC_MD}" ]; then
   has_python_docs=true
 fi
 
+if [ -f "${ROOT_DIR}/_libraries/go_bindings/go.mod" ]; then
+  mkdir -p "${SITE_DIR}/extensions/go"
+  go_module_name="$(sed -n 's/^module[[:space:]]\+//p' "${ROOT_DIR}/_libraries/go_bindings/go.mod" | head -n 1)"
+  go_install_section=''
+  go_import_example=''
+
+  if [ -n "${go_module_name}" ]; then
+    go_install_cmd="$(html_escape "go get ${go_module_name}@latest")"
+    go_import_cmd="$(html_escape "import coolboxgo \"${go_module_name}\"")"
+    go_install_section="<h2>Install from GitHub</h2><pre><code>${go_install_cmd}</code></pre>"
+    go_import_example="<h2>Import</h2><pre><code>${go_import_cmd}</code></pre>"
+  fi
+
+  cat > "${SITE_DIR}/extensions/go/index.html" <<EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoolBox Go Bindings</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #1f2937; }
+    h1, h2 { color: #111827; }
+    .muted { color: #6b7280; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 0.85rem 1rem; border-radius: 10px; overflow-x: auto; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>CoolBox Go Bindings</h1>
+  <p class="muted">Go bindings packaged as a standalone module in <code>_libraries/go_bindings</code>.</p>
+  <p><strong>Module path:</strong> <code>$(html_escape "${go_module_name}")</code></p>
+  ${go_install_section}
+  ${go_import_example}
+  <p><a href="../../index.html">Back to docs index</a></p>
+</body>
+</html>
+EOF
+  has_go_docs=true
+fi
+
+if [ -d "${GO_DIST_DIR}" ]; then
+  mkdir -p "${SITE_DIR}/artifacts/go"
+  while IFS= read -r artifact; do
+    cp "${artifact}" "${SITE_DIR}/artifacts/go/"
+    has_go_artifacts=true
+  done < <(find "${GO_DIST_DIR}" -maxdepth 1 -type f \( -name '*.tar.gz' -o -name '*.zip' \) 2>/dev/null)
+
+  if [ "${has_go_artifacts}" = true ]; then
+    {
+      cat <<'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoolBox Go Binding Artifacts</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #1f2937; }
+    h1 { color: #111827; }
+    li { margin: 0.5rem 0; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>CoolBox Go Binding Artifacts</h1>
+  <ul>
+EOF
+      find "${SITE_DIR}/artifacts/go" -maxdepth 1 -type f ! -name 'index.html' | sort | while read -r file; do
+        base="$(basename "${file}")"
+        printf '    <li><a href="%s">%s</a></li>\n' "${base}" "${base}"
+      done
+      cat <<'EOF'
+  </ul>
+  <p><a href="../../index.html">Back to docs index</a></p>
+</body>
+</html>
+EOF
+    } > "${SITE_DIR}/artifacts/go/index.html"
+  fi
+fi
+
 if command -v pandoc >/dev/null 2>&1 && [ -f "${RUST_DOC_MD}" ]; then
   mkdir -p "${SITE_DIR}/extensions/rust"
   pandoc "${RUST_DOC_MD}" \
@@ -188,6 +342,48 @@ if command -v pandoc >/dev/null 2>&1 && [ -f "${RUST_DOC_MD}" ]; then
     --metadata title="CoolBox Rust Bindings" \
     --output "${SITE_DIR}/extensions/rust/index.html"
   has_rust_docs=true
+fi
+
+if [ -d "${RUST_DIST_DIR}" ]; then
+  mkdir -p "${SITE_DIR}/artifacts/rust"
+  while IFS= read -r artifact; do
+    cp "${artifact}" "${SITE_DIR}/artifacts/rust/"
+    has_rust_artifacts=true
+  done < <(find "${RUST_DIST_DIR}" -maxdepth 1 -type f \( -name '*.crate' -o -name '*.tar.gz' -o -name '*.zip' \) 2>/dev/null)
+
+  if [ "${has_rust_artifacts}" = true ]; then
+    {
+      cat <<'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoolBox Rust Binding Artifacts</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #1f2937; }
+    h1 { color: #111827; }
+    li { margin: 0.5rem 0; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>CoolBox Rust Binding Artifacts</h1>
+  <ul>
+EOF
+      find "${SITE_DIR}/artifacts/rust" -maxdepth 1 -type f ! -name 'index.html' | sort | while read -r file; do
+        base="$(basename "${file}")"
+        printf '    <li><a href="%s">%s</a></li>\n' "${base}" "${base}"
+      done
+      cat <<'EOF'
+  </ul>
+  <p><a href="../../index.html">Back to docs index</a></p>
+</body>
+</html>
+EOF
+    } > "${SITE_DIR}/artifacts/rust/index.html"
+  fi
 fi
 
 if [ -d "${PYTHON_DIST_DIR}" ] || [ -d "${PYTHON_BUILD_DIR}" ]; then
@@ -497,6 +693,7 @@ fi
 cpp_link=''
 r_link=''
 python_link=''
+go_link=''
 js_link=''
 c_link=''
 java_link=''
@@ -504,18 +701,24 @@ rust_link=''
 tutorials_link=''
 publications_link=''
 c_artifacts_link=''
+r_artifacts_link=''
 python_artifacts_link=''
+go_artifacts_link=''
 js_artifacts_link=''
 java_artifacts_link=''
+rust_artifacts_link=''
 c_release_links=''
 python_release_links=''
+go_release_links=''
 js_release_links=''
 r_release_links=''
 java_release_links=''
 rust_release_links=''
 latest_release_link=''
+install_from_git_section=''
 
 python_release_links="$(release_links_html 'python-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
+go_release_links="$(release_links_html 'go-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 js_release_links="$(release_links_html 'js-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 r_release_links="$(release_links_html 'r-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 c_release_links="$(release_links_html 'c-bindings' linux-x86_64)"
@@ -528,6 +731,47 @@ if [ -n "${REPOSITORY_SLUG}" ]; then
   latest_release_url="$(latest_release_page_url)"
   releases_url="$(releases_page_url)"
   latest_release_link="<p class=\"muted\">GitHub releases: <a href=\"${latest_release_url}\">Latest release</a> · <a href=\"${releases_url}\">All releases</a></p>"
+
+  repo_git_url="https://github.com/${REPOSITORY_SLUG}.git"
+  repo_dir_name="${REPOSITORY_SLUG##*/}"
+  python_git_cmd="$(html_escape "pip install \"git+${repo_git_url}#subdirectory=_libraries/python_bindings\"")"
+  r_git_cmd="$(html_escape "remotes::install_github(\"${REPOSITORY_SLUG}\", subdir = \"_libraries/r_bindings/coolboxr\")")"
+  go_git_cmd="$(html_escape "go get github.com/${REPOSITORY_SLUG}/_libraries/go_bindings@latest")"
+  rust_git_cmd="$(html_escape "cargo add coolbox-rs --git ${repo_git_url}")"
+  java_local_cmd="$(html_escape "git clone ${repo_git_url} && mvn -f ${repo_dir_name}/_libraries/java_bindings/pom.xml install")"
+
+  install_from_git_section="
+    <hr class=\"section-divider\">
+    <section>
+      <h2 class=\"section-title\">Install from GitHub</h2>
+      <div class=\"install-grid\">
+        <article class=\"install-card\">
+          <h3>Python</h3>
+          <p>Install directly from the repository subdirectory with <code>pip</code>.</p>
+          <pre><code>${python_git_cmd}</code></pre>
+        </article>
+        <article class=\"install-card\">
+          <h3>R</h3>
+          <p>Install the <code>coolboxr</code> package from the repository with <code>remotes</code> or <code>devtools</code>.</p>
+          <pre><code>${r_git_cmd}</code></pre>
+        </article>
+        <article class=\"install-card\">
+          <h3>Go</h3>
+          <p>Fetch the Go module directly from the repository.</p>
+          <pre><code>${go_git_cmd}</code></pre>
+        </article>
+        <article class=\"install-card\">
+          <h3>Rust</h3>
+          <p>Git dependencies work for Rust because the repository exposes a top-level Cargo workspace.</p>
+          <pre><code>${rust_git_cmd}</code></pre>
+        </article>
+        <article class=\"install-card\">
+          <h3>Java / Maven</h3>
+          <p>Maven does not install dependencies directly from a Git URL. Build and install locally, or publish the artifact to GitHub Packages or Maven Central.</p>
+          <pre><code>${java_local_cmd}</code></pre>
+        </article>
+      </div>
+    </section>"
 fi
 
 if [ "${has_cpp_docs}" = true ]; then
@@ -538,6 +782,11 @@ if [ "${has_r_docs}" = true ]; then
 fi
 if [ "${has_python_docs}" = true ]; then
   python_link="<li><a href=\"extensions/python/index.html\">Python Extension Docs</a><p>Rendered documentation for the Python bindings.</p>${python_release_links}</li>"
+fi
+if [ "${has_go_docs}" = true ]; then
+  go_link="<li><a href=\"extensions/go/index.html\">Go Extension Docs</a><p>Go module overview and GitHub installation instructions for the bindings.</p>${go_release_links}</li>"
+elif [ -n "${go_release_links}" ]; then
+  go_link="<li><span>Go Extension Docs</span><p>Go module release packages for the published bindings.</p>${go_release_links}</li>"
 fi
 if [ "${has_js_docs}" = true ]; then
   js_link="<li><a href=\"extensions/javascript/index.html\">JavaScript Extension Index</a><p>Inventory of Emscripten binding modules.</p>${js_release_links}</li>"
@@ -568,17 +817,26 @@ fi
 if [ -z "${tutorials_latest_posts}" ]; then
   tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
 fi
+if [ "${has_c_artifacts}" = true ]; then
+  c_artifacts_link='<li><a href="artifacts/c/index.html">C Binding Artifacts</a><p>Built C static libraries and installed headers.</p></li>'
+fi
+if [ "${has_r_artifacts}" = true ]; then
+  r_artifacts_link='<li><a href="artifacts/r/index.html">R Binding Artifacts</a><p>Built R source packages and release archives.</p></li>'
+fi
 if [ "${has_python_artifacts}" = true ]; then
   python_artifacts_link='<li><a href="artifacts/python/index.html">Python Binding Artifacts</a><p>Built Python extension outputs and package artifacts.</p></li>'
+fi
+if [ "${has_go_artifacts}" = true ]; then
+  go_artifacts_link='<li><a href="artifacts/go/index.html">Go Binding Artifacts</a><p>Built Go release archives for the bindings module.</p></li>'
 fi
 if [ "${has_js_artifacts}" = true ]; then
   js_artifacts_link='<li><a href="artifacts/javascript/index.html">JavaScript Binding Artifacts</a><p>Built Emscripten JavaScript and WASM outputs.</p></li>'
 fi
-if [ "${has_c_artifacts}" = true ]; then
-  c_artifacts_link='<li><a href="artifacts/c/index.html">C Binding Artifacts</a><p>Built C static libraries and installed headers.</p></li>'
-fi
 if [ "${has_java_artifacts}" = true ]; then
   java_artifacts_link='<li><a href="artifacts/java/index.html">Java Binding Artifacts</a><p>Built Java jars and Maven metadata.</p></li>'
+fi
+if [ "${has_rust_artifacts}" = true ]; then
+  rust_artifacts_link='<li><a href="artifacts/rust/index.html">Rust Binding Artifacts</a><p>Built Rust crate packages and release archives.</p></li>'
 fi
 
 cat > "${SITE_DIR}/index.html" <<EOF
@@ -603,6 +861,11 @@ cat > "${SITE_DIR}/index.html" <<EOF
     .section-divider { border: 0; border-top: 2px solid #cbd5e1; margin: 2rem 0; }
     .tutorials-list li { margin: 0.85rem 0; }
     .muted { color: #64748b; font-size: 0.95rem; }
+    .install-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .install-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem; }
+    .install-card h3 { margin: 0 0 0.5rem; }
+    .install-card pre { margin: 0.75rem 0 0; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; overflow-x: auto; }
+    .install-card code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
     .footer-left-mark { color: #64748b; font-weight: 700; }
   </style>
@@ -620,15 +883,20 @@ cat > "${SITE_DIR}/index.html" <<EOF
       ${cpp_link}
       ${r_link}
       ${python_link}
+      ${go_link}
       ${js_link}
       ${c_link}
       ${java_link}
       ${rust_link}
       ${c_artifacts_link}
+      ${r_artifacts_link}
       ${python_artifacts_link}
+      ${go_artifacts_link}
       ${js_artifacts_link}
       ${java_artifacts_link}
+      ${rust_artifacts_link}
     </ul>
+    ${install_from_git_section}
     <hr class="section-divider">
     <section>
       <h2 class="section-title">𓂀 Tutorials</h2>

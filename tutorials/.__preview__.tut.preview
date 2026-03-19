@@ -1,27 +1,19 @@
-@title1: CoolBox Site Turorial
-@tags: tutorial, introduction
+@title1: Wave Generation Tutorial
+@tags: tutorial, waves
+@libs: MISC/hash, GRAPHICS/charts
 
-Hi, 
 
-Welcome to the CoolBox site!
+A short guide on how to use the The wave generation provided in the libraries. 
 
-Here we have a set of libraries written in CPP which have a set of extensions to enable usage with some (or a subset) of the features offered in the original library.
+@title2: Libraries Used
+List the local library folders used in this tutorial here.
 
- 
-We offer (or attempt to offer) the application in as many different package distributions as possible, currently we build for these targets;
+Example:
+- <category>/<library>
+- MISC/hash
+- IO/http_server
 
-𖧼 Windows
-༎ຶ OSX
-ಥ Linux
-
-We offer the following language extensions, keeping mind that that these are not full sets.
-
-இRust
-ຈPython
-𓎱JavaScript
-⦾Go
-⊙Java
-𓁿C
-𓁽R
-
-The core set of libraries is
+@title2: Code Example
+@code: cpp | MISC/hash, IO/http_server
+// Add your example here
+@endcode

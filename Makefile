@@ -1,5 +1,5 @@
 # Set Python executable
-PYTHON := python3
+PYTHON := $(if $(wildcard .venv/bin/python),$(CURDIR)/.venv/bin/python,python3)
 
 # Emscripten SDK location (override with EMSDK=/your/path)
 EMSDK ?= $(HOME)/emsdk
@@ -64,6 +64,7 @@ help:
 	@echo "  make configure          Run CMake configuration"
 	@echo "  make clean              Remove all build artifacts"
 	@echo "  make completion         Output shell completion script"
+	@echo "  make install_tutorial_editor_deps Install tutorial editor Python dependencies"
 	@echo "  make launch_editor      Launch the tutorial editor app"
 	@echo "  make build_c_bindings   Build the plain C bindings"
 	@echo "  make build_java_bindings Build the plain Java bindings"
@@ -101,6 +102,7 @@ help:
         build_libraries_graphics \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
 		build_c_bindings \
+		install_tutorial_editor_deps \
 		build_java_bindings \
 	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
 	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
@@ -228,7 +230,11 @@ install_python_bindings:
 	@echo "Installing Python bindings..."
 	@cd _libraries/python_bindings && $(PYTHON) setup.py install
 
-launch_editor:
+install_tutorial_editor_deps:
+	@echo "Checking tutorial editor dependencies..."
+	@$(PYTHON) -c "import tkinterdnd2" 2>/dev/null || (echo "Installing tkinterdnd2..." && $(PYTHON) -m pip install tkinterdnd2)
+
+launch_editor: install_tutorial_editor_deps
 	@echo "Launching tutorial editor..."
 	@$(PYTHON) apps/tutorial_editor.py
 

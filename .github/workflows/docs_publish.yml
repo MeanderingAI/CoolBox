@@ -141,13 +141,85 @@ jobs:
             python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
           fi
 
-      - name: Download prebuilt Python bindings
+      - name: Download prebuilt Python bindings (Linux)
         if: github.event_name == 'workflow_call'
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: python-extension-linux-x86_64-${{ github.ref_name }}
           path: .prebuilt/python
+
+      - name: Download prebuilt Python bindings (macOS)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: python-extension-macos-arm64-${{ github.ref_name }}
+          path: .prebuilt/python
+
+      - name: Download prebuilt Python bindings (Windows)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: python-extension-windows-x86_64-${{ github.ref_name }}
+          path: .prebuilt/python
+
+      - name: Download prebuilt R bindings (Linux)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: r-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/r
+
+      - name: Download prebuilt R bindings (macOS)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: r-extension-macos-arm64-${{ github.ref_name }}
+          path: .prebuilt/r
+
+      - name: Download prebuilt R bindings (Windows)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: r-extension-windows-x86_64-${{ github.ref_name }}
+          path: .prebuilt/r
+
+      - name: Download prebuilt Go bindings (Linux)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: go-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/go
+
+      - name: Download prebuilt Go bindings (macOS)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: go-extension-macos-arm64-${{ github.ref_name }}
+          path: .prebuilt/go
+
+      - name: Download prebuilt Go bindings (Windows)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: go-extension-windows-x86_64-${{ github.ref_name }}
+          path: .prebuilt/go
+
+      - name: Download prebuilt Rust bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: rust-extension-${{ github.ref_name }}
+          path: .prebuilt/rust
 
       - name: Download prebuilt C bindings
         if: github.event_name == 'workflow_call'
@@ -179,7 +251,7 @@ jobs:
           done
 
           find .prebuilt/python/unpacked -maxdepth 1 -type f \( -name '*.whl' -o -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} _libraries/python_bindings/dist/ \;
-          find .prebuilt/python/unpacked -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -exec cp {} _libraries/python_bindings/build/reused/ \;
+          find .prebuilt/python/unpacked -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} _libraries/python_bindings/build/reused/ \;
 
           if find _libraries/python_bindings/dist -maxdepth 1 -type f | grep -q . || find _libraries/python_bindings/build/reused -type f | grep -q .; then
             echo "restored=true" >> "$GITHUB_OUTPUT"
@@ -208,6 +280,76 @@ jobs:
           cp -R .prebuilt/c/unpacked/. _libraries/c_bindings/target/
 
           if find _libraries/c_bindings/target -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt R artifacts
+        id: restore-r
+        run: |
+          rm -rf _libraries/r_bindings/coolboxr/dist
+          mkdir -p _libraries/r_bindings/coolboxr/dist
+
+          shopt -s nullglob
+          archives=(.prebuilt/r/*.tar.gz .prebuilt/r/*.zip)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp .prebuilt/r/*.tar.gz _libraries/r_bindings/coolboxr/dist/ 2>/dev/null || true
+          cp .prebuilt/r/*.zip _libraries/r_bindings/coolboxr/dist/ 2>/dev/null || true
+
+          if find _libraries/r_bindings/coolboxr/dist -maxdepth 1 -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt Go artifacts
+        id: restore-go
+        run: |
+          rm -rf _libraries/go_bindings/dist
+          mkdir -p _libraries/go_bindings/dist
+
+          shopt -s nullglob
+          archives=(.prebuilt/go/*.tar.gz .prebuilt/go/*.zip)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp .prebuilt/go/*.tar.gz _libraries/go_bindings/dist/ 2>/dev/null || true
+          cp .prebuilt/go/*.zip _libraries/go_bindings/dist/ 2>/dev/null || true
+
+          if find _libraries/go_bindings/dist -maxdepth 1 -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt Rust artifacts
+        id: restore-rust
+        run: |
+          rm -rf _libraries/rust_bindings/dist
+          mkdir -p _libraries/rust_bindings/dist
+
+          shopt -s nullglob
+          archives=(.prebuilt/rust/*.crate .prebuilt/rust/*.tar.gz .prebuilt/rust/*.zip)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp .prebuilt/rust/*.crate _libraries/rust_bindings/dist/ 2>/dev/null || true
+          cp .prebuilt/rust/*.tar.gz _libraries/rust_bindings/dist/ 2>/dev/null || true
+          cp .prebuilt/rust/*.zip _libraries/rust_bindings/dist/ 2>/dev/null || true
+
+          if find _libraries/rust_bindings/dist -maxdepth 1 -type f | grep -q .; then
             echo "restored=true" >> "$GITHUB_OUTPUT"
           else
             echo "restored=false" >> "$GITHUB_OUTPUT"

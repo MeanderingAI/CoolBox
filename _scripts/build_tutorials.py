@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 TITLE_DIRECTIVE = re.compile(r"^@title([1-6]):\s*(.+?)\s*$")
 HEADING_DIRECTIVE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 TAGS_DIRECTIVE = re.compile(r"^@tags:\s*(.+?)\s*$")
+LIBS_DIRECTIVE = re.compile(r"^@libs:\s*(.+?)\s*$")
+REPO_DIRECTIVE = re.compile(r"^@repo:\s*(.+?)\s*$")
 IMAGE_DIRECTIVE = re.compile(r"^@image:\s*(.+?)\s*$")
 VIDEO_DIRECTIVE = re.compile(r"^@video:\s*(.+?)\s*$")
 LINK_DIRECTIVE = re.compile(r"^@link:\s*(.+?)\s*$")
@@ -32,6 +34,8 @@ class TutorialPage:
     title: str
     slug: str
     tags: list[str] = field(default_factory=list)
+    libs: list[str] = field(default_factory=list)
+    repo: str = ""
     blocks: list[Block] = field(default_factory=list)
     excerpt: str = ""
     output_path: Path | None = None
@@ -60,10 +64,18 @@ def split_payload(payload: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
+def normalize_library_reference(reference: str) -> str:
+    value = reference.strip().replace("\\", "/")
+    for prefix in ("_libraries/backages/", "/_libraries/backages/", "backages/", "/backages/"):
+        if value.startswith(prefix):
+            return value[len(prefix):].strip("/")
+    return value.strip("/")
+
+
 def parse_code_payload(payload: str) -> tuple[str, list[str]]:
     language, libraries = split_payload(payload)
     language = language or "text"
-    libs = [item.strip() for item in libraries.split(",") if item.strip()]
+    libs = [normalize_library_reference(item) for item in libraries.split(",") if item.strip()]
     return language, libs
 
 
@@ -89,6 +101,8 @@ def copy_asset(reference: str, source_file: Path, output_dir: Path, asset_dir: P
 def parse_tutorial(source_file: Path) -> TutorialPage:
     blocks: list[Block] = []
     tags: list[str] = []
+    libs: list[str] = []
+    repo = ""
     paragraph_lines: list[str] = []
     title = source_file.stem.replace("-", " ").title()
     excerpt = ""
@@ -169,6 +183,18 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
             tags = [tag.strip() for tag in tags_match.group(1).split(",") if tag.strip()]
             continue
 
+        libs_match = LIBS_DIRECTIVE.match(line)
+        if libs_match:
+            flush_paragraph()
+            libs = [normalize_library_reference(item) for item in libs_match.group(1).split(",") if item.strip()]
+            continue
+
+        repo_match = REPO_DIRECTIVE.match(line)
+        if repo_match:
+            flush_paragraph()
+            repo = repo_match.group(1).strip()
+            continue
+
         image_match = IMAGE_DIRECTIVE.match(line)
         if image_match:
             flush_paragraph()
@@ -202,7 +228,7 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
 
     flush_paragraph()
     flush_code_block()
-    return TutorialPage(source=source_file, title=title, slug=slugify(source_file.stem), tags=tags, blocks=blocks, excerpt=excerpt)
+    return TutorialPage(source=source_file, title=title, slug=slugify(source_file.stem), tags=tags, libs=libs, repo=repo, blocks=blocks, excerpt=excerpt)
 
 
 def youtube_embed(url: str) -> str | None:
@@ -285,6 +311,8 @@ def render_page(page: TutorialPage, output_dir: Path) -> None:
     asset_dir = output_dir / "assets" / page.slug
     blocks_html = "\n      ".join(render_block(block, page, output_dir, asset_dir) for block in page.blocks)
     tags_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in page.tags)
+    libs_html = "".join(f'<span class="tag lib-tag">{html.escape(lib)}</span>' for lib in page.libs)
+    repo_html = f'<p><a class="inline-link repo-link" href="{html.escape(page.repo)}">Repository</a></p>' if page.repo else ""
     output_file = output_dir / f"{page.slug}.html"
     page.output_path = output_file
     output_file.write_text(
@@ -302,8 +330,10 @@ def render_page(page: TutorialPage, output_dir: Path) -> None:
     a {{ color: #2563eb; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
     .back-link {{ display: inline-block; margin-bottom: 1rem; }}
+    .repo-link {{ font-weight: 700; }}
     .tag-row {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1.25rem; }}
     .tag {{ background: #dbeafe; color: #1d4ed8; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.9rem; font-weight: 600; }}
+    .lib-tag {{ background: #dcfce7; color: #166534; }}
     .media-card {{ margin: 1.5rem 0; }}
     .code-card {{ margin: 1.5rem 0; border: 1px solid #1e293b; border-radius: 14px; overflow: hidden; background: #0f172a; }}
     .code-meta {{ display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; background: #111827; border-bottom: 1px solid #334155; }}
@@ -326,6 +356,8 @@ def render_page(page: TutorialPage, output_dir: Path) -> None:
     <a class=\"back-link\" href=\"index.html\">← Back to tutorials</a>
     <h1>{html.escape(page.title)}</h1>
     <div class=\"tag-row\">{tags_html}</div>
+        <div class=\"tag-row\">{libs_html}</div>
+        {repo_html}
       {blocks_html}
     <footer>
       <p>Generated from {html.escape(page.source.name)}.</p>

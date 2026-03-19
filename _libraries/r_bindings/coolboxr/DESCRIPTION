@@ -13,6 +13,8 @@ Description: R bindings for a broad set of CoolBox C++ components.
     component analysis, k-nearest neighbors, UMAP, and time-series utilities
     backed by existing CoolBox implementations.
 License: MIT + file LICENSE
+URL: https://github.com/MeanderingAI/CoolBox
+BugReports: https://github.com/MeanderingAI/CoolBox/issues
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 4.1.0)

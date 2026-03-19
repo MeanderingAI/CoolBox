@@ -119,15 +119,16 @@ jobs:
 
       - name: Build Python bindings
         run: |
-          make build_python_bindings
-          python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
+          cd _libraries/python_bindings
+          python setup.py build
+          python -m build --outdir ./dist
 
       - name: Package Python tarball
         run: |
           rm -rf release-assets staging-python
           mkdir -p release-assets staging-python
           cp -R _libraries/python_bindings/dist/. staging-python/ 2>/dev/null || true
-          find _libraries/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' \) -exec cp {} staging-python/ \;
+          find _libraries/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} staging-python/ \;
           tar -C staging-python -czf release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-python release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip
