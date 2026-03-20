@@ -1,3 +1,50 @@
+#include "../backages/GRAPHICS/charts/headers/graphics.h"
+// Fractal and Plotting Primitives
+struct CoolBoxFractal { graphics::Fractal impl; CoolBoxFractal(int w, int h, int type) : impl(w, h, static_cast<graphics::FractalType>(type)) {} };
+struct CoolBoxFunctionPlot { graphics::FunctionPlot impl; CoolBoxFunctionPlot(int w, int h) : impl(w, h) {} };
+struct CoolBoxParametricPlot { graphics::ParametricPlot impl; CoolBoxParametricPlot(int w, int h) : impl(w, h) {} };
+struct CoolBoxPolarPlot { graphics::PolarPlot impl; CoolBoxPolarPlot(int w, int h) : impl(w, h) {} };
+struct CoolBoxHistogramPlot { graphics::HistogramPlot impl; CoolBoxHistogramPlot(int w, int h) : impl(w, h) {} };
+extern "C" {
+
+CoolBoxFractal* coolbox_fractal_create(int width, int height, int type) { return new CoolBoxFractal(width, height, type); }
+void coolbox_fractal_set_params(CoolBoxFractal* f, double param1, double param2) { if (f) f->impl.set_params(param1, param2); }
+void coolbox_fractal_set_max_iter(CoolBoxFractal* f, int max_iter) { if (f) f->impl.set_max_iter(max_iter); }
+void coolbox_fractal_set_bounds(CoolBoxFractal* f, double x_min, double x_max, double y_min, double y_max) { if (f) f->impl.set_bounds(x_min, x_max, y_min, y_max); }
+CoolBoxCanvas* coolbox_fractal_render(const CoolBoxFractal* f) { if (!f) return nullptr; auto c = new graphics::Canvas(f->impl.render()); return reinterpret_cast<CoolBoxCanvas*>(c); }
+void coolbox_fractal_free(CoolBoxFractal* f) { delete f; }
+
+CoolBoxFunctionPlot* coolbox_function_plot_create(int width, int height) { return new CoolBoxFunctionPlot(width, height); }
+void coolbox_function_plot_set_equation(CoolBoxFunctionPlot* p, const char* expr) { if (p && expr) p->impl.set_equation(expr); }
+void coolbox_function_plot_set_range(CoolBoxFunctionPlot* p, double x_min, double x_max) { if (p) p->impl.set_range(x_min, x_max); }
+void coolbox_function_plot_set_samples(CoolBoxFunctionPlot* p, int n) { if (p) p->impl.set_samples(n); }
+void coolbox_function_plot_set_color(CoolBoxFunctionPlot* p, CoolBoxColor* c) { if (p && c) p->impl.set_color({c->handle->r, c->handle->g, c->handle->b, c->handle->a}); }
+CoolBoxCanvas* coolbox_function_plot_render(const CoolBoxFunctionPlot* p) { if (!p) return nullptr; auto c = new graphics::Canvas(p->impl.render()); return reinterpret_cast<CoolBoxCanvas*>(c); }
+void coolbox_function_plot_free(CoolBoxFunctionPlot* p) { delete p; }
+
+CoolBoxParametricPlot* coolbox_parametric_plot_create(int width, int height) { return new CoolBoxParametricPlot(width, height); }
+void coolbox_parametric_plot_set_equations(CoolBoxParametricPlot* p, const char* x_expr, const char* y_expr) { if (p && x_expr && y_expr) p->impl.set_equations(x_expr, y_expr); }
+void coolbox_parametric_plot_set_t_range(CoolBoxParametricPlot* p, double t_min, double t_max) { if (p) p->impl.set_t_range(t_min, t_max); }
+void coolbox_parametric_plot_set_samples(CoolBoxParametricPlot* p, int n) { if (p) p->impl.set_samples(n); }
+void coolbox_parametric_plot_set_color(CoolBoxParametricPlot* p, CoolBoxColor* c) { if (p && c) p->impl.set_color({c->handle->r, c->handle->g, c->handle->b, c->handle->a}); }
+CoolBoxCanvas* coolbox_parametric_plot_render(const CoolBoxParametricPlot* p) { if (!p) return nullptr; auto c = new graphics::Canvas(p->impl.render()); return reinterpret_cast<CoolBoxCanvas*>(c); }
+void coolbox_parametric_plot_free(CoolBoxParametricPlot* p) { delete p; }
+
+CoolBoxPolarPlot* coolbox_polar_plot_create(int width, int height) { return new CoolBoxPolarPlot(width, height); }
+void coolbox_polar_plot_set_equation(CoolBoxPolarPlot* p, const char* expr) { if (p && expr) p->impl.set_equation(expr); }
+void coolbox_polar_plot_set_theta_range(CoolBoxPolarPlot* p, double theta_min, double theta_max) { if (p) p->impl.set_theta_range(theta_min, theta_max); }
+void coolbox_polar_plot_set_samples(CoolBoxPolarPlot* p, int n) { if (p) p->impl.set_samples(n); }
+void coolbox_polar_plot_set_color(CoolBoxPolarPlot* p, CoolBoxColor* c) { if (p && c) p->impl.set_color({c->handle->r, c->handle->g, c->handle->b, c->handle->a}); }
+CoolBoxCanvas* coolbox_polar_plot_render(const CoolBoxPolarPlot* p) { if (!p) return nullptr; auto c = new graphics::Canvas(p->impl.render()); return reinterpret_cast<CoolBoxCanvas*>(c); }
+void coolbox_polar_plot_free(CoolBoxPolarPlot* p) { delete p; }
+
+CoolBoxHistogramPlot* coolbox_histogram_plot_create(int width, int height) { return new CoolBoxHistogramPlot(width, height); }
+void coolbox_histogram_plot_set_data(CoolBoxHistogramPlot* p, const double* values, int n) { if (p && values && n > 0) p->impl.set_data(std::vector<double>(values, values + n)); }
+void coolbox_histogram_plot_set_bins(CoolBoxHistogramPlot* p, int n) { if (p) p->impl.set_bins(n); }
+void coolbox_histogram_plot_set_color(CoolBoxHistogramPlot* p, CoolBoxColor* c) { if (p && c) p->impl.set_color({c->handle->r, c->handle->g, c->handle->b, c->handle->a}); }
+CoolBoxCanvas* coolbox_histogram_plot_render(const CoolBoxHistogramPlot* p) { if (!p) return nullptr; auto c = new graphics::Canvas(p->impl.render()); return reinterpret_cast<CoolBoxCanvas*>(c); }
+void coolbox_histogram_plot_free(CoolBoxHistogramPlot* p) { delete p; }
+
 #include "bridge.h"
 
 #include "../backages/ML/generalized_linear_model/headers/generalized_linear_model.h"

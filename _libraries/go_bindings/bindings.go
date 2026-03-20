@@ -1398,6 +1398,136 @@ func (a *BanditAgent) Close() {
 	}
 }
 
+// Fractal
+
+type Fractal struct{ handle *C.CoolBoxFractal }
+
+func NewFractal(width, height, fractalType int) *Fractal {
+	h := C.coolbox_fractal_create(C.int(width), C.int(height), C.int(fractalType))
+	f := &Fractal{handle: h}
+	runtime.SetFinalizer(f, func(f *Fractal) { C.coolbox_fractal_free(f.handle) })
+	return f
+}
+func (f *Fractal) SetParams(param1, param2 float64) {
+	C.coolbox_fractal_set_params(f.handle, C.double(param1), C.double(param2))
+}
+func (f *Fractal) SetMaxIter(maxIter int) { C.coolbox_fractal_set_max_iter(f.handle, C.int(maxIter)) }
+func (f *Fractal) SetBounds(xMin, xMax, yMin, yMax float64) {
+	C.coolbox_fractal_set_bounds(f.handle, C.double(xMin), C.double(xMax), C.double(yMin), C.double(yMax))
+}
+func (f *Fractal) Render() *Canvas {
+	h := C.coolbox_fractal_render(f.handle)
+	return &Canvas{handle: h}
+}
+
+// FunctionPlot
+
+type FunctionPlot struct{ handle *C.CoolBoxFunctionPlot }
+
+func NewFunctionPlot(width, height int) *FunctionPlot {
+	h := C.coolbox_function_plot_create(C.int(width), C.int(height))
+	fp := &FunctionPlot{handle: h}
+	runtime.SetFinalizer(fp, func(fp *FunctionPlot) { C.coolbox_function_plot_free(fp.handle) })
+	return fp
+}
+func (fp *FunctionPlot) SetEquation(expr string) {
+	cexpr := C.CString(expr)
+	defer C.free(unsafe.Pointer(cexpr))
+	C.coolbox_function_plot_set_equation(fp.handle, cexpr)
+}
+func (fp *FunctionPlot) SetRange(xMin, xMax float64) {
+	C.coolbox_function_plot_set_range(fp.handle, C.double(xMin), C.double(xMax))
+}
+func (fp *FunctionPlot) SetSamples(n int) { C.coolbox_function_plot_set_samples(fp.handle, C.int(n)) }
+func (fp *FunctionPlot) SetColor(color *Color) {
+	C.coolbox_function_plot_set_color(fp.handle, color.handle)
+}
+func (fp *FunctionPlot) Render() *Canvas {
+	h := C.coolbox_function_plot_render(fp.handle)
+	return &Canvas{handle: h}
+}
+
+// ParametricPlot
+
+type ParametricPlot struct{ handle *C.CoolBoxParametricPlot }
+
+func NewParametricPlot(width, height int) *ParametricPlot {
+	h := C.coolbox_parametric_plot_create(C.int(width), C.int(height))
+	pp := &ParametricPlot{handle: h}
+	runtime.SetFinalizer(pp, func(pp *ParametricPlot) { C.coolbox_parametric_plot_free(pp.handle) })
+	return pp
+}
+func (pp *ParametricPlot) SetEquations(xExpr, yExpr string) {
+	cx := C.CString(xExpr)
+	cy := C.CString(yExpr)
+	defer C.free(unsafe.Pointer(cx))
+	defer C.free(unsafe.Pointer(cy))
+	C.coolbox_parametric_plot_set_equations(pp.handle, cx, cy)
+}
+func (pp *ParametricPlot) SetTRange(tMin, tMax float64) {
+	C.coolbox_parametric_plot_set_t_range(pp.handle, C.double(tMin), C.double(tMax))
+}
+func (pp *ParametricPlot) SetSamples(n int) {
+	C.coolbox_parametric_plot_set_samples(pp.handle, C.int(n))
+}
+func (pp *ParametricPlot) SetColor(color *Color) {
+	C.coolbox_parametric_plot_set_color(pp.handle, color.handle)
+}
+func (pp *ParametricPlot) Render() *Canvas {
+	h := C.coolbox_parametric_plot_render(pp.handle)
+	return &Canvas{handle: h}
+}
+
+// PolarPlot
+
+type PolarPlot struct{ handle *C.CoolBoxPolarPlot }
+
+func NewPolarPlot(width, height int) *PolarPlot {
+	h := C.coolbox_polar_plot_create(C.int(width), C.int(height))
+	pp := &PolarPlot{handle: h}
+	runtime.SetFinalizer(pp, func(pp *PolarPlot) { C.coolbox_polar_plot_free(pp.handle) })
+	return pp
+}
+func (pp *PolarPlot) SetEquation(expr string) {
+	cexpr := C.CString(expr)
+	defer C.free(unsafe.Pointer(cexpr))
+	C.coolbox_polar_plot_set_equation(pp.handle, cexpr)
+}
+func (pp *PolarPlot) SetThetaRange(thetaMin, thetaMax float64) {
+	C.coolbox_polar_plot_set_theta_range(pp.handle, C.double(thetaMin), C.double(thetaMax))
+}
+func (pp *PolarPlot) SetSamples(n int)      { C.coolbox_polar_plot_set_samples(pp.handle, C.int(n)) }
+func (pp *PolarPlot) SetColor(color *Color) { C.coolbox_polar_plot_set_color(pp.handle, color.handle) }
+func (pp *PolarPlot) Render() *Canvas {
+	h := C.coolbox_polar_plot_render(pp.handle)
+	return &Canvas{handle: h}
+}
+
+// HistogramPlot
+
+type HistogramPlot struct{ handle *C.CoolBoxHistogramPlot }
+
+func NewHistogramPlot(width, height int) *HistogramPlot {
+	h := C.coolbox_histogram_plot_create(C.int(width), C.int(height))
+	hp := &HistogramPlot{handle: h}
+	runtime.SetFinalizer(hp, func(hp *HistogramPlot) { C.coolbox_histogram_plot_free(hp.handle) })
+	return hp
+}
+func (hp *HistogramPlot) SetData(values []float64) {
+	if len(values) == 0 {
+		return
+	}
+	C.coolbox_histogram_plot_set_data(hp.handle, (*C.double)(&values[0]), C.int(len(values)))
+}
+func (hp *HistogramPlot) SetBins(n int) { C.coolbox_histogram_plot_set_bins(hp.handle, C.int(n)) }
+func (hp *HistogramPlot) SetColor(color *Color) {
+	C.coolbox_histogram_plot_set_color(hp.handle, color.handle)
+}
+func (hp *HistogramPlot) Render() *Canvas {
+	h := C.coolbox_histogram_plot_render(hp.handle)
+	return &Canvas{handle: h}
+}
+
 func boolToInt(value bool) int {
 	if value {
 		return 1

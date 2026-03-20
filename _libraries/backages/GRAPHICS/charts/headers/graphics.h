@@ -51,6 +51,89 @@ namespace graphics {
 // Color
 // ===================================================================
 
+// ===================================================================
+// Fractal and Plotting Primitives (NEW)
+// ===================================================================
+
+// Fractal types
+enum class FractalType { Mandelbrot, Julia };
+
+class Fractal {
+public:
+    Fractal(int width, int height, FractalType type = FractalType::Mandelbrot);
+    void set_params(double param1, double param2 = 0.0); // e.g., Julia c = (param1, param2)
+    void set_max_iter(int max_iter);
+    void set_bounds(double x_min, double x_max, double y_min, double y_max);
+    Canvas render() const;
+private:
+    int width_, height_, max_iter_ = 1000;
+    FractalType type_;
+    double param1_ = 0.0, param2_ = 0.0;
+    double x_min_ = -2.0, x_max_ = 2.0, y_min_ = -2.0, y_max_ = 2.0;
+};
+
+// Function plotter (y = f(x))
+class FunctionPlot {
+public:
+    FunctionPlot(int width, int height);
+    void set_equation(const std::string& expr); // e.g., "sin(x) + x^2"
+    void set_range(double x_min, double x_max);
+    void set_samples(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, samples_ = 500;
+    std::string expr_;
+    double x_min_ = -10.0, x_max_ = 10.0;
+    Color color_ = Colors::Blue;
+};
+
+// Parametric plotter (x = f(t), y = g(t))
+class ParametricPlot {
+public:
+    ParametricPlot(int width, int height);
+    void set_equations(const std::string& x_expr, const std::string& y_expr); // e.g., "cos(t)", "sin(t)"
+    void set_t_range(double t_min, double t_max);
+    void set_samples(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, samples_ = 500;
+    std::string x_expr_, y_expr_;
+    double t_min_ = 0.0, t_max_ = 2 * 3.141592653589793;
+    Color color_ = Colors::Red;
+};
+
+// Polar plotter (r = f(theta))
+class PolarPlot {
+public:
+    PolarPlot(int width, int height);
+    void set_equation(const std::string& expr); // e.g., "1 + sin(5*theta)"
+    void set_theta_range(double theta_min, double theta_max);
+    void set_samples(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, samples_ = 500;
+    std::string expr_;
+    double theta_min_ = 0.0, theta_max_ = 2 * 3.141592653589793;
+    Color color_ = Colors::Purple;
+};
+
+// Histogram
+class HistogramPlot {
+public:
+    HistogramPlot(int width, int height);
+    void set_data(const std::vector<double>& values);
+    void set_bins(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, bins_ = 20;
+    std::vector<double> values_;
+    Color color_ = Colors::Orange;
+};
+
 struct Color {
     uint8_t r = 0, g = 0, b = 0, a = 255;
 

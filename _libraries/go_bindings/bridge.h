@@ -1,6 +1,56 @@
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+// Fractal and Plotting Primitives
+typedef struct CoolBoxFractal CoolBoxFractal;
+typedef struct CoolBoxFunctionPlot CoolBoxFunctionPlot;
+typedef struct CoolBoxParametricPlot CoolBoxParametricPlot;
+typedef struct CoolBoxPolarPlot CoolBoxPolarPlot;
+typedef struct CoolBoxHistogramPlot CoolBoxHistogramPlot;
+
+// Fractal
+CoolBoxFractal* coolbox_fractal_create(int width, int height, int type);
+void coolbox_fractal_set_params(CoolBoxFractal* f, double param1, double param2);
+void coolbox_fractal_set_max_iter(CoolBoxFractal* f, int max_iter);
+void coolbox_fractal_set_bounds(CoolBoxFractal* f, double x_min, double x_max, double y_min, double y_max);
+CoolBoxCanvas* coolbox_fractal_render(const CoolBoxFractal* f);
+void coolbox_fractal_free(CoolBoxFractal* f);
+
+// FunctionPlot
+CoolBoxFunctionPlot* coolbox_function_plot_create(int width, int height);
+void coolbox_function_plot_set_equation(CoolBoxFunctionPlot* p, const char* expr);
+void coolbox_function_plot_set_range(CoolBoxFunctionPlot* p, double x_min, double x_max);
+void coolbox_function_plot_set_samples(CoolBoxFunctionPlot* p, int n);
+void coolbox_function_plot_set_color(CoolBoxFunctionPlot* p, CoolBoxColor* c);
+CoolBoxCanvas* coolbox_function_plot_render(const CoolBoxFunctionPlot* p);
+void coolbox_function_plot_free(CoolBoxFunctionPlot* p);
+
+// ParametricPlot
+CoolBoxParametricPlot* coolbox_parametric_plot_create(int width, int height);
+void coolbox_parametric_plot_set_equations(CoolBoxParametricPlot* p, const char* x_expr, const char* y_expr);
+void coolbox_parametric_plot_set_t_range(CoolBoxParametricPlot* p, double t_min, double t_max);
+void coolbox_parametric_plot_set_samples(CoolBoxParametricPlot* p, int n);
+void coolbox_parametric_plot_set_color(CoolBoxParametricPlot* p, CoolBoxColor* c);
+CoolBoxCanvas* coolbox_parametric_plot_render(const CoolBoxParametricPlot* p);
+void coolbox_parametric_plot_free(CoolBoxParametricPlot* p);
+
+// PolarPlot
+CoolBoxPolarPlot* coolbox_polar_plot_create(int width, int height);
+void coolbox_polar_plot_set_equation(CoolBoxPolarPlot* p, const char* expr);
+void coolbox_polar_plot_set_theta_range(CoolBoxPolarPlot* p, double theta_min, double theta_max);
+void coolbox_polar_plot_set_samples(CoolBoxPolarPlot* p, int n);
+void coolbox_polar_plot_set_color(CoolBoxPolarPlot* p, CoolBoxColor* c);
+CoolBoxCanvas* coolbox_polar_plot_render(const CoolBoxPolarPlot* p);
+void coolbox_polar_plot_free(CoolBoxPolarPlot* p);
+
+// HistogramPlot
+CoolBoxHistogramPlot* coolbox_histogram_plot_create(int width, int height);
+void coolbox_histogram_plot_set_data(CoolBoxHistogramPlot* p, const double* values, int n);
+void coolbox_histogram_plot_set_bins(CoolBoxHistogramPlot* p, int n);
+void coolbox_histogram_plot_set_color(CoolBoxHistogramPlot* p, CoolBoxColor* c);
+CoolBoxCanvas* coolbox_histogram_plot_render(const CoolBoxHistogramPlot* p);
+void coolbox_histogram_plot_free(CoolBoxHistogramPlot* p);
 
 // Graphics/Chart/Component types for FFI
 typedef struct CoolBoxCanvas CoolBoxCanvas;
