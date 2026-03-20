@@ -3,6 +3,7 @@ use cxx::UniquePtr;
 mod stubs;
 
 pub use stubs::*;
+pub use stubs::{Toolbar, DockPanel, LayerList, PropertyInspector, FileTree, RadioSelector, CheckboxGroup};
 
 #[cxx::bridge]
 mod ffi {

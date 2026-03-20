@@ -43,3 +43,51 @@ func TestDecisionTreeSmoke(t *testing.T) {
 		t.Fatalf("unexpected label: %d", label)
 	}
 }
+
+func TestGraphicsBindingsSmoke(t *testing.T) {
+	// Color
+	c := NewColor(10, 20, 30, 255)
+	if c == nil || c.handle == nil {
+		t.Fatal("failed to create Color")
+	}
+
+	// Canvas
+	canvas := NewCanvas(100, 50)
+	if canvas == nil || canvas.handle == nil {
+		t.Fatal("failed to create Canvas")
+	}
+
+	// Table
+	table := NewTable()
+	table.SetHeaders([]string{"A", "B"})
+	table.AddRow([]string{"1", "2"})
+	if table == nil || table.handle == nil {
+		t.Fatal("failed to create Table")
+	}
+
+	// Graph
+	graph := NewGraph(200, 100, 0)
+	graph.SetTitle("Test")
+	graph.SetXLabel("x")
+	graph.SetYLabel("y")
+	err := graph.AddSeries("s", []float64{1, 2}, []float64{3, 4}, c)
+	if err != nil {
+		t.Fatalf("failed to add series: %v", err)
+	}
+	gcanvas := graph.Render()
+	if gcanvas == nil || gcanvas.handle == nil {
+		t.Fatal("failed to render Graph to Canvas")
+	}
+
+	// FontFace
+	font := NewFontFace()
+	if font == nil || font.handle == nil {
+		t.Fatal("failed to create FontFace")
+	}
+
+	// Component (stub)
+	comp := NewComponent(0)
+	if comp == nil || comp.handle == nil {
+		t.Fatal("failed to create Component")
+	}
+}

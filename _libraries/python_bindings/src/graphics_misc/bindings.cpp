@@ -134,6 +134,63 @@ void bind_graphics(py::module_& parent_module) {
         .def("set_border_color", &graphics::Table::set_border_color, py::arg("color"))
         .def("set_alternate_row_color", &graphics::Table::set_alternate_row_color, py::arg("color"))
         .def("render", &graphics::Table::render);
+
+    // --- GUI/Component primitives ---
+    py::class_<graphics::components::ToolbarModel>(graphics_module, "ToolbarModel")
+        .def(py::init<>())
+        .def(py::init<std::vector<std::string>, std::size_t>(), py::arg("actions"), py::arg("spacing") = 2)
+        .def_readwrite("actions", &graphics::components::ToolbarModel::actions)
+        .def_readwrite("spacing", &graphics::components::ToolbarModel::spacing)
+        .def("add_action", &graphics::components::ToolbarModel::add_action)
+        .def("set_spacing", &graphics::components::ToolbarModel::set_spacing);
+
+    py::class_<graphics::components::DockPanelModel>(graphics_module, "DockPanelModel")
+        .def(py::init<>())
+        .def(py::init<std::string, bool>(), py::arg("title"), py::arg("floating") = false)
+        .def_readwrite("title", &graphics::components::DockPanelModel::title)
+        .def_readwrite("floating", &graphics::components::DockPanelModel::floating)
+        .def("set_floating", &graphics::components::DockPanelModel::set_floating);
+
+    py::class_<graphics::components::LayerListModel>(graphics_module, "LayerListModel")
+        .def(py::init<>())
+        .def(py::init<std::vector<std::string>, std::size_t>(), py::arg("layers"), py::arg("selected") = 0)
+        .def_readwrite("layers", &graphics::components::LayerListModel::layers)
+        .def_readwrite("selected", &graphics::components::LayerListModel::selected)
+        .def("add_layer", &graphics::components::LayerListModel::add_layer)
+        .def("set_selected", &graphics::components::LayerListModel::set_selected);
+
+    py::class_<graphics::components::PropertyInspectorModel>(graphics_module, "PropertyInspectorModel")
+        .def(py::init<>())
+        .def(py::init<std::vector<std::pair<std::string, std::string>>>(), py::arg("properties"))
+        .def_readwrite("properties", &graphics::components::PropertyInspectorModel::properties)
+        .def("add_property", &graphics::components::PropertyInspectorModel::add_property);
+
+    py::class_<graphics::components::FileTreeModel::Node>(graphics_module, "FileTreeNode")
+        .def(py::init<>())
+        .def_readwrite("name", &graphics::components::FileTreeModel::Node::name)
+        .def_readwrite("is_dir", &graphics::components::FileTreeModel::Node::is_dir)
+        .def_readwrite("children", &graphics::components::FileTreeModel::Node::children);
+
+    py::class_<graphics::components::FileTreeModel>(graphics_module, "FileTreeModel")
+        .def(py::init<>())
+        .def(py::init<graphics::components::FileTreeModel::Node>(), py::arg("root"))
+        .def_readwrite("root", &graphics::components::FileTreeModel::root);
+
+    py::class_<graphics::components::RadioSelectorModel>(graphics_module, "RadioSelectorModel")
+        .def(py::init<>())
+        .def(py::init<std::vector<std::string>, std::size_t>(), py::arg("options"), py::arg("selected") = 0)
+        .def_readwrite("options", &graphics::components::RadioSelectorModel::options)
+        .def_readwrite("selected", &graphics::components::RadioSelectorModel::selected)
+        .def("add_option", &graphics::components::RadioSelectorModel::add_option)
+        .def("set_selected", &graphics::components::RadioSelectorModel::set_selected);
+
+    py::class_<graphics::components::CheckboxGroupModel>(graphics_module, "CheckboxGroupModel")
+        .def(py::init<>())
+        .def(py::init<std::vector<std::string>, std::vector<bool>>(), py::arg("options"), py::arg("checked") = std::vector<bool>{})
+        .def_readwrite("options", &graphics::components::CheckboxGroupModel::options)
+        .def_readwrite("checked", &graphics::components::CheckboxGroupModel::checked)
+        .def("add_option", &graphics::components::CheckboxGroupModel::add_option)
+        .def("set_checked", &graphics::components::CheckboxGroupModel::set_checked);
 }
 
 void bind_misc(py::module_& parent_module) {

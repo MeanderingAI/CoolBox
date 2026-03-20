@@ -369,3 +369,39 @@ impl DecayingEpsilonGreedyAgent {
         Err(stub_error("DecayingEpsilonGreedyAgent::run_simulation"))
     }
 }
+
+// GUI/Component primitives (stubs)
+pub struct Toolbar;
+impl Toolbar {
+    pub fn new(_actions: &[&str]) -> Self { Toolbar }
+}
+
+pub struct DockPanel;
+impl DockPanel {
+    pub fn new(_title: &str, _floating: bool) -> Self { DockPanel }
+}
+
+pub struct LayerList;
+impl LayerList {
+    pub fn new(_layers: &[&str], _selected: usize) -> Self { LayerList }
+}
+
+pub struct PropertyInspector;
+impl PropertyInspector {
+    pub fn new(_keys: &[&str], _values: &[&str]) -> Self { PropertyInspector }
+}
+
+pub struct FileTree;
+impl FileTree {
+    pub fn new(_root_name: &str) -> Self { FileTree }
+}
+
+pub struct RadioSelector;
+impl RadioSelector {
+    pub fn new(_options: &[&str], _selected: usize) -> Self { RadioSelector }
+}
+
+pub struct CheckboxGroup;
+impl CheckboxGroup {
+    pub fn new(_options: &[&str], _checked: &[bool]) -> Self { CheckboxGroup }
+}

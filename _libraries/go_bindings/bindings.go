@@ -1,5 +1,11 @@
 package coolboxgo
 
+import (
+	"fmt"
+	"runtime"
+	"unsafe"
+)
+
 /*
 #cgo CXXFLAGS: -std=c++17
 #cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/../backages/ML/generalized_linear_model/headers -I${SRCDIR}/../backages/ML/decision_tree/headers -I${SRCDIR}/../backages/ML/bayesian_network_ai/headers -I${SRCDIR}/../backages/ML/hidden_markov_model/headers -I${SRCDIR}/../backages/ML/dimensionality_reduction/headers -I${SRCDIR}/../backages/ML/support_vector_machine/headers -I${SRCDIR}/../backages/ML/multi_arm_bandit/headers -I${SRCDIR}/../backages/MISC/metadata_management/headers -I${SRCDIR}/../../build/eigen-src
@@ -8,113 +14,287 @@ package coolboxgo
 #include <stdlib.h>
 #include "bridge.h"
 */
-import "C"
 
-import (
-	"fmt"
-	"runtime"
-	"unsafe"
-)
+// =====================
+// Graphics/Chart/Component Bindings
+// =====================
 
-const (
-	FitMethodClosedForm      = "closed_form"
-	FitMethodGradientDescent = "gradient_descent"
+type Color struct{ handle *C.CoolBoxColor }
 
-	SplitCriterionGini    = "gini"
-	SplitCriterionEntropy = "entropy"
-
-	KernelLinear     = "linear"
-	KernelRBF        = "rbf"
-	KernelPolynomial = "polynomial"
-	KernelSigmoid    = "sigmoid"
-)
-
-type LinearRegression struct {
-	handle *C.CoolBoxLinearRegressionModel
+func NewColor(r, g, b, a uint8) *Color {
+	h := C.coolbox_color_create(C.uchar(r), C.uchar(g), C.uchar(b), C.uchar(a))
+	c := &Color{handle: h}
+	runtime.SetFinalizer(c, func(c *Color) { C.coolbox_color_free(c.handle) })
+	return c
 }
 
-type DecisionTree struct {
-	handle *C.CoolBoxDecisionTreeModel
-}
+type Canvas struct{ handle *C.CoolBoxCanvas }
 
-type BayesianNetwork struct {
-	handle *C.CoolBoxBayesianNetworkModel
+func NewCanvas(width, height int) *Canvas {
+	h := C.coolbox_canvas_create(C.int(width), C.int(height))
+	c := &Canvas{handle: h}
+	runtime.SetFinalizer(c, func(c *Canvas) { C.coolbox_canvas_free(c.handle) })
+	return c
 }
-
-type HMM struct {
-	handle       *C.CoolBoxHMMModel
-	states       int
-	observations int
-}
-
-type PCA struct {
-	handle *C.CoolBoxPCAModel
-}
-
-type SVM struct {
-	handle *C.CoolBoxSVMModel
-}
-
-type BanditArm struct {
-	handle *C.CoolBoxBanditArmModel
-}
-
-type BanditAgent struct {
-	handle *C.CoolBoxBanditAgentModel
-}
-
-type BanditStats struct {
-	TrueProbability      float64
-	EstimatedProbability float64
-	TimesPulled          int
-}
-
-type SimulationResult struct {
-	Bandits []BanditStats
-}
-
-func cError(err *C.char) error {
-	if err == nil {
-		return nil
+func (c *Canvas) SavePNG(path string) error {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	if C.coolbox_canvas_save_png(c.handle, cpath) != 0 {
+		return fmt.Errorf("failed to save PNG")
 	}
-	defer C.coolbox_free_string(err)
-	return fmt.Errorf("%s", C.GoString(err))
+	return nil
+}
+func (c *Canvas) SaveBMP(path string) error {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	if C.coolbox_canvas_save_bmp(c.handle, cpath) != 0 {
+		return fmt.Errorf("failed to save BMP")
+	}
+	return nil
+}
+func (c *Canvas) SaveJPG(path string, quality int) error {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	if C.coolbox_canvas_save_jpg(c.handle, cpath, C.int(quality)) != 0 {
+		return fmt.Errorf("failed to save JPG")
+	}
+	return nil
 }
 
-func cDoublePtr(values []float64) *C.double {
-	if len(values) == 0 {
-		return nil
+type Graph struct{ handle *C.CoolBoxGraph }
+
+func NewGraph(width, height, graphType int) *Graph {
+	h := C.coolbox_graph_create(C.int(width), C.int(height), C.int(graphType))
+	g := &Graph{handle: h}
+	runtime.SetFinalizer(g, func(g *Graph) { C.coolbox_graph_free(g.handle) })
+	return g
+}
+func (g *Graph) SetTitle(title string) {
+	ctitle := C.CString(title)
+	defer C.free(unsafe.Pointer(ctitle))
+	C.coolbox_graph_set_title(g.handle, ctitle)
+}
+func (g *Graph) SetXLabel(label string) {
+	clabel := C.CString(label)
+	defer C.free(unsafe.Pointer(clabel))
+	C.coolbox_graph_set_x_label(g.handle, clabel)
+}
+func (g *Graph) SetYLabel(label string) {
+	clabel := C.CString(label)
+	defer C.free(unsafe.Pointer(clabel))
+	C.coolbox_graph_set_y_label(g.handle, clabel)
+}
+func (g *Graph) AddSeries(name string, x, y []float64, color *Color) error {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	n := len(x)
+	if n != len(y) {
+		return fmt.Errorf("x and y must have same length")
 	}
-	return (*C.double)(unsafe.Pointer(&values[0]))
+	if C.coolbox_graph_add_series(g.handle, cname, (*C.double)(&x[0]), (*C.double)(&y[0]), C.int(n), color.handle) != 0 {
+		return fmt.Errorf("failed to add series")
+	}
+	return nil
+}
+func (g *Graph) Render() *Canvas { h := C.coolbox_graph_render(g.handle); return &Canvas{handle: h} }
+
+type Table struct{ handle *C.CoolBoxTable }
+
+func NewTable() *Table {
+	h := C.coolbox_table_create()
+	t := &Table{handle: h}
+	runtime.SetFinalizer(t, func(t *Table) { C.coolbox_table_free(t.handle) })
+	return t
+}
+func (t *Table) SetHeaders(headers []string) {
+	cHeaders := make([]*C.char, len(headers))
+	for i, s := range headers {
+		cHeaders[i] = C.CString(s)
+	}
+	defer func() {
+		for _, s := range cHeaders {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	C.coolbox_table_set_headers(t.handle, &cHeaders[0], C.int(len(headers)))
+}
+func (t *Table) AddRow(row []string) {
+	cRow := make([]*C.char, len(row))
+	for i, s := range row {
+		cRow[i] = C.CString(s)
+	}
+	defer func() {
+		for _, s := range cRow {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	C.coolbox_table_add_row(t.handle, &cRow[0], C.int(len(row)))
+}
+func (t *Table) Render() *Canvas { h := C.coolbox_table_render(t.handle); return &Canvas{handle: h} }
+
+type FontFace struct{ handle *C.CoolBoxFontFace }
+
+func NewFontFace() *FontFace {
+	h := C.coolbox_fontface_create()
+	f := &FontFace{handle: h}
+	runtime.SetFinalizer(f, func(f *FontFace) { C.coolbox_fontface_free(f.handle) })
+	return f
+}
+func (f *FontFace) LoadFromFile(path string) error {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	if C.coolbox_fontface_load_from_file(f.handle, cpath) == 0 {
+		return fmt.Errorf("failed to load font")
+	}
+	return nil
+}
+func (f *FontFace) IsLoaded() bool { return C.coolbox_fontface_is_loaded(f.handle) != 0 }
+
+// GUI/Component primitives (stubs)
+type Component struct{ handle *C.CoolBoxComponent }
+
+func NewComponent(componentType int) *Component {
+	h := C.coolbox_component_create(C.int(componentType))
+	c := &Component{handle: h}
+	runtime.SetFinalizer(c, func(c *Component) { C.coolbox_component_free(c.handle) })
+	return c
 }
 
-func cCIntPtr(values []C.int) *C.int {
-	if len(values) == 0 {
-		return nil
+// Toolbar
+type Toolbar struct{ handle *C.CoolBoxToolbar }
+
+func NewToolbar(actions []string) *Toolbar {
+	cActions := make([]*C.char, len(actions))
+	for i, s := range actions {
+		cActions[i] = C.CString(s)
 	}
-	return (*C.int)(unsafe.Pointer(&values[0]))
+	defer func() {
+		for _, s := range cActions {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	h := C.coolbox_toolbar_create(&cActions[0], C.int(len(actions)))
+	t := &Toolbar{handle: h}
+	runtime.SetFinalizer(t, func(t *Toolbar) { C.coolbox_toolbar_free(t.handle) })
+	return t
 }
 
-func toCIntSlice(values []int) []C.int {
-	if len(values) == 0 {
-		return nil
-	}
-	out := make([]C.int, len(values))
-	for i, value := range values {
-		out[i] = C.int(value)
-	}
-	return out
+// DockPanel
+type DockPanel struct{ handle *C.CoolBoxDockPanel }
+
+func NewDockPanel(title string, floating bool) *DockPanel {
+	ctitle := C.CString(title)
+	defer C.free(unsafe.Pointer(ctitle))
+	h := C.coolbox_dockpanel_create(ctitle, C.int(boolToInt(floating)))
+	d := &DockPanel{handle: h}
+	runtime.SetFinalizer(d, func(d *DockPanel) { C.coolbox_dockpanel_free(d.handle) })
+	return d
 }
 
-func fromCIntSlice(values []C.int) []int {
-	if len(values) == 0 {
-		return nil
+// LayerList
+type LayerList struct{ handle *C.CoolBoxLayerList }
+
+func NewLayerList(layers []string, selected int) *LayerList {
+	cLayers := make([]*C.char, len(layers))
+	for i, s := range layers {
+		cLayers[i] = C.CString(s)
 	}
-	out := make([]int, len(values))
-	for i, value := range values {
-		out[i] = int(value)
+	defer func() {
+		for _, s := range cLayers {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	h := C.coolbox_layerlist_create(&cLayers[0], C.int(len(layers)), C.int(selected))
+	l := &LayerList{handle: h}
+	runtime.SetFinalizer(l, func(l *LayerList) { C.coolbox_layerlist_free(l.handle) })
+	return l
+}
+
+// PropertyInspector
+type PropertyInspector struct{ handle *C.CoolBoxPropertyInspector }
+
+func NewPropertyInspector(keys, values []string) *PropertyInspector {
+	n := len(keys)
+	if n != len(values) {
+		panic("keys and values must have same length")
 	}
-	return out
+	cKeys := make([]*C.char, n)
+	cVals := make([]*C.char, n)
+	for i := 0; i < n; i++ {
+		cKeys[i] = C.CString(keys[i])
+		cVals[i] = C.CString(values[i])
+	}
+	defer func() {
+		for _, s := range cKeys {
+			C.free(unsafe.Pointer(s))
+		}
+		for _, s := range cVals {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	h := C.coolbox_propertyinspector_create(&cKeys[0], &cVals[0], C.int(n))
+	p := &PropertyInspector{handle: h}
+	runtime.SetFinalizer(p, func(p *PropertyInspector) { C.coolbox_propertyinspector_free(p.handle) })
+	return p
+}
+
+// FileTree
+type FileTree struct{ handle *C.CoolBoxFileTree }
+
+func NewFileTree(rootName string) *FileTree {
+	croot := C.CString(rootName)
+	defer C.free(unsafe.Pointer(croot))
+	h := C.coolbox_filetree_create(croot)
+	f := &FileTree{handle: h}
+	runtime.SetFinalizer(f, func(f *FileTree) { C.coolbox_filetree_free(f.handle) })
+	return f
+}
+
+// RadioSelector
+type RadioSelector struct{ handle *C.CoolBoxRadioSelector }
+
+func NewRadioSelector(options []string, selected int) *RadioSelector {
+	cOpts := make([]*C.char, len(options))
+	for i, s := range options {
+		cOpts[i] = C.CString(s)
+	}
+	defer func() {
+		for _, s := range cOpts {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	h := C.coolbox_radioselector_create(&cOpts[0], C.int(len(options)), C.int(selected))
+	r := &RadioSelector{handle: h}
+	runtime.SetFinalizer(r, func(r *RadioSelector) { C.coolbox_radioselector_free(r.handle) })
+	return r
+}
+
+// CheckboxGroup
+type CheckboxGroup struct{ handle *C.CoolBoxCheckboxGroup }
+
+func NewCheckboxGroup(options []string, checked []bool) *CheckboxGroup {
+	n := len(options)
+	cOpts := make([]*C.char, n)
+	cChecked := make([]C.int, n)
+	for i, s := range options {
+		cOpts[i] = C.CString(s)
+	}
+	for i, b := range checked {
+		if b {
+			cChecked[i] = 1
+		} else {
+			cChecked[i] = 0
+		}
+	}
+	defer func() {
+		for _, s := range cOpts {
+			C.free(unsafe.Pointer(s))
+		}
+	}()
+	h := C.coolbox_checkboxgroup_create(&cOpts[0], &cChecked[0], C.int(n))
+	c := &CheckboxGroup{handle: h}
+	runtime.SetFinalizer(c, func(c *CheckboxGroup) { C.coolbox_checkboxgroup_free(c.handle) })
+	return c
 }
 
 func flattenFloatMatrix(x [][]float64) ([]float64, int, int, error) {

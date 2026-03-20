@@ -4,6 +4,8 @@ build-emscripten-local-check
 build-emscripten-local-check-default
 bin
 .local-cpp-docs
+.r-library
+.r-makevars.local
 Testing
 **/a.out
 _libraries/gen_docs/html/
