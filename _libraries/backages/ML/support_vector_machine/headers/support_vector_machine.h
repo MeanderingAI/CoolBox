@@ -1,10 +1,10 @@
 
 /**
- * @mainpage SVM Library
+ * @page svm_main SVM Library
  *
- * @section usage_examples Usage Examples
+ * @section usage_examples_svm Usage Examples
  *
- * @subsection cpp_example C++ Example
+ * @subsection cpp_example_svm C++ Example
  * @code{.cpp}
  * #include "support_vector_machine.h"
  * LinearKernel kernel;
@@ -13,7 +13,7 @@
  * double pred = svm.predict(sample);
  * @endcode
  *
- * @subsection python_example Python Example
+ * @subsection python_example_svm Python Example
  * @code{.python}
  * from ml_core.svm import SVM, LinearKernel
  * kernel = LinearKernel()
@@ -22,7 +22,7 @@
  * pred = svm.predict(sample)
  * @endcode
  *
- * @subsection js_example JavaScript Example (WASM/Emscripten)
+ * @subsection js_example_svm JavaScript Example (WASM/Emscripten)
  * @code{.js}
  * // Async usage (MODULARIZE=1, default):
  * createSVMModule().then(Module => {
@@ -34,7 +34,7 @@
  * });
  * @endcode
  *
- * @subsection js_example_sync JavaScript Example (Synchronous, MODULARIZE=0)
+ * @subsection js_example_sync_svm JavaScript Example (Synchronous, MODULARIZE=0)
  * @code{.js}
  * // If svm.js is loaded and exposes 'Module' globally:
  * const SVM = Module.SVM;

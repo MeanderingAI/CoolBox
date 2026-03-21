@@ -1,0 +1,14 @@
+/**
+ * @mainpage CoolBox C++ Toolkit
+ *
+ * Welcome to the CoolBox C++ Toolkit documentation! This toolkit provides a comprehensive suite of libraries and utilities for modern C++ development, including machine learning, IO, data structures, advanced logging, and more.
+ *
+ * @section modules Modules
+ * - @subpage ml_main "Machine Learning Toolkit"
+ * - @subpage io_main "IO Utilities"
+ * - @subpage datastructures_main "Data Structures"
+ * - @subpage advanced_logging_main "Advanced Logging"
+ *
+ * @section getting_started Getting Started
+ * Explore each module's documentation for usage examples, API references, and integration guides.
+ */

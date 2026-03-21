@@ -1,11 +1,11 @@
 
 
 /**
- * @mainpage DecisionTree Library
+ * @page decision_tree_main DecisionTree Library
  *
- * @section usage_examples Usage Examples
+ * @section usage_examples_decision_tree Usage Examples
  *
- * @subsection cpp_example C++ Example
+ * @subsection cpp_example_decision_tree C++ Example
  * @code{.cpp}
  * #include "ml/decision_tree/decision_tree.h"
  * DecisionTree tree(SplitCriterion::GINI);
@@ -13,7 +13,7 @@
  * int label = tree.predict(sample);
  * @endcode
  *
- * @subsection python_example Python Example
+ * @subsection python_example_decision_tree Python Example
  * @code{.python}
  * from ml_core.decision_tree import DecisionTree, SplitCriterion
  * tree = DecisionTree(SplitCriterion.GINI)
@@ -21,7 +21,7 @@
  * label = tree.predict(sample)
  * @endcode
  *
- * @subsection js_example JavaScript Example (WASM/Emscripten)
+ * @subsection js_example_decision_tree JavaScript Example (WASM/Emscripten)
  * @code{.js}
  * // Async usage (MODULARIZE=1, default):
  * createDecisionTreeModule().then(Module => {
@@ -32,7 +32,7 @@
  * });
  * @endcode
  *
- * @subsection js_example_sync JavaScript Example (Synchronous, MODULARIZE=0)
+ * @subsection js_example_sync_decision_tree JavaScript Example (Synchronous, MODULARIZE=0)
  * @code{.js}
  * // If decision_tree.js is loaded and exposes 'Module' globally:
  * const DecisionTree = Module.DecisionTree;

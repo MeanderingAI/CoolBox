@@ -1,6 +1,6 @@
 from build_libraries import (
     Block, TutorialPage, PublicationEntry,
-    slugify, split_payload, normalize_library_reference, parse_code_payload, copy_asset,
+    slugify, split_payload, normalize_library_reference, parse_code_payload, is_remote_url, copy_asset,
     build_tutorial_site, render_page, render_block, parse_tutorial, youtube_embed, load_publications, render_publications, render_index
 )
 from pathlib import Path

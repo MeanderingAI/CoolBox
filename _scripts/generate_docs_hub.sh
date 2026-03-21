@@ -622,7 +622,7 @@ if [ -d "${TUTORIALS_INPUT_DIR}" ] && [ -f "${TUTORIALS_INPUT_DIR}/index.html" ]
   mkdir -p "${SITE_DIR}/tutorials"
   cp -R "${TUTORIALS_INPUT_DIR}/." "${SITE_DIR}/tutorials/"
   has_tutorials=true
-  tutorials_latest_posts="$(TUTORIALS_DIR="${SITE_DIR}/tutorials" python - <<'PY'
+  tutorials_latest_posts="$(TUTORIALS_DIR="${SITE_DIR}/tutorials" python3 - <<'PY'
 import html
 import os
 import re
@@ -658,7 +658,7 @@ PY
 )"
 
   if [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
-  publications_latest_posts="$(PUBLICATIONS_DIR="${SITE_DIR}/tutorials/publications" python - <<'PY'
+  publications_latest_posts="$(PUBLICATIONS_DIR="${SITE_DIR}/tutorials/publications" python3 - <<'PY'
 import html
 import json
 import os
@@ -876,8 +876,6 @@ EOF
 if [ -f "${ROOT_DIR}/_scripts/translate_docs.py" ]; then
   if command -v python3 >/dev/null 2>&1; then
     python3 "${ROOT_DIR}/_scripts/translate_docs.py" "${SITE_DIR}"
-  elif command -v python >/dev/null 2>&1; then
-    python "${ROOT_DIR}/_scripts/translate_docs.py" "${SITE_DIR}"
   fi
 fi
 

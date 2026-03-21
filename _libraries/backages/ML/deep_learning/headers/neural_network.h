@@ -10,11 +10,11 @@
 #include <string>
 
 /**
- * @mainpage NeuralNetwork Library
+ * @page neural_network_main NeuralNetwork Library
  *
- * @section usage_examples Usage Examples
+ * @section usage_examples_neural_network Usage Examples
  *
- * @subsection cpp_example C++ Example
+ * @subsection cpp_example_neural_network C++ Example
  * @code{.cpp}
  * #include "ml/deep_learning/neural_network.h"
  * using namespace ml::deep_learning;
@@ -24,7 +24,7 @@
  * auto preds = net.predict(input);
  * @endcode
  *
- * @subsection python_example Python Example
+ * @subsection python_example_neural_network Python Example
  * @code{.python}
  * from ml_core.deep_learning import NeuralNetwork
  * net = NeuralNetwork()
@@ -33,7 +33,7 @@
  * preds = net.predict(input)
  * @endcode
  *
- * @subsection js_example JavaScript Example (WASM/Emscripten)
+ * @subsection js_example_neural_network JavaScript Example (WASM/Emscripten)
  * @code{.js}
  * // Async usage (MODULARIZE=1, default):
  * createNeuralNetworkModule().then(Module => {
@@ -45,7 +45,7 @@
  * });
  * @endcode
  *
- * @subsection js_example_sync JavaScript Example (Synchronous, MODULARIZE=0)
+ * @subsection js_example_sync_neural_network JavaScript Example (Synchronous, MODULARIZE=0)
  * @code{.js}
  * // If neural_network.js is loaded and exposes 'Module' globally:
  * const NeuralNetwork = Module.NeuralNetwork;

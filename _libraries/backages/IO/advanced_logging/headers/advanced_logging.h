@@ -1,10 +1,10 @@
 
 /**
- * @mainpage advanced_logging Library
+ * @page advanced_logging_main advanced_logging Library
  *
- * @section usage_examples Usage Examples
+ * @section usage_examples_advanced_logging Usage Examples
  *
- * @subsection cpp_example C++ Example
+ * @subsection cpp_example_advanced_logging C++ Example
  * @code{.cpp}
  * #include "advanced_logging/advanced_logging.h"
  * int main() {
@@ -16,7 +16,7 @@
  * }
  * @endcode
  *
- * @subsection python_example Python Example
+ * @subsection python_example_advanced_logging Python Example
  * @code{.python}
  * from ml_toolbox import advanced_logging
  * logger = advanced_logging.Logger("mylog.log")
@@ -25,7 +25,7 @@
  * logger.error("This is an error")
  * @endcode
  *
- * @subsection js_example JavaScript Example (WASM/Emscripten)
+ * @subsection js_example_advanced_logging JavaScript Example (WASM/Emscripten)
  * @code{.js}
  * // Assuming advanced_logging.js and .wasm are loaded
  * createAdvancedLoggingModule().then(Module => {
@@ -37,7 +37,7 @@
  * });
  * @endcode
  *
- * @subsection js_example_sync JavaScript Example (Synchronous, MODULARIZE=0)
+ * @subsection js_example_sync_advanced_logging JavaScript Example (Synchronous, MODULARIZE=0)
  * @code{.js}
  * // If advanced_logging.js is loaded and exposes 'Module' globally:
  * const Logger = Module.Logger;

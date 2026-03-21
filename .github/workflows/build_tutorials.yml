@@ -28,6 +28,14 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Build tag pages
+        run: |
+          python ./_scripts/build_tags.py --out ./tutorials-site/tags
+
+      - name: Build publications
+        run: |
+          python ./_scripts/build_publications.py --bib ./bib --out ./tutorials-site
+
       - name: Build tutorials site
         run: |
           python ./_scripts/build_tutorials.py ./tutorials ./tutorials-site
