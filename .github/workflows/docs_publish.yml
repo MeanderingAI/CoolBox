@@ -126,8 +126,8 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: tutorials-site
-          path: .prebuilt/tutorials
+          name: documentation
+          path: .prebuilt/documentation
 
       - name: Build tutorials site fallback
         if: github.event_name != 'workflow_call'

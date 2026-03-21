@@ -132,7 +132,7 @@ build: configure
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf build lib .site .local-cpp-docs .r-library .r-makevars.local
+	rm -rf build lib .site .local-cpp-docs .r-library .r-makevars.local .documentation
 	@echo "Clean complete."
 
 # ── Library Builds ──────────────────────────────────────────────────
@@ -314,18 +314,8 @@ test_rust_bindings:
 	@cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
 
 # ── Static Site Generation ─────────────────────────────────────────
-# 1. Build tutorials into a staging directory (build/tutorials-site).
-#    build_tutorial_site() nests pages under output_dir/tutorials/, so the
-#    index lives at build/tutorials-site/tutorials/index.html.
-# 2. Run generate_docs_hub.sh which wipes .site/ and rebuilds the portal.
-#    DOCS_TUTORIALS_DIR tells it where the staged tutorials live so it can
-#    copy them into .site/tutorials/ and populate the hub's latest-posts.
-# 3. Finally, generate references and tag pages *after* the hub script so
-#    they are not deleted by its initial rm -rf.
+# Build the full documentation site via a single entry-point script.
+# The script builds tutorials into build/documentation/, generates the
+# docs hub portal under .site/, and populates references and tag pages.
 build_site:
-	@echo "Building static site from tutorials, publications, and references..."
-	@$(PYTHON) _scripts/build_tutorials.py tutorials build/tutorials-site
-	@DOCS_TUTORIALS_DIR="$(CURDIR)/build/tutorials-site/tutorials" bash ./_scripts/generate_docs_hub.sh "$(CURDIR)/.site"
-	@$(PYTHON) _scripts/build_references.py --bib bib --out .site/references
-	@$(PYTHON) _scripts/build_tags.py --out .site/tags
-	@echo "✓ Static site and documentation portal generated."
+	@bash ./_scripts/build_documentation.sh "$(CURDIR)"

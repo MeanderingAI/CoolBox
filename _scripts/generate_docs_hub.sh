@@ -26,7 +26,7 @@ JAVA_TARGET_DIR="${JAVA_BINDINGS_DIR}/target"
 REPOSITORY_SLUG="${DOCS_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
 RELEASE_TAG="${DOCS_RELEASE_TAG:-}"
 PREBUILT_CPP_DOCS_DIR="${DOCS_CPP_DIR:-}"
-TUTORIALS_INPUT_DIR="${DOCS_TUTORIALS_DIR:-${ROOT_DIR}/build/tutorials-site}"
+TUTORIALS_INPUT_DIR="${DOCS_TUTORIALS_DIR:-${ROOT_DIR}/build/documentation_site}"
 
 if [ -z "${REPOSITORY_SLUG}" ] && command -v git >/dev/null 2>&1; then
   remote_url="$(git -C "${ROOT_DIR}" config --get remote.origin.url 2>/dev/null || true)"
@@ -42,7 +42,8 @@ if [ -z "${REPOSITORY_SLUG}" ] && command -v git >/dev/null 2>&1; then
   esac
 fi
 
-rm -rf "${SITE_DIR}"
+# NOTE: preserve existing output directories so pre-built sections (publications, references, etc.) are not deleted.
+#rm -rf "${SITE_DIR}"
 mkdir -p "${SITE_DIR}" "${SITE_DIR}/extensions" "${SITE_DIR}/artifacts"
 printf '' > "${SITE_DIR}/.nojekyll"
 
@@ -620,13 +621,30 @@ fi
 
 if [ -d "${TUTORIALS_INPUT_DIR}" ] && [ -f "${TUTORIALS_INPUT_DIR}/index.html" ]; then
   mkdir -p "${SITE_DIR}/tutorials"
-  cp -R "${TUTORIALS_INPUT_DIR}/." "${SITE_DIR}/tutorials/"
+
+  # Avoid self-copy when tutorials input already points at .site/tutorials
+  if [ "$(cd "${TUTORIALS_INPUT_DIR}" && pwd)" != "$(cd "${SITE_DIR}/tutorials" && pwd)" ]; then
+    cp -R "${TUTORIALS_INPUT_DIR}/." "${SITE_DIR}/tutorials/"
+  else
+    echo "[generate_docs_hub.sh] Tutorials input already at ${SITE_DIR}/tutorials; skipping copy"
+  fi
+
+  # Remove publication/reference folders from tutorials output, they belong at root /publications and /references.
+  for subfolder in publications references; do
+    if [ -d "${SITE_DIR}/tutorials/${subfolder}" ]; then
+      echo "[generate_docs_hub.sh] Removing tutorials/${subfolder} (generated as part of tutorial input)"
+      rm -rf "${SITE_DIR}/tutorials/${subfolder}"
+    fi
+  done
+
   has_tutorials=true
-  tutorials_latest_posts="$(TUTORIALS_DIR="${SITE_DIR}/tutorials" python3 - <<'PY'
+  echo "[generate_docs_hub.sh] Generating latest tutorial posts from ${SITE_DIR}/tutorials"
+  tutorials_latest_posts="$(TUTORIALS_DIR="${SITE_DIR}/tutorials" PYTHONWARNINGS=ignore python3 - <<'PY'
 import html
 import os
 import re
-from datetime import datetime
+import warnings
+from datetime import datetime, timezone
 from pathlib import Path
 
 tutorials_dir = Path(os.environ["TUTORIALS_DIR"])
@@ -650,44 +668,15 @@ def title_for(page: Path) -> str:
 items = []
 for page in pages[:3]:
     title = html.escape(title_for(page))
-    stamp = datetime.utcfromtimestamp(page.stat().st_mtime).strftime("%Y-%m-%d")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        stamp = datetime.fromtimestamp(page.stat().st_mtime, timezone.utc).strftime("%Y-%m-%d")
     items.append(f'<li><a href="tutorials/{page.name}">{title}</a><p class="muted">Latest tutorial post · updated {stamp}</p></li>')
 
 print("".join(items))
 PY
 )"
-
-  if [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
-  publications_latest_posts="$(PUBLICATIONS_DIR="${SITE_DIR}/tutorials/publications" python3 - <<'PY'
-import html
-import json
-import os
-from datetime import datetime
-from pathlib import Path
-
-publications_dir = Path(os.environ["PUBLICATIONS_DIR"])
-metadata_files = sorted(publications_dir.glob("*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
-
-items = []
-for metadata_path in metadata_files[:3]:
-  try:
-    payload = json.loads(metadata_path.read_text(encoding="utf-8"))
-  except json.JSONDecodeError:
-    payload = {}
-
-  title = str(payload.get("title", "") or "").strip()
-  if not title:
-    title = metadata_path.stem.replace("-", " ").replace("_", " ").title()
-
-  stamp = datetime.utcfromtimestamp(metadata_path.stat().st_mtime).strftime("%Y-%m-%d")
-  items.append(
-    f'<li><a href="tutorials/publications/index.html">{html.escape(title)}</a><p class="muted">Recent publication · updated {stamp}</p></li>'
-  )
-
-print("".join(items))
-PY
-)"
-  fi
+  echo "[generate_docs_hub.sh] Generated tutorials_latest_posts length $(printf '%s' "${tutorials_latest_posts}" | wc -c) chars"
 fi
 
 cpp_link=''
@@ -761,16 +750,7 @@ elif [ -n "${rust_release_links}" ]; then
   rust_link="<li><span>Rust Extension Docs</span><p>Rust crate release packages for the published bindings.</p>${rust_release_links}</li>"
 fi
 if [ "${has_tutorials}" = true ]; then
-  tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Interactive-style tutorial pages generated from .tut source files.</p></li>'
-  if [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
-    publications_link='<li><a href="tutorials/publications/index.html">Publications</a><p>Publication records with metadata and downloadable PDFs.</p></li>'
-  fi
-fi
-if [ -z "${publications_link}" ]; then
-  publications_link='<li><p class="muted">No publications are available yet.</p></li>'
-fi
-if [ -n "${publications_link}" ] && [ -z "${publications_latest_posts}" ] && [ -f "${SITE_DIR}/tutorials/publications/index.html" ]; then
-  publications_latest_posts='<li><p class="muted">No recent publications are available yet.</p></li>'
+  tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Quick tutorials for using the CoolBox library.</p></li>'
 fi
 if [ -z "${tutorials_latest_posts}" ]; then
   tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
@@ -861,8 +841,14 @@ cat > "${SITE_DIR}/index.html" <<EOF
     <section>
       <h2 class="section-title">இ Publications</h2>
       <ul class="tutorials-list">
-        ${publications_link}
-        ${publications_latest_posts}
+        $(
+          PUB_DIR="${SITE_DIR}/publications"
+          if [ -f "${PUB_DIR}/index.html" ]; then
+            printf '<li><a href="publications/index.html">Publications index</a><p class="muted">Publication metadata and PDFs</p></li>\n'
+          else
+            echo '<li><p class="muted">No publications are available yet.</p></li>'
+          fi
+        )
       </ul>
     </section>
     <footer>

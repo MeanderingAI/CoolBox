@@ -28,21 +28,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Build tag pages
+      - name: Build documentation
         run: |
-          python ./_scripts/build_tags.py --out ./tutorials-site/tags
+          bash ./_scripts/build_documentation.sh "$(pwd)"
 
-      - name: Build publications
-        run: |
-          python ./_scripts/build_publications.py --bib ./bib --out ./tutorials-site
-
-      - name: Build tutorials site
-        run: |
-          python ./_scripts/build_tutorials.py ./tutorials ./tutorials-site
-
-      - name: Upload tutorials artifact
+      - name: Upload documentation artifact
         uses: actions/upload-artifact@v6
         with:
-          name: tutorials-site
-          path: tutorials-site/
+          name: documentation
+          path: .documentation/
           retention-days: 14

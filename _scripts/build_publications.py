@@ -25,13 +25,12 @@ def build_publications_site(bib_dir: Path, output_dir: Path) -> None:
     """Build publications and references HTML from bib files."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load and render publications
     publications = load_publications(bib_dir)
     print(f"Loaded {len(publications)} publication(s) from {bib_dir}")
     render_publications(publications, output_dir)
     print(f"Publications index written to {output_dir / 'publications' / 'index.html'}")
 
-    # Also build per-bib reference pages
+    # Build per-bib reference pages separately
     references_out = output_dir / "references"
     build_references(bib_dir, references_out)
     print(f"Reference pages written to {references_out}")
@@ -52,8 +51,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out",
         type=str,
-        default="build/tutorials-site",
-        help="Output directory for generated HTML (default: build/tutorials-site)",
+        default="build/documentation_site",
+        help="Output directory for generated HTML (default: build/documentation_site)",
     )
     args = parser.parse_args()
 

@@ -285,6 +285,58 @@ def render_page(page: TutorialPage, output_dir: Path, publications: list[Publica
     libs_html = "".join(f'<span class="tag lib-tag">{html.escape(lib)}</span>' for lib in page.libs)
     repo_html = f'<p><a class="inline-link repo-link" href="{html.escape(page.repo)}">Repository</a></p>' if page.repo else ""
     output_file = output_dir / f"{page.slug}.html"
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file.write_text(
+        f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{html.escape(page.title)} | CoolBox Tutorials</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }}
+        main {{ background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }}
+        h1 {{ color: #111827; margin-bottom: 0.5rem; }}
+        h2 {{ color: #1e293b; margin-top: 2rem; }}
+        h3, h4, h5, h6 {{ color: #334155; }}
+        a {{ color: #2563eb; text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
+        p {{ line-height: 1.7; }}
+        .tag {{ display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 999px; padding: 0.2rem 0.75rem; font-size: 0.85rem; margin: 0.2rem; }}
+        .lib-tag {{ background: #fef3c7; color: #92400e; }}
+        .tag-row {{ margin: 0.5rem 0 1.5rem; }}
+        .code-card {{ background: #1e293b; border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; overflow-x: auto; }}
+        .code-card pre {{ margin: 0; }}
+        .code-card code {{ color: #e2e8f0; font-size: 0.95rem; white-space: pre; }}
+        .code-meta {{ display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }}
+        .code-language {{ color: #94a3b8; font-size: 0.85rem; font-weight: 600; }}
+        .code-lib {{ color: #fbbf24; font-size: 0.8rem; }}
+        .media-card {{ margin: 1.5rem 0; text-align: center; }}
+        .media-card img, .media-card video {{ max-width: 100%; border-radius: 12px; }}
+        .video-frame {{ position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; }}
+        .video-frame iframe {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }}
+        figcaption {{ color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }}
+        .inline-link {{ display: inline-block; margin: 0.25rem 0; }}
+        .muted {{ color: #64748b; font-size: 0.95rem; }}
+        footer {{ margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; }}
+    </style>
+</head>
+<body>
+    <main>
+      <a href="index.html" title="Back to tutorials">&#8592; Back to tutorials</a>
+      <h1>{html.escape(page.title)}</h1>
+      <div class="tag-row">{tags_html}{libs_html}</div>
+      {repo_html}
+      {blocks_html}
+      <footer>
+          <p>&#x133FF; Meandering LLC &copy; 2026</p>
+      </footer>
+    </main>
+</body>
+</html>""",
+        encoding="utf-8"
+    )
+    print(f"  -> Written tutorial page: {output_file}")
     references_dir = output_dir / "references"
     references_dir.mkdir(parents=True, exist_ok=True)
     bib_dir = Path(__file__).parent.parent / "bib"
@@ -377,45 +429,9 @@ def load_publications(bib_dir: Path) -> list[PublicationEntry]:
 def render_publications(entries: list[PublicationEntry], output_dir: Path) -> None:
     publications_dir = output_dir / "publications"
     publications_dir.mkdir(parents=True, exist_ok=True)
-    cards = []
-    for entry in entries:
-        title = html.escape(entry.title or "Untitled publication")
-        authors = ", ".join(html.escape(author) for author in entry.authors) or ""
-        abstract = html.escape(entry.abstract or "")
-        year = html.escape(entry.year or "")
-        tags_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in entry.tags)
-        metadata_name = html.escape(entry.metadata_path.name)
-        links = [f'<a href="{metadata_name}">Metadata</a>']
-        if entry.pdf:
-            links.append(f'<a href="{html.escape(entry.pdf)}">PDF</a>')
-        elif any(publications_dir.glob("*.pdf")):
-            links.append('<a href="blank.pdf">PDF</a>')
-        details = " · ".join(links)
-        meta_line = " · ".join(item for item in [authors, year] if item)
-        cards.append(
-            '<article class="card">'
-            f'<h2>{title}</h2>'
-            + (f'<p class="muted">{meta_line}</p>' if meta_line else '<p class="muted">Publication details will be added later.</p>')
-            + (f'<div class="tag-row">{tags_html}</div>' if tags_html else '')
-            + (f'<p>{abstract}</p>' if abstract else '<p>Abstract coming soon.</p>')
-            + f'<p>{details}</p>'
-            + '</article>'
-        )
-    # Add references section at the bottom
-    bib_dir = Path(__file__).parent.parent / "bib"
-    references_dir = output_dir / "references"
-    references_dir.mkdir(parents=True, exist_ok=True)
-    reference_links = []
-    if bib_dir.exists():
-        for bib_file in sorted(bib_dir.glob("*.bib")):
-            # Only link to the per-bib HTML page, no mention of .bib or BibTeX
-            display_name = bib_file.stem.replace('_', ' ').capitalize()
-            reference_links.append(f'<li><a href="../references/{bib_file.stem}.html">{display_name}</a></li>')
-    references_section = ""
-    if reference_links:
-        references_section = f'<section><h2>References</h2><ul>{"".join(reference_links)}</ul><p><a href="../references/index.html">Browse all references</a></p></section>'
-    if not cards:
-        cards.append('<article class="card"><h2>Publications</h2><p>Publication metadata and PDFs will appear here.</p></article>')
+
+    cards = '<article class="card"><h2>Publications</h2><p>Publication metadata and PDFs will appear here.</p></article>'
+    
     (publications_dir / "index.html").write_text(
         f"""<!DOCTYPE html>
 <html lang=\"en\">
@@ -428,6 +444,7 @@ def render_publications(entries: list[PublicationEntry], output_dir: Path) -> No
         main {{ background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }}
         .hero {{ margin-bottom: 2rem; display: flex; align-items: center; }}
         .back-arrow {{ font-size: 2rem; margin-right: 1.2rem; color: #2563eb; text-decoration: none; font-weight: bold; line-height: 1; }}
+        .page-header {{ display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.35rem; }}
         .card {{ border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem 1.25rem; margin: 1rem 0; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; }}
         h1, h2 {{ color: #111827; }}
         a {{ color: #2563eb; text-decoration: none; }}
@@ -450,13 +467,14 @@ def render_publications(entries: list[PublicationEntry], output_dir: Path) -> No
 </head>
 <body>
     <main>
-        <section class=\"hero\">
-            <h1>☉ Publications
-                <a href=\"../info.html\" class=\"info-icon\" title=\"More information\">ⓘ</a>
+        <div class="page-header">
+            <h1>
+                <a href=\"../index.html\" class=\"back-arrow\" title=\"Back to documentation\">&#8592;</a> இ Publications
             </h1>
-        </section>
+
+            <a href=\"../references/index.html\" class=\"info-icon\" title=\"More information\">ⓘ</a>
+        </div>
         {''.join(cards)}
-        {references_section}
         <footer>
             <p>𓁿 Meandering LLC © 2026</p>
         </footer>
@@ -605,8 +623,9 @@ def build_tutorial_site(source_dir: Path, output_dir: Path) -> None:
         except Exception as e:
             print(f"Error parsing {tut_file}: {e}")
 
-    # Ensure tutorials are checked in the .site folder
-    site_tutorials_dir = output_dir / "tutorials"
+    # Write tutorial HTML directly into output_dir so that
+    # generate_docs_hub.sh finds index.html at the expected location.
+    site_tutorials_dir = output_dir
     site_tutorials_dir.mkdir(parents=True, exist_ok=True)
 
     # Load publications from the project-root bib/ directory
@@ -619,9 +638,7 @@ def build_tutorial_site(source_dir: Path, output_dir: Path) -> None:
     for page in pages:
         render_page(page, site_tutorials_dir, publications)
 
-    # Render publications
-    render_publications(publications, site_tutorials_dir)
-    print(f"Rendered publications index at {site_tutorials_dir / 'publications' / 'index.html'}")
+    # Publications and references generation removed as requested
 
     # Generate tag pages
     _generate_tag_pages(pages, output_dir)
