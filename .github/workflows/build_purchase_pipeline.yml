@@ -196,3 +196,64 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
+
+  
+  publish_lsp_packages:
+    needs:
+      - generate_lsp_images
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plang LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plang_lsp
+          path: dist/plang
+
+      - name: Download plrust LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plrust_lsp
+          path: dist/plrust
+
+      - name: Download pljava LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pljava_lsp
+          path: dist/pljava
+
+      - name: Download plpython LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plpython_lsp
+          path: dist/plpython
+
+      - name: Package artifacts
+        run: |
+          set -e
+          mkdir -p release_assets
+          # copy any downloaded artifact dirs into release_assets
+          for d in dist/*; do
+            if [ -e "$d" ]; then
+              cp -r "$d" release_assets/ || true
+            fi
+          done
+          # create tarballs per artifact
+          for entry in release_assets/*; do
+            if [ -d "$entry" ]; then
+              base=$(basename "$entry")
+              tar -czf "${base}-${GITHUB_REF_NAME}.tar.gz" -C "$entry" .
+            fi
+          done
+          ls -la
+
+      - name: Create release and upload packages
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ github.ref_name }}
+          files: release_assets/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
