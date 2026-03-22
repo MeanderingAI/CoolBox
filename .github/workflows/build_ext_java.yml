@@ -2,7 +2,6 @@ name: build_ext_java
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: write
