@@ -671,7 +671,7 @@ for page in pages[:3]:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         stamp = datetime.fromtimestamp(page.stat().st_mtime, timezone.utc).strftime("%Y-%m-%d")
-    items.append(f'<li><a href="tutorials/{page.name}">{title}</a><p class="muted">Latest tutorial post · updated {stamp}</p></li>')
+    items.append(f'<li><a href="tutorials/{page.name}">{title}</a><p class="muted">Latest tutorial post · published {stamp}</p></li>')
 
 print("".join(items))
 PY

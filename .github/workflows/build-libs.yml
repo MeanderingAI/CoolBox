@@ -1,0 +1,56 @@
+name: Build libraries
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-libs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake curl pkg-config
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build libraries and targets
+        run: cmake --build build --parallel
+
+      - name: Prepare binaries for artifacts
+        run: |
+          mkdir -p apps/lsp/dist
+          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+
+      - name: Upload plang_lsp artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plang_lsp
+          path: apps/lsp/dist/plang_lsp
+
+      - name: Upload plrust_lsp artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plrust_lsp
+          path: apps/lsp/dist/plrust_lsp
+
+      - name: Upload pljava_lsp artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pljava_lsp
+          path: apps/lsp/dist/pljava_lsp
+
+      - name: Upload plpython_lsp artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plpython_lsp
+          path: apps/lsp/dist/plpython_lsp

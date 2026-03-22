@@ -1,0 +1,42 @@
+name: Build & publish plpython-lsp
+
+on:
+  workflow_run:
+    workflows: ["Build libraries"]
+    types: [completed]
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake curl pkg-config docker.io
+
+      - name: Download plpython_lsp artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plpython_lsp
+          path: apps/lsp/dist
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.python
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest

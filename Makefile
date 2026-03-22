@@ -236,7 +236,7 @@ install_tutorial_editor_deps:
 
 launch_editor: install_tutorial_editor_deps
 	@echo "Launching tutorial editor..."
-	@$(PYTHON) apps/tutorial_editor.py
+	@$(PYTHON) apps/tutorial_editor/tutorial_editor.py
 
 build_c_bindings:
 	@echo "Building plain C bindings..."

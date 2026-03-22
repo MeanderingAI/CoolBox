@@ -1,0 +1,12 @@
+/**
+ * @page misc_main Misc Utilities
+ *
+ * The Misc module contains assorted utilities and helper code that don't
+ * fit into other focused backages.
+ *
+ * - Small algorithms and helpers
+ * - Build/testing utilities
+ * - Miscellaneous data conversions
+ *
+ * See the module documentation for usage and API details.
+ */

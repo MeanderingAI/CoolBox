@@ -58,6 +58,11 @@ endif()
 
 add_subdirectory(_libraries)
 
+# Build apps if present (e.g., apps/lsp)
+if(EXISTS "${CMAKE_SOURCE_DIR}/apps")
+    add_subdirectory(apps)
+endif()
+
 # Option to install and export CoolBox CMake package for external consumers
 option(COOLBOX_INSTALL_PACKAGE "Install CoolBox libraries and CMake package config" ON)
 

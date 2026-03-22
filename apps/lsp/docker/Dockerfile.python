@@ -1,0 +1,6 @@
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/plpython_lsp
+COPY dist/plpython_lsp ./plpython_lsp
+EXPOSE 0
+ENTRYPOINT ["/opt/plpython_lsp/plpython_lsp"]

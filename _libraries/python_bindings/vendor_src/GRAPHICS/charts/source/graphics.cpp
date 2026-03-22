@@ -233,6 +233,74 @@ void Canvas::draw_circle(int cx, int cy, int radius, Color c, bool filled) {
     }
 }
 
+void Canvas::draw_polygon(const std::vector<std::pair<int,int>>& pts,
+                          Color outline,
+                          bool filled,
+                          FillStyle style,
+                          Color fill_color,
+                          Color fill_color2,
+                          int hatch_spacing) {
+    if (pts.size() < 3) return;
+    for (size_t i = 0; i < pts.size(); ++i) {
+        auto [x0, y0] = pts[i];
+        auto [x1, y1] = pts[(i+1) % pts.size()];
+        draw_line(x0, y0, x1, y1, outline);
+    }
+    if (!filled) return;
+    int ymin = pts[0].second, ymax = pts[0].second;
+    int xmin = pts[0].first, xmax = pts[0].first;
+    for (auto &p : pts) {
+        ymin = std::min(ymin, p.second);
+        ymax = std::max(ymax, p.second);
+        xmin = std::min(xmin, p.first);
+        xmax = std::max(xmax, p.first);
+    }
+    if (ymax < ymin) return;
+    auto blend = [](const Color &a, const Color &b, double t) -> Color {
+        uint8_t r = static_cast<uint8_t>(a.r + (b.r - a.r) * t);
+        uint8_t g = static_cast<uint8_t>(a.g + (b.g - a.g) * t);
+        uint8_t bl = static_cast<uint8_t>(a.b + (b.b - a.b) * t);
+        uint8_t alpha = static_cast<uint8_t>(a.a + (b.a - a.a) * t);
+        return {r, g, bl, alpha};
+    };
+    for (int y = ymin; y <= ymax; ++y) {
+        std::vector<double> xs;
+        for (size_t i = 0; i < pts.size(); ++i) {
+            int x0 = pts[i].first, y0 = pts[i].second;
+            int x1 = pts[(i+1) % pts.size()].first, y1 = pts[(i+1) % pts.size()].second;
+            if (y0 == y1) continue;
+            int ymin_e = std::min(y0, y1);
+            int ymax_e = std::max(y0, y1);
+            if (y < ymin_e || y >= ymax_e) continue;
+            double x = x0 + (double)(y - y0) * (double)(x1 - x0) / (double)(y1 - y0);
+            xs.push_back(x);
+        }
+        if (xs.empty()) continue;
+        std::sort(xs.begin(), xs.end());
+        for (size_t k = 0; k + 1 < xs.size(); k += 2) {
+            int x_start = static_cast<int>(std::ceil(xs[k]));
+            int x_end = static_cast<int>(std::floor(xs[k+1]));
+            if (x_end < x_start) continue;
+            Color line_fill = fill_color;
+            if (style == FillStyle::VerticalGradient) {
+                double t = (ymax == ymin) ? 0.0 : (double)(y - ymin) / (double)(ymax - ymin);
+                line_fill = blend(fill_color, fill_color2, t);
+            }
+            for (int x = x_start; x <= x_end; ++x) set_pixel(x, y, line_fill);
+        }
+    }
+    if (style == FillStyle::Hatch && hatch_spacing > 0) {
+        int diag = (xmax - xmin) + (ymax - ymin);
+        for (int s = -diag; s <= diag; s += hatch_spacing) {
+            int x0 = xmin + s;
+            int y0 = ymin;
+            int x1 = x0 + (ymax - ymin);
+            int y1 = ymax;
+            draw_line(x0, y0, x1, y1, outline);
+        }
+    }
+}
+
 void Canvas::draw_text(int x, int y, const std::string& text, Color c, int scale) {
     if (scale < 1) scale = 1;
     int cursor_x = x;

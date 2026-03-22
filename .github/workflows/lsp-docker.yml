@@ -1,0 +1,82 @@
+name: Build and publish LSP Docker images
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake curl pkg-config docker.io
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build all LSP binaries
+        run: cmake --build build --parallel || true
+
+      - name: Prepare Docker context (copy binaries)
+        run: |
+          mkdir -p apps/lsp/dist
+          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push plang LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.plang
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+
+      - name: Build and push rust LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.rust
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+
+      - name: Build and push java LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.java
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+
+      - name: Build and push python LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.python
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest

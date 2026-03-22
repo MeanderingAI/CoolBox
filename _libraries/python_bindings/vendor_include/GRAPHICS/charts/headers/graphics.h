@@ -97,6 +97,16 @@ public:
     void draw_rect(int x, int y, int w, int h, Color c, bool filled = false);
     void draw_circle(int cx, int cy, int radius, Color c, bool filled = false);
 
+    // Polygon / plane drawing (kept minimal for bindings header)
+    enum class FillStyle { Solid, VerticalGradient, Hatch };
+    void draw_polygon(const std::vector<std::pair<int,int>>& pts,
+                      Color outline,
+                      bool filled = false,
+                      FillStyle style = FillStyle::Solid,
+                      Color fill_color = Colors::LightGray,
+                      Color fill_color2 = Colors::White,
+                      int hatch_spacing = 6);
+
     /** Draw a string using a built-in 5×7 bitmap font. Scale multiplies size. */
     void draw_text(int x, int y, const std::string& text, Color c, int scale = 1);
 
