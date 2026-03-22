@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcurcuitry.a CMakeFiles/curcuitry.dir/src/circuit.cpp.o
-/usr/bin/ranlib libcurcuitry.a

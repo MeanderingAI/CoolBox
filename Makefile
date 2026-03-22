@@ -132,7 +132,7 @@ build: configure
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf build lib .site .local-cpp-docs .r-library .r-makevars.local .documentation
+	rm -rf build build_lsp lib .site .local-cpp-docs .r-library .r-makevars.local .documentation
 	@echo "Clean complete."
 
 # ── Library Builds ──────────────────────────────────────────────────

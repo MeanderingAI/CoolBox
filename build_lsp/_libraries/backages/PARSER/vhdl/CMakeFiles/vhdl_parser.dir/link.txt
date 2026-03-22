@@ -1,2 +1,0 @@
-/usr/bin/ar qc libvhdl_parser.a CMakeFiles/vhdl_parser.dir/src/parser.cpp.o
-/usr/bin/ranlib libvhdl_parser.a

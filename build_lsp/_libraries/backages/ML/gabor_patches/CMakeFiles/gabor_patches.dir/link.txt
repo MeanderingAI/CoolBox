@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libgabor_patches.dylib -install_name @rpath/libgabor_patches.dylib CMakeFiles/gabor_patches.dir/source/gabor_patches.cpp.o

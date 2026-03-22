@@ -1,2 +1,0 @@
-/usr/bin/ar qc libplmatlab_lsp_lib.a CMakeFiles/plmatlab_lsp_lib.dir/source/lsp_server_matlab.cpp.o
-/usr/bin/ranlib libplmatlab_lsp_lib.a

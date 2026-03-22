@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/bayesian_network_tests.dir/tests/test_baysian_network.cpp.o -o bayesian_network_tests  -Wl,-rpath,/Users/mehranghamaty/Documents/GitHub/CoolBox/build_lsp/_libraries/backages/ML/bayesian_network_ai libbayesian_network.dylib ../../../../lib/libgtest_main.a ../../../../lib/libgtest.a

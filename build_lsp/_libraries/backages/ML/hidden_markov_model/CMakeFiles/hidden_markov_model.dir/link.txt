@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libhidden_markov_model.dylib -install_name @rpath/libhidden_markov_model.dylib CMakeFiles/hidden_markov_model.dir/source/hidden_markov_model.cpp.o

@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/deep_learning_tests.dir/tests/test_deep_learning.cpp.o -o deep_learning_tests  -Wl,-rpath,/Users/mehranghamaty/Documents/GitHub/CoolBox/build_lsp/_libraries/backages/ML/deep_learning libdeep_learning.dylib ../../../../lib/libgtest_main.a ../../../../lib/libgtest.a

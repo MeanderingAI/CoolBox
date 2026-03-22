@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/test_vhdl_parser.dir/tests/test_vhdl_parser.cpp.o -o test_vhdl_parser  libvhdl_parser.a

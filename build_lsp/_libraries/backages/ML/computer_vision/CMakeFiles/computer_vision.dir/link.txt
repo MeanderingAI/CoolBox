@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libcomputer_vision.dylib -install_name @rpath/libcomputer_vision.dylib CMakeFiles/computer_vision.dir/source/image.cpp.o CMakeFiles/computer_vision.dir/source/layers.cpp.o CMakeFiles/computer_vision.dir/source/pipeline.cpp.o CMakeFiles/computer_vision.dir/source/transforms.cpp.o

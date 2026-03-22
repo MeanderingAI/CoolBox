@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/plmatlab_lsp_test.dir/tests/test_lsp_matlab.cpp.o -o plmatlab_lsp_test  libplmatlab_lsp_lib.a ../../PARSER/matlab/libmatlab_parser.a

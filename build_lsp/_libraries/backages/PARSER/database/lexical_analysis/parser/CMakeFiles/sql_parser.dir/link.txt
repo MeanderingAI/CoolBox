@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libsql_parser.dylib -install_name @rpath/libsql_parser.dylib CMakeFiles/sql_parser.dir/source/sql_tokenizer.cpp.o

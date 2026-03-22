@@ -1,2 +1,0 @@
-/usr/bin/ar qc libplvhdl_lsp_lib.a CMakeFiles/plvhdl_lsp_lib.dir/source/lsp_server_vhdl.cpp.o
-/usr/bin/ranlib libplvhdl_lsp_lib.a

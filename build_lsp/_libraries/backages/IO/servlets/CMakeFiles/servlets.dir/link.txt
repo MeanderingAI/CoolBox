@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libservlets.dylib -install_name @rpath/libservlets.dylib CMakeFiles/servlets.dir/source/http1_servlet.cpp.o CMakeFiles/servlets.dir/source/http2_servlet.cpp.o CMakeFiles/servlets.dir/source/http3_servlet.cpp.o CMakeFiles/servlets.dir/source/httpU_servlet.cpp.o

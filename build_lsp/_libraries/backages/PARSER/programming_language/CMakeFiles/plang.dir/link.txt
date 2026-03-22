@@ -1,2 +1,0 @@
-/usr/bin/ar qc libplang.a CMakeFiles/plang.dir/source/lexer.cpp.o CMakeFiles/plang.dir/source/parser.cpp.o
-/usr/bin/ranlib libplang.a

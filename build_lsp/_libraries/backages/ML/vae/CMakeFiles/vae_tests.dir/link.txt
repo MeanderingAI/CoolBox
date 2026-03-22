@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/vae_tests.dir/tests/test_vae.cpp.o -o vae_tests  ../../../../lib/libgtest_main.a ../../../../lib/libgtest.a

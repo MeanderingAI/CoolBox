@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/components_tests.dir/tests/test_components.cpp.o -o components_tests  -Wl,-rpath,/Users/mehranghamaty/Documents/GitHub/CoolBox/build_lsp/_libraries/backages/GRAPHICS/components libcomponents.dylib ../../../../lib/libgtest_main.a ../../../../lib/libgtest.a

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libgraphics_textures.a CMakeFiles/graphics_textures.dir/src/texture_loader_stb.cpp.o
-/usr/bin/ranlib libgraphics_textures.a
