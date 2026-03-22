@@ -94,3 +94,76 @@ jobs:
     with:
       publish_branch: ${{ inputs.publish_branch }}
     secrets: inherit
+
+  build_lsp_images:
+    needs:
+      - build_libs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+
+      - name: Download LSP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: plang_lsp
+          path: apps/lsp/dist
+
+      - name: Download rust artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plrust_lsp
+          path: apps/lsp/dist
+
+      - name: Download java artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pljava_lsp
+          path: apps/lsp/dist
+
+      - name: Download python artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plpython_lsp
+          path: apps/lsp/dist
+
+      - name: Ensure binaries are executable
+        run: chmod +x apps/lsp/dist/* || true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push LSP images
+        run: |
+          set -e
+          docker build -f apps/lsp/docker/Dockerfile.plang -t ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+          docker push ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+
+          docker build -f apps/lsp/docker/Dockerfile.rust -t ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+          docker push ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+
+          docker build -f apps/lsp/docker/Dockerfile.java -t ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+          docker push ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+
+          docker build -f apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
+          docker push ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
