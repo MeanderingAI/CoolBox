@@ -306,6 +306,18 @@ def render_page(page: TutorialPage, output_dir: Path, publications: list[Publica
     repo_html = f'<p><a class="inline-link repo-link" href="{html.escape(page.repo)}">Repository</a></p>' if page.repo else ""
     output_file = output_dir / f"{page.slug}.html"
     output_file.parent.mkdir(parents=True, exist_ok=True)
+    # Determine a publication date to emit: prefer explicit directive, fall back to source/output mtime
+    try:
+        if page.publication_date:
+            date_str = page.publication_date
+        else:
+            if output_file.exists():
+                ts = output_file.stat().st_mtime
+            else:
+                ts = page.source.stat().st_mtime
+            date_str = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+    except Exception:
+        date_str = ""
     output_file.write_text(
         f"""<!DOCTYPE html>
 <html lang="en">
@@ -345,8 +357,9 @@ def render_page(page: TutorialPage, output_dir: Path, publications: list[Publica
 <body>
     <main>
       <a href="index.html" title="Back to tutorials">&#8592; Back to tutorials</a>
-      <h1>{html.escape(page.title)}</h1>
-      {f'<p class="publication-date">Published: {html.escape(page.publication_date)}</p>' if page.publication_date else ''}
+    <h1>{html.escape(page.title)}</h1>
+    {f'<meta name="publication_date" content="{html.escape(date_str)}">'}
+    {f'<p class="publication-date">Published: {html.escape(date_str)}</p>' if date_str else ''}
       <div class="tag-row">{tags_html}{libs_html}</div>
       {repo_html}
       {blocks_html}

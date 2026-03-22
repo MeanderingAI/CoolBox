@@ -1,13 +1,10 @@
 name: Build & publish all LSP Docker images
 
 on:
-  workflow_run:
-    workflows: ["Build libraries"]
-    types: [completed]
+  workflow_dispatch:
 
 jobs:
   build-and-push-all:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

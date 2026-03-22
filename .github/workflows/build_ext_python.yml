@@ -117,6 +117,19 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
 
+      - name: Configure and build C++ libraries
+        run: |
+          mkdir -p build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target charts --parallel || true
+          cmake --build build --target wave_generator_utils --parallel || true
+        shell: bash
+
+      - name: Set COOLBOX_LIB_DIR for Python build
+        run: |
+          echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+        shell: bash
+
       - name: Build Python bindings
         run: |
           cd _libraries/python_bindings

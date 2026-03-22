@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-#include "graphics.h"
+#include "graphics_stub_clean.h"
 #include "wave_generator.hpp"
 
 namespace py = pybind11;

@@ -95,7 +95,7 @@ jobs:
       publish_branch: ${{ inputs.publish_branch }}
     secrets: inherit
 
-  build_lsp_images:
+  generate_lsp_images:
     needs:
       - build_libs
     runs-on: ubuntu-latest
@@ -144,26 +144,42 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push plang LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.plang
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
 
-      - name: Build & push LSP images
-        run: |
-          set -e
-          docker build -f apps/lsp/docker/Dockerfile.plang -t ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+      - name: Build & push plrust LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.rust
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.rust -t ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+      - name: Build & push pljava LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.java
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.java -t ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
-
-          docker build -f apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
+      - name: Build & push plpython LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.python
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest

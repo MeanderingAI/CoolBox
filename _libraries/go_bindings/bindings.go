@@ -1,19 +1,22 @@
 package coolboxgo
 
+/*
+#cgo CXXFLAGS: -std=c++17
+#cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/cbridge -I${SRCDIR}/../backages/ML/generalized_linear_model/headers -I${SRCDIR}/../backages/ML/decision_tree/headers -I${SRCDIR}/../backages/ML/bayesian_network_ai/headers -I${SRCDIR}/../backages/ML/hidden_markov_model/headers -I${SRCDIR}/../backages/ML/dimensionality_reduction/headers -I${SRCDIR}/../backages/ML/support_vector_machine/headers -I${SRCDIR}/../backages/ML/multi_arm_bandit/headers -I${SRCDIR}/../backages/MISC/metadata_management/headers -I${SRCDIR}/../../build/eigen-src -I${SRCDIR}/../backages/GRAPHICS/charts/headers
+#cgo darwin LDFLAGS: -lc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
+#cgo linux LDFLAGS: -lstdc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
+#include <stdlib.h>
+/* Forward declarations for opaque FFI types (avoid including large C++ headers) */
+#include "bridge_forward.h"
+#include "bridge.h"
+*/
+import "C"
+
 import (
 	"fmt"
 	"runtime"
 	"unsafe"
 )
-
-/*
-#cgo CXXFLAGS: -std=c++17
-#cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/../backages/ML/generalized_linear_model/headers -I${SRCDIR}/../backages/ML/decision_tree/headers -I${SRCDIR}/../backages/ML/bayesian_network_ai/headers -I${SRCDIR}/../backages/ML/hidden_markov_model/headers -I${SRCDIR}/../backages/ML/dimensionality_reduction/headers -I${SRCDIR}/../backages/ML/support_vector_machine/headers -I${SRCDIR}/../backages/ML/multi_arm_bandit/headers -I${SRCDIR}/../backages/MISC/metadata_management/headers -I${SRCDIR}/../../build/eigen-src
-#cgo darwin LDFLAGS: -lc++
-#cgo linux LDFLAGS: -lstdc++
-#include <stdlib.h>
-#include "bridge.h"
-*/
 
 // =====================
 // Graphics/Chart/Component Bindings

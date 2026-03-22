@@ -95,22 +95,53 @@ def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
     return vendored_path
 
 
-graphics_header = sync_vendor_file(
-    repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
-    project_root / vendor_graphics_header,
-)
-wave_generator_header = sync_vendor_file(
-    repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
-    project_root / vendor_wave_header,
-)
-graphics_source = sync_vendor_file(
-    repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
-    project_root / vendor_graphics_source,
-)
-wave_generator_source = sync_vendor_file(
-    repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
-    project_root / vendor_wave_source,
-)
+# On Windows CI we prefer to use the cleaned include files under
+# `include/` to avoid parsing issues with any vendored files. Do not
+# overwrite those files on Windows.
+if sys.platform.startswith("win"):
+    graphics_header = project_root / "vendor_include/GRAPHICS/charts/headers/graphics.h"
+    # If a cleaned copy exists under our shipped include/ path, prefer it.
+    cleaned = project_root / "include/GRAPHICS/charts/headers/graphics.h"
+    if cleaned.exists():
+        graphics_header = cleaned
+    else:
+        # Fallback: copy from repository backages if available.
+        graphics_header = sync_vendor_file(
+            repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+            project_root / vendor_graphics_header,
+        )
+
+    # Wave generator header: prefer cleaned include if present.
+    wave_candidate = project_root / "include/MISC/wave_generator/headers/wave_generator.hpp"
+    if wave_candidate.exists():
+        wave_generator_header = wave_candidate
+    else:
+        wave_generator_header = sync_vendor_file(
+            repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+            project_root / vendor_wave_header,
+        )
+
+    # We do not need to sync the large vendor sources on Windows; they
+    # are intentionally not compiled into the extension.
+    graphics_source = project_root / vendor_graphics_source
+    wave_generator_source = project_root / vendor_wave_source
+else:
+    graphics_header = sync_vendor_file(
+        repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+        project_root / vendor_graphics_header,
+    )
+    wave_generator_header = sync_vendor_file(
+        repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+        project_root / vendor_wave_header,
+    )
+    graphics_source = sync_vendor_file(
+        repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
+        project_root / vendor_graphics_source,
+    )
+    wave_generator_source = sync_vendor_file(
+        repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
+        project_root / vendor_wave_source,
+    )
 
 
 eigen_candidates = [
@@ -156,12 +187,14 @@ for module_dir in source_modules:
         module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
     source_files.extend(module_sources)
 
-source_files.extend(
-    [
-        vendor_graphics_source,
-        vendor_wave_source,
-    ]
-)
+# Do not compile large C++ vendor sources into the Python extension; instead
+# link against the project's shared libraries. Users should build the C++ libs
+# (via CMake) and point `COOLBOX_LIB_DIR` to the directory containing them.
+
+# source_files.extend([
+#     vendor_graphics_source,
+#     vendor_wave_source,
+# ])
 
 ext_modules = [
     Pybind11Extension(
@@ -170,6 +203,11 @@ ext_modules = [
         include_dirs=include_dirs,
         cxx_std=17,
         extra_compile_args=extra_compile_args,
+        # Link against built CoolBox C++ libraries. Set COOLBOX_LIB_DIR to
+        # the build output directory containing libcharts(.a/.so/.dylib)
+        # and libwave_generator_utils.
+        library_dirs=[os.environ.get("COOLBOX_LIB_DIR", str(project_root.parent / "build"))],
+        libraries=[lib for lib in os.environ.get("COOLBOX_LIBS", "charts,wave_generator_utils").split(",") if lib],
     ),
 ]
 
