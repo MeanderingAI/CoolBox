@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libmetadata_management.dylib -install_name @rpath/libmetadata_management.dylib CMakeFiles/metadata_management.dir/source/metadata_management.cpp.o

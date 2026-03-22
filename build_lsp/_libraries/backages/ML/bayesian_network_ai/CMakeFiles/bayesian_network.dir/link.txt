@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libbayesian_network.dylib -install_name @rpath/libbayesian_network.dylib CMakeFiles/bayesian_network.dir/source/bayesian_network.cpp.o

@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libcryptocurrency_utils.dylib -install_name @rpath/libcryptocurrency_utils.dylib CMakeFiles/cryptocurrency_utils.dir/source/cryptocurrency.cpp.o  /opt/homebrew/Cellar/openssl@3/3.6.0/lib/libcrypto.dylib

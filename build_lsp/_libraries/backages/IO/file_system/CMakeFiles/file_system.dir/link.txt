@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libfile_system.dylib -install_name @rpath/libfile_system.dylib CMakeFiles/file_system.dir/source/file_watcher.cpp.o

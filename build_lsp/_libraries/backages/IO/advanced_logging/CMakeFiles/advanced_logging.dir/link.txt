@@ -1,0 +1,2 @@
+/usr/bin/ar qc libadvanced_logging.a CMakeFiles/advanced_logging.dir/source/advanced_logging.cpp.o
+/usr/bin/ranlib libadvanced_logging.a

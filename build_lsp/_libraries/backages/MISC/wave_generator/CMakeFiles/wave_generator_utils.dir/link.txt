@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libwave_generator_utils.dylib -install_name @rpath/libwave_generator_utils.dylib CMakeFiles/wave_generator_utils.dir/source/wave_generator.cpp.o

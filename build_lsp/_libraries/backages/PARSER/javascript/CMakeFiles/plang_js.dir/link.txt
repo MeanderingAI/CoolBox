@@ -1,0 +1,2 @@
+/usr/bin/ar qc libplang_js.a CMakeFiles/plang_js.dir/source/lexer_js.cpp.o CMakeFiles/plang_js.dir/source/parser_js.cpp.o
+/usr/bin/ranlib libplang_js.a

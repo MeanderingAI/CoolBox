@@ -1,0 +1,2 @@
+/usr/bin/ar qc libplang_lsp_lib.a CMakeFiles/plang_lsp_lib.dir/source/lsp_server.cpp.o
+/usr/bin/ranlib libplang_lsp_lib.a

@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/distribution_tests.dir/tests/test_distribution.cpp.o -o distribution_tests  -Wl,-rpath,/Users/mehranghamaty/Documents/GitHub/CoolBox/build_lsp/_libraries/backages/ML/distribution libdistribution.dylib ../../../../lib/libgtest_main.a ../../../../lib/libgtest.a

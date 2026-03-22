@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/plang_lsp_test.dir/tests/test_lsp.cpp.o -o plang_lsp_test  libplang_lsp_lib.a

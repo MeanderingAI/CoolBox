@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/plvhdl_lsp_test.dir/tests/test_lsp_vhdl.cpp.o -o plvhdl_lsp_test  libplvhdl_lsp_lib.a ../../PARSER/vhdl/libvhdl_parser.a

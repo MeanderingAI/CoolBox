@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libgeneralized_linear_model.dylib -install_name @rpath/libgeneralized_linear_model.dylib CMakeFiles/generalized_linear_model.dir/source/generalized_linear_model.cpp.o CMakeFiles/generalized_linear_model.dir/source/linear_regression.cpp.o

@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/plang_js_test.dir/tests/test_js.cpp.o -o plang_js_test  libplang_js.a

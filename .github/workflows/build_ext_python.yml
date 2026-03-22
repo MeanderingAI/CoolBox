@@ -36,6 +36,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Compute artifact name
+        id: compute_artifact
+        run: |
+          # Determine arch (x86_64 or arm64) from RUNNER_ARCH or uname
+          arch_env="${RUNNER_ARCH:-$(uname -m)}"
+          arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
+          if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
+            ARCH=arm64
+          else
+            ARCH=x86_64
+          fi
+
+          case "${RUNNER_OS}" in
+            Linux) OSNAME=linux ;;
+            macOS) OSNAME=macos ;;
+            Windows) OSNAME=windows ;;
+            *) OSNAME=linux ;;
+          esac
+
+          echo "artifact_name=coolbox-build-${OSNAME}-${ARCH}-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "osname=${OSNAME}" >> $GITHUB_OUTPUT
+          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+
+      - name: Download built C++ libraries (from build_libs)
+        id: download_build
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+
+      - name: Fallback: download any matching build artifact
+        if: steps.download_build.outcome != 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ 'coolbox-build-' + steps.compute_artifact.outputs.osname + '-' + steps.compute_artifact.outputs.arch + '-*' }}
+          path: build/
+          merge-multiple: true
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -121,8 +160,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
 
-      - name: Configure and build C++ libraries
+      - name: Configure and build C++ libraries (only if not provided)
         run: |
+          if [ -d build/_libraries ]; then
+            echo "Using downloaded build/ from build_libs; skipping C++ configure/build"
+            ls -la build/_libraries || true
+            exit 0
+          fi
           mkdir -p build
           GSL_CMAKE_ARGS=""
           if [ "$(uname)" = "Darwin" ]; then

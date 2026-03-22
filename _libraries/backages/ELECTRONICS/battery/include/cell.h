@@ -5,6 +5,9 @@
 #include <cmath>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
+
+#include <chemistry/periodic_table.h>
 
 namespace battery {
 
@@ -286,5 +289,34 @@ public:
         return oss.str();
     }
 };
+
+} // namespace battery
+
+// -----------------------------------------------------------------------------
+// Mapping helpers: map `battery::Chemistry` to elements from the periodic table
+// -----------------------------------------------------------------------------
+
+namespace battery {
+
+inline std::vector<chemistry::Element> elements_for_chemistry(Chemistry chem) {
+    using chemistry::element_by_symbol;
+    switch (chem) {
+        case Chemistry::LITHIUM_ION:
+        case Chemistry::LITHIUM_POLYMER:
+            return { element_by_symbol("Li") };
+        case Chemistry::LITHIUM_IRON_PHOSPHATE:
+            // LiFePO4 -- return Li, Fe, P
+            return { element_by_symbol("Li"), element_by_symbol("Fe"), element_by_symbol("P") };
+        case Chemistry::NICKEL_METAL_HYDRIDE:
+            return { element_by_symbol("Ni") };
+        case Chemistry::LEAD_ACID:
+            return { element_by_symbol("Pb") };
+        case Chemistry::ALKALINE:
+            // Typical alkaline chemistry: zinc anode / manganese dioxide cathode
+            return { element_by_symbol("Zn"), element_by_symbol("Mn") };
+        default:
+            return { element_by_symbol("?") };
+    }
+}
 
 } // namespace battery

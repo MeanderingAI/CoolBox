@@ -36,6 +36,48 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Compute artifact name
+        id: compute_artifact
+        run: |
+          arch_env="${RUNNER_ARCH:-$(uname -m)}"
+          arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
+          if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
+            ARCH=arm64
+          else
+            ARCH=x86_64
+          fi
+
+          case "${RUNNER_OS}" in
+            Linux) OSNAME=linux ;;
+            macOS) OSNAME=macos ;;
+            Windows) OSNAME=windows ;;
+            *) OSNAME=linux ;;
+          esac
+
+          echo "artifact_name=coolbox-build-${OSNAME}-${ARCH}-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "osname=${OSNAME}" >> $GITHUB_OUTPUT
+          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+
+      - name: Download built C++ libraries (from build_libs)
+        id: download_build
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+
+      - name: Fallback: download any matching build artifact
+        if: steps.download_build.outcome != 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ 'coolbox-build-' + steps.compute_artifact.outputs.osname + '-' + steps.compute_artifact.outputs.arch + '-*' }}
+          path: build/
+          merge-multiple: true
+
+      - name: Set COOLBOX_LIB_DIR for Rust build
+        run: |
+          echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+
       - name: Show Rust toolchain
         run: |
           rustc --version
@@ -43,6 +85,9 @@ jobs:
 
       - name: Build Rust bindings
         run: |
+          if [ -d build/_libraries ]; then
+            echo "Using prebuilt C++ libraries from build/; proceeding to cargo build without rebuilding C++"
+          fi
           cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
 
       - name: Test Rust bindings

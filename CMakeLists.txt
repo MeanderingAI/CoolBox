@@ -153,6 +153,8 @@ if(COOLBOX_INSTALL_PACKAGE)
     endforeach()
 
     if(COOLBOX_EXPORT_TARGETS)
+        # Ensure we don't try to install the same target more than once
+        list(REMOVE_DUPLICATES COOLBOX_EXPORT_TARGETS)
         message(STATUS "CoolBox package export targets: ${COOLBOX_EXPORT_TARGETS}")
         install(TARGETS ${COOLBOX_EXPORT_TARGETS}
             EXPORT CoolBoxTargets

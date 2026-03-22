@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libsystem_stats.dylib -install_name @rpath/libsystem_stats.dylib CMakeFiles/system_stats.dir/source/system_stats.cpp.o

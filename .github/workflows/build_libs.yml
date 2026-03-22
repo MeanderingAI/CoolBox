@@ -21,8 +21,14 @@ jobs:
           - os: ubuntu-latest
             platform: linux-x86_64
             lib_ext: "*.a -o -name *.so"
+          - os: ubuntu-latest
+            platform: linux-arm64
+            lib_ext: "*.a -o -name *.so"
           - os: macos-latest
             platform: macos-arm64
+            lib_ext: "*.a -o -name *.dylib"
+          - os: macos-latest
+            platform: macos-x86_64
             lib_ext: "*.a -o -name *.dylib"
           - os: windows-latest
             platform: windows-x86_64
@@ -262,6 +268,14 @@ jobs:
         with:
           name: release-assets-${{ matrix.platform }}
           path: release-assets/
+
+      - name: Upload full build directory
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: coolbox-build-${{ matrix.platform }}-${{ github.ref_name }}
+          path: build/
+          if-no-files-found: ignore
 
   release:
     needs: build

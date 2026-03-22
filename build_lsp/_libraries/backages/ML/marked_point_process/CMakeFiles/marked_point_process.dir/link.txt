@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libmarked_point_process.dylib -install_name @rpath/libmarked_point_process.dylib CMakeFiles/marked_point_process.dir/source/marked_point_process.cpp.o CMakeFiles/marked_point_process.dir/source/piecewise_conditional_intensity_model.cpp.o

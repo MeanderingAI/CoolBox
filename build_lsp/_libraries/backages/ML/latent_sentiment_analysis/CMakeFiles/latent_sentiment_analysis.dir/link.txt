@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o liblatent_sentiment_analysis.dylib -install_name @rpath/liblatent_sentiment_analysis.dylib CMakeFiles/latent_sentiment_analysis.dir/source/latent_sentiment_analysis.cpp.o

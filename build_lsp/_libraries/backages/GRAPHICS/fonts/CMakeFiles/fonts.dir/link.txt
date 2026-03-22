@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libfonts.dylib -install_name @rpath/libfonts.dylib CMakeFiles/fonts.dir/source/fonts.cpp.o  -Wl,-rpath,/Users/mehranghamaty/Documents/GitHub/CoolBox/build_lsp/_libraries/backages/GRAPHICS/charts ../charts/libcharts.dylib

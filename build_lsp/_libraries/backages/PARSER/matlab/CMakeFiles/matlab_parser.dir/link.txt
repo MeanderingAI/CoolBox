@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmatlab_parser.a CMakeFiles/matlab_parser.dir/src/parser.cpp.o
+/usr/bin/ranlib libmatlab_parser.a

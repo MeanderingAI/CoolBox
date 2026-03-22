@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -o libsql_ast.dylib -install_name @rpath/libsql_ast.dylib CMakeFiles/sql_ast.dir/source/sql_ast.cpp.o  -Wl,-rpath,/Users/mehranghamaty/Documents/GitHub/CoolBox/build_lsp/_libraries/backages/PARSER/database/lexical_analysis/parser ../../lexical_analysis/parser/libsql_parser.dylib

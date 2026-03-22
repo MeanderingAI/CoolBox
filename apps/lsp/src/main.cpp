@@ -7,21 +7,26 @@
 #include "../../_libraries/backages/TOOLS/lsp_rust/headers/lsp_server_rust.h"
 #include "../../_libraries/backages/TOOLS/lsp_java/headers/lsp_server_java.h"
 #include "../../_libraries/backages/TOOLS/lsp_python/headers/lsp_server_python.h"
+// Add VHDL & MATLAB LSP handlers
+#include "../../_libraries/backages/TOOLS/lsp_vhdl/headers/lsp_server_vhdl.h"
+#include "../../_libraries/backages/TOOLS/lsp_matlab/headers/lsp_server_matlab.h"
 
-// Unified LSP server main. Accepts --lang=<plang|rust|java|python> (default: plang)
-enum class Lang { PLANG, RUST, JAVA, PYTHON };
+// Unified LSP server main. Accepts --lang=<plang|rust|java|python|vhdl|matlab> (default: plang)
+enum class Lang { PLANG, RUST, JAVA, PYTHON, VHDL, MATLAB };
 
 static Lang parse_lang_arg(int argc, char** argv){
     std::string def = "plang";
     for(int i=1;i<argc;++i){
         std::string s = argv[i];
         auto pos = s.find("--lang=");
-        if(pos!=std::string::npos){
+            if(pos!=std::string::npos){
             std::string v = s.substr(pos+7);
             std::transform(v.begin(), v.end(), v.begin(), ::tolower);
             if(v=="rust") return Lang::RUST;
             if(v=="java") return Lang::JAVA;
             if(v=="python") return Lang::PYTHON;
+            if(v=="vhdl") return Lang::VHDL;
+            if(v=="matlab" || v=="m") return Lang::MATLAB;
             return Lang::PLANG;
         }
     }
@@ -78,6 +83,8 @@ int main(int argc, char **argv) {
                 case Lang::RUST: params = rust_process_text_for_diagnostics(uri, text); break;
                 case Lang::JAVA: params = java_process_text_for_diagnostics(uri, text); break;
                 case Lang::PYTHON: params = python_process_text_for_diagnostics(uri, text); break;
+                case Lang::VHDL: params = vhdl_process_text_for_diagnostics(uri, text); break;
+                case Lang::MATLAB: params = matlab_process_text_for_diagnostics(uri, text); break;
             }
 
             std::ostringstream diag;
