@@ -25,38 +25,45 @@ concurrency:
 jobs:
   build_libs:
     uses: ./.github/workflows/build_libs.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_cpp_docs:
     uses: ./.github/workflows/build_cpp_docs.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_tutorials:
     uses: ./.github/workflows/build_tutorials.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_python:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_python.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_js:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_js.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_go:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_go.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_c:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_c.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_java:
@@ -64,22 +71,25 @@ jobs:
       - build_libs
       - build_ext_c
     uses: ./.github/workflows/build_ext_java.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_r:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_r.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_rust:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_rust.yml
+    if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   docs_publish:
-    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' }}
+    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - build_cpp_docs
       - build_tutorials
@@ -98,6 +108,7 @@ jobs:
   generate_lsp_images:
     needs:
       - build_libs
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
