@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   build_ext_go:
+    if: ${{ github.event_name == 'workflow_call' }}
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -65,11 +66,11 @@ jobs:
           name: ${{ steps.compute_artifact.outputs.artifact_name }}
           path: build/
 
-      - name: Fallback: download any matching build artifact
+      - name: "Fallback: download any matching build artifact"
         if: steps.download_build.outcome != 'success'
         uses: actions/download-artifact@v8
         with:
-          pattern: ${{ 'coolbox-build-' + steps.compute_artifact.outputs.osname + '-' + steps.compute_artifact.outputs.arch + '-*' }}
+          pattern: ${{ format('coolbox-build-{0}-{1}-*', steps.compute_artifact.outputs.osname, steps.compute_artifact.outputs.arch) }}
           path: build/
           merge-multiple: true
 
