@@ -1,6 +1,7 @@
 @title1: Install from GitHub
 @tags: tutorial, install, github, bindings
 @repo: https://github.com/MeanderingAI/CoolBox
+@publication_date: March 21st 2026
 
 Install the published CoolBox bindings directly from the GitHub repository when you want the latest source instead of a packaged release.
 

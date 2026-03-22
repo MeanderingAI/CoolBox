@@ -469,6 +469,7 @@ def main() -> None:
     parser.add_argument("--catalog", default="config/docs_phrase_catalog.json", help="Optional JSON file with UUID-based phrase and paragraph translations")
     args = parser.parse_args()
 
+    print("[translate_docs.py] Starting translation.")
     site_dir = Path(args.site_dir).resolve()
     if not site_dir.exists():
         raise FileNotFoundError(f"Site directory not found: {site_dir}")
@@ -479,12 +480,14 @@ def main() -> None:
     locales = [locale for locale in args.locales if locale in translations]
 
     for locale in locales:
+        print(f"[translate_docs.py] creating local {locale}")
         translate_tree(site_dir, site_dir / locale, locale, translations[locale])
 
     inject_language_switcher(site_dir / "index.html", locales, "en")
     for locale in locales:
+        print(f"[translate_docs.py] language for localization {locale}")
         inject_language_switcher(site_dir / locale / "index.html", locales, locale)
-    print(f"Generated localized docs for: {', '.join(locales)}")
+    print(f"[translate_docs.py] Generated localized docs for: {', '.join(locales)}")
 
 
 if __name__ == "__main__":

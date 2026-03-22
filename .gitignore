@@ -4,6 +4,7 @@ build-emscripten-local-check
 build-emscripten-local-check-default
 bin
 apps/__pycache__/
+_scripts/__pycache__/
 .site
 .local-cpp-docs
 .r-library
@@ -25,3 +26,4 @@ eigen-src
 eigen-build
 _libraries/rust_bindings/target/
 _libraries/rust_bindings/Cargo.lock
+external

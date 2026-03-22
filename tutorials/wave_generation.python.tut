@@ -1,6 +1,7 @@
 @title1: Wave Generation Tutorial
 @tags: signal processing, numpy, matplotlib, tutorial
-@libs: numpy, matplotlib
+@libs: MISC/hash, GRAPHICS/charts
+@publication_date: March 20th 2026
 
 This tutorial demonstrates how to generate and visualize a sine wave using Python with NumPy and Matplotlib.
 

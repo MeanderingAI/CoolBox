@@ -24,6 +24,7 @@ class TutorialPage:
     slug: str
     tags: List[str] = field(default_factory=list)
     libs: List[str] = field(default_factory=list)
+    publication_date: Optional[str] = None
     repo: str = ""
     blocks: List[Block] = field(default_factory=list)
     excerpt: str = ""
@@ -86,6 +87,7 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
     blocks = []
     tags = []
     libs = []
+    publication_date = None
     repo = ""
     paragraph_lines = []
     title = source_file.stem.replace("-", " ").title()
@@ -100,6 +102,7 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
     TAGS_DIRECTIVE = re.compile(r"^@tags:\s*(.+?)\s*$")
     LIBS_DIRECTIVE = re.compile(r"^@libs:\s*(.+?)\s*$")
     REPO_DIRECTIVE = re.compile(r"^@repo:\s*(.+?)\s*$")
+    PUBLICATION_DATE_DIRECTIVE = re.compile(r"^@publication_date:\s*(.+?)\s*$")
     IMAGE_DIRECTIVE = re.compile(r"^@image:\s*(.+?)\s*$")
     VIDEO_DIRECTIVE = re.compile(r"^@video:\s*(.+?)\s*$")
     LINK_DIRECTIVE = re.compile(r"^@link:\s*(.+?)\s*$")
@@ -177,6 +180,11 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
             flush_paragraph()
             repo = repo_match.group(1).strip()
             continue
+        pubdate_match = PUBLICATION_DATE_DIRECTIVE.match(line)
+        if pubdate_match:
+            flush_paragraph()
+            publication_date = pubdate_match.group(1).strip()
+            continue
         image_match = IMAGE_DIRECTIVE.match(line)
         if image_match:
             flush_paragraph()
@@ -205,7 +213,16 @@ def parse_tutorial(source_file: Path) -> TutorialPage:
         paragraph_lines.append(line)
     flush_paragraph()
     flush_code_block()
-    return TutorialPage(source=source_file, title=title, slug=slugify(source_file.stem), tags=tags, libs=libs, repo=repo, blocks=blocks)
+    return TutorialPage(
+        source=source_file,
+        title=title,
+        slug=slugify(source_file.stem),
+        tags=tags,
+        libs=libs,
+        publication_date=publication_date,
+        repo=repo,
+        blocks=blocks,
+    )
 
 def youtube_embed(url: str) -> str | None:
     parsed = urlparse(url)
@@ -282,7 +299,10 @@ def render_page(page: TutorialPage, output_dir: Path, publications: list[Publica
         f'<a href="../tags/{slugify(tag)}.html" class="tag">{html.escape(tag)}</a>'
         for tag in page.tags
     )
-    libs_html = "".join(f'<span class="tag lib-tag">{html.escape(lib)}</span>' for lib in page.libs)
+    libs_html = "".join(
+        f'<a href="../tags/{slugify(lib)}.html" class="tag lib-tag">{html.escape(lib)}</a>'
+        for lib in page.libs
+    )
     repo_html = f'<p><a class="inline-link repo-link" href="{html.escape(page.repo)}">Repository</a></p>' if page.repo else ""
     output_file = output_dir / f"{page.slug}.html"
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -317,6 +337,7 @@ def render_page(page: TutorialPage, output_dir: Path, publications: list[Publica
         .video-frame iframe {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }}
         figcaption {{ color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }}
         .inline-link {{ display: inline-block; margin: 0.25rem 0; }}
+        .publication-date {{ color: #475569; font-size: 0.95rem; margin-top: -0.25rem; margin-bottom: 0.5rem; }}
         .muted {{ color: #64748b; font-size: 0.95rem; }}
         footer {{ margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; }}
     </style>
@@ -325,6 +346,7 @@ def render_page(page: TutorialPage, output_dir: Path, publications: list[Publica
     <main>
       <a href="index.html" title="Back to tutorials">&#8592; Back to tutorials</a>
       <h1>{html.escape(page.title)}</h1>
+      {f'<p class="publication-date">Published: {html.escape(page.publication_date)}</p>' if page.publication_date else ''}
       <div class="tag-row">{tags_html}{libs_html}</div>
       {repo_html}
       {blocks_html}
@@ -499,9 +521,12 @@ def render_index(pages, output_dir, publications):
             return datetime.datetime.fromtimestamp(ts, tz=datetime.UTC).strftime('%Y-%m-%d')
     page_cards = []
     for page, mtime in tutorials_with_dates:
-        tags_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in page.tags)
+        tags_html = "".join(
+            f'<span class="tag{ " lib-tag" if idx >= len(page.tags) else ""}">{html.escape(tag)}</span>'
+            for idx, tag in enumerate(page.tags + page.libs)
+        )
         excerpt = html.escape(page.excerpt or "Open the tutorial to learn more.")
-        date_str = format_date(mtime)
+        date_str = page.publication_date or format_date(mtime)
         page_cards.append(
             f'<article class="card" style="display: flex; justify-content: space-between; align-items: flex-start;">'
             f'<div style="flex: 1 1 auto; min-width: 0;">'
@@ -546,7 +571,7 @@ def render_index(pages, output_dir, publications):
 </head>
 <body>
     <main>
-        <section class=\"hero\">\n        <a href=\"../index.html\" class=\"back-arrow\" title=\"Back to documentation\">&#8592;</a>\n        <h1 style=\"display: flex; align-items: center; gap: 0.5rem; margin: 0;\">𓂀 Tutorials</h1>\n    </section>\n    {''.join(page_cards)}\n    <footer>\n        <p>𓁿 Meandering LLC © 2026</p>\n    </footer>\n    </main>\n</body>\n</html>\n""",
+        <section class="hero">\n        <a href="../index.html" class="back-arrow" title="Back to documentation">&#8592;</a>\n        <h1 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">𓂀 Tutorials</h1>\n        <a href="../tags/index.html" class="info-icon" title="Browse tags">ⓘ</a>\n    </section>\n    {''.join(page_cards)}\n    <footer>\n        <p>𓁿 Meandering LLC © 2026</p>\n    </footer>\n    </main>\n</body>\n</html>\n""",
         encoding="utf-8"
     )
 
@@ -554,10 +579,15 @@ def _generate_tag_pages(pages: list[TutorialPage], output_dir: Path) -> None:
     """Generate per-tag HTML pages and a tags index from tutorial pages."""
     tag_to_pages = defaultdict(list)
     for page in pages:
-        for tag in page.tags:
+        for tag in page.tags + page.libs:
             tag_to_pages[tag].append(page)
 
-    tags_dir = output_dir / "tags"
+    # If tutorials are built in a nested tutorials folder (as by build_documentation.sh),
+    # place tag pages in the shared root /tags folder instead of /tutorials/tags.
+    if output_dir.name == "tutorials":
+        tags_dir = output_dir.parent / "tags"
+    else:
+        tags_dir = output_dir / "tags"
     tags_dir.mkdir(parents=True, exist_ok=True)
 
     for tag, tag_pages in tag_to_pages.items():
@@ -569,12 +599,43 @@ def _generate_tag_pages(pages: list[TutorialPage], output_dir: Path) -> None:
                 f'<article class="card">'
                 f'<h2><a href="../tutorials/{page.output_path.name if page.output_path else page.slug + ".html"}">{html.escape(page.title)}</a></h2>'
                 f'<p>{html.escape(page.excerpt or "Open the tutorial to learn more.")}</p>'
+                f'</article>'
             )
-        tag_file.write_text("\n".join(tag_cards), encoding="utf-8")
+
+        tag_content = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag: {html.escape(tag)}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }}
+        main {{ background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }}
+        .card {{ border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem 1.25rem; margin: 1rem 0; background: #fff; }}
+        h1, h2 {{ color: #111827; }}
+        a {{ color: #2563eb; text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
+        .muted {{ color: #64748b; font-size: 0.95rem; }}
+        footer {{ margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; }}
+    </style>
+</head>
+<body>
+    <main>
+        <a href="index.html" class="back-arrow" title="Back to tags">← Back to tags</a>
+        <h1>Tag: {html.escape(tag)}</h1>
+        {''.join(tag_cards)}
+        <footer>
+            <p>𓁿 Meandering LLC © 2026</p>
+        </footer>
+    </main>
+</body>
+</html>'''
+
+        tag_file.write_text(tag_content, encoding="utf-8")
 
     # Generate a tags index page
-    tags_index = output_dir / "tags.html"
-    tag_links = [f'<li><a href="tags/{slugify(tag)}.html">{html.escape(tag)} <span class="muted">({len(tag_pages)})</span></a></li>' for tag, tag_pages in sorted(tag_to_pages.items())]
+    tags_index = tags_dir / "index.html"
+    tag_links = [f'<li><a href="{slugify(tag)}.html">{html.escape(tag)} <span class="muted">({len(tag_pages)})</span></a></li>' for tag, tag_pages in sorted(tag_to_pages.items())]
     tags_index.write_text(
         f'''<!DOCTYPE html>
 <html lang="en">
@@ -589,14 +650,14 @@ def _generate_tag_pages(pages: list[TutorialPage], output_dir: Path) -> None:
         a {{ color: #2563eb; text-decoration: none; }}
         a:hover {{ text-decoration: underline; }}
         .muted {{ color: #64748b; font-size: 0.95rem; }}
-        ul {{ margin: 1.5rem 0; }}
-        li {{ margin: 1rem 0; }}
+        ul {{ margin: 1.5rem 0; list-style: none; padding-left: 0; }}
+        li {{ margin: 0.75rem 0; }}
         footer {{ margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; }}
     </style>
 </head>
 <body>
     <main>
-        <a href="index.html" class="back-arrow" title="Back to home">&#8592; Back to home</a>
+        <a href="../index.html" class="back-arrow" title="Back to home">&#8592; Back to home</a>
         <h1>Tags Index</h1>
         <ul>
         {''.join(tag_links)}
@@ -659,9 +720,12 @@ def build_tutorial_site(source_dir: Path, output_dir: Path) -> None:
             return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
     page_cards = []
     for page, mtime in tutorials_with_dates:
-        tags_html = "".join(f'<span class="tag">{html.escape(tag)}</span>' for tag in page.tags)
+        tags_html = "".join(
+            f'<a class="tag{ " lib-tag" if idx >= len(page.tags) else ""}" href="../tags/{slugify(tag)}.html">{html.escape(tag)}</a>'
+            for idx, tag in enumerate(page.tags + page.libs)
+        )
         excerpt = html.escape(page.excerpt or "Open the tutorial to learn more.")
-        date_str = format_date(mtime)
+        date_str = page.publication_date or format_date(mtime)
         page_cards.append(
             f'<article class="card" style="display: flex; justify-content: space-between; align-items: flex-start;">'
             f'<div style="flex: 1 1 auto; min-width: 0;">'
@@ -706,6 +770,6 @@ def build_tutorial_site(source_dir: Path, output_dir: Path) -> None:
 </head>
 <body>
     <main>
-        <section class=\"hero\">\n        <a href=\"../index.html\" class=\"back-arrow\" title=\"Back to documentation\">&#8592;</a>\n        <h1 style=\"display: flex; align-items: center; gap: 0.5rem; margin: 0;\">𓂀 Tutorials</h1>\n    </section>\n    {''.join(page_cards)}\n    <footer>\n        <p>𓁿 Meandering LLC © 2026</p>\n    </footer>\n    </main>\n</body>\n</html>\n""",
+        <section class=\"hero\">\n        <a href=\"../index.html\" class=\"back-arrow\" title=\"Back to documentation\">&#8592;</a>\n        <h1 style=\"display: flex; align-items: center; gap: 0.5rem; margin: 0;\">𓂀 Tutorials</h1>\n    <a href="tags.html" class="info-icon" title="Browse tags">ⓘ</a>\n </section>\n    {''.join(page_cards)}\n    <footer>\n        <p>𓁿 Meandering LLC © 2026</p>\n    </footer>\n    </main>\n</body>\n</html>\n""",
         encoding="utf-8"
     )

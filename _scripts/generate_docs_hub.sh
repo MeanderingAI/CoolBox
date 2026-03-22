@@ -648,7 +648,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 tutorials_dir = Path(os.environ["TUTORIALS_DIR"])
-pages = [page for page in tutorials_dir.glob("*.html") if page.name != "index.html"]
+pages = [page for page in tutorials_dir.glob("*.html") if page.name not in ("index.html", "tags.html")]
 pages.sort(key=lambda page: page.stat().st_mtime, reverse=True)
 
 def title_for(page: Path) -> str:
@@ -678,6 +678,8 @@ PY
 )"
   echo "[generate_docs_hub.sh] Generated tutorials_latest_posts length $(printf '%s' "${tutorials_latest_posts}" | wc -c) chars"
 fi
+
+echo "[generate_docs_hub.sh] Preparing release links"
 
 cpp_link=''
 r_link=''
@@ -711,72 +713,98 @@ js_release_links="$(release_links_html 'js-bindings' linux-x86_64 macos-arm64 wi
 r_release_links="$(release_links_html 'r-bindings' linux-x86_64 macos-arm64 windows-x86_64)"
 c_release_links="$(release_links_html 'c-bindings' linux-x86_64)"
 if [ -n "${REPOSITORY_SLUG}" ] && [ -n "${RELEASE_TAG}" ]; then
+  echo "[generate_docs_hub.sh] Placing java nd rust bindings."
   java_release_links="$(single_release_links_html 'Java package' 'tar.gz' "coolbox-java-bindings-${RELEASE_TAG}.tar.gz" 'zip' "coolbox-java-bindings-${RELEASE_TAG}.zip")"
   rust_release_links="$(single_release_links_html 'Rust package' 'crate' "coolbox-rust-bindings-${RELEASE_TAG}.crate" 'tar.gz' "coolbox-rust-bindings-${RELEASE_TAG}.tar.gz" 'zip' "coolbox-rust-bindings-${RELEASE_TAG}.zip")"
 fi
 
 if [ -n "${REPOSITORY_SLUG}" ]; then
+  echo "[generate_docs_hub.sh] Placing latest release and releases page links for repository ${REPOSITORY_SLUG}."
   latest_release_url="$(latest_release_page_url)"
   releases_url="$(releases_page_url)"
   latest_release_link="<p class=\"muted\">GitHub releases: <a href=\"${latest_release_url}\">Latest release</a> · <a href=\"${releases_url}\">All releases</a></p>"
 fi
 
 if [ "${has_cpp_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing C++ API reference link."
   cpp_link='<li><a href="cpp/index.html">C++ API Reference</a><p>Doxygen output for the native CoolBox headers.</p></li>'
 fi
+
 if [ "${has_r_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing R extension docs link."
   r_link="<li><a href=\"extensions/r/index.html\">R Extension Docs</a><p>pkgdown site for the R package bindings.</p>${r_release_links}</li>"
 fi
+
 if [ "${has_python_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing Python extension docs link."
   python_link="<li><a href=\"extensions/python/index.html\">Python Extension Docs</a><p>Rendered documentation for the Python bindings.</p>${python_release_links}</li>"
 fi
+
 if [ "${has_go_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing Go extension docs link."
   go_link="<li><a href=\"extensions/go/index.html\">Go Extension Docs</a><p>Go module overview and GitHub installation instructions for the bindings.</p>${go_release_links}</li>"
 elif [ -n "${go_release_links}" ]; then
+  echo "[generate_docs_hub.sh] Placing Go extension release links without docs page."
   go_link="<li><span>Go Extension Docs</span><p>Go module release packages for the published bindings.</p>${go_release_links}</li>"
 fi
 if [ "${has_js_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing JavaScript extension docs link."
   js_link="<li><a href=\"extensions/javascript/index.html\">JavaScript Extension Index</a><p>Inventory of Emscripten binding modules.</p>${js_release_links}</li>"
 fi
 if [ "${has_c_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing C extension docs link."
   c_link="<li><a href=\"extensions/c/index.html\">C Extension Docs</a><p>Doxygen output for the plain C bindings.</p>${c_release_links}</li>"
 fi
 if [ "${has_java_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing Java extension docs link."
   java_link="<li><a href=\"extensions/java/index.html\">Java Extension Docs</a><p>Javadoc output for the plain Java bindings.</p>${java_release_links}</li>"
 fi
 if [ "${has_rust_docs}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing Rust extension docs link."
   rust_link="<li><a href=\"extensions/rust/index.html\">Rust Extension Docs</a><p>Rendered documentation for the Rust crate bindings.</p>${rust_release_links}</li>"
 elif [ -n "${rust_release_links}" ]; then
+  echo "[generate_docs_hub.sh] Placing Rust extension release links without docs page."
   rust_link="<li><span>Rust Extension Docs</span><p>Rust crate release packages for the published bindings.</p>${rust_release_links}</li>"
 fi
 if [ "${has_tutorials}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing tutorials link."
   tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Quick tutorials for using the CoolBox library.</p></li>'
 fi
 if [ -z "${tutorials_latest_posts}" ]; then
+  echo "[generate_docs_hub.sh] No recent tutorial posts found; placing placeholder message."
   tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
 fi
 if [ "${has_c_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing C binding artifacts link."
   c_artifacts_link='<li><a href="artifacts/c/index.html">C Binding Artifacts</a><p>Built C static libraries and installed headers.</p></li>'
 fi
 if [ "${has_r_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing R binding artifacts link."
   r_artifacts_link='<li><a href="artifacts/r/index.html">R Binding Artifacts</a><p>Built R source packages and release archives.</p></li>'
 fi
 if [ "${has_python_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing Python binding artifacts link."
   python_artifacts_link='<li><a href="artifacts/python/index.html">Python Binding Artifacts</a><p>Built Python extension outputs and package artifacts.</p></li>'
 fi
 if [ "${has_go_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing go artifact link."
   go_artifacts_link='<li><a href="artifacts/go/index.html">Go Binding Artifacts</a><p>Built Go release archives for the bindings module.</p></li>'
 fi
 if [ "${has_js_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing js artifact link."
   js_artifacts_link='<li><a href="artifacts/javascript/index.html">JavaScript Binding Artifacts</a><p>Built Emscripten JavaScript and WASM outputs.</p></li>'
 fi
 if [ "${has_java_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing java artifact link."
   java_artifacts_link='<li><a href="artifacts/java/index.html">Java Binding Artifacts</a><p>Built Java jars and Maven metadata.</p></li>'
 fi
 if [ "${has_rust_artifacts}" = true ]; then
+  echo "[generate_docs_hub.sh] Placing rust artifact link."
   rust_artifacts_link='<li><a href="artifacts/rust/index.html">Rust Binding Artifacts</a><p>Built Rust crate packages and release archives.</p></li>'
 fi
 
+
+echo "[generate_docs_hub.sh] Providing index.html."
 cat > "${SITE_DIR}/index.html" <<EOF
 <!DOCTYPE html>
 <html lang="en">
@@ -859,6 +887,7 @@ cat > "${SITE_DIR}/index.html" <<EOF
 </html>
 EOF
 
+echo "[generate_docs_hub.sh] Running translate docs."
 if [ -f "${ROOT_DIR}/_scripts/translate_docs.py" ]; then
   if command -v python3 >/dev/null 2>&1; then
     python3 "${ROOT_DIR}/_scripts/translate_docs.py" "${SITE_DIR}"
