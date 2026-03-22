@@ -36,5 +36,5 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: documentation
-          path: .documentation/
+          path: .site/
           retention-days: 14

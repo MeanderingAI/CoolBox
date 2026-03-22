@@ -16,7 +16,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl pkg-config docker.io
+          sudo apt-get remove -y containerd.io || true
+          sudo apt-get install -y build-essential cmake curl pkg-config
+          sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download plrust_lsp artifact
         uses: actions/download-artifact@v4

@@ -16,7 +16,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker.io
+          sudo apt-get remove -y containerd.io || true
+          sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download artifacts (all LSP binaries)
         uses: actions/download-artifact@v4

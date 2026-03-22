@@ -46,12 +46,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make libeigen3-dev libsqlite3-dev
+          sudo apt-get install -y cmake g++ make libeigen3-dev libsqlite3-dev libgsl-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          for pkg in cmake eigen sqlite; do
+          for pkg in cmake eigen sqlite gsl; do
             brew list "$pkg" &>/dev/null || brew install "$pkg"
           done
 
@@ -62,9 +62,13 @@ jobs:
           $vcpkg = Get-Command vcpkg -ErrorAction SilentlyContinue
           if ($null -ne $vcpkg) {
             try {
-              & $vcpkg.Source install eigen3:x64-windows sqlite3:x64-windows
+              & $vcpkg.Source install eigen3:x64-windows sqlite3:x64-windows gsl:x64-windows
               "EIGEN3_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include/eigen3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
               "SQLITE3_LIB_DIR=C:/vcpkg/installed/x64-windows/lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              if (Test-Path "C:/vcpkg/installed/x64-windows/include") {
+                "GSL_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                "GSL_LIB_DIR=C:/vcpkg/installed/x64-windows/lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              }
             } catch {
               Write-Host "vcpkg install failed, continuing"
             }
@@ -120,7 +124,22 @@ jobs:
       - name: Configure and build C++ libraries
         run: |
           mkdir -p build
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          GSL_CMAKE_ARGS=""
+          if [ "$(uname)" = "Darwin" ]; then
+            if command -v brew >/dev/null 2>&1; then
+              GSL_PREFIX="$(brew --prefix gsl 2>/dev/null || true)"
+              if [ -n "$GSL_PREFIX" ]; then
+                GSL_CMAKE_ARGS="-DGSL_INCLUDE_DIR=$GSL_PREFIX/include -DGSL_LIBRARY=$GSL_PREFIX/lib/libgsl.dylib -DGSL_CBLAS_LIBRARY=$GSL_PREFIX/lib/libgslcblas.dylib"
+              fi
+            fi
+          else
+            if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists gsl; then
+              GSL_PREFIX="$(pkg-config --variable=prefix gsl)"
+              GSL_CMAKE_ARGS="-DGSL_INCLUDE_DIR=$GSL_PREFIX/include -DGSL_LIBRARY=$GSL_PREFIX/lib/libgsl.so -DGSL_CBLAS_LIBRARY=$GSL_PREFIX/lib/libgslcblas.so"
+            fi
+          fi
+          echo "Using GSL_CMAKE_ARGS=$GSL_CMAKE_ARGS"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release $GSL_CMAKE_ARGS
           cmake --build build --target charts --parallel || true
           cmake --build build --target wave_generator_utils --parallel || true
         shell: bash

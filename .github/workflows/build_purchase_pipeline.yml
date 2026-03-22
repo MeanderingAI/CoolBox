@@ -109,7 +109,9 @@ jobs:
       - name: Install docker
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker.io
+          # Remove potential conflicting package installed from Docker repos
+          sudo apt-get remove -y containerd.io || true
+          sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download LSP artifacts
         uses: actions/download-artifact@v4

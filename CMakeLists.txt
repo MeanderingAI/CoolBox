@@ -52,8 +52,13 @@ enable_testing()
 
 # Option to skip building apps/services/demos
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
+option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 if(BUILD_BINARIES)
-    add_subdirectory(_binaries)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/_binaries")
+        add_subdirectory(_binaries)
+    else()
+        message(STATUS "BUILD_BINARIES=ON but _binaries directory not found; skipping binaries")
+    endif()
 endif()
 
 add_subdirectory(_libraries)
