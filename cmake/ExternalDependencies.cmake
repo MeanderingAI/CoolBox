@@ -30,6 +30,24 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+# Ensure FetchContent-provided googletest exposes the expected imported
+# targets in the `GTest::` namespace for subdirectories that link to
+# `GTest::gtest_main`. Some platform/system installations provide a
+# partial config (missing gtest_main) which causes `find_package(GTest ...)
+#` to fail; creating these aliases guarantees the expected targets exist
+# after we made googletest available.
+if(NOT TARGET GTest::gtest_main)
+  if(TARGET gtest_main)
+    add_library(GTest::gtest_main ALIAS gtest_main)
+  endif()
+endif()
+
+if(NOT TARGET GTest::gtest)
+  if(TARGET gtest)
+    add_library(GTest::gtest ALIAS gtest)
+  endif()
+endif()
+
 
 # Find or fetch Doxygen
 

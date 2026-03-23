@@ -1,4 +1,5 @@
 build
+build_lsp
 build-test
 build-emscripten-local-check
 build-emscripten-local-check-default
@@ -27,3 +28,4 @@ eigen-build
 _libraries/rust_bindings/target/
 _libraries/rust_bindings/Cargo.lock
 external
+.venv
