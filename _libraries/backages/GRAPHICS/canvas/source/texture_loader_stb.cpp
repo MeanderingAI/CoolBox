@@ -23,31 +23,19 @@ bool loadTextureFromFile(const std::string& path, Texture &out) {
 
 #else
 
-namespace graphics {
-
-bool loadTextureFromFile(const std::string& /*path*/, Texture &/*out*/) {
-    // No image backend available at build time.
-    return false;
-}
-
-} // namespace graphics
-
-#else
-
 #include <fstream>
 #include <cstdint>
 
 namespace graphics {
 
-// Minimal BMP loader: supports uncompressed 24-bit and 32-bit BMP (Windows BITMAPINFO)
+// Minimal BMP loader fallback
 static bool loadBMP(const std::string &path, Texture &out) {
     std::ifstream ifs(path, std::ios::binary);
     if(!ifs) return false;
 
-    // Read BITMAPFILEHEADER (14 bytes)
     uint16_t bfType;
     ifs.read(reinterpret_cast<char*>(&bfType), sizeof(bfType));
-    if(!ifs || bfType != 0x4D42) return false; // 'BM'
+    if(!ifs || bfType != 0x4D42) return false;
 
     uint32_t bfSize = 0;
     ifs.read(reinterpret_cast<char*>(&bfSize), sizeof(bfSize));
@@ -56,10 +44,9 @@ static bool loadBMP(const std::string &path, Texture &out) {
     uint32_t bfOffBits = 0;
     ifs.read(reinterpret_cast<char*>(&bfOffBits), sizeof(bfOffBits));
 
-    // Read BITMAPINFOHEADER (at least 40 bytes)
     uint32_t biSize = 0;
     ifs.read(reinterpret_cast<char*>(&biSize), sizeof(biSize));
-    if(biSize < 40) return false; // we expect at least the standard header
+    if(biSize < 40) return false;
 
     int32_t biWidth = 0, biHeight = 0;
     uint16_t biPlanes = 0;
@@ -74,24 +61,16 @@ static bool loadBMP(const std::string &path, Texture &out) {
     ifs.read(reinterpret_cast<char*>(&biCompression), sizeof(biCompression));
     ifs.read(reinterpret_cast<char*>(&biSizeImage), sizeof(biSizeImage));
 
-    // Skip the rest of the header fields we don't care about
-    if(biSize > 28) {
-        std::vector<char> skip(biSize - 28);
-        ifs.read(skip.data(), skip.size());
-    }
-
-    if(biCompression != 0) return false; // only support BI_RGB (no compression)
-    if(biBitCount != 24 && biBitCount != 32) return false; // support 24/32-bit
+    if(biCompression != 0) return false;
+    if(biBitCount != 24 && biBitCount != 32) return false;
 
     int width = biWidth;
     int height = std::abs(biHeight);
     int channels = (biBitCount == 24) ? 3 : 4;
 
-    // Seek to pixel data
     ifs.seekg(static_cast<std::streamoff>(bfOffBits), std::ios::beg);
     if(!ifs) return false;
 
-    // Rows are padded to 4-byte boundaries for 24-bit BMP
     size_t rowSizeUnpadded = static_cast<size_t>(width) * channels;
     size_t rowPadding = 0;
     if(biBitCount == 24) {
@@ -105,19 +84,14 @@ static bool loadBMP(const std::string &path, Texture &out) {
     out.pixels.clear();
     out.pixels.reserve(static_cast<size_t>(width) * static_cast<size_t>(height) * channels);
 
-    // BMP stores rows bottom-up unless height negative
     bool topDown = (biHeight < 0);
-
     std::vector<unsigned char> rowBuf(static_cast<size_t>(width) * channels + rowPadding);
-
-    // Read rows into a temporary buffer then reorder if necessary
     std::vector<unsigned char> allPixels(static_cast<size_t>(width) * static_cast<size_t>(height) * channels);
     for(int y = 0; y < height; ++y) {
         ifs.read(reinterpret_cast<char*>(rowBuf.data()), static_cast<std::streamsize>(width * channels + rowPadding));
         if(!ifs) return false;
         int dstY = topDown ? y : (height - 1 - y);
         unsigned char *dst = allPixels.data() + static_cast<size_t>(dstY) * static_cast<size_t>(width) * channels;
-        // BMP stores BGR(A) order; convert to RGB(A)
         if(channels == 3) {
             for(int x = 0; x < width; ++x) {
                 size_t srcIdx = static_cast<size_t>(x) * 3;
@@ -125,7 +99,7 @@ static bool loadBMP(const std::string &path, Texture &out) {
                 dst[x*3 + 1] = rowBuf[srcIdx + 1];
                 dst[x*3 + 2] = rowBuf[srcIdx + 0];
             }
-        } else { // 4 channels
+        } else {
             for(int x = 0; x < width; ++x) {
                 size_t srcIdx = static_cast<size_t>(x) * 4;
                 dst[x*4 + 0] = rowBuf[srcIdx + 2];
@@ -141,10 +115,7 @@ static bool loadBMP(const std::string &path, Texture &out) {
 }
 
 bool loadTextureFromFile(const std::string& path, Texture &out) {
-    // Try BMP as a lightweight fallback format
     if(loadBMP(path, out)) return true;
-
-    // Could add additional simple loaders (PPM, TGA) or a JSON/dataformat-based loader here.
     return false;
 }
 

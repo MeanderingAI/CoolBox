@@ -38,6 +38,8 @@ jobs:
             lib_ext: "*.lib -o -name *.dll"
 
     runs-on: ${{ matrix.os }}
+    outputs:
+      run_id: ${{ steps.set_run_id.outputs.run_id }}
     name: Build (${{ matrix.platform }})
     defaults:
       run:
@@ -321,6 +323,11 @@ jobs:
           name: coolbox-build-${{ matrix.platform }}-${{ github.ref_name }}
           path: build/
           if-no-files-found: ignore
+
+      - name: Set workflow run id output
+        id: set_run_id
+        run: |
+          echo "run_id=${GITHUB_RUN_ID:-}" >> $GITHUB_OUTPUT
 
   release:
     needs: build

@@ -1,25 +1,29 @@
 cmake_minimum_required(VERSION 3.12)
-project(GRAPHICS_CUSTOM LANGUAGES C CXX)
+project(GRAPHICS LANGUAGES C CXX)
 
-add_library(graphics_custom INTERFACE)
-target_include_directories(graphics_custom INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+# Top-level convenience target for consumers
+add_library(graphics INTERFACE)
+target_include_directories(graphics INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/components/headers>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/fonts/headers>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
   $<INSTALL_INTERFACE:include>
 )
 
-# Install headers from subpackages (we moved headers into fonts/headers and components/headers)
+# Install headers from subpackages
 install(DIRECTORY components/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
 install(DIRECTORY fonts/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
-install(TARGETS graphics_custom)
+install(DIRECTORY canvas/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
+install(TARGETS graphics)
 
 # Optional texture loader library (uses stb_image if available in third_party)
 option(GRAPHICS_ENABLE_STB_IMAGE "Enable stb_image-based texture loader if stb_image.h is available in third_party" ON)
 
 set(STB_PATH "${CMAKE_SOURCE_DIR}/third_party/stb_image.h")
 if(GRAPHICS_ENABLE_STB_IMAGE AND EXISTS "${STB_PATH}")
-  add_library(graphics_textures STATIC components/source/texture_loader_stb.cpp)
+  add_library(graphics_textures STATIC canvas/source/texture_loader_stb.cpp)
   target_include_directories(graphics_textures PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/components/headers>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/third_party>
     $<INSTALL_INTERFACE:include>
   )
@@ -31,16 +35,38 @@ if(GRAPHICS_ENABLE_STB_IMAGE AND EXISTS "${STB_PATH}")
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 else()
-  # Provide a stub target so consumers can link unconditionally if desired
   add_library(graphics_textures INTERFACE)
   target_include_directories(graphics_textures INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
     $<INSTALL_INTERFACE:include>
   )
   install(TARGETS graphics_textures)
 endif()
 
-# Make the interface convenience target propagate dependency
+# Propagate textures to the top-level convenience target
 if(TARGET graphics_textures)
-  target_link_libraries(graphics_custom INTERFACE graphics_textures)
+  target_link_libraries(graphics INTERFACE graphics_textures)
 endif()
+
+# Provide GTest for subpackages when BUILD_TESTING is enabled
+if(BUILD_TESTING)
+  include(FetchContent)
+  find_package(GTest QUIET COMPONENTS gtest_main)
+  if(NOT GTest_FOUND)
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_TAG main
+      GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(googletest)
+    find_package(GTest REQUIRED COMPONENTS gtest_main)
+  endif()
+endif()
+
+# Add subdirectories (keep the layout explicit and consistent)
+add_subdirectory(components)
+add_subdirectory(charts)
+add_subdirectory(fonts)
+add_subdirectory(canvas)
+add_subdirectory(windows)

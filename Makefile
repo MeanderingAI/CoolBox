@@ -107,6 +107,7 @@ help:
 	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
 	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
 		build_rust_bindings test_rust_bindings build_docs_portal launch_editor
+		notepad
 
 all: build_all
 
@@ -308,6 +309,12 @@ site_r_bindings:
 build_rust_bindings:
 	@echo "Building Rust bindings..."
 	@cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
+
+# Build the notepad product
+notepad:
+	@echo "Building notepad product..."
+	@$(MAKE) -C _Product/notepad all || true
+	@echo "notepad build complete. Binary (if produced) in _Product/notepad/bin"
 
 test_rust_bindings:
 	@echo "Testing Rust bindings..."
