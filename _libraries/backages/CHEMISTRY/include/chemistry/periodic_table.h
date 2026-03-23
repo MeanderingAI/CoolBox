@@ -150,14 +150,14 @@ inline Element element_by_symbol(const std::string& sym) {
     for (const auto &e : kPeriodicTable) {
         if (sym == e.symbol) return e;
     }
-    return {0, "?", "Unknown", 0.0, ""};
+    return {0, "?", "Unknown", 0.0, 0, 0, 0, 0.0, ""};
 }
 
 inline Element element_by_atomic_number(int z) {
     for (const auto &e : kPeriodicTable) {
         if (e.atomic_number == z) return e;
     }
-    return {0, "?", "Unknown", 0.0, ""};
+    return {0, "?", "Unknown", 0.0, 0, 0, 0, 0.0, ""};
 }
 
 inline std::vector<Element> elements_from_symbols(const std::vector<std::string>& syms) {

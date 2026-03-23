@@ -14,6 +14,9 @@ target_include_directories(battery
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Link chemistry interface so consumers (tests) get its include dirs
+target_link_libraries(battery INTERFACE chemistry)
+
 # ------------------------------------------------------------------
 # Tests (Google Test)
 # ------------------------------------------------------------------

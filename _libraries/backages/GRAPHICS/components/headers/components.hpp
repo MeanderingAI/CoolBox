@@ -94,20 +94,7 @@ struct CheckboxGroupModel {
     CheckboxGroupModel& add_option(const std::string& o, bool c = false) { options.push_back(o); checked.push_back(c); return *this; }
     CheckboxGroupModel& set_checked(std::size_t i, bool c) { if (i < checked.size()) checked[i] = c; return *this; }
 };
-    static Component toolbar(const ToolbarModel& toolbar);
-    static Component dock_panel(const DockPanelModel& dock_panel);
-    static Component layer_list(const LayerListModel& layer_list);
-    static Component property_inspector(const PropertyInspectorModel& inspector);
-    static Component file_tree(const FileTreeModel& file_tree);
-    static Component radio_selector(const RadioSelectorModel& radio_selector);
-    static Component checkbox_group(const CheckboxGroupModel& checkbox_group);
-    const ToolbarModel* toolbar_model() const { return toolbar_model_.get(); }
-    const DockPanelModel* dock_panel_model() const { return dock_panel_model_.get(); }
-    const LayerListModel* layer_list_model() const { return layer_list_model_.get(); }
-    const PropertyInspectorModel* property_inspector_model() const { return property_inspector_model_.get(); }
-    const FileTreeModel* file_tree_model() const { return file_tree_model_.get(); }
-    const RadioSelectorModel* radio_selector_model() const { return radio_selector_model_.get(); }
-    const CheckboxGroupModel* checkbox_group_model() const { return checkbox_group_model_.get(); }
+// Factory functions and model getters are declared on `Component` below.
 
 enum class LayoutType {
     Vertical,
@@ -183,6 +170,23 @@ public:
                                    std::size_t min_width = 0);
     static Component layout_group(const ComponentHolder& holder,
                                   std::string label = "");
+    // Additional component factories for complex widgets
+    static Component toolbar(const ToolbarModel& toolbar);
+    static Component dock_panel(const DockPanelModel& dock_panel);
+    static Component layer_list(const LayerListModel& layer_list);
+    static Component property_inspector(const PropertyInspectorModel& inspector);
+    static Component file_tree(const FileTreeModel& file_tree);
+    static Component radio_selector(const RadioSelectorModel& radio_selector);
+    static Component checkbox_group(const CheckboxGroupModel& checkbox_group);
+
+    // Accessors for associated models (defined in source file)
+    const ToolbarModel* toolbar_model() const;
+    const DockPanelModel* dock_panel_model() const;
+    const LayerListModel* layer_list_model() const;
+    const PropertyInspectorModel* property_inspector_model() const;
+    const FileTreeModel* file_tree_model() const;
+    const RadioSelectorModel* radio_selector_model() const;
+    const CheckboxGroupModel* checkbox_group_model() const;
 
     ComponentType type() const { return type_; }
     const std::string& label() const { return label_; }

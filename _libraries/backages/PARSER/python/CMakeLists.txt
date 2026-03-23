@@ -6,7 +6,7 @@ add_library(plpython_parser_lib
     source/parser_python.cpp
 )
 
-target_include_directories(plpython_parser_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_include_directories(plpython_parser_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 option(BUILD_TESTS "Build tests for ppython" ON)
 if(BUILD_TESTS)

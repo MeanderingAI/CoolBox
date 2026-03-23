@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <functional>
 
 namespace graphics {
 namespace components {
@@ -168,57 +169,58 @@ std::string component_type_name(ComponentType type) {
         case ComponentType::RadioSelector: return "radioSelector";
         case ComponentType::CheckboxGroup: return "checkboxGroup";
     }
-    Component Component::toolbar(const ToolbarModel& toolbar) {
-        Component c;
-        c.type_ = ComponentType::Toolbar;
-        c.toolbar_model_ = std::make_shared<ToolbarModel>(toolbar);
-        return c;
-    }
-
-    Component Component::dock_panel(const DockPanelModel& dock_panel) {
-        Component c;
-        c.type_ = ComponentType::DockPanel;
-        c.dock_panel_model_ = std::make_shared<DockPanelModel>(dock_panel);
-        return c;
-    }
-
-    Component Component::layer_list(const LayerListModel& layer_list) {
-        Component c;
-        c.type_ = ComponentType::LayerList;
-        c.layer_list_model_ = std::make_shared<LayerListModel>(layer_list);
-        return c;
-    }
-
-    Component Component::property_inspector(const PropertyInspectorModel& inspector) {
-        Component c;
-        c.type_ = ComponentType::PropertyInspector;
-        c.property_inspector_model_ = std::make_shared<PropertyInspectorModel>(inspector);
-        return c;
-    }
-
-    Component Component::file_tree(const FileTreeModel& file_tree) {
-        Component c;
-        c.type_ = ComponentType::FileTree;
-        c.file_tree_model_ = std::make_shared<FileTreeModel>(file_tree);
-        return c;
-    }
-
-    Component Component::radio_selector(const RadioSelectorModel& radio_selector) {
-        Component c;
-        c.type_ = ComponentType::RadioSelector;
-        c.radio_selector_model_ = std::make_shared<RadioSelectorModel>(radio_selector);
-        return c;
-    }
-
-    Component Component::checkbox_group(const CheckboxGroupModel& checkbox_group) {
-        Component c;
-        c.type_ = ComponentType::CheckboxGroup;
-        c.checkbox_group_model_ = std::make_shared<CheckboxGroupModel>(checkbox_group);
-        return c;
-    }
     return "unknown";
 }
 
+// ----- Component factory implementations -----
+Component Component::toolbar(const ToolbarModel& toolbar) {
+    Component c;
+    c.type_ = ComponentType::Toolbar;
+    c.toolbar_model_ = std::make_shared<ToolbarModel>(toolbar);
+    return c;
+}
+
+Component Component::dock_panel(const DockPanelModel& dock_panel) {
+    Component c;
+    c.type_ = ComponentType::DockPanel;
+    c.dock_panel_model_ = std::make_shared<DockPanelModel>(dock_panel);
+    return c;
+}
+
+Component Component::layer_list(const LayerListModel& layer_list) {
+    Component c;
+    c.type_ = ComponentType::LayerList;
+    c.layer_list_model_ = std::make_shared<LayerListModel>(layer_list);
+    return c;
+}
+
+Component Component::property_inspector(const PropertyInspectorModel& inspector) {
+    Component c;
+    c.type_ = ComponentType::PropertyInspector;
+    c.property_inspector_model_ = std::make_shared<PropertyInspectorModel>(inspector);
+    return c;
+}
+
+Component Component::file_tree(const FileTreeModel& file_tree) {
+    Component c;
+    c.type_ = ComponentType::FileTree;
+    c.file_tree_model_ = std::make_shared<FileTreeModel>(file_tree);
+    return c;
+}
+
+Component Component::radio_selector(const RadioSelectorModel& radio_selector) {
+    Component c;
+    c.type_ = ComponentType::RadioSelector;
+    c.radio_selector_model_ = std::make_shared<RadioSelectorModel>(radio_selector);
+    return c;
+}
+
+Component Component::checkbox_group(const CheckboxGroupModel& checkbox_group) {
+    Component c;
+    c.type_ = ComponentType::CheckboxGroup;
+    c.checkbox_group_model_ = std::make_shared<CheckboxGroupModel>(checkbox_group);
+    return c;
+}
 std::string layout_type_name(LayoutType type) {
     switch (type) {
         case LayoutType::Vertical: return "vertical";
@@ -338,6 +340,14 @@ Component Component::layout_group(const ComponentHolder& holder, std::string lab
     component.layout_group_ = std::make_shared<ComponentHolder>(holder);
     return component;
 }
+
+const ToolbarModel* Component::toolbar_model() const { return toolbar_model_.get(); }
+const DockPanelModel* Component::dock_panel_model() const { return dock_panel_model_.get(); }
+const LayerListModel* Component::layer_list_model() const { return layer_list_model_.get(); }
+const PropertyInspectorModel* Component::property_inspector_model() const { return property_inspector_model_.get(); }
+const FileTreeModel* Component::file_tree_model() const { return file_tree_model_.get(); }
+const RadioSelectorModel* Component::radio_selector_model() const { return radio_selector_model_.get(); }
+const CheckboxGroupModel* Component::checkbox_group_model() const { return checkbox_group_model_.get(); }
 
 std::vector<std::string> Component::render() const {
     switch (type_) {

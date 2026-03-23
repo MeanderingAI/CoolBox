@@ -88,6 +88,74 @@
 
 namespace graphics {
 
+// Color and Canvas definitions
+struct Color {
+    uint8_t r = 0, g = 0, b = 0, a = 255;
+
+    bool operator==(const Color& o) const {
+        return r == o.r && g == o.g && b == o.b && a == o.a;
+    }
+    bool operator!=(const Color& o) const { return !(*this == o); }
+};
+
+namespace Colors {
+    inline constexpr Color Black   {  0,   0,   0, 255};
+    inline constexpr Color White   {255, 255, 255, 255};
+    inline constexpr Color Red     {220,  50,  50, 255};
+    inline constexpr Color Green   { 50, 180,  50, 255};
+    inline constexpr Color Blue    { 50,  90, 220, 255};
+    inline constexpr Color Orange  {230, 150,  30, 255};
+    inline constexpr Color Purple  {150,  50, 200, 255};
+    inline constexpr Color Cyan    { 50, 200, 200, 255};
+    inline constexpr Color Gray    {180, 180, 180, 255};
+    inline constexpr Color DarkGray{100, 100, 100, 255};
+    inline constexpr Color LightGray{230, 230, 230, 255};
+}
+
+// Canvas – pixel buffer with drawing primitives
+class Canvas {
+public:
+    Canvas(int width, int height, Color bg = Colors::White);
+
+    // Accessors
+    int width()  const { return width_; }
+    int height() const { return height_; }
+    const uint8_t* data() const { return pixels_.data(); }
+
+    // Pixel operations
+    void set_pixel(int x, int y, Color c);
+    Color get_pixel(int x, int y) const;
+    void fill(Color c);
+
+    // Drawing primitives
+    void draw_line(int x0, int y0, int x1, int y1, Color c, int thickness = 1);
+    void draw_rect(int x, int y, int w, int h, Color c, bool filled = false);
+    void draw_circle(int cx, int cy, int radius, Color c, bool filled = false);
+
+    // Polygon / plane drawing
+    enum class FillStyle { Solid, VerticalGradient, Hatch };
+    void draw_polygon(const std::vector<std::pair<int,int>>& pts,
+                      Color outline,
+                      bool filled = false,
+                      FillStyle style = FillStyle::Solid,
+                      Color fill_color = Colors::LightGray,
+                      Color fill_color2 = Colors::White,
+                      int hatch_spacing = 6);
+
+    void draw_text(int x, int y, const std::string& text, Color c, int scale = 1);
+
+    // Export
+    bool save_bmp(const std::string& path) const;
+    bool save_png(const std::string& path) const;
+    bool save_jpg(const std::string& path, int quality = 90) const;
+
+private:
+    int width_, height_;
+    std::vector<uint8_t> pixels_;   // RGBA, row-major, top-left origin
+
+    void blend_pixel(int x, int y, Color c);
+};
+
 // ===================================================================
 // Color
 // ===================================================================
@@ -100,6 +168,7 @@ enum class FractalType { Mandelbrot, Julia };
 
 class Fractal {
 public:
+    Fractal(int width, int height, FractalType type);
 
     void set_params(double param1, double param2 = 0.0); // e.g., Julia c = (param1, param2)
     void set_max_iter(int max_iter);
@@ -174,84 +243,7 @@ private:
     Color color_ = Colors::Orange;
 };
 
-struct Color {
-    uint8_t r = 0, g = 0, b = 0, a = 255;
-
-    bool operator==(const Color& o) const {
-        return r == o.r && g == o.g && b == o.b && a == o.a;
-    }
-    bool operator!=(const Color& o) const { return !(*this == o); }
-};
-
-namespace Colors {
-    inline constexpr Color Black   {  0,   0,   0, 255};
-    inline constexpr Color White   {255, 255, 255, 255};
-    inline constexpr Color Red     {220,  50,  50, 255};
-    inline constexpr Color Green   { 50, 180,  50, 255};
-    inline constexpr Color Blue    { 50,  90, 220, 255};
-    inline constexpr Color Orange  {230, 150,  30, 255};
-    inline constexpr Color Purple  {150,  50, 200, 255};
-    inline constexpr Color Cyan    { 50, 200, 200, 255};
-    inline constexpr Color Gray    {180, 180, 180, 255};
-    inline constexpr Color DarkGray{100, 100, 100, 255};
-    inline constexpr Color LightGray{230, 230, 230, 255};
-}
-
-// ===================================================================
-// Canvas – pixel buffer with drawing primitives
-// ===================================================================
-
-class Canvas {
-public:
-    Canvas(int width, int height, Color bg = Colors::White);
-
-    // Accessors
-    int width()  const { return width_; }
-    int height() const { return height_; }
-    const uint8_t* data() const { return pixels_.data(); }
-
-    // Pixel operations
-    void set_pixel(int x, int y, Color c);
-    Color get_pixel(int x, int y) const;
-    void fill(Color c);
-
-    // Drawing primitives
-    void draw_line(int x0, int y0, int x1, int y1, Color c, int thickness = 1);
-    void draw_rect(int x, int y, int w, int h, Color c, bool filled = false);
-    void draw_circle(int cx, int cy, int radius, Color c, bool filled = false);
-
-    // Polygon / plane drawing
-    enum class FillStyle { Solid, VerticalGradient, Hatch };
-    /**
-     * Draw an arbitrary polygon. Points are given in integer canvas coordinates.
-     * - `outline` is used for the polygon border.
-     * - If `filled` is true, the polygon interior is filled according to `style`.
-     * - `fill_color` is used for solid fill or the gradient start for VerticalGradient.
-     * - `fill_color2` is used as the gradient end for VerticalGradient.
-     * - `hatch_spacing` controls spacing (pixels) for hatch fill.
-     */
-    void draw_polygon(const std::vector<std::pair<int,int>>& pts,
-                      Color outline,
-                      bool filled = false,
-                      FillStyle style = FillStyle::Solid,
-                      Color fill_color = Colors::LightGray,
-                      Color fill_color2 = Colors::White,
-                      int hatch_spacing = 6);
-
-    /** Draw a string using a built-in 5×7 bitmap font. Scale multiplies size. */
-    void draw_text(int x, int y, const std::string& text, Color c, int scale = 1);
-
-    // Export
-    bool save_bmp(const std::string& path) const;
-    bool save_png(const std::string& path) const;
-    bool save_jpg(const std::string& path, int quality = 90) const;
-
-private:
-    int width_, height_;
-    std::vector<uint8_t> pixels_;   // RGBA, row-major, top-left origin
-
-    void blend_pixel(int x, int y, Color c);
-};
+// (moved Color/Colors earlier to make them visible to types that use them)
 
 // ===================================================================
 // Graph

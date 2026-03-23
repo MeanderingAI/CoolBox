@@ -7,7 +7,7 @@ add_library(plang_lsp_lib
 )
 
 target_include_directories(plang_lsp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers
-	${CMAKE_CURRENT_SOURCE_DIR}/../programming_language/headers)
+	${CMAKE_CURRENT_SOURCE_DIR}/../../PARSER/programming_language/headers)
 
 option(BUILD_TESTS "Build tests for plang_lsp" ON)
 if(BUILD_TESTS)

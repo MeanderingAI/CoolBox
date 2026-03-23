@@ -6,7 +6,7 @@ add_library(plrust_parser_lib
     source/parser_rust.cpp
 )
 
-target_include_directories(plrust_parser_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_include_directories(plrust_parser_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 option(BUILD_TESTS "Build tests for prust" ON)
 if(BUILD_TESTS)

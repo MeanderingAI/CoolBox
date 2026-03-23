@@ -1,3 +1,7 @@
+#include <gtest/gtest.h>
+
+#include "components.hpp"
+
 TEST(GraphicsComponentsTest, RendersToolbarDockPanelLayerListPropertyInspectorFileTreeRadioCheckboxGroup) {
     using namespace graphics::components;
     // Toolbar

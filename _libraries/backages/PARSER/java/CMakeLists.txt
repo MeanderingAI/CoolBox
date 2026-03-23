@@ -6,7 +6,7 @@ add_library(pljava_parser_lib
     source/parser_java.cpp
 )
 
-target_include_directories(pljava_parser_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_include_directories(pljava_parser_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 option(BUILD_TESTS "Build tests for pjava" ON)
 if(BUILD_TESTS)

@@ -33,6 +33,9 @@ jobs:
           - os: windows-latest
             platform: windows-x86_64
             lib_ext: "*.lib -o -name *.dll"
+          - os: windows-latest
+            platform: windows-arm64
+            lib_ext: "*.lib -o -name *.dll"
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.platform }})
@@ -69,27 +72,30 @@ jobs:
             echo "No CMakeCache.txt found"
           fi
 
-      - name: Install dependencies (Windows)
+      - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'
         id: msys2
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
         uses: msys2/setup-msys2@v2.30.0
         with:
           msystem: MINGW64
           path-type: inherit
           update: true
-          install: |
-            make
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-eigen3
-            mingw-w64-x86_64-gcc-fortran
-            mingw-w64-x86_64-gsl
-            mingw-w64-x86_64-sqlite3
 
-      - name: Ensure mingw64 in PATH (Windows)
+      - name: Install MSYS2 packages (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          set -e
+          echo "Matrix platform: ${{ matrix.platform }}"
+          if echo "${{ matrix.platform }}" | grep -q "arm64"; then
+            echo "Installing aarch64 packages"
+            pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-cmake mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 make
+          else
+            echo "Installing x86_64 packages"
+            pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 make
+          fi
+        shell: msys2 {0}
+
+      - name: Ensure mingw in PATH (Windows)
         if: runner.os == 'Windows'
         run: |
           $msysRoot = "${{ steps.msys2.outputs.msys2-location }}"
@@ -97,10 +103,10 @@ jobs:
             $msysRoot = "C:\\msys64"
           }
           if (!(Test-Path $msysRoot)) { $msysRoot = "C:\\tools\\msys64" }
-          $msysUsrBin = Join-Path $msysRoot "usr\\bin"
-          $msysBin = Join-Path $msysRoot "mingw64\\bin"
-          if (Test-Path $msysUsrBin) { echo "$msysUsrBin" >> $env:GITHUB_PATH }
-          echo "$msysBin" >> $env:GITHUB_PATH
+          $targetBin = if (${env:matrix_platform} -like '*arm64*') { 'mingw64\bin' } else { 'mingw64\bin' }
+          # For MSYS2, both aarch64 and x86_64 use mingw64 layout for GitHub runners
+          $msysBin = Join-Path $msysRoot $targetBin
+          if (Test-Path $msysBin) { echo "$msysBin" >> $env:GITHUB_PATH }
         shell: powershell
 
       - name: Verify CMake is available (Windows)

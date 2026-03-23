@@ -2,7 +2,7 @@
 #include <string>
 #include <sstream>
 #include <exception>
-#include "../../PARSER/rust/headers/parser_rust.h"
+#include "../../../PARSER/rust/headers/parser_rust.h"
 
 std::string rust_process_text_for_diagnostics(const std::string &uri, const std::string &text) {
     try {
