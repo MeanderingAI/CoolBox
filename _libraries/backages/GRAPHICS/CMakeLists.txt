@@ -48,19 +48,11 @@ if(TARGET graphics_textures)
   target_link_libraries(graphics INTERFACE graphics_textures)
 endif()
 
-# Provide GTest for subpackages when BUILD_TESTING is enabled
+# GTest is provided centrally via `cmake/ExternalDependencies.cmake`.
+# Subpackages should link `GTest::gtest_main` if the target exists.
 if(BUILD_TESTING)
-  include(FetchContent)
-  find_package(GTest QUIET COMPONENTS gtest_main)
-  if(NOT GTest_FOUND)
-    FetchContent_Declare(
-      googletest
-      GIT_REPOSITORY https://github.com/google/googletest.git
-      GIT_TAG main
-      GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(googletest)
-    find_package(GTest REQUIRED COMPONENTS gtest_main)
+  if(NOT TARGET GTest::gtest_main)
+    message(STATUS "GTest::gtest_main not available; GRAPHICS tests will be skipped")
   endif()
 endif()
 
