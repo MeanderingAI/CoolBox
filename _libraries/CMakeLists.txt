@@ -1,8 +1,31 @@
 # CMakeLists.txt for _libraries
 # Helper: only add_subdirectory if the directory actually exists
 macro(add_subdirectory_if_exists dir)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/CMakeLists.txt")
-        add_subdirectory(${dir})
+    set(target_src "${CMAKE_CURRENT_SOURCE_DIR}/${dir}")
+    if(EXISTS "${target_src}/CMakeLists.txt")
+        # Compute the intended binary dir for this subdirectory
+        set(target_bin "${CMAKE_BINARY_DIR}/${dir}")
+
+        # If the binary dir already contains a previous CMake configure,
+        # check whether it was configured for the same source directory.
+        if(EXISTS "${target_bin}/CMakeCache.txt")
+            file(READ "${target_bin}/CMakeCache.txt" _cmake_cache_contents)
+            string(REGEX MATCH "CMAKE_HOME_DIRECTORY:INTERNAL=([^\n\r]+)" _match "${_cmake_cache_contents}")
+            if(_match)
+                string(REGEX REPLACE "CMAKE_HOME_DIRECTORY:INTERNAL=([^\n\r]+)" "\\1" cache_home "${_match}")
+            else()
+                string(REGEX MATCH "CMAKE_SOURCE_DIR:INTERNAL=([^\n\r]+)" _match2 "${_cmake_cache_contents}")
+                if(_match2)
+                    string(REGEX REPLACE "CMAKE_SOURCE_DIR:INTERNAL=([^\n\r]+)" "\\1" cache_home "${_match2}")
+                endif()
+            endif()
+
+            if(DEFINED cache_home AND NOT cache_home STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+                message(FATAL_ERROR "The binary directory\n  ${target_bin}\nwas already used to build source directory\n  ${cache_home}\nIt cannot be used to build\n  ${target_src}\n\nPlease remove the conflicting build directory or configure this project using a different binary directory.")
+            endif()
+        endif()
+
+        add_subdirectory(${dir} ${target_bin})
     else()
         message(STATUS "Skipping ${dir} (not found)")
     endif()
