@@ -5,7 +5,8 @@ add_library(plpython_lsp_lib
     source/lsp_server_python.cpp
 )
 
-target_include_directories(plpython_lsp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers
+target_include_directories(plpython_lsp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/../../PARSER/python/headers)
 
 option(BUILD_TESTS "Build tests for plpython_lsp" ON)

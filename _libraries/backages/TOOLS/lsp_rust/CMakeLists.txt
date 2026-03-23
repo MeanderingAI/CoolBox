@@ -5,7 +5,8 @@ add_library(plrust_lsp_lib
     source/lsp_server_rust.cpp
 )
 
-target_include_directories(plrust_lsp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers
+target_include_directories(plrust_lsp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/../../PARSER/rust/headers)
 
 option(BUILD_TESTS "Build tests for plrust_lsp" ON)

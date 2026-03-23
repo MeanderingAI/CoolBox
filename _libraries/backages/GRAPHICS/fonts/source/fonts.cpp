@@ -68,24 +68,43 @@ std::vector<int> decode_utf8(const std::string& text) {
     return codepoints;
 }
 
-float resolve_scale(const FontFace::Impl& impl, float pixel_height) {
-    return stbtt_ScaleForPixelHeight(&impl.info, std::max(1.0f, pixel_height));
+// compute_bounds and resolve_scale are implemented as TextRenderer static
+// helpers (definitions are below) so they can access FontFace's private Impl via friendship.
+
+Color alpha_blend(Color dst, Color src, unsigned char coverage) {
+    const int alpha = static_cast<int>(src.a) * static_cast<int>(coverage) / 255;
+    const int inv_alpha = 255 - alpha;
+
+    Color out;
+    out.r = static_cast<std::uint8_t>((src.r * alpha + dst.r * inv_alpha) / 255);
+    out.g = static_cast<std::uint8_t>((src.g * alpha + dst.g * inv_alpha) / 255);
+    out.b = static_cast<std::uint8_t>((src.b * alpha + dst.b * inv_alpha) / 255);
+    out.a = static_cast<std::uint8_t>(std::min(255, alpha + (static_cast<int>(dst.a) * inv_alpha) / 255));
+    return out;
 }
 
-TextBounds compute_bounds(const FontFace::Impl& impl,
-                         const std::string& text,
-                         const float pixel_height) {
-    TextBounds bounds;
-    if (!impl.loaded || text.empty()) {
-        return bounds;
-    }
+} // namespace
+
+// Definitions for TextRenderer helpers (in the graphics::fonts namespace)
+float graphics::fonts::TextRenderer::resolve_scale(const FontFace& font, float pixel_height) {
+    const auto* impl = font.impl();
+    if (!impl) return 1.0f;
+    return stbtt_ScaleForPixelHeight(&impl->info, std::max(1.0f, pixel_height));
+}
+
+graphics::fonts::TextBounds graphics::fonts::TextRenderer::compute_bounds(const FontFace& font,
+                                                                          const std::string& text,
+                                                                          const float pixel_height) {
+    graphics::fonts::TextBounds bounds;
+    const auto* impl = font.impl();
+    if (!impl || !impl->loaded || text.empty()) return bounds;
 
     int ascent = 0;
     int descent = 0;
     int line_gap = 0;
-    stbtt_GetFontVMetrics(&impl.info, &ascent, &descent, &line_gap);
+    stbtt_GetFontVMetrics(&impl->info, &ascent, &descent, &line_gap);
 
-    const float scale = resolve_scale(impl, pixel_height);
+    const float scale = graphics::fonts::TextRenderer::resolve_scale(font, pixel_height);
     const int scaled_ascent = static_cast<int>(std::ceil(ascent * scale));
     const int scaled_descent = static_cast<int>(std::ceil(std::abs(descent * scale)));
     const int scaled_gap = static_cast<int>(std::ceil(line_gap * scale));
@@ -104,11 +123,11 @@ TextBounds compute_bounds(const FontFace::Impl& impl,
         for (std::size_t i = 0; i < codepoints.size(); ++i) {
             int advance = 0;
             int left_bearing = 0;
-            stbtt_GetCodepointHMetrics(&impl.info, codepoints[i], &advance, &left_bearing);
+            stbtt_GetCodepointHMetrics(&impl->info, codepoints[i], &advance, &left_bearing);
             width += static_cast<int>(std::round(advance * scale));
             if (i + 1 < codepoints.size()) {
                 width += static_cast<int>(std::round(
-                    stbtt_GetCodepointKernAdvance(&impl.info, codepoints[i], codepoints[i + 1]) * scale));
+                    stbtt_GetCodepointKernAdvance(&impl->info, codepoints[i], codepoints[i + 1]) * scale));
             }
         }
         bounds.width = std::max(bounds.width, width);
@@ -116,20 +135,6 @@ TextBounds compute_bounds(const FontFace::Impl& impl,
 
     return bounds;
 }
-
-Color alpha_blend(Color dst, Color src, unsigned char coverage) {
-    const int alpha = static_cast<int>(src.a) * static_cast<int>(coverage) / 255;
-    const int inv_alpha = 255 - alpha;
-
-    Color out;
-    out.r = static_cast<std::uint8_t>((src.r * alpha + dst.r * inv_alpha) / 255);
-    out.g = static_cast<std::uint8_t>((src.g * alpha + dst.g * inv_alpha) / 255);
-    out.b = static_cast<std::uint8_t>((src.b * alpha + dst.b * inv_alpha) / 255);
-    out.a = static_cast<std::uint8_t>(std::min(255, alpha + (static_cast<int>(dst.a) * inv_alpha) / 255));
-    return out;
-}
-
-} // namespace
 
 FontFace::FontFace() : impl_(std::make_unique<Impl>()) {}
 FontFace::~FontFace() = default;
@@ -185,7 +190,7 @@ TextBounds TextRenderer::measure_text(const FontFace& font,
     if (!font.impl() || !font.impl()->loaded || pixel_height <= 0.0f) {
         return {};
     }
-    return compute_bounds(*font.impl(), text, pixel_height);
+    return TextRenderer::compute_bounds(font, text, pixel_height);
 }
 
 bool TextRenderer::draw_text(Canvas& canvas,
@@ -200,8 +205,8 @@ bool TextRenderer::draw_text(Canvas& canvas,
     }
 
     const auto lines = split_lines(text);
-    const auto bounds = compute_bounds(*font.impl(), text, pixel_height);
-    const float scale = resolve_scale(*font.impl(), pixel_height);
+    const auto bounds = TextRenderer::compute_bounds(font, text, pixel_height);
+    const float scale = TextRenderer::resolve_scale(font, pixel_height);
     const int line_height = std::max(1, bounds.ascent + bounds.descent + bounds.line_gap);
 
     for (std::size_t line_index = 0; line_index < lines.size(); ++line_index) {

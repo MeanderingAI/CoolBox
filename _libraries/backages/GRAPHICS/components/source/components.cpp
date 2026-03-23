@@ -62,6 +62,7 @@ std::vector<std::string> pad_lines(const std::vector<std::string>& lines, std::s
         padded.push_back(std::string(width, ' '));
     }
     return padded;
+
 }
 
 std::vector<std::string> join_horizontal(const std::vector<std::vector<std::string>>& blocks,
@@ -123,10 +124,9 @@ std::string render_menu_item_label(const MenuItem& item) {
 std::vector<std::string> render_dropdown_lines(const MenuModel& menu, std::size_t min_width) {
     std::size_t width = std::max<std::size_t>(menu.title.size() + 2, min_width);
     for (const auto& item : menu.items) {
-        if (item.separator) {
-            continue;
+        if (!item.separator) {
+            width = std::max(width, render_menu_item_label(item).size() + (item.shortcut.empty() ? 0U : item.shortcut.size() + 2U));
         }
-        width = std::max(width, render_menu_item_label(item).size() + (item.shortcut.empty() ? 0U : item.shortcut.size() + 2U));
     }
 
     std::vector<std::string> lines;
@@ -136,7 +136,6 @@ std::vector<std::string> render_dropdown_lines(const MenuModel& menu, std::size_
 
     for (const auto& item : menu.items) {
         if (item.separator) {
-            lines.push_back("|" + std::string(width + 2, '-') + "|");
             continue;
         }
 
@@ -429,7 +428,7 @@ std::vector<std::string> Component::render() const {
         }
         case ComponentType::LayerList: {
             if (!layer_list_model_) return {"<no layers>"};
-            std::vector<std::string> lines = {"Layers:"};
+            std::vector<std::string> lines;
             for (std::size_t i = 0; i < layer_list_model_->layers.size(); ++i) {
                 std::string prefix = (i == layer_list_model_->selected ? "> " : "  ");
                 lines.push_back(prefix + layer_list_model_->layers[i]);

@@ -54,6 +54,11 @@ public:
                           const std::string& text,
                           Color color,
                           float pixel_height = 18.0f);
+
+private:
+    // Helpers that need access to FontFace::Impl (TextRenderer is friend of FontFace)
+    static float resolve_scale(const FontFace& font, float pixel_height);
+    static TextBounds compute_bounds(const FontFace& font, const std::string& text, float pixel_height);
 };
 
 } // namespace graphics::fonts
