@@ -193,6 +193,43 @@ jobs:
           path: build/Testing/
           if-no-files-found: ignore
 
+      - name: Package and upload LSP artifacts
+        if: always()
+        run: |
+          set -e
+          mkdir -p apps/lsp/dist || true
+          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+          if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
+            mkdir -p build
+            tar -czf build/pl_lsp_dist.tar.gz -C apps/lsp dist
+            ls -la build/pl_lsp_dist.tar.gz || true
+          else
+            echo "Warning: apps/lsp/dist does not exist or is empty"
+          fi
+
+      - name: Upload LSP dist archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: pl_lsp_dist
+          path: build/pl_lsp_dist.tar.gz
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload individual LSP binaries (fallback)
+        uses: actions/upload-artifact@v6
+        with:
+          name: plang_lsp
+          path: |
+            apps/lsp/dist/plang_lsp
+            apps/lsp/dist/plrust_lsp
+            apps/lsp/dist/pljava_lsp
+            apps/lsp/dist/plpython_lsp
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Debug - list built library files
         run: |
           echo "=== All built library files ==="

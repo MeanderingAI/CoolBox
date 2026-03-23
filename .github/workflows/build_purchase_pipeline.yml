@@ -23,10 +23,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ci_diagnostics:
+    runs-on: ubuntu-latest
+    name: CI diagnostics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log guard evaluations
+        run: |
+          set -euo pipefail
+          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME:-}" 
+          echo "GITHUB_REF=${GITHUB_REF:-}" 
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}" 
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            TAG_OK=true
+          else
+            TAG_OK=false
+          fi
+          echo "startsWith(github.ref, 'refs/tags/v') => ${TAG_OK}"
+          echo "\nPer-job quick summary (each build_ext_* job also declares 'needs: build_libs')"
+          for job in build_libs build_cpp_docs build_tutorials build_ext_python build_ext_js build_ext_go build_ext_c build_ext_java build_ext_r build_ext_rust; do
+            echo "- ${job}: if-condition (startsWith tag) => ${TAG_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
+          done
+          echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
+
   build_libs:
     uses: ./.github/workflows/build_libs.yml
     if: startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
+
+  post_build_check:
+    needs:
+      - build_libs
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    name: Post-build diagnostics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Report build_libs outcome
+        run: |
+          echo "build_libs result: ${{ needs.build_libs.result }}"
+
+      - name: Try to download release assets
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: release-assets-*
+          path: all-assets
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Files in all-assets:" || true
+          ls -la all-assets || true
+          echo "Files in workspace build folder:" || true
+          ls -la build || true
 
   build_cpp_docs:
     uses: ./.github/workflows/build_cpp_docs.yml
