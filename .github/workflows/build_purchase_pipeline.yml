@@ -1,0 +1,441 @@
+name: build_purchase_pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish_branch:
+        description: Branch that should receive the generated documentation site
+        required: false
+        default: gh-pages
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-release-pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci_diagnostics:
+    runs-on: ubuntu-latest
+    name: CI diagnostics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log guard evaluations
+        run: |
+          set -euo pipefail
+          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME:-}" 
+          echo "GITHUB_REF=${GITHUB_REF:-}" 
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}" 
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            TAG_OK=true
+          else
+            TAG_OK=false
+          fi
+          echo "startsWith(github.ref, 'refs/tags/v') => ${TAG_OK}"
+          echo "\nPer-job quick summary (each build_ext_* job also declares 'needs: build_libs')"
+          for job in build_libs build_cpp_docs build_tutorials build_ext_python build_ext_js build_ext_go build_ext_c build_ext_java build_ext_r build_ext_rust; do
+            echo "- ${job}: if-condition (startsWith tag) => ${TAG_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
+          done
+          echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
+
+  build_libs:
+    uses: ./.github/workflows/build_libs.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  post_build_check:
+    needs:
+      - build_libs
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    name: Post-build diagnostics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Report build_libs outcome
+        run: |
+          echo "build_libs result: ${{ needs.build_libs.result }}"
+
+      - name: Try to download release assets
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: release-assets-*
+          path: all-assets
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Files in all-assets:" || true
+          ls -la all-assets || true
+          echo "Files in workspace build folder:" || true
+          ls -la build || true
+
+  collect_diagnostics_artifact:
+    needs:
+      - build_libs
+      - build_cpp_docs
+      - build_tutorials
+      - build_ext_python
+      - build_ext_js
+      - build_ext_go
+      - build_ext_c
+      - build_ext_java
+      - build_ext_r
+      - build_ext_rust
+      - generate_lsp_images
+      - publish_lsp_packages
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    name: Collect diagnostics artifact
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create diagnostics directory and run info
+        run: |
+          mkdir -p diagnostics/artifacts
+          echo "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}" > diagnostics/run_info.txt
+          echo "GITHUB_REF=${GITHUB_REF:-}" >> diagnostics/run_info.txt
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}" >> diagnostics/run_info.txt
+
+      - name: Summarize job results
+        run: |
+          echo "build_libs: ${{ needs.build_libs.result }}" > diagnostics/jobs_summary.txt
+          echo "build_cpp_docs: ${{ needs.build_cpp_docs.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_tutorials: ${{ needs.build_tutorials.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_python: ${{ needs.build_ext_python.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_js: ${{ needs.build_ext_js.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_go: ${{ needs.build_ext_go.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_c: ${{ needs.build_ext_c.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_java: ${{ needs.build_ext_java.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_r: ${{ needs.build_ext_r.result }}" >> diagnostics/jobs_summary.txt
+          echo "build_ext_rust: ${{ needs.build_ext_rust.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_lsp_images: ${{ needs.generate_lsp_images.result }}" >> diagnostics/jobs_summary.txt
+          echo "publish_lsp_packages: ${{ needs.publish_lsp_packages.result }}" >> diagnostics/jobs_summary.txt
+          echo "----" >> diagnostics/jobs_summary.txt
+          ls -la || true
+
+      - name: Try to download release assets and LSP artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: |
+            release-assets-*
+            pl_lsp_dist
+            plang_lsp
+            plrust_lsp
+            pljava_lsp
+            plpython_lsp
+          path: diagnostics/artifacts
+          run-id: ${{ needs.build_libs.outputs.run_id }}
+          merge-multiple: true
+
+      - name: List diagnostics contents
+        run: |
+          echo "Diagnostics dir:"
+          ls -la diagnostics || true
+          echo "Artifacts dir:"
+          ls -la diagnostics/artifacts || true
+
+      - name: Archive diagnostics
+        run: |
+          tar -czf diagnostics-${{ github.run_id }}.tar.gz diagnostics || true
+
+      - name: Upload diagnostics artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-diagnostics-${{ github.run_id }}
+          path: diagnostics-${{ github.run_id }}.tar.gz
+          retention-days: 30
+
+  build_cpp_docs:
+    uses: ./.github/workflows/build_cpp_docs.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_tutorials:
+    uses: ./.github/workflows/build_tutorials.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_ext_python:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_python.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_ext_js:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_js.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+    
+  build_ext_go:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_go.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_ext_c:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_c.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_ext_java:
+    needs:
+      - build_libs
+      - build_ext_c
+    uses: ./.github/workflows/build_ext_java.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_ext_r:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_r.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_ext_rust:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build_ext_rust.yml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  docs_publish:
+    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
+    needs:
+      - build_cpp_docs
+      - build_tutorials
+      - build_ext_python
+      - build_ext_js
+      - build_ext_go
+      - build_ext_c
+      - build_ext_java
+      - build_ext_r
+      - build_ext_rust
+    uses: ./.github/workflows/docs_publish.yml
+    with:
+      publish_branch: ${{ inputs.publish_branch }}
+    secrets: inherit
+
+  generate_lsp_images:
+    needs:
+      - build_libs
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install docker
+        run: |
+          sudo apt-get update
+          # Remove potential conflicting package installed from Docker repos
+          sudo apt-get remove -y containerd.io || true
+          sudo apt-get install -y --no-install-recommends docker.io
+
+      - name: Download LSP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pl_lsp_dist
+          path: apps/lsp/dist
+          run-id: ${{ needs.build_libs.outputs.run_id }}
+
+      - name: "Fallback: download individual LSP binaries"
+        uses: actions/download-artifact@v4
+        with:
+          name: plang_lsp
+          path: apps/lsp/dist
+          run-id: ${{ needs.build_libs.outputs.run_id }}
+
+      - name: Extract LSP dist archive if present
+        run: |
+          set -e
+          ARGV="apps/lsp/dist/pl_lsp_dist.tar.gz"
+          if [ -f "$ARGV" ]; then
+            echo "Extracting $ARGV -> apps/lsp"
+            mkdir -p apps/lsp
+            tar -xzf "$ARGV" -C apps/lsp || true
+            ls -la apps/lsp/dist || true
+          else
+            # maybe artifact was downloaded as build/pl_lsp_dist.tar.gz
+            ALT="apps/lsp/dist/build/pl_lsp_dist.tar.gz"
+            if [ -f "$ALT" ]; then
+              echo "Extracting $ALT -> apps/lsp"
+              mkdir -p apps/lsp
+              tar -xzf "$ALT" -C apps/lsp || true
+              ls -la apps/lsp/dist || true
+            else
+              echo "No pl_lsp_dist archive found; continuing (fallback binaries may be present)"
+            fi
+          fi
+
+      - name: "Fallback: build LSP binaries locally if missing"
+        run: |
+          set -e
+          if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
+            echo "LSP binaries present, skipping local build"
+            ls -la apps/lsp/dist
+            exit 0
+          fi
+          echo "No LSP binaries found; attempting local build"
+          cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          mkdir -p apps/lsp/dist
+          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+
+      - name: Download rust artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plrust_lsp
+          path: apps/lsp/dist
+          run-id: ${{ needs.build_libs.outputs.run_id }}
+
+      - name: Download java artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pljava_lsp
+          path: apps/lsp/dist
+          run-id: ${{ needs.build_libs.outputs.run_id }}
+
+      - name: Download python artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plpython_lsp
+          path: apps/lsp/dist
+          run-id: ${{ needs.build_libs.outputs.run_id }}
+
+      - name: Ensure binaries are executable
+        run: chmod +x apps/lsp/dist/* || true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push plang LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.plang
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+
+      - name: Build & push plrust LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.rust
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+
+      - name: Build & push pljava LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.java
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+
+      - name: Build & push plpython LSP image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.python
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
+
+  
+  publish_lsp_packages:
+    needs:
+      - generate_lsp_images
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download plang LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plang_lsp
+          path: dist/plang
+
+      - name: Download plrust LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plrust_lsp
+          path: dist/plrust
+
+      - name: Download pljava LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pljava_lsp
+          path: dist/pljava
+
+      - name: Download plpython LSP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plpython_lsp
+          path: dist/plpython
+
+      - name: Package artifacts
+        run: |
+          set -e
+          mkdir -p release_assets
+          # copy any downloaded artifact dirs into release_assets
+          for d in dist/*; do
+            if [ -e "$d" ]; then
+              cp -r "$d" release_assets/ || true
+            fi
+          done
+          # create tarballs per artifact
+          for entry in release_assets/*; do
+            if [ -d "$entry" ]; then
+              base=$(basename "$entry")
+              tar -czf "${base}-${GITHUB_REF_NAME}.tar.gz" -C "$entry" .
+            fi
+          done
+          ls -la
+
+      - name: Create release and upload packages
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ github.ref_name }}
+          files: release_assets/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

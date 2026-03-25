@@ -1,0 +1,131 @@
+name: build_ext_rust
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-ext-rust-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_rust:
+    if: ${{ github.event_name == 'workflow_call' }}
+    runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compute artifact name
+        id: compute_artifact
+        run: |
+          arch_env="${RUNNER_ARCH:-$(uname -m)}"
+          arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
+          if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
+            ARCH=arm64
+          else
+            ARCH=x86_64
+          fi
+
+          case "${RUNNER_OS}" in
+            Linux) OSNAME=linux ;;
+            macOS) OSNAME=macos ;;
+            Windows) OSNAME=windows ;;
+            *) OSNAME=linux ;;
+          esac
+
+          echo "artifact_name=coolbox-build-${OSNAME}-${ARCH}-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "osname=${OSNAME}" >> $GITHUB_OUTPUT
+          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+
+      - name: Download built C++ libraries (from build_libs)
+        id: download_build
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+
+      - name: "Fallback: download any matching build artifact"
+        if: steps.download_build.outcome != 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ format('coolbox-build-{0}-{1}-*', steps.compute_artifact.outputs.osname, steps.compute_artifact.outputs.arch) }}
+          path: build/
+          merge-multiple: true
+
+      - name: Set COOLBOX_LIB_DIR for Rust build
+        run: |
+          echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+
+      - name: Show Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build Rust bindings
+        run: |
+          if [ -d build/_libraries ]; then
+            echo "Using prebuilt C++ libraries from build/; proceeding to cargo build without rebuilding C++"
+          fi
+          cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
+
+      - name: Test Rust bindings
+        run: |
+          cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
+
+      - name: Package Rust crate
+        if: runner.os == 'Linux'
+        run: |
+          rm -rf release-assets staging-rust
+          mkdir -p release-assets staging-rust
+          cargo package --manifest-path _libraries/rust_bindings/Cargo.toml --allow-dirty --no-verify
+          cp target/package/*.crate release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate
+          tar -xzf release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate -C staging-rust
+          find staging-rust -exec touch -t 198001010000 {} +
+          tar -C staging-rust -czf release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-rust release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.zip
+
+      - name: Upload Rust archives
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v6
+        with:
+          name: rust-extension-${{ github.ref_name }}
+          path: |
+            release-assets/coolbox-rust-bindings-${{ github.ref_name }}.crate
+            release-assets/coolbox-rust-bindings-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-rust-bindings-${{ github.ref_name }}.zip
+          retention-days: 14
+
+      - name: Attach Rust archives to release
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate \
+            release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.zip \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

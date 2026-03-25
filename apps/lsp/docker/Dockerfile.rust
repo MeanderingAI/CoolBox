@@ -1,0 +1,6 @@
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/plrust_lsp
+COPY dist/plrust_lsp ./plrust_lsp
+EXPOSE 0
+ENTRYPOINT ["/opt/plrust_lsp/plrust_lsp"]

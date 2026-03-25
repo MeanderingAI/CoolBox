@@ -1,8 +1,9 @@
-#include "ml/dimensionality_reduction/umap.h"
+#include <umap.h>
 #include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <numeric>
 
 namespace dimensionality_reduction {
 

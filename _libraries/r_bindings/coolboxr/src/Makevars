@@ -1,0 +1,19 @@
+CXX_STD = CXX17
+PKG_CPPFLAGS = \
+	-I../../../backages/MISC/metadata_management/headers \
+	-I../../../backages/ML/generalized_linear_model/headers \
+	-I../../../backages/ML/time_series/headers \
+	-I../../../backages/ML/decision_tree/headers \
+	-I../../../backages/ML/support_vector_machine/headers \
+	-I../../../backages/ML/bayesian_network_ai/headers \
+	-I../../../backages/ML/hidden_markov_model/headers \
+	-I../../../backages/ML/multi_arm_bandit/headers \
+	-I../../../backages/ML/marked_point_process/headers \
+	-I../../../backages/ML/latent_sentiment_analysis/headers \
+	-I../../../backages/ML/dimensionality_reduction/headers \
+	-I../../../../build/eigen-src \
+	-I/usr/include/eigen3 \
+	-I/usr/local/include/eigen3 \
+	-I/opt/homebrew/include/eigen3 \
+	-I/opt/homebrew/opt/eigen/include/eigen3 \
+	-I/usr/local/opt/eigen/include/eigen3

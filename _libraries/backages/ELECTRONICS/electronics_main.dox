@@ -1,0 +1,13 @@
+/**
+ * @page electronics_main Electronics
+ *
+ * The Electronics module contains utilities and simulations for electronic
+ * components and circuits.
+ *
+ * - Circuit simulation helpers
+ * - Component models (resistors, capacitors, transistors)
+ * - Signal generators
+ * - Filters and DSP building blocks
+ *
+ * See the module documentation for usage and API details.
+ */

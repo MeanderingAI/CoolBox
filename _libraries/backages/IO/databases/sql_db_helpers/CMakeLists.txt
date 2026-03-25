@@ -8,7 +8,7 @@ add_library(sql SHARED
 target_include_directories(sql PUBLIC
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/packages/IO/dataformats/json/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/backages/IO/dataformats/json/headers
 )
 
 # Find SQLite3

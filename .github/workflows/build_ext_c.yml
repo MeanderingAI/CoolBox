@@ -1,0 +1,77 @@
+name: build_ext_c
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-ext-c-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_c:
+    if: ${{ github.event_name == 'workflow_call' }}
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install native build tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential doxygen
+
+      - name: Configure C bindings
+        run: |
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+
+      - name: Build C bindings
+        run: |
+          cmake --build _libraries/c_bindings/build --config Release
+
+      - name: Test C bindings
+        run: |
+          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+
+      - name: Generate C binding docs
+        run: |
+          rm -rf _libraries/c_bindings/target
+          bash _libraries/c_bindings/generate_docs.sh
+
+      - name: Stage C bindings package
+        run: |
+          rm -rf release-assets staging-c
+          mkdir -p release-assets staging-c/include staging-c/lib
+          cp -R _libraries/c_bindings/include/. staging-c/include/
+          cp -R _libraries/c_bindings/target/. staging-c/
+          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c/lib/ \;
+          tar -C staging-c -czf release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-c release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip
+
+      - name: Upload C archives
+        uses: actions/upload-artifact@v6
+        with:
+          name: c-extension-linux-x86_64-${{ github.ref_name }}
+          path: |
+            release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.zip
+          retention-days: 14
+
+      - name: Attach C archives to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

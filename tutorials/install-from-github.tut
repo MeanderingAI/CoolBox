@@ -1,0 +1,44 @@
+@title1: Install from GitHub
+@tags: tutorial, install, github, bindings
+@repo: https://github.com/MeanderingAI/CoolBox
+@publication_date: March 21st 2026
+
+Install the published CoolBox bindings directly from the GitHub repository when you want the latest source instead of a packaged release.
+
+@link: https://github.com/MeanderingAI/CoolBox/releases/latest | Latest release
+@link: https://github.com/MeanderingAI/CoolBox/releases | All releases
+
+@title2: Python
+Install directly from the Python bindings subdirectory with `pip`.
+
+@code: bash
+pip install "git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings"
+@endcode
+
+@title2: R
+Install the `coolboxr` package from the repository with `remotes` or `devtools`.
+
+@code: r
+remotes::install_github("MeanderingAI/CoolBox", subdir = "_libraries/r_bindings/coolboxr")
+@endcode
+
+@title2: Go
+Fetch the Go module directly from the repository.
+
+@code: bash
+go get github.com/MeanderingAI/CoolBox/_libraries/go_bindings@latest
+@endcode
+
+@title2: Rust
+Git dependencies work for Rust because the repository exposes a top-level Cargo workspace.
+
+@code: bash
+cargo add coolbox-rs --git https://github.com/MeanderingAI/CoolBox.git
+@endcode
+
+@title2: Java / Maven
+Maven does not install dependencies directly from a Git URL. Build and install locally, or publish the artifact to GitHub Packages or Maven Central.
+
+@code: bash
+git clone https://github.com/MeanderingAI/CoolBox.git && mvn -f CoolBox/_libraries/java_bindings/pom.xml install
+@endcode

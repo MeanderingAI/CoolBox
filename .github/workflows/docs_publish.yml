@@ -1,0 +1,526 @@
+name: Publish documentation
+
+on:
+  workflow_call:
+    inputs:
+      publish_branch:
+        description: Branch that should receive the generated documentation site
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      publish_branch:
+        description: Branch that should receive the generated documentation site
+        required: true
+        default: gh-pages
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: docs-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Resolve publish branch
+        id: resolve-branch
+        run: |
+          if [ -n "${{ inputs.publish_branch }}" ]; then
+            branch="${{ inputs.publish_branch }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            branch="${{ inputs.publish_branch }}"
+          elif [ -n "${{ vars.DOCS_PUBLISH_BRANCH }}" ]; then
+            branch="${{ vars.DOCS_PUBLISH_BRANCH }}"
+          else
+            branch="gh-pages"
+          fi
+
+          echo "Using publish branch: ${branch}"
+          echo "publish_branch=${branch}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve release tag
+        id: resolve-release-tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+          else
+            release_tag="$(python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          repo = os.environ.get('GITHUB_REPOSITORY', '')
+          token = os.environ.get('GITHUB_TOKEN', '')
+          if not repo:
+            print('')
+            raise SystemExit(0)
+
+          request = urllib.request.Request(
+            f'https://api.github.com/repos/{repo}/releases/latest',
+            headers={
+              'Accept': 'application/vnd.github+json',
+              **({'Authorization': f'Bearer {token}'} if token else {}),
+            },
+          )
+
+          try:
+            with urllib.request.urlopen(request) as response:
+              payload = json.load(response)
+              print(payload.get('tag_name', ''))
+          except Exception:
+            print('')
+          PY
+          )"
+          fi
+
+          echo "Resolved release tag: ${release_tag}"
+          echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+
+      - name: Download prebuilt C++ docs
+        uses: actions/download-artifact@v8
+        with:
+          name: cpp-doxygen-site
+          path: .prebuilt/cpp-docs
+
+      - name: Download prebuilt tutorials site
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: documentation
+          path: .prebuilt/documentation
+
+      - name: Build tutorials site fallback
+        if: github.event_name != 'workflow_call'
+        run: |
+          python ./_scripts/build_tags.py --out ./.prebuilt/tutorials/tags
+          python ./_scripts/build_publications.py --bib ./bib --out ./.prebuilt/tutorials
+          python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
+
+      - name: Ensure tutorials site exists
+        if: github.event_name == 'workflow_call'
+        run: |
+          if [ ! -f ./.prebuilt/tutorials/index.html ]; then
+            python ./_scripts/build_tags.py --out ./.prebuilt/tutorials/tags
+            python ./_scripts/build_publications.py --bib ./bib --out ./.prebuilt/tutorials
+            python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
+          fi
+
+      - name: Download prebuilt Python bindings (Linux)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: python-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/python
+
+      - name: Download prebuilt Python bindings (macOS)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: python-extension-macos-arm64-${{ github.ref_name }}
+          path: .prebuilt/python
+
+      - name: Download prebuilt Python bindings (Windows)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: python-extension-windows-x86_64-${{ github.ref_name }}
+          path: .prebuilt/python
+
+      - name: Download prebuilt R bindings (Linux)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: r-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/r
+
+      - name: Download prebuilt R bindings (macOS)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: r-extension-macos-arm64-${{ github.ref_name }}
+          path: .prebuilt/r
+
+      - name: Download prebuilt R bindings (Windows)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: r-extension-windows-x86_64-${{ github.ref_name }}
+          path: .prebuilt/r
+
+      - name: Download prebuilt Go bindings (Linux)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: go-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/go
+
+      - name: Download prebuilt Go bindings (macOS)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: go-extension-macos-arm64-${{ github.ref_name }}
+          path: .prebuilt/go
+
+      - name: Download prebuilt Go bindings (Windows)
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: go-extension-windows-x86_64-${{ github.ref_name }}
+          path: .prebuilt/go
+
+      - name: Download prebuilt Rust bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: rust-extension-${{ github.ref_name }}
+          path: .prebuilt/rust
+
+      - name: Download prebuilt C bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: c-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/c
+
+      - name: Restore prebuilt Python artifacts
+        id: restore-python
+        run: |
+          rm -rf .prebuilt/python/unpacked
+          mkdir -p .prebuilt/python/unpacked _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+
+          shopt -s nullglob
+          archives=(.prebuilt/python/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          rm -rf _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+          mkdir -p _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C .prebuilt/python/unpacked
+          done
+
+          find .prebuilt/python/unpacked -maxdepth 1 -type f \( -name '*.whl' -o -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} _libraries/python_bindings/dist/ \;
+          find .prebuilt/python/unpacked -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} _libraries/python_bindings/build/reused/ \;
+
+          if find _libraries/python_bindings/dist -maxdepth 1 -type f | grep -q . || find _libraries/python_bindings/build/reused -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt C artifacts
+        id: restore-c
+        run: |
+          rm -rf _libraries/c_bindings/target
+          mkdir -p .prebuilt/c/unpacked _libraries/c_bindings/target
+
+          shopt -s nullglob
+          archives=(.prebuilt/c/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C .prebuilt/c/unpacked
+          done
+
+          cp -R .prebuilt/c/unpacked/. _libraries/c_bindings/target/
+
+          if find _libraries/c_bindings/target -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt R artifacts
+        id: restore-r
+        run: |
+          rm -rf _libraries/r_bindings/coolboxr/dist
+          mkdir -p _libraries/r_bindings/coolboxr/dist
+
+          shopt -s nullglob
+          archives=(.prebuilt/r/*.tar.gz .prebuilt/r/*.zip)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp .prebuilt/r/*.tar.gz _libraries/r_bindings/coolboxr/dist/ 2>/dev/null || true
+          cp .prebuilt/r/*.zip _libraries/r_bindings/coolboxr/dist/ 2>/dev/null || true
+
+          if find _libraries/r_bindings/coolboxr/dist -maxdepth 1 -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt Go artifacts
+        id: restore-go
+        run: |
+          rm -rf _libraries/go_bindings/dist
+          mkdir -p _libraries/go_bindings/dist
+
+          shopt -s nullglob
+          archives=(.prebuilt/go/*.tar.gz .prebuilt/go/*.zip)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp .prebuilt/go/*.tar.gz _libraries/go_bindings/dist/ 2>/dev/null || true
+          cp .prebuilt/go/*.zip _libraries/go_bindings/dist/ 2>/dev/null || true
+
+          if find _libraries/go_bindings/dist -maxdepth 1 -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt Rust artifacts
+        id: restore-rust
+        run: |
+          rm -rf _libraries/rust_bindings/dist
+          mkdir -p _libraries/rust_bindings/dist
+
+          shopt -s nullglob
+          archives=(.prebuilt/rust/*.crate .prebuilt/rust/*.tar.gz .prebuilt/rust/*.zip)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cp .prebuilt/rust/*.crate _libraries/rust_bindings/dist/ 2>/dev/null || true
+          cp .prebuilt/rust/*.tar.gz _libraries/rust_bindings/dist/ 2>/dev/null || true
+          cp .prebuilt/rust/*.zip _libraries/rust_bindings/dist/ 2>/dev/null || true
+
+          if find _libraries/rust_bindings/dist -maxdepth 1 -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download prebuilt JavaScript bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: javascript-extension-linux-x86_64-${{ github.ref_name }}
+          path: .prebuilt/javascript
+
+      - name: Download prebuilt Java bindings
+        if: github.event_name == 'workflow_call'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: java-extension-${{ github.ref_name }}
+          path: .prebuilt/java
+
+      - name: Restore prebuilt Java artifacts
+        id: restore-java
+        run: |
+          rm -rf _libraries/java_bindings/target
+          mkdir -p .prebuilt/java/unpacked _libraries/java_bindings/target
+
+          shopt -s nullglob
+          archives=(.prebuilt/java/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C .prebuilt/java/unpacked
+          done
+
+          cp -R .prebuilt/java/unpacked/. _libraries/java_bindings/target/
+
+          if find _libraries/java_bindings/target -type f | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore prebuilt JavaScript artifacts
+        id: restore-javascript
+        run: |
+          rm -rf build-emscripten
+          mkdir -p build-emscripten
+
+          shopt -s nullglob
+          archives=(.prebuilt/javascript/*.tar.gz)
+
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for archive in "${archives[@]}"; do
+            tar -xzf "$archive" -C build-emscripten
+          done
+
+          if find build-emscripten -maxdepth 1 -type f \( -name '*.js' -o -name '*.wasm' \) | grep -q .; then
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up R
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y r-base r-base-dev
+
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz libcurl4-openssl-dev libssl-dev libxml2-dev libeigen3-dev python3-dev emscripten
+          python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
+
+      - name: Suppress third-party R compile warnings
+        run: |
+          cat > "$RUNNER_TEMP/r-makevars" <<'EOF'
+          CFLAGS += -w
+          CXXFLAGS += -w
+          CXX11FLAGS += -w
+          CXX14FLAGS += -w
+          CXX17FLAGS += -w
+          CXX20FLAGS += -w
+          FCFLAGS += -w
+          FFLAGS += -w
+          EOF
+          echo "R_MAKEVARS_USER=$RUNNER_TEMP/r-makevars" >> "$GITHUB_ENV"
+          echo "R_LIBS_USER=$GITHUB_WORKSPACE/.r-library" >> "$GITHUB_ENV"
+          mkdir -p "$GITHUB_WORKSPACE/.r-library"
+
+      - name: Install and verify R documentation packages
+        run: |
+          Rscript -e "lib <- Sys.getenv('R_LIBS_USER'); dir.create(lib, recursive = TRUE, showWarnings = FALSE); .libPaths(c(lib, .libPaths())); if (!requireNamespace('pak', quietly = TRUE)) install.packages('pak', repos = 'https://cloud.r-project.org', lib = lib); pak::pkg_install(c('cran::Rcpp', 'cran::devtools', 'cran::roxygen2', 'cran::pkgdown', 'cran::testthat'), ask = FALSE, lib = lib); print(.libPaths()); missing <- c('devtools', 'roxygen2', 'pkgdown')[!vapply(c('devtools', 'roxygen2', 'pkgdown'), requireNamespace, logical(1), quietly = TRUE)]; if (length(missing)) stop(sprintf('Missing R documentation packages: %s', paste(missing, collapse = ', ')))"
+
+      - name: Build R extension documentation
+        run: |
+          pushd ./_libraries/r_bindings/coolboxr >/dev/null
+          find src -maxdepth 1 -type f \( -name '*.o' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name '*.a' -o -name '*.lib' \) -delete
+          Rscript -e "lib <- Sys.getenv('R_LIBS_USER'); dir.create(lib, recursive = TRUE, showWarnings = FALSE); .libPaths(c(lib, .libPaths())); devtools::document(quiet = TRUE)"
+          R CMD INSTALL . --library="$R_LIBS_USER"
+          Rscript -e "lib <- Sys.getenv('R_LIBS_USER'); .libPaths(c(lib, .libPaths())); pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)"
+          popd >/dev/null
+
+      - name: Build Python bindings
+        if: steps.restore-python.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          make build_python_bindings
+
+      - name: Build Python distribution artifacts
+        if: steps.restore-python.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
+
+      - name: Build C bindings
+        if: steps.restore-c.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          rm -rf _libraries/c_bindings/build _libraries/c_bindings/target
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+          cmake --build _libraries/c_bindings/build --config Release
+          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+          bash _libraries/c_bindings/generate_docs.sh
+          mkdir -p _libraries/c_bindings/target/include _libraries/c_bindings/target/lib
+          cp -R _libraries/c_bindings/include/. _libraries/c_bindings/target/include/
+          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} _libraries/c_bindings/target/lib/ \;
+
+      - name: Build JavaScript bindings
+        if: steps.restore-javascript.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          make build_js_bindings
+
+      - name: Build Java bindings
+        if: steps.restore-java.outputs.restored != 'true'
+        continue-on-error: true
+        run: |
+          mvn -f _libraries/java_bindings/pom.xml test package javadoc:javadoc
+
+      - name: Build unified docs site
+        env:
+          DOCS_REPOSITORY: ${{ github.repository }}
+          DOCS_RELEASE_TAG: ${{ steps.resolve-release-tag.outputs.release_tag }}
+          DOCS_CPP_DIR: ${{ github.workspace }}/.prebuilt/cpp-docs
+          DOCS_TUTORIALS_DIR: ${{ github.workspace }}/.prebuilt/tutorials
+        run: |
+          bash ./_scripts/generate_docs_hub.sh "$GITHUB_WORKSPACE/.site"
+
+      - name: Generate translated docs variants
+        run: |
+          python ./_scripts/translate_docs.py "$GITHUB_WORKSPACE/.site"
+
+      - name: Publish documentation branch
+        if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .site
+          publish_branch: ${{ steps.resolve-branch.outputs.publish_branch }}
+          force_orphan: true
+          enable_jekyll: false

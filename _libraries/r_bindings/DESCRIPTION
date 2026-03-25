@@ -1,0 +1,11 @@
+
+Package: coolboxgui
+Type: Package
+Title: CoolBox GUI and Machine Learning Primitives
+Version: 0.1.0
+Author: CoolBox Contributors
+Maintainer: CoolBox Team <contact@meandering.ai>
+Description: R bindings for CoolBox GUI primitives (Toolbar, DockPanel, LayerList, PropertyInspector, FileTree, RadioSelector, CheckboxGroup) and machine learning primitives (Tensor, Model, Optimizer, Loss, Dataset, Trainer, and related utilities). This package enables R users to access both advanced GUI components and machine learning features from the CoolBox toolkit.
+License: MIT
+LinkingTo: Rcpp
+Imports: Rcpp

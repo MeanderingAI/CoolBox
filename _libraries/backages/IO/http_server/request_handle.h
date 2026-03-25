@@ -3,14 +3,12 @@
 
 #include <string>
 #include <functional>
+#include <variant>
+#include "HttpMethod.h"
 #include "request_response.h"
 
 namespace io {
 namespace http_server {
-
-
-#include "HttpMethod.h"
-#include <variant>
 
 #if __cplusplus < 201703L
 #error "RequestHandle with std::variant requires C++17 or newer."

@@ -5,6 +5,10 @@
 #include <limits>
 #include <stdexcept>
 
+namespace {
+constexpr double kPi = 3.14159265358979323846;
+}
+
 // --- NormalDistribution Implementation ---
 
 NormalDistribution::NormalDistribution(double mean, double stddev)
@@ -16,11 +20,11 @@ NormalDistribution::NormalDistribution(double mean, double stddev)
 
 double NormalDistribution::pdf(double x) const {
     double exponent = -0.5 * std::pow((x - mean_) / stddev_, 2.0);
-    return (1.0 / (stddev_ * std::sqrt(2.0 * M_PI))) * std::exp(exponent);
+    return (1.0 / (stddev_ * std::sqrt(2.0 * kPi))) * std::exp(exponent);
 }
 
 double NormalDistribution::log_pdf(double x) const {
-    return -0.5 * std::log(2.0 * M_PI) - std::log(stddev_) - 0.5 * std::pow((x - mean_) / stddev_, 2.0);
+    return -0.5 * std::log(2.0 * kPi) - std::log(stddev_) - 0.5 * std::pow((x - mean_) / stddev_, 2.0);
 }
 
 double NormalDistribution::cdf(double x) const {

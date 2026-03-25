@@ -1,0 +1,13 @@
+/**
+ * @page security_main Security
+ *
+ * The Security module provides cryptographic helpers, authentication utilities,
+ * and common security-related functionality.
+ *
+ * - JWT helpers
+ * - Encryption utilities
+ * - Authentication helpers
+ * - Secure storage adapters
+ *
+ * See the module documentation for usage and API details.
+ */

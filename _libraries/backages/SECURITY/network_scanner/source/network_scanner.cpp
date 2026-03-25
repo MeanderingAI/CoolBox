@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <cstring>
 #include <cstdlib>
+#include <mutex>
 #include <numeric>
 
 // Platform-specific socket headers
@@ -26,6 +27,34 @@
 #endif
 
 namespace security {
+
+namespace {
+
+#ifdef _WIN32
+using socket_handle_t = SOCKET;
+constexpr socket_handle_t invalid_socket_handle = INVALID_SOCKET;
+
+void ensure_winsock_initialized() {
+    static std::once_flag winsock_once;
+    static bool winsock_ready = false;
+
+    std::call_once(winsock_once, []() {
+        WSADATA wsa_data;
+        winsock_ready = (WSAStartup(MAKEWORD(2, 2), &wsa_data) == 0);
+    });
+
+    if (!winsock_ready) {
+        throw std::runtime_error("failed to initialize Winsock");
+    }
+}
+#else
+using socket_handle_t = int;
+constexpr socket_handle_t invalid_socket_handle = -1;
+
+void ensure_winsock_initialized() {}
+#endif
+
+} // namespace
 
 // ── Helper functions ───────────────────────────────────────────────
 
@@ -93,7 +122,7 @@ uint32_t string_to_ip(const std::string& ip) {
 NetworkScanner::NetworkScanner(const ScanConfig& config)
     : config_(config) {}
 
-static void close_socket(int fd) {
+static void close_socket(socket_handle_t fd) {
 #ifdef _WIN32
     closesocket(fd);
 #else
@@ -125,8 +154,10 @@ std::vector<std::string> NetworkScanner::discover_hosts(const std::string& netwo
 }
 
 bool NetworkScanner::scan_tcp_port(const std::string& ip, int port) {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) return false;
+    ensure_winsock_initialized();
+
+    socket_handle_t sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == invalid_socket_handle) return false;
 
     // Set non-blocking
 #ifdef _WIN32
@@ -173,8 +204,10 @@ bool NetworkScanner::scan_tcp_port(const std::string& ip, int port) {
 }
 
 bool NetworkScanner::scan_udp_port(const std::string& ip, int port) {
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) return false;
+    ensure_winsock_initialized();
+
+    socket_handle_t sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == invalid_socket_handle) return false;
 
     struct sockaddr_in addr{};
     addr.sin_family = AF_INET;

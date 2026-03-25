@@ -3,14 +3,12 @@
 
 #include <string>
 #include <functional>
+#include <variant>
+#include "HttpMethod.h"
 #include "../../dataformats/http/headers/request_response.h"
 
 namespace io {
 namespace http_server {
-
-
-#include "HttpMethod.h"
-#include <variant>
 
 #if defined(_MSC_VER)
 #  if _MSVC_LANG < 201703L

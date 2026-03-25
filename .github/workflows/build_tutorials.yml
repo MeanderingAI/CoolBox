@@ -1,0 +1,73 @@
+name: build_tutorials
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-tutorials-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_tutorials:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Build documentation
+        run: |
+          bash ./_scripts/build_documentation.sh "$(pwd)"
+
+      - name: Normalize output to .site (fallbacks)
+        run: |
+          set -e
+          # If the official .site was produced, nothing to do
+          if [ -d ".site" ] && [ "$(ls -A .site)" ]; then
+            echo ".site exists and is non-empty"
+            exit 0
+          fi
+
+          # Common alternate output locations
+          if [ -d "build/documentation_site" ]; then
+            echo "Moving build/documentation_site -> .site"
+            rm -rf .site || true
+            mv build/documentation_site .site
+            exit 0
+          fi
+
+          if [ -d "build/documentation" ]; then
+            echo "Moving build/documentation -> .site"
+            rm -rf .site || true
+            mv build/documentation .site
+            exit 0
+          fi
+
+          if [ -d ".documentation" ]; then
+            echo "Moving .documentation -> .site"
+            rm -rf .site || true
+            mv .documentation .site
+            exit 0
+          fi
+
+          echo "No documentation output found; .site will be empty"
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: documentation
+          path: .site/
+          retention-days: 14

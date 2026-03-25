@@ -4,18 +4,18 @@
 extern "C" {
 #if defined(_MSC_VER)
     __declspec(dllexport) const char* get_library_name() { return "data_structures"; }
-    __declspec(dllexport) const char* get_library_version() { return "1.0.0"; }
-    __declspec(dllexport) const char* get_library_description() { return "Core data structures: hash maps, linked lists, binary search trees, and concurrent variants"; }
+    __declspec(dllexport) const char* get_library_version() { return "1.1.0"; }
+    __declspec(dllexport) const char* get_library_description() { return "Core data structures, concurrent containers, and probabilistic filters including Bloom and EGH filters"; }
     __declspec(dllexport) const char* get_library_author() { return "ToolBox Team"; }
 #else
     __attribute__((visibility("default"), used))
     const char* get_library_name() { return "data_structures"; }
 
     __attribute__((visibility("default"), used))
-    const char* get_library_version() { return "1.0.0"; }
+    const char* get_library_version() { return "1.1.0"; }
 
     __attribute__((visibility("default"), used))
-    const char* get_library_description() { return "Core data structures: hash maps, linked lists, binary search trees, and concurrent variants"; }
+    const char* get_library_description() { return "Core data structures, concurrent containers, and probabilistic filters including Bloom and EGH filters"; }
 
     __attribute__((visibility("default"), used))
     const char* get_library_author() { return "ToolBox Team"; }

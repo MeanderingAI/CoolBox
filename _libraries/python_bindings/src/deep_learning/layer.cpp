@@ -1,4 +1,4 @@
-#include "ml/deep_learning/layer.h"
+#include <layer.h>
 #include <cmath>
 #include <random>
 #include <algorithm>

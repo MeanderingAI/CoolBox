@@ -1,111 +1,218 @@
-from pybind11.setup_helpers import Pybind11Extension, build_ext
-from pybind11 import get_cmake_dir
-import pybind11
-from setuptools import setup, Extension
 import os
+from pathlib import Path
 import glob
+import shutil
+import sys
 
-# Get the absolute path to the project root
-project_root = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(project_root)
+import pybind11
+from pybind11.setup_helpers import Pybind11Extension, build_ext
+from setuptools import setup
 
-# Include directories
-include_dirs = [
-    # pybind11 includes
-    pybind11.get_include(),
-    # Project includes (headers are in python_bindings/include/)
-    os.path.join(project_root, "include"),
-    # Eigen includes
-    os.path.join(parent_dir, "..", "eigen-src"),
-    os.path.join(parent_dir, "build", "eigen-src"),
-    # System includes for Eigen
+
+project_root = Path(__file__).resolve().parent
+repo_root = project_root.parent.parent
+include_root = project_root / "include"
+src_root = project_root / "src"
+vendor_include_root = project_root / "vendor_include"
+vendor_src_root = project_root / "vendor_src"
+vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
+vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
+vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
+vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
+
+module_dirs = [
+    "decision_tree",
+    "support_vector_machine",
+    "bayesian_network",
+    "hidden_markov_model",
+    "generalized_linear_model",
+    "multi_arm_bandit",
+    "tracker",
+    "dimensionality_reduction",
+    "deep_learning",
+    "computer_vision",
+    "time_series",
+    "nlp",
+    "distributed",
+    "graphics_misc",
+    "rest_api",
+]
+
+source_modules = [module_dir for module_dir in module_dirs if module_dir != "rest_api"]
+
+
+def existing_dirs(paths):
+    seen = set()
+    result = []
+    for path in paths:
+        if not path:
+            continue
+        normalized = str(Path(path))
+        if normalized in seen:
+            continue
+        if Path(normalized).exists():
+            seen.add(normalized)
+            result.append(normalized)
+    return result
+
+
+def resolve_eigen_include_dirs(paths):
+    seen = set()
+    resolved = []
+    for raw_path in paths:
+        if not raw_path:
+            continue
+
+        candidate = Path(raw_path)
+        variants = [candidate]
+
+        if candidate.name.lower() != "eigen3":
+            variants.append(candidate / "eigen3")
+
+        for variant in variants:
+            eigen_core = variant / "Eigen" / "Core"
+            unsupported = variant / "unsupported"
+            if not eigen_core.exists() and not unsupported.exists():
+                continue
+
+            normalized = str(variant)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            resolved.append(normalized)
+
+    return resolved
+
+
+def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
+    if repo_source.exists():
+        vendored_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repo_source, vendored_path)
+
+    if not vendored_path.exists():
+        raise FileNotFoundError(f"Required vendored file not found: {vendored_path}")
+
+    return vendored_path
+
+
+# On Windows CI we prefer to use the cleaned include files under
+# `include/` to avoid parsing issues with any vendored files. Do not
+# overwrite those files on Windows.
+if sys.platform.startswith("win"):
+    graphics_header = project_root / "vendor_include/GRAPHICS/charts/headers/graphics.h"
+    # If a cleaned copy exists under our shipped include/ path, prefer it.
+    cleaned = project_root / "include/GRAPHICS/charts/headers/graphics.h"
+    if cleaned.exists():
+        graphics_header = cleaned
+    else:
+        # Fallback: copy from repository backages if available.
+        graphics_header = sync_vendor_file(
+            repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+            project_root / vendor_graphics_header,
+        )
+
+    # Wave generator header: prefer cleaned include if present.
+    wave_candidate = project_root / "include/MISC/wave_generator/headers/wave_generator.hpp"
+    if wave_candidate.exists():
+        wave_generator_header = wave_candidate
+    else:
+        wave_generator_header = sync_vendor_file(
+            repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+            project_root / vendor_wave_header,
+        )
+
+    # We do not need to sync the large vendor sources on Windows; they
+    # are intentionally not compiled into the extension.
+    graphics_source = project_root / vendor_graphics_source
+    wave_generator_source = project_root / vendor_wave_source
+else:
+    graphics_header = sync_vendor_file(
+        repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+        project_root / vendor_graphics_header,
+    )
+    wave_generator_header = sync_vendor_file(
+        repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+        project_root / vendor_wave_header,
+    )
+    graphics_source = sync_vendor_file(
+        repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
+        project_root / vendor_graphics_source,
+    )
+    wave_generator_source = sync_vendor_file(
+        repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
+        project_root / vendor_wave_source,
+    )
+
+
+eigen_candidates = [
+    os.environ.get("EIGEN3_INCLUDE_DIR"),
+    os.environ.get("EIGEN_INCLUDE_DIR"),
+    str(project_root.parent.parent / "eigen-src"),
+    str(project_root.parent.parent / "eigen-src" / "eigen3"),
+    str(project_root.parent.parent / "build" / "eigen-src"),
+    str(project_root.parent.parent / "build" / "eigen-src" / "eigen3"),
     "/usr/include/eigen3",
     "/usr/local/include/eigen3",
     "/opt/homebrew/include/eigen3",
+    r"C:\vcpkg\installed\x64-windows\include\eigen3",
+    r"C:\vcpkg\installed\x64-windows\include",
+    r"C:\msys64\mingw64\include\eigen3",
+    r"C:\msys64\mingw64\include",
+    r"C:\tools\msys64\mingw64\include\eigen3",
+    r"C:\tools\msys64\mingw64\include",
 ]
 
-# Source files - collect all .cpp files from src directories
+include_dirs = [
+    pybind11.get_include(),
+    str(include_root),
+    *(str(include_root / module_dir) for module_dir in module_dirs),
+    str(graphics_header.parent),
+    str(wave_generator_header.parent),
+    *existing_dirs(
+        [
+            repo_root / "build/_deps/stb-src",
+            repo_root / "build/container-check/_deps/stb-src",
+            repo_root / "build/crypto-check/_deps/stb-src",
+        ]
+    ),
+    *resolve_eigen_include_dirs(eigen_candidates),
+]
+
+extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall"]
+
 source_files = ["py_ml_core.cpp"]
+for module_dir in source_modules:
+    module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
+    if module_dir == "deep_learning":
+        module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
+    source_files.extend(module_sources)
 
-# Add all implementation files
-src_dirs = [
-    "libraries/src/decision_tree",
-    "libraries/src/support_vector_machine", 
-    "libraries/src/bayesian_network",
-    "src/hidden_markov_model",
-    "src/generalized_linear_model",
-    "src/multi_arm_bandit",
-    "src/tracker",
-    "src/dimensionality_reduction",
-    "src/deep_learning",
-    "src/distributed",
-    "src/computer_vision",
-    "src/time_series",
-    "src/nlp",
-    "src/json",
-    "src/sql",
-    "src/rest_api"
-]
+# Do not compile large C++ vendor sources into the Python extension; instead
+# link against the project's shared libraries. Users should build the C++ libs
+# (via CMake) and point `COOLBOX_LIB_DIR` to the directory containing them.
 
-for src_dir in src_dirs:
-    full_path = os.path.join(parent_dir, src_dir)
-    if os.path.exists(full_path):
-        cpp_files = glob.glob(os.path.join(full_path, "*.cpp"))
-        # Make paths relative to python_bindings directory
-        relative_files = [os.path.relpath(f, project_root) for f in cpp_files]
-        source_files.extend(relative_files)
+# source_files.extend([
+#     vendor_graphics_source,
+#     vendor_wave_source,
+# ])
 
-# Compiler flags
-compile_args = [
-    "-std=c++17",
-    "-O3",
-    "-Wall",
-    "-shared",
-    "-fPIC",
-]
-
-# Define the extension
 ext_modules = [
     Pybind11Extension(
         "ml_core",
         source_files,
         include_dirs=include_dirs,
-        libraries=["sqlite3"],
         cxx_std=17,
-        extra_compile_args=compile_args,
+        extra_compile_args=extra_compile_args,
+        # Link against built CoolBox C++ libraries. Set COOLBOX_LIB_DIR to
+        # the build output directory containing libcharts(.a/.so/.dylib)
+        # and libwave_generator_utils.
+        library_dirs=[os.environ.get("COOLBOX_LIB_DIR", str(project_root.parent / "build"))],
+        libraries=[lib for lib in os.environ.get("COOLBOX_LIBS", "charts,wave_generator_utils").split(",") if lib],
     ),
 ]
 
 setup(
-    name="ml-toolbox",
-    version="0.2.0",
-    author="ML Core Team",
-    author_email="",
-    description="Comprehensive C++ Machine Learning Library with Python Bindings",
-    long_description=open(os.path.join(project_root, "README.md")).read() if os.path.exists(os.path.join(project_root, "README.md")) else "A comprehensive machine learning library with Python bindings for decision trees, SVM, Bayesian networks, HMM, deep learning, distributed training, and more.",
-    long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/ToolBox",
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
-    python_requires=">=3.6",
-    install_requires=[
-        "numpy",
-        "pybind11>=2.6.0",
-    ],
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: C++",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-    ],
 )

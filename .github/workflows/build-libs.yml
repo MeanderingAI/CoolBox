@@ -1,0 +1,79 @@
+name: Build libraries
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-libs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake curl pkg-config
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build libraries and targets
+        run: cmake --build build --parallel
+
+      - name: Prepare binaries for artifacts
+        run: |
+          mkdir -p apps/lsp/dist
+          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+      - name: Build and package notepad product (per-platform)
+        run: |
+          set -e
+          if [ -f "_Product/notepad/Makefile" ]; then
+            echo "Building _Product/notepad on ${matrix.platform}..."
+            make -C _Product/notepad || true
+            mkdir -p release-assets
+            if [ -d "_Product/notepad/bin" ] && [ "$(ls -A _Product/notepad/bin)" ]; then
+              base="notepad-${{ matrix.platform }}-${{ github.ref_name }}"
+              tar -czf "release-assets/${base}.tar.gz" -C _Product/notepad bin
+              python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+                _Product/notepad release-assets/${base}.zip || true
+              echo "Packaged notepad -> release-assets/${base}.tar.gz"
+            else
+              echo "No notepad binary found to package for ${matrix.platform}"
+            fi
+          else
+            echo "No _Product/notepad/Makefile found; skipping notepad packaging"
+          fi
+      - name: Package LSP dist directory
+        run: |
+          set -e
+          if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
+            mkdir -p build
+            tar -czf build/pl_lsp_dist.tar.gz -C apps/lsp dist
+            ls -la build/pl_lsp_dist.tar.gz
+          else
+            echo "Warning: apps/lsp/dist does not exist or is empty"
+          fi
+
+      - name: Upload LSP dist archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: pl_lsp_dist
+          path: build/pl_lsp_dist.tar.gz
+          retention-days: 14
+
+      - name: Upload individual LSP binaries (fallback)
+        uses: actions/upload-artifact@v4
+        with:
+          name: plang_lsp
+          path: |
+            apps/lsp/dist/plang_lsp
+            apps/lsp/dist/plrust_lsp
+            apps/lsp/dist/pljava_lsp
+            apps/lsp/dist/plpython_lsp
+          retention-days: 14

@@ -3,6 +3,10 @@
 #include <cmath>
 #include <sequential_monte_carlo.h>
 
+namespace {
+constexpr double kPi = 3.14159265358979323846;
+}
+
 SequentialMonteCarlo::SequentialMonteCarlo(int num_particles)
     : num_particles_(num_particles), particles_(num_particles) {
     // Initialize particles with default state and uniform weights
@@ -28,7 +32,7 @@ void SequentialMonteCarlo::update(const Eigen::VectorXd& z) {
     // Example measurement update: assume z = [x_meas, y_meas]
     // Simple likelihood: Gaussian on position
     const double sigma = 1.0;
-    const double gauss_norm = 1.0 / (2.0 * M_PI * sigma * sigma);
+    const double gauss_norm = 1.0 / (2.0 * kPi * sigma * sigma);
 
     for (auto& p : particles_) {
         double dx = p.state(0) - z(0);

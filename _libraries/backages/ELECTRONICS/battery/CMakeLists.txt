@@ -14,11 +14,17 @@ target_include_directories(battery
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Link chemistry interface so consumers (tests) get its include dirs
+target_link_libraries(battery INTERFACE chemistry)
+
 # ------------------------------------------------------------------
 # Tests (Google Test)
 # ------------------------------------------------------------------
 add_executable(battery_tests
     tests/battery_test.cpp
+)
+target_include_directories(battery_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(battery_tests PRIVATE battery GTest::gtest_main)
 add_test(NAME BatteryTests COMMAND battery_tests)

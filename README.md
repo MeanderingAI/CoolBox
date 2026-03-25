@@ -264,6 +264,32 @@ Generated libraries can be found in;
 
 Python bindings are available for all machine learning algorithms via pybind11. See the `python_bindings/` directory for detailed documentation and examples.
 
+# R Bindings
+
+An initial R package scaffold now lives in `_libraries/r_bindings/coolboxr`. It uses `Rcpp` to expose a native CoolBox linear regression wrapper, `roxygen2` for API docs, and `pkgdown` for a static documentation site.
+
+## Unified Documentation Site
+
+The documentation publishing workflow is defined in `.github/workflows/docs-publish.yml`. It builds a unified static site with:
+
+- C++ API docs from Doxygen
+- R extension docs from pkgdown
+- Python bindings docs rendered from the generated Markdown reference
+- JavaScript / Emscripten bindings index
+- built Python binding artifacts
+- built JavaScript / WASM binding artifacts
+
+The generated site includes a top-level `index.html` that links to each documentation section.
+
+Set the repository variable `DOCS_PUBLISH_BRANCH` to choose the target branch for normal pushes, or override it manually with the `publish_branch` input when running the workflow by hand.
+
+Useful entry points:
+
+- `make build_docs_portal` builds the unified static docs site into `.site/`.
+- `make document_r_bindings` regenerates roxygen docs.
+- `make install_r_bindings` installs the package locally.
+- `make site_r_bindings` builds the pkgdown site into `_libraries/r_bindings/coolboxr/docs`.
+
 ## Quick Start
 
 ```bash
@@ -285,3 +311,24 @@ python3 test_bindings.py
 - `ml_core.tracker` - Kalman filters
 
 See `python_bindings/README.md` and `python_bindings/examples/` for comprehensive usage examples.
+
+## CMake Package (External Projects)
+
+CoolBox can now be installed and consumed with `find_package`.
+
+Build + install:
+
+```bash
+cmake -S . -B build -DCOOLBOX_INSTALL_PACKAGE=ON
+cmake --build build --config Debug
+cmake --install build --config Debug --prefix <install-prefix>
+```
+
+Consume from another CMake project:
+
+```cmake
+find_package(CoolBox CONFIG REQUIRED)
+target_link_libraries(your_app PRIVATE CoolBox::deep_learning)
+```
+
+If CoolBox is installed to a custom location, set `CMAKE_PREFIX_PATH` to `<install-prefix>`.

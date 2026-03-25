@@ -13,7 +13,7 @@ version = "0.2.0"
 description = "Comprehensive C++ Machine Learning Library with Python Bindings"
 readme = "README.md"
 requires-python = ">=3.7"
-license = {text = "MIT"}
+license = "GPL-3.0-or-later"
 authors = [
     {name = "ML Core Team"},
 ]
@@ -32,7 +32,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -65,13 +64,13 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/ToolBox"
-Documentation = "https://github.com/yourusername/ToolBox/blob/main/README.md"
-Repository = "https://github.com/yourusername/ToolBox"
-Issues = "https://github.com/yourusername/ToolBox/issues"
+Homepage = "https://github.com/MeanderingAI/CoolBox"
+Documentation = "https://github.com/MeanderingAI/CoolBox/blob/main/_libraries/python_bindings/README.md"
+Repository = "https://github.com/MeanderingAI/CoolBox"
+Issues = "https://github.com/MeanderingAI/CoolBox/issues"
 
 [tool.setuptools]
 packages = ["ml_toolbox"]
 
 [tool.setuptools.package-data]
-ml_toolbox = ["*.so", "*.pyd", "*.dll"]
+ml_toolbox = ["*.so", "*.pyd", "*.dll", "py.typed"]

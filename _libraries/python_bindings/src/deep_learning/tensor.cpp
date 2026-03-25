@@ -1,4 +1,4 @@
-#include "ml/deep_learning/tensor.h"
+#include <tensor.h>
 #include <random>
 #include <sstream>
 

@@ -1,0 +1,220 @@
+name: build_ext_js
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: build-ext-js-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_js:
+    if: ${{ github.event_name == 'workflow_call' }}
+    runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compute artifact name
+        id: compute_artifact
+        run: |
+          arch_env="${RUNNER_ARCH:-$(uname -m)}"
+          arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
+          if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
+            ARCH=arm64
+          else
+            ARCH=x86_64
+          fi
+
+          case "${RUNNER_OS}" in
+            Linux) OSNAME=linux ;;
+            macOS) OSNAME=macos ;;
+            Windows) OSNAME=windows ;;
+            *) OSNAME=linux ;;
+          esac
+
+          echo "artifact_name=coolbox-build-${OSNAME}-${ARCH}-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Download built C++ libraries (from build_libs)
+        id: download_build
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+
+      - name: "Fallback: download any matching build artifact"
+        if: steps.download_build.outcome != 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ format('coolbox-build-{0}-{1}-*', steps.compute_artifact.outputs.osname, steps.compute_artifact.outputs.arch) }}
+          path: build/
+          merge-multiple: true
+
+      - name: Set COOLBOX_LIB_DIR for JS build
+        run: |
+          echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          for pkg in cmake ninja; do
+            brew list "$pkg" &>/dev/null || brew install "$pkg"
+          done
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja -y
+        shell: powershell
+
+      - name: Set up Emscripten SDK (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          EMSDK_DIR="$RUNNER_TEMP/emsdk"
+          rm -rf "$EMSDK_DIR"
+          git clone https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
+          cd "$EMSDK_DIR"
+          ./emsdk install latest
+          ./emsdk activate latest --embedded
+          source ./emsdk_env.sh >/dev/null
+          EM_CONFIG="$EMSDK_DIR/.emscripten"
+          BINARYEN_ROOT="$EMSDK_DIR/upstream/bin"
+          {
+            echo "PATH=$EMSDK_DIR:$EMSDK_DIR/upstream/emscripten:$EMSDK_DIR/upstream/bin:$EMSDK_NODE:$PATH"
+            echo "EMSDK=$EMSDK_DIR"
+            echo "EM_CONFIG=$EM_CONFIG"
+            echo "BINARYEN_ROOT=$BINARYEN_ROOT"
+            echo "EMSDK_NODE=$EMSDK_NODE"
+            echo "EMSDK_PYTHON=$EMSDK_PYTHON"
+          } >> "$GITHUB_ENV"
+
+      - name: Set up Emscripten SDK (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $EMSDK_DIR = Join-Path $env:RUNNER_TEMP 'emsdk'
+          if (Test-Path $EMSDK_DIR) {
+            Remove-Item -Recurse -Force $EMSDK_DIR
+          }
+          git clone https://github.com/emscripten-core/emsdk.git $EMSDK_DIR
+
+          Push-Location $EMSDK_DIR
+          .\emsdk.bat install latest
+          .\emsdk.bat activate latest --embedded
+          Pop-Location
+
+          $emscriptenDir = Join-Path $EMSDK_DIR 'upstream\emscripten'
+          $binaryenDir = Join-Path $EMSDK_DIR 'upstream\bin'
+          $nodeDir = Join-Path $EMSDK_DIR 'node'
+          $pythonDir = Join-Path $EMSDK_DIR 'python'
+          $emConfig = Join-Path $EMSDK_DIR '.emscripten'
+
+          @(
+            $emscriptenDir,
+            $binaryenDir,
+            $nodeDir,
+            $pythonDir,
+            $EMSDK_DIR
+          ) | ForEach-Object {
+            if (Test-Path $_) {
+              $_ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
+          }
+
+          "EMSDK=$EMSDK_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EM_CONFIG=$emConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "BINARYEN_ROOT=$binaryenDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: powershell
+
+      - name: Configure JavaScript bindings (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [ -d build/_libraries ]; then
+            echo "Using prebuilt C++ libraries from build/; proceeding to emcmake configure to build JS bindings only"
+          fi
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh" >/dev/null
+          export EMSDK="$RUNNER_TEMP/emsdk"
+          export EM_CONFIG="$RUNNER_TEMP/emsdk/.emscripten"
+          export BINARYEN_ROOT="$RUNNER_TEMP/emsdk/upstream/bin"
+          "$RUNNER_TEMP/emsdk/upstream/emscripten/emcmake" cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+
+      - name: Configure JavaScript bindings (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $emcmake = Join-Path $env:RUNNER_TEMP 'emsdk\upstream\emscripten\emcmake.bat'
+          if (-not (Test-Path $emcmake)) {
+            throw "emcmake.bat not found at $emcmake"
+          }
+          & $emcmake cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+        shell: powershell
+
+      - name: Build JavaScript bindings (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh" >/dev/null
+          export EMSDK="$RUNNER_TEMP/emsdk"
+          export EM_CONFIG="$RUNNER_TEMP/emsdk/.emscripten"
+          export BINARYEN_ROOT="$RUNNER_TEMP/emsdk/upstream/bin"
+          cmake --build build-emscripten --config Release
+
+      - name: Build JavaScript bindings (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake --build build-emscripten --config Release
+        shell: powershell
+
+      - name: Package JavaScript tarball
+        run: |
+          rm -rf release-assets staging-js
+          mkdir -p release-assets staging-js
+          cp -R build-emscripten/. staging-js/ 2>/dev/null || true
+          tar -C staging-js -czf release-assets/coolbox-js-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-js release-assets/coolbox-js-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip
+
+      - name: Upload JavaScript archives
+        uses: actions/upload-artifact@v6
+        with:
+          name: javascript-extension-${{ matrix.platform }}-${{ github.ref_name }}
+          path: |
+            release-assets/coolbox-js-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-js-bindings-${{ matrix.platform }}-${{ github.ref_name }}.zip
+          retention-days: 14
+
+      - name: Attach JavaScript archives to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-js-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-js-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

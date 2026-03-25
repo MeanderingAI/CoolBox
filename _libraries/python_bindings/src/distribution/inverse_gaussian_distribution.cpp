@@ -5,6 +5,10 @@
 #include <limits>
 #include <stdexcept>
 
+namespace {
+constexpr double kPi = 3.14159265358979323846;
+}
+
 InverseGaussianDistribution::InverseGaussianDistribution(double mean, double shape)
     : mean_(mean), shape_(shape), gen_(std::random_device{}()) {
     if (mean <= 0 || shape <= 0) {
@@ -14,12 +18,12 @@ InverseGaussianDistribution::InverseGaussianDistribution(double mean, double sha
 
 double InverseGaussianDistribution::pdf(double x) const {
     if (x <= 0) return 0.0;
-    return std::sqrt(shape_ / (2.0 * M_PI * std::pow(x, 3.0))) * std::exp(-(shape_ * std::pow(x - mean_, 2.0)) / (2.0 * std::pow(mean_, 2.0) * x));
+    return std::sqrt(shape_ / (2.0 * kPi * std::pow(x, 3.0))) * std::exp(-(shape_ * std::pow(x - mean_, 2.0)) / (2.0 * std::pow(mean_, 2.0) * x));
 }
 
 double InverseGaussianDistribution::log_pdf(double x) const {
     if (x <= 0) return -std::numeric_limits<double>::infinity();
-    return 0.5 * (std::log(shape_) - std::log(2.0 * M_PI) - 3.0 * std::log(x)) - (shape_ * std::pow(x - mean_, 2.0)) / (2.0 * std::pow(mean_, 2.0) * x);
+    return 0.5 * (std::log(shape_) - std::log(2.0 * kPi) - 3.0 * std::log(x)) - (shape_ * std::pow(x - mean_, 2.0)) / (2.0 * std::pow(mean_, 2.0) * x);
 }
 
 double InverseGaussianDistribution::cdf(double x) const {

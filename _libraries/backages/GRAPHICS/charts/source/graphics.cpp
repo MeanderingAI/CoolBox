@@ -12,6 +12,200 @@
 #include <iomanip>
 
 namespace graphics {
+// ===================================================================
+// Fractal and Plotting Primitives (STUBS)
+// ===================================================================
+
+Fractal::Fractal(int width, int height, FractalType type)
+    : width_(width), height_(height), type_(type) {}
+void Fractal::set_params(double param1, double param2) { param1_ = param1; param2_ = param2; }
+void Fractal::set_max_iter(int max_iter) { max_iter_ = max_iter; }
+void Fractal::set_bounds(double x_min, double x_max, double y_min, double y_max) {
+    x_min_ = x_min; x_max_ = x_max; y_min_ = y_min; y_max_ = y_max;
+}
+Canvas Fractal::render() const {
+    Canvas c(width_, height_);
+    for (int py = 0; py < height_; ++py) {
+        for (int px = 0; px < width_; ++px) {
+            double x0 = x_min_ + (x_max_ - x_min_) * px / (width_ - 1);
+            double y0 = y_min_ + (y_max_ - y_min_) * py / (height_ - 1);
+            double x = x0, y = y0;
+            double cx = (type_ == FractalType::Julia) ? param1_ : x0;
+            double cy = (type_ == FractalType::Julia) ? param2_ : y0;
+            int iter = 0;
+            while (x*x + y*y <= 4.0 && iter < max_iter_) {
+                double xt = x*x - y*y + cx;
+                y = 2*x*y + cy;
+                x = xt;
+                ++iter;
+            }
+            int v = static_cast<int>(255.0 * iter / max_iter_);
+            Color col = (iter == max_iter_) ? Colors::Black : Color{static_cast<uint8_t>(v), 0, static_cast<uint8_t>(255-v), 255};
+            c.set_pixel(px, py, col);
+        }
+    }
+    return c;
+}
+
+FunctionPlot::FunctionPlot(int width, int height)
+    : width_(width), height_(height) {}
+void FunctionPlot::set_equation(const std::string& expr) { expr_ = expr; }
+void FunctionPlot::set_range(double x_min, double x_max) { x_min_ = x_min; x_max_ = x_max; }
+void FunctionPlot::set_samples(int n) { samples_ = n; }
+void FunctionPlot::set_color(Color c) { color_ = c; }
+Canvas FunctionPlot::render() const {
+    Canvas c(width_, height_);
+    // Simple parser: only supports "sin(x)", "cos(x)", "x", "x^2", etc.
+    auto eval = [](const std::string& expr, double x) -> double {
+        if (expr == "x") return x;
+        if (expr == "sin(x)") return std::sin(x);
+        if (expr == "cos(x)") return std::cos(x);
+        if (expr == "x^2") return x*x;
+        if (expr == "exp(x)") return std::exp(x);
+        if (expr == "log(x)") return std::log(x);
+        return 0.0;
+    };
+    // Find y min/max for scaling
+    double y_min = 1e9, y_max = -1e9;
+    std::vector<double> xs(samples_), ys(samples_);
+    for (int i = 0; i < samples_; ++i) {
+        double x = x_min_ + (x_max_ - x_min_) * i / (samples_ - 1);
+        double y = eval(expr_, x);
+        xs[i] = x; ys[i] = y;
+        y_min = std::min(y_min, y);
+        y_max = std::max(y_max, y);
+    }
+    if (y_min == y_max) y_max = y_min + 1.0;
+    // Draw axes
+    int margin = 40;
+    int plot_w = width_ - 2*margin, plot_h = height_ - 2*margin;
+    c.draw_rect(margin, margin, plot_w, plot_h, Colors::Gray, false);
+    // Draw function
+    for (int i = 1; i < samples_; ++i) {
+        int x0 = margin + static_cast<int>(plot_w * (xs[i-1] - x_min_) / (x_max_ - x_min_));
+        int y0 = margin + plot_h - static_cast<int>(plot_h * (ys[i-1] - y_min) / (y_max - y_min));
+        int x1 = margin + static_cast<int>(plot_w * (xs[i] - x_min_) / (x_max_ - x_min_));
+        int y1 = margin + plot_h - static_cast<int>(plot_h * (ys[i] - y_min) / (y_max - y_min));
+        c.draw_line(x0, y0, x1, y1, color_);
+    }
+    return c;
+}
+
+ParametricPlot::ParametricPlot(int width, int height)
+    : width_(width), height_(height) {}
+void ParametricPlot::set_equations(const std::string& x_expr, const std::string& y_expr) {
+    x_expr_ = x_expr; y_expr_ = y_expr;
+}
+void ParametricPlot::set_t_range(double t_min, double t_max) { t_min_ = t_min; t_max_ = t_max; }
+void ParametricPlot::set_samples(int n) { samples_ = n; }
+void ParametricPlot::set_color(Color c) { color_ = c; }
+Canvas ParametricPlot::render() const {
+    Canvas c(width_, height_);
+    // Simple parser: only supports "t", "sin(t)", "cos(t)", "t^2"
+    auto eval = [](const std::string& expr, double t) -> double {
+        if (expr == "t") return t;
+        if (expr == "sin(t)") return std::sin(t);
+        if (expr == "cos(t)") return std::cos(t);
+        if (expr == "t^2") return t*t;
+        return 0.0;
+    };
+    std::vector<double> xs(samples_), ys(samples_);
+    double x_min = 1e9, x_max = -1e9, y_min = 1e9, y_max = -1e9;
+    for (int i = 0; i < samples_; ++i) {
+        double t = t_min_ + (t_max_ - t_min_) * i / (samples_ - 1);
+        double x = eval(x_expr_, t);
+        double y = eval(y_expr_, t);
+        xs[i] = x; ys[i] = y;
+        x_min = std::min(x_min, x); x_max = std::max(x_max, x);
+        y_min = std::min(y_min, y); y_max = std::max(y_max, y);
+    }
+    if (x_min == x_max) x_max = x_min + 1.0;
+    if (y_min == y_max) y_max = y_min + 1.0;
+    int margin = 40;
+    int plot_w = width_ - 2*margin, plot_h = height_ - 2*margin;
+    c.draw_rect(margin, margin, plot_w, plot_h, Colors::Gray, false);
+    for (int i = 1; i < samples_; ++i) {
+        int x0 = margin + static_cast<int>(plot_w * (xs[i-1] - x_min) / (x_max - x_min));
+        int y0 = margin + plot_h - static_cast<int>(plot_h * (ys[i-1] - y_min) / (y_max - y_min));
+        int x1 = margin + static_cast<int>(plot_w * (xs[i] - x_min) / (x_max - x_min));
+        int y1 = margin + plot_h - static_cast<int>(plot_h * (ys[i] - y_min) / (y_max - y_min));
+        c.draw_line(x0, y0, x1, y1, color_);
+    }
+    return c;
+}
+
+PolarPlot::PolarPlot(int width, int height)
+    : width_(width), height_(height) {}
+void PolarPlot::set_equation(const std::string& expr) { expr_ = expr; }
+void PolarPlot::set_theta_range(double theta_min, double theta_max) { theta_min_ = theta_min; theta_max_ = theta_max; }
+void PolarPlot::set_samples(int n) { samples_ = n; }
+void PolarPlot::set_color(Color c) { color_ = c; }
+Canvas PolarPlot::render() const {
+    Canvas c(width_, height_);
+    // Simple parser: only supports "theta", "sin(theta)", "cos(theta)", "1+sin(5*theta)"
+    auto eval = [](const std::string& expr, double theta) -> double {
+        if (expr == "theta") return theta;
+        if (expr == "sin(theta)") return std::sin(theta);
+        if (expr == "cos(theta)") return std::cos(theta);
+        if (expr == "1+sin(5*theta)") return 1.0 + std::sin(5*theta);
+        return 0.0;
+    };
+    std::vector<double> rs(samples_);
+    double r_min = 1e9, r_max = -1e9;
+    for (int i = 0; i < samples_; ++i) {
+        double theta = theta_min_ + (theta_max_ - theta_min_) * i / (samples_ - 1);
+        double r = eval(expr_, theta);
+        rs[i] = r;
+        r_min = std::min(r_min, r);
+        r_max = std::max(r_max, r);
+    }
+    if (r_min == r_max) r_max = r_min + 1.0;
+    int cx = width_ / 2, cy = height_ / 2;
+    double scale = 0.45 * std::min(width_, height_) / (r_max - r_min);
+    for (int i = 1; i < samples_; ++i) {
+        double t0 = theta_min_ + (theta_max_ - theta_min_) * (i-1) / (samples_ - 1);
+        double t1 = theta_min_ + (theta_max_ - theta_min_) * i / (samples_ - 1);
+        int x0 = cx + static_cast<int>(scale * rs[i-1] * std::cos(t0));
+        int y0 = cy - static_cast<int>(scale * rs[i-1] * std::sin(t0));
+        int x1 = cx + static_cast<int>(scale * rs[i] * std::cos(t1));
+        int y1 = cy - static_cast<int>(scale * rs[i] * std::sin(t1));
+        c.draw_line(x0, y0, x1, y1, color_);
+    }
+    return c;
+}
+
+HistogramPlot::HistogramPlot(int width, int height)
+    : width_(width), height_(height) {}
+void HistogramPlot::set_data(const std::vector<double>& values) { values_ = values; }
+void HistogramPlot::set_bins(int n) { bins_ = n; }
+void HistogramPlot::set_color(Color c) { color_ = c; }
+Canvas HistogramPlot::render() const {
+    Canvas c(width_, height_);
+    if (values_.empty()) return c;
+    double v_min = *std::min_element(values_.begin(), values_.end());
+    double v_max = *std::max_element(values_.begin(), values_.end());
+    if (v_min == v_max) v_max = v_min + 1.0;
+    std::vector<int> bins(bins_, 0);
+    for (double v : values_) {
+        int idx = static_cast<int>((v - v_min) / (v_max - v_min) * bins_);
+        if (idx < 0) idx = 0;
+        if (idx >= bins_) idx = bins_ - 1;
+        bins[idx]++;
+    }
+    int max_count = *std::max_element(bins.begin(), bins.end());
+    int margin = 40;
+    int plot_w = width_ - 2*margin, plot_h = height_ - 2*margin;
+    c.draw_rect(margin, margin, plot_w, plot_h, Colors::Gray, false);
+    for (int i = 0; i < bins_; ++i) {
+        int x0 = margin + static_cast<int>(plot_w * i / static_cast<double>(bins_));
+        int x1 = margin + static_cast<int>(plot_w * (i+1) / static_cast<double>(bins_));
+        int y1 = margin + plot_h;
+        int y0 = y1 - static_cast<int>(plot_h * bins[i] / static_cast<double>(max_count));
+        c.draw_rect(x0, y0, x1-x0-1, y1-y0, color_, true);
+        c.draw_rect(x0, y0, x1-x0-1, y1-y0, Colors::Black, false);
+    }
+    return c;
+}
 
 // ===================================================================
 // Built-in 5×7 bitmap font (printable ASCII 32–126)
@@ -229,6 +423,91 @@ void Canvas::draw_circle(int cx, int cy, int radius, Color c, bool filled) {
         } else {
             --x;
             err += 2 * (y - x) + 1;
+        }
+    }
+}
+
+// Scanline polygon fill + outline. Supports Solid, VerticalGradient and Hatch styles.
+void Canvas::draw_polygon(const std::vector<std::pair<int,int>>& pts,
+                          Color outline,
+                          bool filled,
+                          FillStyle style,
+                          Color fill_color,
+                          Color fill_color2,
+                          int hatch_spacing) {
+    if (pts.size() < 3) return;
+
+    // Draw outline
+    for (size_t i = 0; i < pts.size(); ++i) {
+        auto [x0, y0] = pts[i];
+        auto [x1, y1] = pts[(i+1) % pts.size()];
+        draw_line(x0, y0, x1, y1, outline);
+    }
+
+    if (!filled) return;
+
+    // Find Y bounds
+    int ymin = pts[0].second, ymax = pts[0].second;
+    int xmin = pts[0].first, xmax = pts[0].first;
+    for (auto &p : pts) {
+        ymin = std::min(ymin, p.second);
+        ymax = std::max(ymax, p.second);
+        xmin = std::min(xmin, p.first);
+        xmax = std::max(xmax, p.first);
+    }
+    if (ymax < ymin) return;
+
+    auto blend = [](const Color &a, const Color &b, double t) -> Color {
+        uint8_t r = static_cast<uint8_t>(a.r + (b.r - a.r) * t);
+        uint8_t g = static_cast<uint8_t>(a.g + (b.g - a.g) * t);
+        uint8_t bl = static_cast<uint8_t>(a.b + (b.b - a.b) * t);
+        uint8_t alpha = static_cast<uint8_t>(a.a + (b.a - a.a) * t);
+        return {r, g, bl, alpha};
+    };
+
+    // For each scanline, compute intersections
+    for (int y = ymin; y <= ymax; ++y) {
+        std::vector<double> xs;
+        for (size_t i = 0; i < pts.size(); ++i) {
+            int x0 = pts[i].first, y0 = pts[i].second;
+            int x1 = pts[(i+1) % pts.size()].first, y1 = pts[(i+1) % pts.size()].second;
+            if (y0 == y1) continue; // horizontal edge
+            int ymin_e = std::min(y0, y1);
+            int ymax_e = std::max(y0, y1);
+            if (y < ymin_e || y >= ymax_e) continue; // include top, exclude bottom
+            double x = x0 + (double)(y - y0) * (double)(x1 - x0) / (double)(y1 - y0);
+            xs.push_back(x);
+        }
+        if (xs.empty()) continue;
+        std::sort(xs.begin(), xs.end());
+        for (size_t k = 0; k + 1 < xs.size(); k += 2) {
+            int x_start = static_cast<int>(std::ceil(xs[k]));
+            int x_end = static_cast<int>(std::floor(xs[k+1]));
+            if (x_end < x_start) continue;
+
+            // choose fill color for this scanline
+            Color line_fill = fill_color;
+            if (style == FillStyle::VerticalGradient) {
+                double t = (ymax == ymin) ? 0.0 : (double)(y - ymin) / (double)(ymax - ymin);
+                line_fill = blend(fill_color, fill_color2, t);
+            }
+
+            for (int x = x_start; x <= x_end; ++x) {
+                set_pixel(x, y, line_fill);
+            }
+        }
+    }
+
+    // Hatch overlay if requested
+    if (style == FillStyle::Hatch && hatch_spacing > 0) {
+        // 45-degree hatch lines across bounding box
+        int diag = (xmax - xmin) + (ymax - ymin);
+        for (int s = -diag; s <= diag; s += hatch_spacing) {
+            int x0 = xmin + s;
+            int y0 = ymin;
+            int x1 = x0 + (ymax - ymin);
+            int y1 = ymax;
+            draw_line(x0, y0, x1, y1, outline);
         }
     }
 }

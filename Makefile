@@ -1,5 +1,5 @@
 # Set Python executable
-PYTHON := python3
+PYTHON := $(if $(wildcard .venv/bin/python),$(CURDIR)/.venv/bin/python,python3)
 
 # Emscripten SDK location (override with EMSDK=/your/path)
 EMSDK ?= $(HOME)/emsdk
@@ -64,6 +64,10 @@ help:
 	@echo "  make configure          Run CMake configuration"
 	@echo "  make clean              Remove all build artifacts"
 	@echo "  make completion         Output shell completion script"
+	@echo "  make install_tutorial_editor_deps Install tutorial editor Python dependencies"
+	@echo "  make launch_editor      Launch the tutorial editor app"
+	@echo "  make build_c_bindings   Build the plain C bindings"
+	@echo "  make build_java_bindings Build the plain Java bindings"
 	@echo ""
 	@echo "━━━ Discovered Library Targets ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -97,7 +101,13 @@ help:
         build_libraries_security build_libraries_misc build_libraries_electronics \
         build_libraries_graphics \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
-        build_python_bindings clean_python_bindings install_python_bindings install_pybind11
+		build_c_bindings \
+		install_tutorial_editor_deps \
+		build_java_bindings \
+	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
+	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
+		build_rust_bindings test_rust_bindings build_docs_portal launch_editor
+		notepad
 
 all: build_all
 
@@ -108,11 +118,11 @@ build_all: configure
 	@echo "[Makefile] Build complete."
 
 # ── CMake Configuration (libraries only, skip binaries) ─────────────
+# Configure CMake (libraries only). To enable/disable SQL backage,
+# pass -DBUILD_IO_SQL=ON/OFF on the command line when running cmake.
 configure:
 	@if [ ! -f build/Makefile ]; then \
 		echo "[Makefile] Running CMake configuration (libraries only)..."; \
-		# Configure CMake (libraries only). To enable/disable SQL backage,
-		# pass -DBUILD_IO_SQL=ON/OFF on the command line when running cmake.
 		cmake -S . -B build -DBUILD_BINARIES=OFF; \
 	else \
 		echo "[Makefile] Build already configured (build/Makefile exists)."; \
@@ -123,7 +133,7 @@ build: configure
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf build lib
+	rm -rf build build_lsp lib .site .local-cpp-docs .r-library .r-makevars.local .documentation
 	@echo "Clean complete."
 
 # ── Library Builds ──────────────────────────────────────────────────
@@ -221,6 +231,24 @@ install_python_bindings:
 	@echo "Installing Python bindings..."
 	@cd _libraries/python_bindings && $(PYTHON) setup.py install
 
+install_tutorial_editor_deps:
+	@echo "Checking tutorial editor dependencies..."
+	@$(PYTHON) -c "import tkinterdnd2" 2>/dev/null || (echo "Installing tkinterdnd2..." && $(PYTHON) -m pip install tkinterdnd2)
+
+launch_editor: install_tutorial_editor_deps
+	@echo "Launching tutorial editor..."
+	@$(PYTHON) apps/tutorial_editor/tutorial_editor.py
+
+build_c_bindings:
+	@echo "Building plain C bindings..."
+	@cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+	@cmake --build _libraries/c_bindings/build --config Release
+	@ctest --test-dir _libraries/c_bindings/build --output-on-failure
+
+build_java_bindings:
+	@echo "Building plain Java bindings..."
+	@mvn -f _libraries/java_bindings/pom.xml test package javadoc:javadoc
+
 # ── Emscripten / JavaScript Bindings ────────────────────────────────
 build_js_bindings: install_emcmake
 	@echo "========================================"
@@ -259,3 +287,42 @@ install_js_bindings:
 	@mkdir -p lib/js
 	@find build-emscripten -name '*.js' -exec cp -v {} lib/js/ \; 2>/dev/null || echo "No .js files found. Run 'make build_js_bindings' first."
 	@find build-emscripten -name '*.wasm' -exec cp -v {} lib/js/ \; 2>/dev/null || true
+
+# ── R Bindings / Docs ───────────────────────────────────────────────
+document_r_bindings:
+	@echo "Generating roxygen2 docs for R bindings..."
+	@Rscript -e "devtools::document('_libraries/r_bindings/coolboxr')"
+
+build_r_bindings:
+	@echo "Building R package bundle..."
+	@R CMD build _libraries/r_bindings/coolboxr
+
+install_r_bindings:
+	@echo "Installing R bindings package..."
+	@R CMD INSTALL _libraries/r_bindings/coolboxr
+
+site_r_bindings:
+	@echo "Building pkgdown site for R bindings..."
+	@Rscript -e "pkgdown::build_site('_libraries/r_bindings/coolboxr')"
+
+# ── Rust Bindings ───────────────────────────────────────────────────
+build_rust_bindings:
+	@echo "Building Rust bindings..."
+	@cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
+
+# Build the notepad product
+notepad:
+	@echo "Building notepad product..."
+	@$(MAKE) -C _Product/notepad all || true
+	@echo "notepad build complete. Binary (if produced) in _Product/notepad/bin"
+
+test_rust_bindings:
+	@echo "Testing Rust bindings..."
+	@cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
+
+# ── Static Site Generation ─────────────────────────────────────────
+# Build the full documentation site via a single entry-point script.
+# The script builds tutorials into build/documentation/, generates the
+# docs hub portal under .site/, and populates references and tag pages.
+build_site:
+	@bash ./_scripts/build_documentation.sh "$(CURDIR)"

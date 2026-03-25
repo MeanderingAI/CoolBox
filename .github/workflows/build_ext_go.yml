@@ -1,0 +1,296 @@
+name: build_ext_go
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: build-ext-go-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_ext_go:
+    if: ${{ github.event_name == 'workflow_call' }}
+    runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compute artifact name
+        id: compute_artifact
+        run: |
+          arch_env="${RUNNER_ARCH:-$(uname -m)}"
+          arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
+          if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
+            ARCH=arm64
+          else
+            ARCH=x86_64
+          fi
+
+          case "${RUNNER_OS}" in
+            Linux) OSNAME=linux ;;
+            macOS) OSNAME=macos ;;
+            Windows) OSNAME=windows ;;
+            *) OSNAME=linux ;;
+          esac
+
+          echo "artifact_name=coolbox-build-${OSNAME}-${ARCH}-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "osname=${OSNAME}" >> $GITHUB_OUTPUT
+          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
+
+      - name: Download built C++ libraries (from build_libs)
+        id: download_build
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+
+      - name: "Fallback: download any matching build artifact"
+        if: steps.download_build.outcome != 'success'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ format('coolbox-build-{0}-{1}-*', steps.compute_artifact.outputs.osname, steps.compute_artifact.outputs.arch) }}
+          path: build/
+          merge-multiple: true
+
+      - name: Set COOLBOX_LIB_DIR for Go build
+        run: |
+          echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: _libraries/go_bindings/go.mod
+          cache-dependency-path: _libraries/go_bindings/go.mod
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make libeigen3-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew list cmake &>/dev/null || brew install cmake
+          brew list eigen &>/dev/null || brew install eigen
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        id: msys2
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+        uses: msys2/setup-msys2@v2.30.0
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          update: true
+          install: |
+            make
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-eigen3
+
+      - name: Ensure mingw64 in PATH (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $msysRoot = "${{ steps.msys2.outputs.msys2-location }}"
+          if ([string]::IsNullOrWhiteSpace($msysRoot) -or !(Test-Path $msysRoot)) {
+            $msysRoot = "C:\msys64"
+          }
+          if (!(Test-Path $msysRoot)) { $msysRoot = "C:\tools\msys64" }
+          $msysUsrBin = Join-Path $msysRoot "usr\bin"
+          $msysBin = Join-Path $msysRoot "mingw64\bin"
+          if (Test-Path $msysUsrBin) { echo "$msysUsrBin" >> $env:GITHUB_PATH }
+          echo "$msysBin" >> $env:GITHUB_PATH
+        shell: powershell
+
+      - name: Verify CMake is available (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          command -v cmake
+          cmake --version
+        shell: msys2 {0}
+
+      - name: Prepare Eigen headers (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          BUILD_DIR="$GITHUB_WORKSPACE/build"
+          if [[ -e "$BUILD_DIR" && ! -d "$BUILD_DIR" ]]; then
+            rm -f "$BUILD_DIR"
+          fi
+          mkdir -p "$BUILD_DIR"
+
+          candidates=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            if brew_prefix="$(brew --prefix eigen 2>/dev/null)"; then
+              candidates+=("$brew_prefix/include/eigen3")
+            fi
+          fi
+          candidates+=(
+            /opt/homebrew/include/eigen3
+            /opt/homebrew/opt/eigen/include/eigen3
+            /usr/local/include/eigen3
+            /usr/local/opt/eigen/include/eigen3
+            /usr/include/eigen3
+          )
+
+          found_eigen=0
+          for d in "${candidates[@]}"; do
+            if [[ -d "$d" ]]; then
+              rm -rf "$BUILD_DIR/eigen-src"
+              cp -R "$d" "$BUILD_DIR/eigen-src"
+
+              if [[ -f "$BUILD_DIR/eigen-src/Eigen/Core" ]]; then
+                echo "Using Eigen headers from $d"
+                found_eigen=1
+                break
+              fi
+
+              if [[ -f "$BUILD_DIR/eigen-src/eigen3/Eigen/Core" ]]; then
+                rm -rf "$BUILD_DIR/eigen-src"
+                cp -R "$d" "$BUILD_DIR/eigen-src"
+                mv "$BUILD_DIR/eigen-src/eigen3" "$BUILD_DIR/eigen-src.tmp"
+                rm -rf "$BUILD_DIR/eigen-src"
+                mv "$BUILD_DIR/eigen-src.tmp" "$BUILD_DIR/eigen-src"
+                echo "Using Eigen headers from nested path in $d"
+                found_eigen=1
+                break
+              fi
+
+              rm -rf "$BUILD_DIR/eigen-src"
+            fi
+          done
+
+          if [[ "$found_eigen" -ne 1 ]]; then
+            echo "Checked Eigen candidates:"
+            printf ' - %s\n' "${candidates[@]}"
+            exit 1
+          fi
+
+      - name: Prepare Eigen headers (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $gcc = Get-Command g++.exe -ErrorAction SilentlyContinue
+          if ($null -eq $gcc) {
+            $gcc = Get-Command gcc.exe -ErrorAction SilentlyContinue
+          }
+
+          $derivedCandidates = @()
+          if ($null -ne $gcc) {
+            $mingwBin = Split-Path $gcc.Source -Parent
+            $mingwRoot = Split-Path $mingwBin -Parent
+            $derivedCandidates += @(
+              (Join-Path $mingwRoot "include\eigen3"),
+              (Join-Path $mingwRoot "include")
+            )
+          }
+
+          $candidates = @(
+            (Join-Path $env:RUNNER_TEMP "msys64\mingw64\include\eigen3"),
+            (Join-Path $env:RUNNER_TEMP "msys64\mingw64\include"),
+            "C:\msys64\mingw64\include\eigen3",
+            "C:\msys64\mingw64\include",
+            "C:\tools\msys64\mingw64\include\eigen3",
+            "C:\tools\msys64\mingw64\include",
+            "C:\vcpkg\installed\x64-windows\include\eigen3",
+            "C:\vcpkg\installed\x64-windows\include"
+          ) + $derivedCandidates
+
+          $buildDir = Join-Path $env:GITHUB_WORKSPACE "build"
+          if ((Test-Path $buildDir) -and -not (Test-Path $buildDir -PathType Container)) {
+            Remove-Item -Force $buildDir
+          }
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+
+          foreach ($candidate in $candidates) {
+            if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+            if (Test-Path $candidate) {
+              $eigenDest = Join-Path $buildDir "eigen-src"
+              if (Test-Path $eigenDest) {
+                Remove-Item -Recurse -Force $eigenDest
+              }
+              Copy-Item -Recurse -Force $candidate $eigenDest
+
+              if (Test-Path (Join-Path $eigenDest "Eigen\Core")) {
+                Write-Host "Using Eigen headers from $candidate"
+                exit 0
+              }
+
+              $nestedEigen = Join-Path $eigenDest "eigen3"
+              if (Test-Path (Join-Path $nestedEigen "Eigen\Core")) {
+                Remove-Item -Recurse -Force $eigenDest
+                Copy-Item -Recurse -Force $nestedEigen $eigenDest
+                Write-Host "Using Eigen headers from nested path in $candidate"
+                exit 0
+              }
+
+              Remove-Item -Recurse -Force $eigenDest -ErrorAction SilentlyContinue
+            }
+          }
+          Write-Host "Checked Eigen candidates:"
+          $candidates | ForEach-Object { Write-Host " - $_" }
+          throw "Unable to locate Eigen headers for Go bindings"
+        shell: powershell
+
+      - name: Show Go toolchain
+        run: |
+          go version
+          go env
+
+      - name: Build and test Go bindings
+        run: |
+          cd _libraries/go_bindings
+          go test ./...
+
+      - name: Package Go bindings
+        run: |
+          rm -rf release-assets staging-go
+          mkdir -p release-assets staging-go
+          cp -R _libraries/go_bindings/. staging-go/
+          rm -rf staging-go/.git staging-go/.github
+          tar -C staging-go -czf release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
+              python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            "staging-go" "release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip"
+
+      - name: Upload Go archives
+        uses: actions/upload-artifact@v6
+        with:
+          name: go-extension-${{ matrix.platform }}-${{ github.ref_name }}
+          path: |
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${{ github.ref_name }}.zip
+          retention-days: 14
+
+      - name: Attach Go archives to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

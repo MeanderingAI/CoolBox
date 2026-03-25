@@ -1,4 +1,4 @@
-#include "../../libraries/include/computer_vision/pipeline.h"
+#include <pipeline.h>
 #include <stdexcept>
 
 namespace ml {

@@ -1,0 +1,45 @@
+name: Build & publish plrust-lsp
+
+on:
+  workflow_run:
+    workflows: ["Build Libraries & Release"]
+    types: [completed]
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get remove -y containerd.io || true
+          sudo apt-get install -y build-essential cmake curl pkg-config
+          sudo apt-get install -y --no-install-recommends docker.io
+
+      - name: Download plrust_lsp artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plrust_lsp
+          path: apps/lsp/dist
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.rust
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest

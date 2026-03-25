@@ -1,5 +1,15 @@
 build
+build_lsp
 build-test
+build-emscripten-local-check
+build-emscripten-local-check-default
+bin
+apps/__pycache__/
+_scripts/__pycache__/
+.site
+.local-cpp-docs
+.r-library
+.r-makevars.local
 Testing
 **/a.out
 _libraries/gen_docs/html/
@@ -15,3 +25,7 @@ _deps/
 build-emscripten
 eigen-src
 eigen-build
+_libraries/rust_bindings/target/
+_libraries/rust_bindings/Cargo.lock
+external
+.venv
