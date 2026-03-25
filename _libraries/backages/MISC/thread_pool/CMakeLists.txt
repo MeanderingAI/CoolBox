@@ -1,3 +1,16 @@
-# CMakeLists.txt for thread_pool utils submodule
-add_library(thread_pool_utils INTERFACE)
-target_include_directories(thread_pool_utils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+cmake_minimum_required(VERSION 3.12)
+# Build a reusable thread pool library
+add_library(thread_pool_utils STATIC
+    source/thread_pool.cpp
+)
+target_include_directories(thread_pool_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+
+# Tests
+enable_testing()
+add_executable(thread_pool_tests
+    tests/test_thread_pool.cpp
+)
+target_link_libraries(thread_pool_tests PRIVATE thread_pool_utils GTest::gtest_main)
+add_test(NAME ThreadPoolTests COMMAND thread_pool_tests)
+
+set_target_properties(thread_pool_utils PROPERTIES PUBLIC_HEADER "headers/thread_pool.h")
