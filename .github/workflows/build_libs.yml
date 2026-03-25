@@ -148,10 +148,31 @@ jobs:
       - name: Build all libraries
         run: |
           cd build
+          # Get available targets from the configured buildsystem to avoid
+          # attempting to build targets that were not actually generated.
+          help_out="$(cmake --build . --target help 2>&1 || true)"
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E '^add_library' "$f" 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do
               echo "::group::Building $t"
-              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build $t"
+              if echo "$help_out" | grep -E "^${t}\\b" >/dev/null; then
+                cmake --build . --target "$t" --config Release || echo "::warning::Failed to build $t"
+              else
+                echo "::warning::Target $t not available in build system; skipping"
+                echo "::group::Diagnostics for missing target $t"
+                if [ -f CMakeCache.txt ]; then
+                  echo "CMakeCache BUILD_TESTING:"
+                  grep -i '^BUILD_TESTING:' CMakeCache.txt || true
+                  echo "CMakeCache entries mentioning gtest/googletest:"
+                  grep -i 'gtest\|googletest' CMakeCache.txt || true
+                else
+                  echo "No CMakeCache.txt found in build/"
+                fi
+                echo "Does help output expose GTest::gtest_main?"
+                echo "$help_out" | grep -E '^GTest::gtest_main\b' || echo "(no)"
+                echo "Searching build tree for gtest/googletest occurrences:"
+                grep -R -n -i 'gtest\|googletest' . || true
+                echo "::endgroup::"
+              fi
               echo "::endgroup::"
             done
           done
@@ -159,10 +180,29 @@ jobs:
       - name: Build all tests
         run: |
           cd build
+          help_out="$(cmake --build . --target help 2>&1 || true)"
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E 'add_executable.*_tests' "$f" 2>/dev/null | sed -E 's/.*add_executable\(([^ ]+).*/\1/'); do
               echo "::group::Building test $t"
-              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
+              if echo "$help_out" | grep -E "^${t}\\b" >/dev/null; then
+                cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
+              else
+                echo "::warning::Test target $t not present in build system; skipping"
+                echo "::group::Diagnostics for missing test $t"
+                if [ -f CMakeCache.txt ]; then
+                  echo "CMakeCache BUILD_TESTING:"
+                  grep -i '^BUILD_TESTING:' CMakeCache.txt || true
+                  echo "CMakeCache entries mentioning gtest/googletest:"
+                  grep -i 'gtest\|googletest' CMakeCache.txt || true
+                else
+                  echo "No CMakeCache.txt found in build/"
+                fi
+                echo "Does help output expose GTest::gtest_main?"
+                echo "$help_out" | grep -E '^GTest::gtest_main\b' || echo "(no)"
+                echo "Searching build tree for gtest/googletest occurrences:"
+                grep -R -n -i 'gtest\|googletest' . || true
+                echo "::endgroup::"
+              fi
               echo "::endgroup::"
             done
           done

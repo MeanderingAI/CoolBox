@@ -5,13 +5,16 @@ on:
     workflows: ["Build Libraries & Release"]
     types: [completed]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build-and-push:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -21,7 +24,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download pljava_lsp artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pljava_lsp
           path: apps/lsp/dist

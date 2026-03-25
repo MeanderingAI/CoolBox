@@ -28,7 +28,7 @@ jobs:
     name: CI diagnostics
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log guard evaluations
         run: |
@@ -61,7 +61,7 @@ jobs:
     name: Post-build diagnostics
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Report build_libs outcome
         run: |
@@ -101,7 +101,7 @@ jobs:
     name: Collect diagnostics artifact
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create diagnostics directory and run info
         run: |
@@ -247,7 +247,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install docker
         run: |
@@ -257,14 +257,14 @@ jobs:
           sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download LSP artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pl_lsp_dist
           path: apps/lsp/dist
           run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: "Fallback: download individual LSP binaries"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: plang_lsp
           path: apps/lsp/dist
@@ -310,21 +310,21 @@ jobs:
           cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
 
       - name: Download rust artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: plrust_lsp
           path: apps/lsp/dist
           run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Download java artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pljava_lsp
           path: apps/lsp/dist
           run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Download python artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: plpython_lsp
           path: apps/lsp/dist
@@ -387,28 +387,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download plang LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: plang_lsp
           path: dist/plang
 
       - name: Download plrust LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: plrust_lsp
           path: dist/plrust
 
       - name: Download pljava LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: pljava_lsp
           path: dist/pljava
 
       - name: Download plpython LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: plpython_lsp
           path: dist/plpython
