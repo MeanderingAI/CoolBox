@@ -3,8 +3,15 @@
 macro(add_subdirectory_if_exists dir)
     set(target_src "${CMAKE_CURRENT_SOURCE_DIR}/${dir}")
     if(EXISTS "${target_src}/CMakeLists.txt")
-        # Compute the intended binary dir for this subdirectory
-        set(target_bin "${CMAKE_BINARY_DIR}/${dir}")
+        # Compute the intended binary dir for this subdirectory.
+        # Use a path that includes the current source directory relative
+        # to the top-level source tree so similarly-named subfolders
+        # under different parents do not conflict.
+        file(RELATIVE_PATH _rel_src "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+        if("${_rel_src}" STREQUAL "")
+            set(_rel_src ".")
+        endif()
+        set(target_bin "${CMAKE_BINARY_DIR}/${_rel_src}/${dir}")
 
         # If the binary dir already contains a previous CMake configure,
         # check whether it was configured for the same source directory.
@@ -101,7 +108,7 @@ add_subdirectory_if_exists(backages/SECURITY/malware_scanner)
 add_subdirectory_if_exists(backages/SECURITY/network_scanner)
 
 # Graphics backages
-add_subdirectory_if_exists(backages/GRAPHICS)
+#add_subdirectory_if_exists(backages/GRAPHICS)
 add_subdirectory_if_exists(backages/GRAPHICS/charts)
 add_subdirectory_if_exists(backages/GRAPHICS/fonts)
 add_subdirectory_if_exists(backages/GRAPHICS/components)
