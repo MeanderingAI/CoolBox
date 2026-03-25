@@ -2,6 +2,10 @@ name: build_ext_c
 
 on:
   workflow_call:
+    inputs:
+      build_libs_run_id:
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -57,7 +61,7 @@ jobs:
             staging-c release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip
 
       - name: Upload C archives
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: c-extension-linux-x86_64-${{ github.ref_name }}
           path: |

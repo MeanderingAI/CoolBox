@@ -20,32 +20,32 @@ FetchContent_MakeAvailable(Eigen)
 # Re-enable BUILD_TESTING for our own project tests
 set(BUILD_TESTING ON CACHE BOOL "" FORCE)
 
-# Fetch and configure Googletest
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-  SOURCE_DIR ${CMAKE_BINARY_DIR}/googletest-src
-  BINARY_DIR ${CMAKE_BINARY_DIR}/googletest-build
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(googletest)
+if(BUILD_TESTING)
+  # Prefer an installed/system GTest if available, otherwise fetch via FetchContent
+  find_package(GTest QUIET)
+  if(NOT TARGET GTest::gtest_main)
+    message(STATUS "GTest not found by find_package; fetching googletest via FetchContent...")
+    FetchContent_Declare(
+      googletest
+      URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+      SOURCE_DIR ${CMAKE_BINARY_DIR}/googletest-src
+      BINARY_DIR ${CMAKE_BINARY_DIR}/googletest-build
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(googletest)
 
-# Ensure FetchContent-provided googletest exposes the expected imported
-# targets in the `GTest::` namespace for subdirectories that link to
-# `GTest::gtest_main`. Some platform/system installations provide a
-# partial config (missing gtest_main) which causes `find_package(GTest ...)
-#` to fail; creating these aliases guarantees the expected targets exist
-# after we made googletest available.
-if(NOT TARGET GTest::gtest_main)
-  if(TARGET gtest_main)
-    add_library(GTest::gtest_main ALIAS gtest_main)
+    # Ensure the expected imported targets exist in the GTest:: namespace
+    if(TARGET gtest_main AND NOT TARGET GTest::gtest_main)
+      add_library(GTest::gtest_main ALIAS gtest_main)
+    endif()
+    if(TARGET gtest AND NOT TARGET GTest::gtest)
+      add_library(GTest::gtest ALIAS gtest)
+    endif()
+  else()
+    message(STATUS "Using system-provided GTest targets")
   endif()
-endif()
-
-if(NOT TARGET GTest::gtest)
-  if(TARGET gtest)
-    add_library(GTest::gtest ALIAS gtest)
-  endif()
+else()
+  message(STATUS "BUILD_TESTING is OFF; skipping GTest fetch")
 endif()
 
 

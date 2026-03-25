@@ -2,6 +2,10 @@ name: build_ext_java
 
 on:
   workflow_call:
+    inputs:
+      build_libs_run_id:
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -45,16 +49,35 @@ jobs:
           echo "osname=${OSNAME}" >> $GITHUB_OUTPUT
           echo "arch=${ARCH}" >> $GITHUB_OUTPUT
 
-      - name: Download built C++ libraries (from build_libs)
+      - name: Download built C++ libraries (from build_libs) (with run-id)
+        id: download_build_with_run
+        if: "${{ inputs.build_libs_run_id != '' }}"
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+          run-id: ${{ inputs.build_libs_run_id }}
+
+      - name: Download built C++ libraries (from build_libs) (no run-id)
         id: download_build
+        if: "${{ inputs.build_libs_run_id == '' }}"
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: ${{ steps.compute_artifact.outputs.artifact_name }}
           path: build/
 
-      - name: "Fallback: download any matching build artifact"
-        if: steps.download_build.outcome != 'success'
+      - name: Fallback download (run-id)
+        if: "${{ inputs.build_libs_run_id != '' }}"
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "coolbox-build-${{ steps.compute_artifact.outputs.osname }}-${{ steps.compute_artifact.outputs.arch }}-*"
+          path: build/
+          merge-multiple: true
+
+      - name: Fallback download (no run-id)
+        if: "${{ inputs.build_libs_run_id == '' }}"
         uses: actions/download-artifact@v8
         with:
           pattern: ${{ format('coolbox-build-{0}-{1}-*', steps.compute_artifact.outputs.osname, steps.compute_artifact.outputs.arch) }}
@@ -66,7 +89,7 @@ jobs:
           echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '17'
@@ -132,7 +155,7 @@ jobs:
             staging-java release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.zip
 
       - name: Upload Java archives
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: java-extension-${{ github.ref_name }}
           path: |
