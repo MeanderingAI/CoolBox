@@ -20,11 +20,45 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake curl pkg-config
 
-      - name: Configure CMake
-        run: cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Configure CMake (enable tests)
+        run: |
+          cmake -S . -B build -DBUILD_BINARIES=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
 
       - name: Build libraries and targets
         run: cmake --build build --parallel
+
+      - name: List configured tests
+        run: |
+          mkdir -p build
+          echo "Configured CTest tests:" > build/ctest_list.txt
+          ctest --test-dir build -N >> build/ctest_list.txt || true
+          echo "--- end of test list ---"
+
+      - name: Package built test binaries
+        run: |
+          set -e
+          mkdir -p build/test-binaries
+          shopt -s globstar || true
+          # Find built test executables (common suffixes) and copy them
+          for f in build/**/*_tests build/**/*_test build/**/tests/*; do
+            if [ -f "$f" ] && [ -x "$f" ]; then
+              dest="build/test-binaries/$(basename "$f")"
+              cp "$f" "$dest" || true
+            fi
+          done
+          if [ -d build/test-binaries ] && [ "$(ls -A build/test-binaries)" ]; then
+            tar -czf build/test_binaries.tar.gz -C build test-binaries
+            ls -la build/test_binaries.tar.gz
+          else
+            echo "No test binaries found to package"
+          fi
+
+      - name: Upload test binaries artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test_binaries
+          path: build/test_binaries.tar.gz
+          retention-days: 14
 
       - name: Prepare binaries for artifacts
         run: |

@@ -152,3 +152,34 @@ jobs:
             release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.zip \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"
+
+      - name: Probe configured CMake tests (Rust job)
+        run: |
+          if [ -d build ]; then
+            echo "--- CMake help (first 200 lines) ---"
+            cmake --build build --target help 2>&1 | head -n 200 || true
+            echo "--- CTest configured tests ---"
+            ctest --test-dir build -N || true
+            mkdir -p build/test-binaries || true
+            shopt -s globstar || true
+            for f in build/**/*_tests build/**/*_test build/**/tests/*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then
+                cp "$f" build/test-binaries/ || true
+              fi
+            done
+            if [ -d build/test-binaries ] && [ "$(ls -A build/test-binaries 2>/dev/null)" ]; then
+              tar -czf build/test_binaries_rust_job.tar.gz -C build test-binaries
+              ls -la build/test_binaries_rust_job.tar.gz || true
+            else
+              echo "No test binaries found to package"
+            fi
+          else
+            echo "No build directory present; skipping CMake probe"
+          fi
+
+      - name: Upload test binaries artifact (Rust job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust_test_binaries
+          path: build/test_binaries_rust_job.tar.gz
+          retention-days: 14

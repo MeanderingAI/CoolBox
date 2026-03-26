@@ -213,6 +213,29 @@ jobs:
           cmake --build build-emscripten --config Release
         shell: powershell
 
+      - name: List configured tests (emscripten)
+        if: runner.os != 'Windows'
+        run: |
+          echo "--- CMake help (first 200 lines) for build-emscripten ---"
+          cmake --build build-emscripten --target help 2>&1 | head -n 200 || true
+          echo "--- CTest configured tests for build-emscripten ---"
+          ctest --test-dir build-emscripten -N || true
+        shell: bash
+
+      - name: Package emscripten build test artifacts
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p build/test-binaries-emscripten || true
+          # copy any artifacts from build-emscripten/tests or executables
+          cp -R build-emscripten/tests build/test-binaries-emscripten 2>/dev/null || true
+          if [ -d build/test-binaries-emscripten ] && [ "$(ls -A build/test-binaries-emscripten 2>/dev/null)" ]; then
+            tar -czf build/emscripten_test_artifacts.tar.gz -C build test-binaries-emscripten
+            ls -la build/emscripten_test_artifacts.tar.gz || true
+          else
+            echo "No emscripten test artifacts found to package"
+          fi
+        shell: bash
+
       - name: Package JavaScript tarball
         run: |
           rm -rf release-assets staging-js

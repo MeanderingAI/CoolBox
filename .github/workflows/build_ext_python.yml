@@ -183,32 +183,50 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
 
-      - name: Configure and build C++ libraries (only if not provided)
+      - name: Configure and build C++ libraries (top-level, enable tests)
         run: |
+          # If a prebuilt build was downloaded, still probe it; otherwise configure top-level with tests enabled
           if [ -d build/_libraries ]; then
-            echo "Using downloaded build/ from build_libs; skipping C++ configure/build"
+            echo "Using downloaded build/ from build_libs; will probe existing targets"
             ls -la build/_libraries || true
-            exit 0
-          fi
-          mkdir -p build
-          GSL_CMAKE_ARGS=""
-          if [ "$(uname)" = "Darwin" ]; then
-            if command -v brew >/dev/null 2>&1; then
-              GSL_PREFIX="$(brew --prefix gsl 2>/dev/null || true)"
-              if [ -n "$GSL_PREFIX" ]; then
-                GSL_CMAKE_ARGS="-DGSL_INCLUDE_DIR=$GSL_PREFIX/include -DGSL_LIBRARY=$GSL_PREFIX/lib/libgsl.dylib -DGSL_CBLAS_LIBRARY=$GSL_PREFIX/lib/libgslcblas.dylib"
+          else
+            mkdir -p build
+            GSL_CMAKE_ARGS=""
+            if [ "$(uname)" = "Darwin" ]; then
+              if command -v brew >/dev/null 2>&1; then
+                GSL_PREFIX="$(brew --prefix gsl 2>/dev/null || true)"
+                if [ -n "$GSL_PREFIX" ]; then
+                  GSL_CMAKE_ARGS="-DGSL_INCLUDE_DIR=$GSL_PREFIX/include -DGSL_LIBRARY=$GSL_PREFIX/lib/libgsl.dylib -DGSL_CBLAS_LIBRARY=$GSL_PREFIX/lib/libgslcblas.dylib"
+                fi
+              fi
+            else
+              if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists gsl; then
+                GSL_PREFIX="$(pkg-config --variable=prefix gsl)"
+                GSL_CMAKE_ARGS="-DGSL_INCLUDE_DIR=$GSL_PREFIX/include -DGSL_LIBRARY=$GSL_PREFIX/lib/libgsl.so -DGSL_CBLAS_LIBRARY=$GSL_PREFIX/lib/libgslcblas.so"
               fi
             fi
-          else
-            if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists gsl; then
-              GSL_PREFIX="$(pkg-config --variable=prefix gsl)"
-              GSL_CMAKE_ARGS="-DGSL_INCLUDE_DIR=$GSL_PREFIX/include -DGSL_LIBRARY=$GSL_PREFIX/lib/libgsl.so -DGSL_CBLAS_LIBRARY=$GSL_PREFIX/lib/libgslcblas.so"
-            fi
+            echo "Using GSL_CMAKE_ARGS=$GSL_CMAKE_ARGS"
+            cmake -S . -B build -DBUILD_TESTING=ON -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release $GSL_CMAKE_ARGS
+            cmake --build build --parallel || true
           fi
-          echo "Using GSL_CMAKE_ARGS=$GSL_CMAKE_ARGS"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release $GSL_CMAKE_ARGS
-          cmake --build build --target charts --parallel || true
-          cmake --build build --target wave_generator_utils --parallel || true
+
+          echo "--- CMake available targets (first 200 lines) ---"
+          cmake --build build --target help 2>&1 | head -n 200 || true
+
+          echo "--- CTest configured tests ---"
+          ctest --test-dir build -N || true
+
+          # Attempt to build a set of known test targets if they exist in the generated buildsystem
+          help_out="$(cmake --build build --target help 2>&1 || true)"
+          MISSING=(data_structures_tests battery_tests curcuitry_tests canvas_tests charts_tests components_tests fonts_tests windows_tests cryptocurrency_utils_tests password_hash_utils_tests metadata_management_tests thread_pool_tests wave_generator_utils_tests bayesian_network_tests decision_tree_tests deep_learning_tests dimensionality_reduction_tests distribution_tests gabor_patches_tests generalized_linear_model_tests hidden_markov_model_tests knn_tests latent_sentiment_analysis_tests marked_point_process_tests multi_arm_bandit_tests self_organizing_maps_tests support_vector_machine_tests tracker_tests vae_tests)
+          for t in "${MISSING[@]}"; do
+            if echo "$help_out" | awk '{print $1}' | grep -q "^${t}$"; then
+              echo "[PRESENT] Building $t"
+              cmake --build build --target "$t" --parallel || echo "::warning::Failed to build $t"
+            else
+              echo "[MISSING] $t not present in build help"
+            fi
+          done
         shell: bash
 
       - name: Set COOLBOX_LIB_DIR for Python build
