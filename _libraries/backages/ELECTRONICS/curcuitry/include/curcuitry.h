@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef CURCUITRY_CURCUITRY_H
+#define CURCUITRY_CURCUITRY_H
 
 /**
  * @file curcuitry.h
@@ -11,3 +13,5 @@
 #include "wire.h"
 #include "circuit.h"
 #include "circuit_solver.h"
+
+#endif // CURCUITRY_CURCUITRY_H

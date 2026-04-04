@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef CURCUITRY_CIRCUIT_SOLVER_H
+#define CURCUITRY_CIRCUIT_SOLVER_H
 
 #include "circuit.h"
 #include "component.h"
@@ -37,6 +39,8 @@ struct ComponentResult {
     double voltage_drop   = 0.0;
     double current        = 0.0;
     double power          = 0.0;
+
+#endif // CURCUITRY_CIRCUIT_SOLVER_H
 
     // Battery fields
     double emf                  = 0.0;

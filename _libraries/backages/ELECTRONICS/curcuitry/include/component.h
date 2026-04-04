@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef CURCUITRY_COMPONENT_H
+#define CURCUITRY_COMPONENT_H
 
 #include <string>
 #include <utility>
@@ -135,3 +137,5 @@ inline double Component::parse_numeric(const std::string& s) {
 }
 
 } // namespace curcuitry
+
+#endif // CURCUITRY_COMPONENT_H

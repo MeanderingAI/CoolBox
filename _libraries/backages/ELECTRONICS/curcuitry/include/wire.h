@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef CURCUITRY_WIRE_H
+#define CURCUITRY_WIRE_H
 
 #include "component.h"
 #include <sstream>
@@ -47,3 +49,5 @@ public:
 };
 
 } // namespace curcuitry
+
+#endif // CURCUITRY_WIRE_H

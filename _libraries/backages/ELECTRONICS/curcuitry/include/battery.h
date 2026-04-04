@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef CURCUITRY_BATTERY_H
+#define CURCUITRY_BATTERY_H
 
 #include "component.h"
 #include <sstream>
@@ -37,7 +39,7 @@ public:
 
     /**
      * @brief Construct a Battery from raw JSON field strings.
-     * @param x1, y1 Positive terminal coordinates.
+    * @param x1, y1 Positive terminal coordinates.
      * @param x2, y2 Negative terminal coordinates.
      * @param label Component label (e.g. "Vth").
      * @param value_str Raw value string (e.g. "10 V").
@@ -75,3 +77,5 @@ public:
 };
 
 } // namespace curcuitry
+
+#endif // CURCUITRY_BATTERY_H

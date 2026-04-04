@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 4.3.1)
 project(windows)
 
 add_library(windows
@@ -14,5 +14,13 @@ if(BUILD_TESTING AND TARGET GTest::gtest_main)
     enable_testing()
     add_executable(windows_tests tests/test_windows.cpp)
     target_link_libraries(windows_tests PRIVATE windows GTest::gtest_main)
+    if(WIN32)
+        add_custom_command(TARGET windows_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:components>
+                $<TARGET_FILE:json>
+                $<TARGET_FILE_DIR:windows_tests>
+        )
+    endif()
     add_test(NAME WindowsSimulationTests COMMAND windows_tests)
 endif()

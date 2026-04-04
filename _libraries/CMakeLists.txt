@@ -123,7 +123,9 @@ add_subdirectory_force(backages/SECURITY/auth)
 
 add_subdirectory_force(backages/IO/servlets)
 add_subdirectory_force(backages/IO/http_server)
-add_subdirectory_force(gen_docs)
+if(EXISTS "${TOOLBOX_SOURCE_DIR}/_libraries/include")
+    add_subdirectory_force(gen_docs)
+endif()
 
 # Utils backages (before ML — metadata_management is a dependency)
 add_subdirectory_force(backages/MISC/metadata_management)

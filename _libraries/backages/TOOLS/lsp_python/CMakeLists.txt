@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 4.3.1)
 project(plpython_lsp)
 
 add_library(plpython_lsp_lib

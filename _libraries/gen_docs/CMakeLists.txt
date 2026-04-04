@@ -1,5 +1,3 @@
-# Debug: print TOOLBOX_SOURCE_DIR value
-message(STATUS "TOOLBOX_SOURCE_DIR is: ${TOOLBOX_SOURCE_DIR}")
 # CMakeLists.txt for gen_docs
 cmake_minimum_required(VERSION 3.10)
 project(gen_docs)

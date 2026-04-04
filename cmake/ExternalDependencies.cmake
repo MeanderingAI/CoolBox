@@ -8,6 +8,7 @@ set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
 set(EIGEN_BUILD_PKGCONFIG OFF CACHE BOOL "" FORCE)
+set(EIGEN_TEST_NOQT ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
   Eigen
   GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
@@ -16,7 +17,10 @@ FetchContent_Declare(
   BINARY_DIR ${CMAKE_BINARY_DIR}/eigen-build
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+set(_coolbox_old_warn_deprecated ${CMAKE_WARN_DEPRECATED})
+set(CMAKE_WARN_DEPRECATED OFF)
 FetchContent_MakeAvailable(Eigen)
+set(CMAKE_WARN_DEPRECATED ${_coolbox_old_warn_deprecated})
 # Re-enable BUILD_TESTING for our own project tests
 set(BUILD_TESTING ON CACHE BOOL "" FORCE)
 

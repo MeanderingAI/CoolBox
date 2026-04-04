@@ -5,6 +5,14 @@
 
 namespace matrix {
 
+struct SparseMatrixKeyHash {
+    size_t operator()(const std::tuple<size_t, size_t>& key) const noexcept {
+        const auto first = std::get<0>(key);
+        const auto second = std::get<1>(key);
+        return std::hash<size_t>{}(first) ^ (std::hash<size_t>{}(second) << 1);
+    }
+};
+
 // Simple CSR-like sparse matrix
 class SparseMatrix : public MatrixBase {
 public:
@@ -20,7 +28,7 @@ public:
 private:
     size_t rows_, cols_;
     // (row, col) -> value
-    std::unordered_map<std::tuple<size_t, size_t>, double> data_;
+    std::unordered_map<std::tuple<size_t, size_t>, double, SparseMatrixKeyHash> data_;
 };
 
 } // namespace matrix

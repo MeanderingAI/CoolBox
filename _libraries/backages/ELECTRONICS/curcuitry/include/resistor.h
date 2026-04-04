@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef CURCUITRY_RESISTOR_H
+#define CURCUITRY_RESISTOR_H
 
 #include "component.h"
 #include <sstream>
@@ -61,3 +63,5 @@ public:
 };
 
 } // namespace curcuitry
+
+#endif // CURCUITRY_RESISTOR_H

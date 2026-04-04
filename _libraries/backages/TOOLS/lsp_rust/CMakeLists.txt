@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 4.3.1)
 project(plrust_lsp)
 
 add_library(plrust_lsp_lib
