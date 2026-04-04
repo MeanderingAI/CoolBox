@@ -1,6 +1,5 @@
 # Data Structures Library
 
-add_library(data_structures SHARED
 	trees/source/binary_search_tree.cpp
 	trees/source/red_black_tree.cpp
 	trees/source/splay_tree.cpp
@@ -50,3 +49,6 @@ if(BUILD_TESTING)
 	)
 	add_test(NAME DataStructuresTests COMMAND data_structures_tests)
 endif()
+
+# Matrix library
+add_subdirectory(matrix)

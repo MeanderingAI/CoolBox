@@ -35,26 +35,28 @@ endmacro()
 option(BUILD_IO_SQL "Build IO SQL backage (requires SQLite3)" ON)
 add_subdirectory_if_exists(backages/MISC/thread_pool)
 add_subdirectory_if_exists(backages/IO/advanced_logging)
-add_subdirectory_if_exists(backages/DATASTRUCTURE)
+add_subdirectory_if_exists(backages/DATASTRUCTURE)  # Now includes matrix library
 if(BUILD_IO_SQL)
     add_subdirectory_if_exists(backages/PARSER/database)
         add_subdirectory_if_exists(backages/PARSER/programming_language)
-        add_subdirectory_if_exists(backages/PARSER/java)
-        add_subdirectory_if_exists(backages/PARSER/python)
-        add_subdirectory_if_exists(backages/PARSER/rust)
+        # Parser libraries: names confirmed by CMakeLists.txt in each folder
+        add_subdirectory_if_exists(backages/PARSER/java)      # pljava_parser_lib
+        add_subdirectory_if_exists(backages/PARSER/python)    # plpython_parser_lib
+        add_subdirectory_if_exists(backages/PARSER/rust)      # plrust_parser_lib
         add_subdirectory_if_exists(backages/PARSER/vhdl)
         add_subdirectory_if_exists(backages/PARSER/matlab)
         add_subdirectory_if_exists(backages/TOOLS/lsp)
-        add_subdirectory_if_exists(backages/TOOLS/lsp_java)
-        add_subdirectory_if_exists(backages/TOOLS/lsp_python)
-        add_subdirectory_if_exists(backages/TOOLS/lsp_rust)
-        add_subdirectory_if_exists(backages/TOOLS/lsp_vhdl)
-        add_subdirectory_if_exists(backages/TOOLS/lsp_matlab)
+        # LSP libraries: names confirmed by CMakeLists.txt in each folder
+        add_subdirectory_if_exists(backages/TOOLS/lsp_java)      # pljava_lsp_lib
+        add_subdirectory_if_exists(backages/TOOLS/lsp_python)    # plpython_lsp_lib
+        add_subdirectory_if_exists(backages/TOOLS/lsp_rust)      # plrust_lsp_lib
+        add_subdirectory_if_exists(backages/TOOLS/lsp_vhdl)      # plvhdl_lsp_lib
+        add_subdirectory_if_exists(backages/TOOLS/lsp_matlab)    # plmatlab_lsp_lib
         add_subdirectory_if_exists(backages/PARSER/javascript)
 else()
     message(STATUS "Skipping IO SQL backage (BUILD_IO_SQL=OFF)")
 endif()
-add_subdirectory_if_exists(backages/IO/dataformats/json)
+add_subdirectory_if_exists(backages/IO/dataformats/json)  # json library now located here
 add_subdirectory_if_exists(backages/IO/databases)
 add_subdirectory_if_exists(backages/IO/distributed)
 add_subdirectory_if_exists(backages/IO/file_system)

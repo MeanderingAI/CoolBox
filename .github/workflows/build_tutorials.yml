@@ -65,9 +65,11 @@ jobs:
 
           echo "No documentation output found; .site will be empty"
 
-      - name: Upload documentation artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: documentation
-          path: .site/
-          retention-days: 14
+      # === The following upload-artifact step is DISABLED ===
+      # It is no longer allowed to upload .site as an artifact; site should only be published to a branch.
+      # - name: Upload documentation artifact
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: documentation
+      #     path: .site/
+      #     retention-days: 14

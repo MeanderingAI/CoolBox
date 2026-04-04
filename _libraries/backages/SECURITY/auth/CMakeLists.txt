@@ -4,8 +4,10 @@ add_library(auth SHARED
 target_include_directories(auth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_compile_features(auth PUBLIC cxx_std_17)
 
-find_package(OpenSSL QUIET)
 
+# password_hash_utils has moved to _libraries/backages/MISC/hash
+find_package(OpenSSL QUIET)
+add_dependencies(auth password_hash_utils)
 target_link_libraries(auth PUBLIC password_hash_utils)
 
 if(OpenSSL_FOUND)
