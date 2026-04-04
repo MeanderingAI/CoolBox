@@ -8,6 +8,7 @@ apps/__pycache__/
 _scripts/__pycache__/
 .site
 .local-cpp-docs
+.documentation/
 .r-library
 .r-makevars.local
 Testing

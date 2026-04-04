@@ -1,5 +1,6 @@
-# Data Structures Library
 
+# Data Structures Library
+set(DATA_STRUCTURES_SOURCES
 	trees/source/binary_search_tree.cpp
 	trees/source/red_black_tree.cpp
 	trees/source/splay_tree.cpp
@@ -12,6 +13,8 @@
 	filters/source/bloom_filter.cpp
 	filters/source/egh_filter.cpp
 )
+
+add_library(data_structures ${DATA_STRUCTURES_SOURCES})
 
 target_include_directories(data_structures PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/headers
