@@ -1,0 +1,8 @@
+<map id="_libraries/backages/ELECTRONICS/curcuitry/include/circuit.h" name="_libraries/backages/ELECTRONICS/curcuitry/include/circuit.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="68,5,245,60"/>
+<area shape="rect" id="Node000002" href="$circuit__solver_8h.html" title=" " alt="" coords="5,108,183,163"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="135,73,113,109,108,106,131,70"/>
+<area shape="rect" id="Node000003" href="$curcuitry_8h.html" title="Convenience header – includes the entire curcuitry library." alt="" coords="68,211,245,265"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="183,71,198,107,202,135,198,163,189,189,177,212,172,209,184,187,193,162,197,135,193,109,179,73"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="120,173,143,209,138,212,115,176"/>
+</map>

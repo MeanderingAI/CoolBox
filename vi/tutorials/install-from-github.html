@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install from GitHub | Huong dan CoolBox</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+        main { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
+        h1 { color: #111827; margin-bottom: 0.5rem; }
+        h2 { color: #1e293b; margin-top: 2rem; }
+        h3, h4, h5, h6 { color: #334155; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        p { line-height: 1.7; }
+        .tag { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 999px; padding: 0.2rem 0.75rem; font-size: 0.85rem; margin: 0.2rem; }
+        .lib-tag { background: #fef3c7; color: #92400e; }
+        .tag-row { margin: 0.5rem 0 1.5rem; }
+        .code-card { background: #1e293b; border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; overflow-x: auto; }
+        .code-card pre { margin: 0; }
+        .code-card code { color: #e2e8f0; font-size: 0.95rem; white-space: pre; }
+        .code-meta { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .code-language { color: #94a3b8; font-size: 0.85rem; font-weight: 600; }
+        .code-lib { color: #fbbf24; font-size: 0.8rem; }
+        .media-card { margin: 1.5rem 0; text-align: center; }
+        .media-card img, .media-card video { max-width: 100%; border-radius: 12px; }
+        .video-frame { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; }
+        .video-frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        figcaption { color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }
+        .inline-link { display: inline-block; margin: 0.25rem 0; }
+        .publication-date { color: #475569; font-size: 0.95rem; margin-top: -0.25rem; margin-bottom: 0.5rem; }
+        .muted { color: #64748b; font-size: 0.95rem; }
+        footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; }
+    </style>
+</head>
+<body>
+    <main>
+      <a href="index.html" title="Quay lai huong dan">&#8592; Quay lai huong dan</a>
+    <h1>Install from GitHub</h1>
+    <meta name="publication_date" content="March 21st 2026">
+    <p class="publication-date">Published: March 21st 2026</p>
+      <div class="tag-row"><a href="../tags/tutorial.html" class="tag">tutorial</a><a href="../tags/install.html" class="tag">install</a><a href="../tags/github.html" class="tag">github</a><a href="../tags/bindings.html" class="tag">bindings</a></div>
+      <p><a class="inline-link repo-link" href="https://github.com/MeanderingAI/CoolBox">Repository</a></p>
+      <h1>Install from GitHub</h1>
+      <p>Install the published CoolBox bindings directly from the GitHub repository when you want the latest source instead of a packaged release.</p>
+      <p><a class="inline-link" href="https://github.com/MeanderingAI/CoolBox/releases/latest">Ban moi nhat</a></p>
+      <p><a class="inline-link" href="https://github.com/MeanderingAI/CoolBox/releases">Tat ca cac ban phat hanh</a></p>
+      <h2>Python</h2>
+      <p>Install directly from the Python bindings subdirectory with `pip`.</p>
+      <section class="code-card"><div class="code-meta"><span class="code-language">bash</span></div><pre><code class="language-bash">pip install &quot;git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings&quot;</code></pre></section>
+      <h2>R</h2>
+      <p>Install the `coolboxr` package from the repository with `remotes` or `devtools`.</p>
+      <section class="code-card"><div class="code-meta"><span class="code-language">r</span></div><pre><code class="language-r">remotes::install_github(&quot;MeanderingAI/CoolBox&quot;, subdir = &quot;_libraries/r_bindings/coolboxr&quot;)</code></pre></section>
+      <h2>Go</h2>
+      <p>Fetch the Go module directly from the repository.</p>
+      <section class="code-card"><div class="code-meta"><span class="code-language">bash</span></div><pre><code class="language-bash">go get github.com/MeanderingAI/CoolBox/_libraries/go_bindings@latest</code></pre></section>
+      <h2>Rust</h2>
+      <p>Git dependencies work for Rust because the repository exposes a top-level Cargo workspace.</p>
+      <section class="code-card"><div class="code-meta"><span class="code-language">bash</span></div><pre><code class="language-bash">cargo add coolbox-rs --git https://github.com/MeanderingAI/CoolBox.git</code></pre></section>
+      <h2>Java / Maven</h2>
+      <p>Maven does not install dependencies directly from a Git URL. Build and install locally, or publish the artifact to GitHub Packages or Maven Central.</p>
+      <section class="code-card"><div class="code-meta"><span class="code-language">bash</span></div><pre><code class="language-bash">git clone https://github.com/MeanderingAI/CoolBox.git &amp;&amp; mvn -f CoolBox/_libraries/java_bindings/pom.xml install</code></pre></section>
+      <footer>
+          <p>&#x133FF; Meandering LLC &copy; 2026</p>
+      </footer>
+    </main>
+</body>
+</html>

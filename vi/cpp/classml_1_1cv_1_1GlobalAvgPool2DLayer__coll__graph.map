@@ -1,0 +1,7 @@
+<map id="ml::cv::GlobalAvgPool2DLayer" name="ml::cv::GlobalAvgPool2DLayer">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,212,223,237"/>
+<area shape="rect" id="Node000002" href="$classml_1_1deep__learning_1_1Layer.html" title=" " alt="" coords="41,123,187,163"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,176,117,212,111,212,111,176"/>
+<area shape="rect" id="Node000003" href="$classml_1_1deep__learning_1_1Tensor.html" title=" " alt="" coords="41,5,187,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="117,59,117,122,111,122,111,59"/>
+</map>

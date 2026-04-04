@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>CoolBox Python Bindings</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">CoolBox Python Bindings</h1>
+</header>
+<h1 id="ml-core-python-bindings">ML Core Python Bindings</h1>
+<p>This directory contains Python bindings for the ML Core C++ library,
+providing access to various machine learning algorithms including
+Decision Trees, Support Vector Machines, Bayesian Networks, Hidden
+Markov Models, Linear Regression, and Multi-arm Bandits.</p>
+<h2 id="features">Features</h2>
+<h3 id="algorithms-included">Algorithms Included</h3>
+<ol type="1">
+<li><strong>Decision Trees</strong>
+<ul>
+<li>Support for GINI and Entropy splitting criteria</li>
+<li>Configurable maximum depth</li>
+<li>Integer feature support</li>
+</ul></li>
+<li><strong>Support Vector Machines</strong>
+<ul>
+<li>Multiple kernel types: Linear, RBF, Polynomial, Sigmoid</li>
+<li>Eigen matrix/vector support for efficient computation</li>
+<li>Binary classification</li>
+</ul></li>
+<li><strong>Bayesian Networks</strong>
+<ul>
+<li>Directed Acyclic Graph (DAG) structure</li>
+<li>Conditional Probability Tables (CPT)</li>
+<li>Probabilistic inference</li>
+<li>Joint probability calculation</li>
+</ul></li>
+<li><strong>Hidden Markov Models</strong>
+<ul>
+<li>Forward-Backward algorithm</li>
+<li>Viterbi decoding (most likely state sequence)</li>
+<li>Baum-Welch training</li>
+<li>Log-likelihood calculation</li>
+</ul></li>
+<li><strong>Linear Regression</strong>
+<ul>
+<li>Gradient descent and closed-form solutions</li>
+<li>Configurable learning parameters</li>
+<li>Weight and bias extraction</li>
+</ul></li>
+<li><strong>Multi-arm Bandits</strong>
+<ul>
+<li>Bandit arm simulation</li>
+<li>Reward probability estimation</li>
+<li>Pull count tracking</li>
+</ul></li>
+<li><strong>Marked Point Process</strong>
+<ul>
+<li>Temporal event modeling with marks (labels)</li>
+<li>Self-exciting Hawkes processes</li>
+<li>Event intensity prediction</li>
+<li>Sequence generation</li>
+<li>Applications: financial transactions, user activity,
+earthquakes</li>
+</ul></li>
+<li><strong>Piecewise Conditional Intensity Models (PCIM)</strong>
+<ul>
+<li>Non-stationary temporal point processes</li>
+<li>Multiple intensity function types (Constant, Linear, Exponential,
+Hawkes, Cox)</li>
+<li>Adaptive interval creation based on event density</li>
+<li>Regime change detection</li>
+<li>Applications: market microstructure, crime patterns, healthcare
+monitoring</li>
+</ul></li>
+<li><strong>Latent Sentiment Analysis</strong>
+<ul>
+<li>Matrix factorization for sentiment modeling</li>
+<li>Document-term latent features</li>
+<li>Collaborative filtering approach</li>
+<li>SGD optimization with regularization</li>
+</ul></li>
+<li><strong>Singular Value Decomposition (SVD) &amp; Principal Component
+Analysis (PCA)</strong>
+<ul>
+<li>Native C++ implementations using Eigen for high performance</li>
+<li>Full SVD decomposition with thin/full matrix options</li>
+<li>PCA with centering and optional scaling</li>
+<li>Explained variance computation and low-rank approximation</li>
+<li>Dimensionality reduction for visualization and feature
+extraction</li>
+</ul></li>
+<li><strong>k-Nearest Neighbors (KNN)</strong>
+<ul>
+<li>Efficient nearest neighbor search</li>
+<li>Multiple distance metrics (Euclidean, Manhattan, Cosine)</li>
+<li>Pairwise distance computation</li>
+<li>Foundation for manifold learning algorithms</li>
+</ul></li>
+<li><strong>Uniform Manifold Approximation and Projection
+(UMAP)</strong>
+<ul>
+<li>State-of-the-art non-linear dimensionality reduction</li>
+<li>Preserves both local and global data structure</li>
+<li>Superior to t-SNE for many applications</li>
+<li>Configurable parameters for fine-tuning embeddings</li>
+<li>Fast convergence with stochastic gradient descent##
+Installation</li>
+</ul></li>
+</ol>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li>Python 3.6 or higher</li>
+<li>CMake 3.12 or higher</li>
+<li>C++17 compatible compiler</li>
+<li>Eigen3 library</li>
+<li>pybind11</li>
+</ul>
+<h3 id="build-from-source">Build from Source</h3>
+<ol type="1">
+<li><p><strong>Install pybind11:</strong></p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install pybind11<span class="pp">[</span><span class="ss">global</span><span class="pp">]</span></span></code></pre></div></li>
+<li><p><strong>Install numpy:</strong></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install numpy</span></code></pre></div></li>
+<li><p><strong>Build using setup.py:</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> python_bindings</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> setup.py build_ext <span class="at">--inplace</span></span></code></pre></div></li>
+<li><p><strong>Or build using CMake:</strong></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> python_bindings</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> build</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> build</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> ..</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span></code></pre></div></li>
+</ol>
+<h3 id="install-as-package">Install as Package</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> python_bindings</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install .</span></code></pre></div>
+<h2 id="usage-examples">Usage Examples</h2>
+<h3 id="decision-tree">Decision Tree</h3>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create sample data</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> [[<span class="dv">0</span>, <span class="dv">0</span>], [<span class="dv">0</span>, <span class="dv">1</span>], [<span class="dv">1</span>, <span class="dv">0</span>], [<span class="dv">1</span>, <span class="dv">1</span>]]</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>]</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create and train decision tree</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>dt <span class="op">=</span> ml_core.decision_tree.DecisionTree(ml_core.decision_tree.SplitCriterion.GINI)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>dt.fit(X, y, max_depth<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Make prediction</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>prediction <span class="op">=</span> dt.predict([<span class="dv">1</span>, <span class="dv">0</span>])</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Predicted class: </span><span class="sc">{</span>prediction<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="support-vector-machine">Support Vector Machine</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create data</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="fl">1.0</span>, <span class="fl">2.0</span>], [<span class="fl">2.0</span>, <span class="fl">3.0</span>], [<span class="fl">6.0</span>, <span class="fl">5.0</span>], [<span class="fl">7.0</span>, <span class="fl">7.0</span>]])</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.array([<span class="op">-</span><span class="fl">1.0</span>, <span class="op">-</span><span class="fl">1.0</span>, <span class="fl">1.0</span>, <span class="fl">1.0</span>])</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create SVM with RBF kernel</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>kernel <span class="op">=</span> ml_core.svm.RBFKernel(gamma<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>svm <span class="op">=</span> ml_core.svm.SVM(kernel)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>svm.fit(X, y)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>prediction <span class="op">=</span> svm.predict(np.array([<span class="fl">3.0</span>, <span class="fl">4.0</span>]))</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Predicted: </span><span class="sc">{</span>prediction<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="hidden-markov-model">Hidden Markov Model</h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create HMM</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>hmm <span class="op">=</span> ml_core.hmm.HMM(states<span class="op">=</span><span class="dv">2</span>, observations<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Set parameters</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>initial_probs <span class="op">=</span> np.array([<span class="fl">0.6</span>, <span class="fl">0.4</span>])</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>hmm.set_initial_probabilities(initial_probs)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>transition_matrix <span class="op">=</span> np.array([[<span class="fl">0.7</span>, <span class="fl">0.3</span>], [<span class="fl">0.4</span>, <span class="fl">0.6</span>]])</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>hmm.set_transition_matrix(transition_matrix)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>emission_matrix <span class="op">=</span> np.array([[<span class="fl">0.5</span>, <span class="fl">0.4</span>, <span class="fl">0.1</span>], [<span class="fl">0.1</span>, <span class="fl">0.3</span>, <span class="fl">0.6</span>]])</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>hmm.set_emission_matrix(emission_matrix)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Decode sequence</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">0</span>]</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>states <span class="op">=</span> hmm.get_most_likely_states(observations)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Most likely states: </span><span class="sc">{</span>states<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="linear-regression">Linear Regression</h3>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create data</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> [[<span class="fl">1.0</span>, <span class="fl">2.0</span>], [<span class="fl">2.0</span>, <span class="fl">3.0</span>], [<span class="fl">3.0</span>, <span class="fl">4.0</span>]]</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> [<span class="fl">7.0</span>, <span class="fl">9.5</span>, <span class="fl">12.0</span>]</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create fit method</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>method <span class="op">=</span> ml_core.glm.LinearRegressionFitMethod(</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    num_iterations<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.01</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">type</span><span class="op">=</span>ml_core.glm.LinearRegressionType.GRADIENT_DESCENT</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Train model</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>lr <span class="op">=</span> ml_core.glm.LinearRegression(method)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>lr.fit(X, y)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>prediction <span class="op">=</span> lr.predict([<span class="fl">4.0</span>, <span class="fl">5.0</span>])</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Predicted: </span><span class="sc">{</span>prediction<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Get coefficients</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>weights, bias <span class="op">=</span> lr.get_coefficients()</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Weights: </span><span class="sc">{</span>weights<span class="sc">}</span><span class="ss">, Bias: </span><span class="sc">{</span>bias<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="bayesian-network">Bayesian Network</h3>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create network</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>bn <span class="op">=</span> ml_core.bayesian_network.BayesianNetwork()</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Add nodes</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>weather <span class="op">=</span> bn.add_node(<span class="st">&quot;Weather&quot;</span>, [<span class="st">&quot;Sunny&quot;</span>, <span class="st">&quot;Rainy&quot;</span>])</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>grass <span class="op">=</span> bn.add_node(<span class="st">&quot;Grass&quot;</span>, [<span class="st">&quot;Wet&quot;</span>, <span class="st">&quot;Dry&quot;</span>])</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Add edge</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>bn.add_edge(weather, grass)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Set CPTs</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>weather_cpt <span class="op">=</span> np.array([[<span class="fl">0.7</span>, <span class="fl">0.3</span>]])</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>bn.set_cpt(weather, weather_cpt)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>grass_cpt <span class="op">=</span> np.array([[<span class="fl">0.2</span>, <span class="fl">0.8</span>], [<span class="fl">0.9</span>, <span class="fl">0.1</span>]])</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>bn.set_cpt(grass, grass_cpt)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Inference</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>evidence <span class="op">=</span> {weather: <span class="dv">0</span>}  <span class="co"># Weather=Sunny</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>prob <span class="op">=</span> bn.infer(grass, <span class="dv">0</span>, evidence)  <span class="co"># P(Grass=Wet | Weather=Sunny)</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;P(Grass=Wet | Weather=Sunny) = </span><span class="sc">{</span>prob<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="marked-point-process">Marked Point Process</h3>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create marked point process with 2 mark types</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>mpp <span class="op">=</span> ml_core.marked_point_process.MarkedPointProcess(</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    num_marks<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.01</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    max_iterations<span class="op">=</span><span class="dv">500</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Training data: sequences of (times, marks)</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>event_times <span class="op">=</span> [</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">0.5</span>, <span class="fl">1.2</span>, <span class="fl">2.3</span>, <span class="fl">3.1</span>],  <span class="co"># Sequence 1</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">0.8</span>, <span class="fl">1.5</span>, <span class="fl">2.7</span>, <span class="fl">3.9</span>]   <span class="co"># Sequence 2</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>event_marks <span class="op">=</span> [</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>],  <span class="co"># Mark types for sequence 1</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>]   <span class="co"># Mark types for sequence 2</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Train the model</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>mpp.fit(event_times, event_marks)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict intensity at time t=2.0 given history</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>history_times <span class="op">=</span> [<span class="fl">0.5</span>, <span class="fl">1.2</span>]</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>history_marks <span class="op">=</span> [<span class="dv">0</span>, <span class="dv">1</span>]</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>intensities <span class="op">=</span> mpp.predict_intensity(<span class="fl">2.0</span>, history_times, history_marks)</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Intensities for each mark: </span><span class="sc">{</span>intensities<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic sequence</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>new_times, new_marks <span class="op">=</span> mpp.generate_sequence(time_horizon<span class="op">=</span><span class="fl">5.0</span>, max_events<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Generated </span><span class="sc">{</span><span class="bu">len</span>(new_times)<span class="sc">}</span><span class="ss"> events&quot;</span>)</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Get learned parameters</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>mu <span class="op">=</span> mpp.get_base_intensity()</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> mpp.get_excitation_matrix()</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>beta <span class="op">=</span> mpp.get_decay_rate()</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Base intensity: </span><span class="sc">{</span>mu<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Excitation matrix:</span><span class="ch">\n</span><span class="sc">{</span>alpha<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Decay rate: </span><span class="sc">{</span>beta<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="piecewise-conditional-intensity-model">Piecewise Conditional
+Intensity Model</h3>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create PCIM with 5 time intervals</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>pcim <span class="op">=</span> ml_core.marked_point_process.PiecewiseConditionalIntensityModel(</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    num_intervals<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.01</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    max_iterations<span class="op">=</span><span class="dv">500</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Event sequences (just times, no marks for PCIM)</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>event_sequences <span class="op">=</span> [</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">1.2</span>, <span class="fl">2.3</span>, <span class="fl">3.1</span>, <span class="fl">4.5</span>],</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">0.3</span>, <span class="fl">0.8</span>, <span class="fl">1.5</span>, <span class="fl">2.7</span>, <span class="fl">3.9</span>, <span class="fl">4.2</span>]</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Option 1: Create uniform intervals</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>pcim.create_uniform_intervals(</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    time_min<span class="op">=</span><span class="fl">0.0</span>,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    time_max<span class="op">=</span><span class="fl">5.0</span>,</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    intensity_type<span class="op">=</span>ml_core.marked_point_process.IntensityType.HAWKES</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Option 2: Create adaptive intervals based on data</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>all_events <span class="op">=</span> [t <span class="cf">for</span> seq <span class="kw">in</span> event_sequences <span class="cf">for</span> t <span class="kw">in</span> seq]</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>pcim.create_adaptive_intervals(</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    all_events,</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    intensity_type<span class="op">=</span>ml_core.marked_point_process.IntensityType.HAWKES</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Train the model</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>pcim.fit(event_sequences)</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict intensity at a specific time</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> [<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">1.2</span>]</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>intensity <span class="op">=</span> pcim.predict_intensity(<span class="fl">2.0</span>, history)</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Predicted intensity at t=2.0: </span><span class="sc">{</span>intensity<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic sequence</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>generated <span class="op">=</span> pcim.generate_sequence(time_horizon<span class="op">=</span><span class="fl">5.0</span>, max_events<span class="op">=</span><span class="dv">50</span>)</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Generated </span><span class="sc">{</span><span class="bu">len</span>(generated)<span class="sc">}</span><span class="ss"> events&quot;</span>)</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a><span class="co"># Get model parameters for each interval</span></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>intervals <span class="op">=</span> pcim.get_intervals()</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, interval <span class="kw">in</span> <span class="bu">enumerate</span>(intervals):</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> pcim.get_interval_parameters(i)</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Interval </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss"> [</span><span class="sc">{</span>interval<span class="sc">.</span>start_time<span class="sc">:.2f}</span><span class="ss">, </span><span class="sc">{</span>interval<span class="sc">.</span>end_time<span class="sc">:.2f}</span><span class="ss">]: </span><span class="sc">{</span>params<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Model selection</span></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>aic, bic <span class="op">=</span> pcim.compute_information_criteria(event_sequences)</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;AIC: </span><span class="sc">{</span>aic<span class="sc">:.2f}</span><span class="ss">, BIC: </span><span class="sc">{</span>bic<span class="sc">:.2f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="latent-sentiment-analysis">Latent Sentiment Analysis</h3>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Document-term matrix (rows: documents, cols: terms)</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Values can be counts, TF-IDF, etc.</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">2</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>],  <span class="co"># Document 1</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>],  <span class="co"># Document 2</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">2</span>],  <span class="co"># Document 3</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>]   <span class="co"># Document 4</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Create and train model</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>lsa <span class="op">=</span> ml_core.latent_sentiment_analysis.LatentSentimentAnalysis(</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    latent_features<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.05</span>,</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    lambda_reg<span class="op">=</span><span class="fl">0.01</span>,</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    max_iterations<span class="op">=</span><span class="dv">500</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>lsa.train(X)</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Get learned latent factors</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>doc_features <span class="op">=</span> lsa.get_document_features()</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>term_features <span class="op">=</span> lsa.get_term_features()</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Document features shape: </span><span class="sc">{</span>doc_features<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Term features shape: </span><span class="sc">{</span>term_features<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict score for document-term pair</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>score <span class="op">=</span> lsa.predict_score(doc_index<span class="op">=</span><span class="dv">0</span>, term_index<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Predicted score for doc 0, term 2: </span><span class="sc">{</span>score<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="svd-singular-value-decomposition">SVD (Singular Value
+Decomposition)</h3>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core.dimensionality_reduction <span class="im">as</span> dr</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a matrix</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>],</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>],</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">9</span>],</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    [<span class="dv">10</span>, <span class="dv">11</span>, <span class="dv">12</span>]</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>], dtype<span class="op">=</span>np.float64)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute SVD</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>svd <span class="op">=</span> dr.SVD(compute_full_matrices<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>svd.compute(X)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Get components</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>U <span class="op">=</span> svd.get_U()  <span class="co"># Left singular vectors</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> svd.get_singular_values()  <span class="co"># Singular values</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>V <span class="op">=</span> svd.get_V()  <span class="co"># Right singular vectors</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Reconstruct original matrix</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>X_reconstructed <span class="op">=</span> svd.reconstruct()</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Low-rank approximation</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>X_approx <span class="op">=</span> svd.reconstruct(num_components<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Get explained variance ratio</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>explained_var <span class="op">=</span> svd.explained_variance_ratio()</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Explained variance: </span><span class="sc">{</span>explained_var<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate rank</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>rank <span class="op">=</span> svd.rank()</span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Matrix rank: </span><span class="sc">{</span>rank<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<h3 id="pca-principal-component-analysis">PCA (Principal Component
+Analysis)</h3>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core.dimensionality_reduction <span class="im">as</span> dr</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate sample data</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.randn(<span class="dv">100</span>, <span class="dv">5</span>)  <span class="co"># 100 samples, 5 features</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create PCA with 3 components</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> dr.PCA(n_components<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>, scale<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit and transform</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>X_transformed <span class="op">=</span> pca.fit_transform(X)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Transformed shape: </span><span class="sc">{</span>X_transformed<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (100, 3)</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Get principal components</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>components <span class="op">=</span> pca.get_components()</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Components shape: </span><span class="sc">{</span>components<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (5, 3)</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Get explained variance</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>explained_var <span class="op">=</span> pca.get_explained_variance_ratio()</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Explained variance: </span><span class="sc">{</span>explained_var<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Total explained: </span><span class="sc">{</span>explained_var<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:.2%}</span><span class="ss">&quot;</span>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Transform new data</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>X_new <span class="op">=</span> np.random.randn(<span class="dv">10</span>, <span class="dv">5</span>)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>X_new_transformed <span class="op">=</span> pca.transform(X_new)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Inverse transform (reconstruct)</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>X_reconstructed <span class="op">=</span> pca.inverse_transform(X_transformed)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Get learned statistics</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>mean <span class="op">=</span> pca.get_mean()</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>scale <span class="op">=</span> pca.get_scale()</span></code></pre></div>
+<h3 id="pca-with-scaling">PCA with Scaling</h3>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core.dimensionality_reduction <span class="im">as</span> dr</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># PCA with standardization (recommended for features with different scales)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>pca_scaled <span class="op">=</span> dr.PCA(n_components<span class="op">=</span><span class="dv">3</span>, center<span class="op">=</span><span class="va">True</span>, scale<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>pca_scaled.fit(X)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co"># This standardizes each feature to zero mean and unit variance</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Equivalent to sklearn&#39;s StandardScaler + PCA</span></span></code></pre></div>
+<h3 id="knn-k-nearest-neighbors">KNN (k-Nearest Neighbors)</h3>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core.dimensionality_reduction <span class="im">as</span> dr</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create sample data</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.randn(<span class="dv">100</span>, <span class="dv">5</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create KNN with k=5 neighbors</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>knn <span class="op">=</span> dr.KNN(k<span class="op">=</span><span class="dv">5</span>, metric<span class="op">=</span><span class="st">&quot;euclidean&quot;</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>knn.fit(X)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Find neighbors for training data (excludes self)</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>indices, distances <span class="op">=</span> knn.kneighbors()</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Neighbor indices shape: </span><span class="sc">{</span>indices<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (100, 5)</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Neighbor distances shape: </span><span class="sc">{</span>distances<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (100, 5)</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Find neighbors for new query points</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>X_query <span class="op">=</span> np.random.randn(<span class="dv">10</span>, <span class="dv">5</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>query_indices, query_distances <span class="op">=</span> knn.kneighbors(X_query)</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Query neighbors shape: </span><span class="sc">{</span>query_indices<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (10, 5)</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute pairwise distances</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>X1 <span class="op">=</span> np.random.randn(<span class="dv">10</span>, <span class="dv">5</span>)</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>X2 <span class="op">=</span> np.random.randn(<span class="dv">20</span>, <span class="dv">5</span>)</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>dist_matrix <span class="op">=</span> knn.pairwise_distances(X1, X2)</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Distance matrix shape: </span><span class="sc">{</span>dist_matrix<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (10, 20)</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Different distance metrics</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>knn_manhattan <span class="op">=</span> dr.KNN(k<span class="op">=</span><span class="dv">5</span>, metric<span class="op">=</span><span class="st">&quot;manhattan&quot;</span>)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>knn_cosine <span class="op">=</span> dr.KNN(k<span class="op">=</span><span class="dv">5</span>, metric<span class="op">=</span><span class="st">&quot;cosine&quot;</span>)</span></code></pre></div>
+<h3 id="umap-uniform-manifold-approximation-and-projection">UMAP
+(Uniform Manifold Approximation and Projection)</h3>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core.dimensionality_reduction <span class="im">as</span> dr</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate high-dimensional data (e.g., 100 samples, 50 features)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.randn(<span class="dv">100</span>, <span class="dv">50</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Create UMAP with default parameters</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>umap <span class="op">=</span> dr.UMAP(</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    n_components<span class="op">=</span><span class="dv">2</span>,      <span class="co"># Reduce to 2D</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    n_neighbors<span class="op">=</span><span class="dv">15</span>,      <span class="co"># Number of neighbors to consider</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    min_dist<span class="op">=</span><span class="fl">0.1</span>,        <span class="co"># Minimum distance between points in embedding</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    metric<span class="op">=</span><span class="st">&quot;euclidean&quot;</span>,  <span class="co"># Distance metric</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">1.0</span>,   <span class="co"># Learning rate for optimization</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    n_epochs<span class="op">=</span><span class="dv">200</span>,        <span class="co"># Number of training epochs</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    random_state<span class="op">=</span><span class="dv">42</span>      <span class="co"># For reproducibility</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit and transform data</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>X_umap <span class="op">=</span> umap.fit_transform(X)</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;UMAP embedding shape: </span><span class="sc">{</span>X_umap<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">&quot;</span>)  <span class="co"># (100, 2)</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the learned embedding</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>embedding <span class="op">=</span> umap.get_embedding()</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot UMAP results</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>plt.scatter(X_umap[:, <span class="dv">0</span>], X_umap[:, <span class="dv">1</span>], alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&#39;UMAP 1&#39;</span>)</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&#39;UMAP 2&#39;</span>)</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;UMAP Projection&#39;</span>)</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="co"># UMAP with different parameters</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>umap_3d <span class="op">=</span> dr.UMAP(</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    n_components<span class="op">=</span><span class="dv">3</span>,      <span class="co"># 3D embedding</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    n_neighbors<span class="op">=</span><span class="dv">30</span>,      <span class="co"># More neighbors = preserve more global structure</span></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>    min_dist<span class="op">=</span><span class="fl">0.0</span>,        <span class="co"># Tighter clustering</span></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>    n_epochs<span class="op">=</span><span class="dv">500</span>         <span class="co"># More epochs = better optimization</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>X_umap_3d <span class="op">=</span> umap_3d.fit_transform(X)</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Quick 2D projection for visualization</span></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>umap_viz <span class="op">=</span> dr.UMAP(n_components<span class="op">=</span><span class="dv">2</span>, n_neighbors<span class="op">=</span><span class="dv">15</span>, min_dist<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>X_2d <span class="op">=</span> umap_viz.fit_transform(X)</span></code></pre></div>
+<h3 id="comparing-pca-vs-umap">Comparing PCA vs UMAP</h3>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> ml_core.dimensionality_reduction <span class="im">as</span> dr</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate data with non-linear structure</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> make_swiss_roll</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>X, color <span class="op">=</span> make_swiss_roll(n_samples<span class="op">=</span><span class="dv">1000</span>, noise<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co"># PCA (linear)</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> dr.PCA(n_components<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>X_pca <span class="op">=</span> pca.fit_transform(X)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co"># UMAP (non-linear)</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>umap <span class="op">=</span> dr.UMAP(n_components<span class="op">=</span><span class="dv">2</span>, n_neighbors<span class="op">=</span><span class="dv">30</span>)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>X_umap <span class="op">=</span> umap.fit_transform(X)</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot comparison</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">6</span>))</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>ax1.scatter(X_pca[:, <span class="dv">0</span>], X_pca[:, <span class="dv">1</span>], c<span class="op">=</span>color, cmap<span class="op">=</span><span class="st">&#39;viridis&#39;</span>)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">&#39;PCA (Linear)&#39;</span>)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">&#39;PC1&#39;</span>)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">&#39;PC2&#39;</span>)</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>ax2.scatter(X_umap[:, <span class="dv">0</span>], X_umap[:, <span class="dv">1</span>], c<span class="op">=</span>color, cmap<span class="op">=</span><span class="st">&#39;viridis&#39;</span>)</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">&#39;UMAP (Non-linear)&#39;</span>)</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">&#39;UMAP 1&#39;</span>)</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">&#39;UMAP 2&#39;</span>)</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<h3 id="svd-pca-c-eigen-guidance">SVD / PCA (C++ / Eigen guidance)</h3>
+<p>If you need to perform SVD or PCA in native code (for speed or
+integration with other C++ components), Eigen provides efficient SVD
+implementations. Below is a short C++ pattern you can reuse inside the
+C++ codebase before exposing results to Python:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Center the data matrix (rows = samples, columns = features)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>Eigen<span class="op">::</span>MatrixXd Xc <span class="op">=</span> X<span class="op">.</span>rowwise<span class="op">()</span> <span class="op">-</span> X<span class="op">.</span>colwise<span class="op">().</span>mean<span class="op">().</span>transpose<span class="op">();</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Compute thin SVD</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>Eigen<span class="op">::</span>BDCSVD<span class="op">&lt;</span>Eigen<span class="op">::</span>MatrixXd<span class="op">&gt;</span> svd<span class="op">(</span>Xc<span class="op">,</span> Eigen<span class="op">::</span>ComputeThinU <span class="op">|</span> Eigen<span class="op">::</span>ComputeThinV<span class="op">);</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>Eigen<span class="op">::</span>MatrixXd U <span class="op">=</span> svd<span class="op">.</span>matrixU<span class="op">();</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>Eigen<span class="op">::</span>VectorXd S <span class="op">=</span> svd<span class="op">.</span>singularValues<span class="op">();</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>Eigen<span class="op">::</span>MatrixXd V <span class="op">=</span> svd<span class="op">.</span>matrixV<span class="op">();</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Project to k components: scores = Xc * V.leftCols(k)</span></span></code></pre></div>
+<p>In Python bindings, you can now directly use the
+<code>ml_core.dimensionality_reduction.SVD</code> and
+<code>ml_core.dimensionality_reduction.PCA</code> classes which wrap
+these operations.</p>
+<h2 id="module-structure">Module Structure</h2>
+<ul>
+<li><code>ml_core.decision_tree</code>: Decision tree algorithms</li>
+<li><code>ml_core.svm</code>: Support Vector Machine with various
+kernels</li>
+<li><code>ml_core.bayesian_network</code>: Bayesian Network
+inference</li>
+<li><code>ml_core.hmm</code>: Hidden Markov Model algorithms</li>
+<li><code>ml_core.glm</code>: Generalized Linear Models (Linear
+Regression)</li>
+<li><code>ml_core.multi_arm_bandit</code>: Multi-arm bandit
+algorithms</li>
+<li><code>ml_core.marked_point_process</code>: Marked point processes
+and PCIM</li>
+<li><code>ml_core.latent_sentiment_analysis</code>: Latent sentiment
+analysis</li>
+<li><code>ml_core.dimensionality_reduction</code>: SVD and PCA for
+dimensionality reduction</li>
+<li><code>ml_core.tracker</code>: Kalman filters and state estimation
+(if available)</li>
+</ul>
+<h2 id="api-documentation">API Documentation</h2>
+<h3 id="data-types">Data Types</h3>
+<p>The bindings support various data types: - Python lists of
+integers/floats - NumPy arrays (automatically converted to Eigen
+matrices/vectors) - Standard Python data structures (maps, vectors)</p>
+<h3 id="error-handling">Error Handling</h3>
+<p>The bindings preserve C++ exceptions and convert them to appropriate
+Python exceptions.</p>
+<h3 id="memory-management">Memory Management</h3>
+<p>All memory management is handled automatically by pybind11. No manual
+cleanup is required.</p>
+<h2 id="building-integration">Building Integration</h2>
+<h3 id="cmake-integration">CMake Integration</h3>
+<p>To integrate with the main project’s CMake:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">add_subdirectory</span>(python_bindings)</span></code></pre></div>
+<h3 id="dependencies">Dependencies</h3>
+<p>The bindings require: - Eigen3 (for matrix operations) - pybind11
+(for Python-C++ binding) - The ML Core C++ source files</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-issues">Common Issues</h3>
+<ol type="1">
+<li><strong>Import Error</strong>: Ensure the module is built and in
+Python path</li>
+<li><strong>Compilation Error</strong>: Check that all dependencies are
+installed</li>
+<li><strong>Runtime Error</strong>: Verify data types match expected
+inputs</li>
+</ol>
+<h3 id="build-issues">Build Issues</h3>
+<ol type="1">
+<li><strong>Eigen not found</strong>: Install libeigen3-dev or specify
+EIGEN3_INCLUDE_DIR</li>
+<li><strong>pybind11 not found</strong>: Install via pip or conda</li>
+<li><strong>C++17 support</strong>: Ensure compiler supports C++17
+standard</li>
+</ol>
+<h2 id="examples">Examples</h2>
+<p>See the <code>examples/</code> directory for comprehensive usage
+examples of all algorithms.</p>
+<h2 id="contributing">Contributing</h2>
+<p>When adding new algorithms to the C++ codebase:</p>
+<ol type="1">
+<li>Add the corresponding Python bindings in
+<code>py_ml_core.cpp</code></li>
+<li>Update the module documentation</li>
+<li>Add usage examples</li>
+<li>Test the bindings</li>
+</ol>
+<h2 id="license">License</h2>
+<p>This project follows the same license as the main ML Core
+library.</p>
+</body>
+</html>

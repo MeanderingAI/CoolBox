@@ -1,0 +1,6 @@
+<map id="io::http_server::DefaultHandler" name="io::http_server::DefaultHandler">
+<area shape="rect" id="Node000001" title=" " alt="" coords="19,5,191,45"/>
+<area shape="rect" id="Node000002" href="$classio_1_1http__server_1_1FileHandler.html" title=" " alt="" coords="5,93,204,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,59,101,93,95,93,93,59"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="116,59,114,93,109,93,111,59"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="ml::deep_learning::SoftmaxLayer" name="ml::deep_learning::SoftmaxLayer">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,212,152,252"/>
+<area shape="rect" id="Node000002" href="$classml_1_1deep__learning_1_1Layer.html" title=" " alt="" coords="5,123,152,163"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,177,81,212,76,212,76,177"/>
+<area shape="rect" id="Node000003" href="$classml_1_1deep__learning_1_1Tensor.html" title=" " alt="" coords="5,5,152,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="81,59,81,122,76,122,76,59"/>
+</map>

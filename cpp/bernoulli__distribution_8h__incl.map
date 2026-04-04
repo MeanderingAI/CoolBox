@@ -1,0 +1,12 @@
+<map id="_libraries/backages/ML/distribution/headers/bernoulli_distribution.h" name="_libraries/backages/ML/distribution/headers/bernoulli_distribution.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="59,5,238,60"/>
+<area shape="rect" id="Node000002" href="$discrete__distribution_8h.html" title=" " alt="" coords="5,108,172,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,62,107,98,102,95,128,59"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="170,181,242,207"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="165,59,187,107,204,167,199,168,182,109,161,61"/>
+<area shape="rect" id="Node000003" href="$distribution_8h.html" title=" " alt="" coords="35,181,143,207"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="91,134,91,168,86,168,86,134"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="109,131,176,172,174,176,106,136"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="59,255,118,280"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="91,207,91,241,86,241,86,207"/>
+</map>

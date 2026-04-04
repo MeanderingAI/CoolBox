@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Generation Tutorial | CoolBox Tutorials</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+        main { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
+        h1 { color: #111827; margin-bottom: 0.5rem; }
+        h2 { color: #1e293b; margin-top: 2rem; }
+        h3, h4, h5, h6 { color: #334155; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        p { line-height: 1.7; }
+        .tag { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 999px; padding: 0.2rem 0.75rem; font-size: 0.85rem; margin: 0.2rem; }
+        .lib-tag { background: #fef3c7; color: #92400e; }
+        .tag-row { margin: 0.5rem 0 1.5rem; }
+        .code-card { background: #1e293b; border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; overflow-x: auto; }
+        .code-card pre { margin: 0; }
+        .code-card code { color: #e2e8f0; font-size: 0.95rem; white-space: pre; }
+        .code-meta { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .code-language { color: #94a3b8; font-size: 0.85rem; font-weight: 600; }
+        .code-lib { color: #fbbf24; font-size: 0.8rem; }
+        .media-card { margin: 1.5rem 0; text-align: center; }
+        .media-card img, .media-card video { max-width: 100%; border-radius: 12px; }
+        .video-frame { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; }
+        .video-frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        figcaption { color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; }
+        .inline-link { display: inline-block; margin: 0.25rem 0; }
+        .publication-date { color: #475569; font-size: 0.95rem; margin-top: -0.25rem; margin-bottom: 0.5rem; }
+        .muted { color: #64748b; font-size: 0.95rem; }
+        footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; }
+    </style>
+</head>
+<body>
+    <main>
+      <a href="index.html" title="Back to tutorials">&#8592; Back to tutorials</a>
+    <h1>Wave Generation Tutorial</h1>
+    <meta name="publication_date" content="March 20th 2026">
+    <p class="publication-date">Published: March 20th 2026</p>
+      <div class="tag-row"><a href="../tags/signal-processing.html" class="tag">signal processing</a><a href="../tags/numpy.html" class="tag">numpy</a><a href="../tags/matplotlib.html" class="tag">matplotlib</a><a href="../tags/tutorial.html" class="tag">tutorial</a><a href="../tags/misc-hash.html" class="tag lib-tag">MISC/hash</a><a href="../tags/graphics-charts.html" class="tag lib-tag">GRAPHICS/charts</a></div>
+      
+      <h1>Wave Generation Tutorial</h1>
+      <p>This tutorial demonstrates how to generate and visualize a sine wave using Python with NumPy and Matplotlib.</p>
+      <h2>Introduction</h2>
+      <p>Generating waveforms is a fundamental task in signal processing and scientific computing. Here, we&#x27;ll create a simple sine wave and plot it.</p>
+      <h2>Prerequisites</h2>
+      <p>You need to have `numpy` and `matplotlib` installed. You can install them with:</p>
+      <section class="code-card"><div class="code-meta"><span class="code-language">bash</span></div><pre><code class="language-bash">pip install numpy matplotlib</code></pre></section>
+      <h2>Step 1: Import Libraries</h2>
+      <section class="code-card"><div class="code-meta"><span class="code-language">python</span></div><pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt</code></pre></section>
+      <h2>Step 2: Generate the Sine Wave</h2>
+      <section class="code-card"><div class="code-meta"><span class="code-language">python</span></div><pre><code class="language-python"># Parameters
+frequency = 5  # Hz
+sampling_rate = 500  # Hz
+duration = 2  # seconds
+t = np.linspace(0, duration, int(sampling_rate * duration), endpoint=False)
+y = np.sin(2 * np.pi * frequency * t)</code></pre></section>
+      <h2>Step 3: Plot the Wave</h2>
+      <section class="code-card"><div class="code-meta"><span class="code-language">python</span></div><pre><code class="language-python">plt.figure(figsize=(10, 4))
+plt.plot(t, y, label=f&#x27;{frequency} Hz Sine Wave&#x27;)
+plt.xlabel(&#x27;Time [s]&#x27;)
+plt.ylabel(&#x27;Amplitude&#x27;)
+plt.title(&#x27;Sine Wave Generation with NumPy&#x27;)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()</code></pre></section>
+      <h2>Conclusion</h2>
+      <p>You have generated and visualized a sine wave using Python. You can modify the frequency, sampling rate, or duration to explore different waveforms.</p>
+      <footer>
+          <p>&#x133FF; Meandering LLC &copy; 2026</p>
+      </footer>
+    </main>
+</body>
+</html>

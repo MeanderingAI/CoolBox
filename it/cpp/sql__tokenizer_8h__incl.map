@@ -1,0 +1,13 @@
+<map id="_libraries/backages/PARSER/database/lexical_analysis/parser/headers/sql_tokenizer.h" name="_libraries/backages/PARSER/database/lexical_analysis/parser/headers/sql_tokenizer.h">
+<area shape="rect" id="Node000001" title="SQL query tokenizer — splits raw SQL strings into typed token lists." alt="" coords="122,5,309,75"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,123,76,148"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,77,76,118,73,114,151,72"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="101,123,159,148"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="186,77,152,114,148,110,183,73"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="184,123,247,148"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="218,75,218,109,213,109,213,75"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="271,123,386,148"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="258,73,305,111,302,116,255,77"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="411,123,487,148"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="301,72,408,115,406,120,299,77"/>
+</map>

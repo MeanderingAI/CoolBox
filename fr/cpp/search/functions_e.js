@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['object_0',['Object',['../classdataformats_1_1json_1_1Object.html#aa506c3368dfe6b5263953c20813b96d0',1,'dataformats::json::Object']]],
+  ['offset_1',['offset',['../classml_1_1sql_1_1QueryBuilder.html#a14df8d8a9ae1e829b513f39e73ec6f26',1,'ml::sql::QueryBuilder']]],
+  ['ok_2',['ok',['../structResponse.html#a47050a69dc18959ac945bdebe4256a9a',1,'Response']]],
+  ['onehotencoder_3',['OneHotEncoder',['../classml_1_1nlp_1_1OneHotEncoder.html#a57303967e034b1145ff80bd5cc4d6801',1,'ml::nlp::OneHotEncoder']]],
+  ['ones_5fdense_4',['ones_dense',['../namespacematrix.html#a2975f88b6bc92df8c3c2ae800e6eb1df',1,'matrix']]],
+  ['open_5fcircuit_5fvoltage_5',['open_circuit_voltage',['../classbattery_1_1Cell.html#a4a7b42acfc2b307114d8f967443a205a',1,'battery::Cell']]],
+  ['operator_21_3d_6',['operator!=',['../structcurcuitry_1_1Point.html#a4ee90be87020cb75df1f3285f95ca023',1,'curcuitry::Point::operator!=()'],['../structgraphics_1_1Color.html#abac15592ceac1b3bac98c2fc5d2ef05c',1,'graphics::Color::operator!=()'],['../structml_1_1sql_1_1parser_1_1Token.html#a02dab9b048541690f43ea99af8c67c89',1,'ml::sql::parser::Token::operator!=()']]],
+  ['operator_28_29_7',['operator()',['../structcurcuitry_1_1PointHash.html#a451223134bbfe61ea1d1b962aa580bd6',1,'curcuitry::PointHash::operator()()'],['../classml_1_1deep__learning_1_1Tensor.html#a9959d1a966d3b5ff8d7171991ec7e949',1,'ml::deep_learning::Tensor::operator()(const std::vector&lt; size_t &gt; &amp;indices)'],['../classml_1_1deep__learning_1_1Tensor.html#ac9a495b52bf6f2a15c0b4de69ae4354a',1,'ml::deep_learning::Tensor::operator()(const std::vector&lt; size_t &gt; &amp;indices) const']]],
+  ['operator_2a_8',['operator*',['../classml_1_1deep__learning_1_1Tensor.html#a470b995df8027788efc27771e442e516',1,'ml::deep_learning::Tensor::operator*(const Tensor &amp;other) const'],['../classml_1_1deep__learning_1_1Tensor.html#a0d14ad136ba6f34ee91001be07cf7c12',1,'ml::deep_learning::Tensor::operator*(double scalar) const']]],
+  ['operator_2b_9',['operator+',['../classml_1_1deep__learning_1_1Tensor.html#aeaa8378208d87127827aed7271ca6be6',1,'ml::deep_learning::Tensor']]],
+  ['operator_2b_3d_10',['operator+=',['../classml_1_1deep__learning_1_1Tensor.html#abbdb517475fdc08a017c5760c6c5841b',1,'ml::deep_learning::Tensor']]],
+  ['operator_2d_11',['operator-',['../classml_1_1deep__learning_1_1Tensor.html#a492e79099f7c3ace879e31dd729bc686',1,'ml::deep_learning::Tensor']]],
+  ['operator_2d_3d_12',['operator-=',['../classml_1_1deep__learning_1_1Tensor.html#a7bb956733ec9cbd2b3c8665e765580e0',1,'ml::deep_learning::Tensor']]],
+  ['operator_2f_13',['operator/',['../classml_1_1deep__learning_1_1Tensor.html#af0180d127634e60d30198466d31db022',1,'ml::deep_learning::Tensor::operator/(const Tensor &amp;other) const'],['../classml_1_1deep__learning_1_1Tensor.html#a15ea115f42162679ba7c34f112176742',1,'ml::deep_learning::Tensor::operator/(double scalar) const']]],
+  ['operator_3c_14',['operator&lt;',['../structcurcuitry_1_1Point.html#ab4b4cbc7bb6eed7f09e66902394f22d0',1,'curcuitry::Point']]],
+  ['operator_3c_3c_15',['operator&lt;&lt;',['../namespaceml_1_1sql_1_1parser.html#a6efb9cc4cd2922ea562bf57f9272ed77',1,'ml::sql::parser']]],
+  ['operator_3d_16',['operator=',['../classgraphics_1_1fonts_1_1FontFace.html#a23d0c6437f6e4767bd6dbd3e79b79937',1,'graphics::fonts::FontFace::operator=(const FontFace &amp;)=delete'],['../classgraphics_1_1fonts_1_1FontFace.html#a659ba227d1ac6d748162f660d3433b75',1,'graphics::fonts::FontFace::operator=(FontFace &amp;&amp;) noexcept'],['../classml_1_1cv_1_1Image.html#a86fb2f80ef7d0474918a3c307b7ebc2e',1,'ml::cv::Image::operator=()'],['../classml_1_1cv_1_1TransformPipeline.html#ade0e53c7435003e89cc9fdbbc16180c3',1,'ml::cv::TransformPipeline::operator=(const TransformPipeline &amp;)=delete'],['../classml_1_1cv_1_1TransformPipeline.html#a2b9a13066eede03d503e2c1ea7599e3e',1,'ml::cv::TransformPipeline::operator=(TransformPipeline &amp;&amp;)=default']]],
+  ['operator_3d_3d_17',['operator==',['../structcurcuitry_1_1Point.html#adff1895ed3e4cbe591bb9a53936a874d',1,'curcuitry::Point::operator==()'],['../structgraphics_1_1Color.html#a20095cde2b3f2a442f2c9a4cf3a902f2',1,'graphics::Color::operator==()'],['../structml_1_1sql_1_1parser_1_1Token.html#a312b39e6cef23b4e456df6965c00cf28',1,'ml::sql::parser::Token::operator==()']]],
+  ['operator_5b_5d_18',['operator[]',['../classdata__structures_1_1HashMap.html#aad8b95d605b6920a0aae15c9fadfcd65',1,'data_structures::HashMap']]],
+  ['operator_5fto_5fsql_19',['operator_to_sql',['../namespaceml_1_1sql.html#a548bd3dc454f53a8ef7f7af379860c23',1,'ml::sql']]],
+  ['order_5fby_20',['order_by',['../classml_1_1sql_1_1QueryBuilder.html#a5227d77b97b9d3045a3f1001c24b04c0',1,'ml::sql::QueryBuilder']]],
+  ['out_5fchannels_21',['out_channels',['../classml_1_1cv_1_1Conv2DLayer.html#af2cfda6498ac4a0ce4df624f2444a371',1,'ml::cv::Conv2DLayer']]]
+];

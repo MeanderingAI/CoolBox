@@ -1,0 +1,12 @@
+<map id="_libraries/backages/CHEMISTRY/include/chemistry/periodic_table.h" name="_libraries/backages/CHEMISTRY/include/chemistry/periodic_table.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="75,5,297,60"/>
+<area shape="rect" id="Node000002" href="$cell_8h.html" title=" " alt="" coords="5,115,172,170"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="155,73,114,117,110,113,151,69"/>
+<area shape="rect" id="Node000005" href="$atom__bond__display_8h.html" title=" " alt="" coords="196,108,373,177"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="222,69,256,106,252,110,218,73"/>
+<area shape="rect" id="Node000003" href="$battery_2include_2battery_8h.html" title="Convenience header – includes the entire battery library." alt="" coords="5,328,172,383"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="70,183,54,226,50,253,54,279,62,304,74,327,69,329,58,306,49,281,45,253,49,225,65,181"/>
+<area shape="rect" id="Node000004" href="$battery__pack_8h.html" title=" " alt="" coords="64,225,239,280"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="113,181,138,224,134,226,109,184"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="130,293,107,329,103,326,125,290"/>
+</map>

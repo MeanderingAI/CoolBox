@@ -1,0 +1,9 @@
+<map id="ml::deep_learning::Loss" name="ml::deep_learning::Loss">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,77,181,102"/>
+<area shape="rect" id="Node000002" href="$classml_1_1deep__learning_1_1BCELoss.html" title=" " alt="" coords="261,5,408,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="155,70,261,42,262,47,156,76"/>
+<area shape="rect" id="Node000003" href="$classml_1_1deep__learning_1_1CategoricalCrossEntropyLoss.html" title=" " alt="" coords="229,69,440,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="195,87,229,87,229,92,195,92"/>
+<area shape="rect" id="Node000004" href="$classml_1_1deep__learning_1_1MSELoss.html" title=" " alt="" coords="261,133,408,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="156,103,262,131,261,137,155,108"/>
+</map>

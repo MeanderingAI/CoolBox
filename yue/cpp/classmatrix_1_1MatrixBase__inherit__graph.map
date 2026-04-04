@@ -1,0 +1,7 @@
+<map id="matrix::MatrixBase" name="matrix::MatrixBase">
+<area shape="rect" id="Node000001" title=" " alt="" coords="101,5,247,31"/>
+<area shape="rect" id="Node000002" href="$classmatrix_1_1DenseMatrix.html" title=" " alt="" coords="5,79,161,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,41,100,81,97,76,147,37"/>
+<area shape="rect" id="Node000003" href="$classmatrix_1_1SparseMatrix.html" title=" " alt="" coords="185,79,344,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,37,251,76,248,81,198,41"/>
+</map>

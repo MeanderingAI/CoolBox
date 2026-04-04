@@ -1,0 +1,11 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" href="$classBanditAgent.html" title=" " alt="" coords="5,80,108,105"/>
+<area shape="rect" id="Node000001" href="$classDecayingEpsilonGreedyAgent.html" title=" " alt="" coords="156,5,371,31"/>
+<area shape="poly" id="edge1_Node000000_Node000001" title=" " alt="" coords="89,71,155,40,193,28,195,33,157,44,92,76"/>
+<area shape="rect" id="Node000002" href="$classEpsilonGreedyAgent.html" title=" " alt="" coords="186,55,341,80"/>
+<area shape="poly" id="edge2_Node000000_Node000002" title=" " alt="" coords="122,82,186,74,186,79,122,87"/>
+<area shape="rect" id="Node000003" href="$classThompsonSamplingAgent.html" title=" " alt="" coords="169,104,358,129"/>
+<area shape="poly" id="edge3_Node000000_Node000003" title=" " alt="" coords="122,98,169,103,168,108,122,103"/>
+<area shape="rect" id="Node000004" href="$classUCBAgent.html" title=" " alt="" coords="219,153,307,179"/>
+<area shape="poly" id="edge4_Node000000_Node000004" title=" " alt="" coords="93,109,157,138,220,155,218,161,155,143,91,114"/>
+</map>

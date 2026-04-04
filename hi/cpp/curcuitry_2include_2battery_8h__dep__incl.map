@@ -1,0 +1,12 @@
+<map id="_libraries/backages/ELECTRONICS/curcuitry/include/battery.h" name="_libraries/backages/ELECTRONICS/curcuitry/include/battery.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="93,5,271,60"/>
+<area shape="rect" id="Node000002" href="$circuit_8h.html" title=" " alt="" coords="93,108,271,163"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,74,185,108,179,108,179,74"/>
+<area shape="rect" id="Node000003" href="$circuit__solver_8h.html" title=" " alt="" coords="5,211,183,265"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="118,70,98,88,83,109,75,134,75,161,86,210,81,211,70,161,70,133,78,107,94,84,115,66"/>
+<area shape="rect" id="Node000004" href="$curcuitry_8h.html" title="Convenience header – includes the entire curcuitry library." alt="" coords="132,313,309,368"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="249,66,270,84,286,107,295,134,298,163,295,192,288,221,266,273,242,314,237,312,261,271,283,219,290,191,293,163,290,135,281,109,266,88,246,70"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="152,175,119,212,115,209,148,171"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="192,176,218,312,213,313,187,177"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="140,272,189,311,186,315,137,276"/>
+</map>

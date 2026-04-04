@@ -1,0 +1,29 @@
+<map id="_libraries/backages/ML" name="_libraries/backages/ML">
+<area shape="rect" id="node1" href="dir_08c55e1e4e7a44c895865dfbd4917d70.html" title="MISC" alt="" coords="2275,151,2330,176"/>
+<area shape="rect" id="node3" href="dir_2ccc753a4300f7fedc11e610eb600d3c.html" title="bayesian_network_ai" alt="" coords="2881,70,3041,95"/>
+<area shape="rect" id="node4" href="dir_e594404fe9ee776cef0198b0e7291b0c.html" title="bayesian_network_db" alt="" coords="2693,70,2857,95"/>
+<area shape="rect" id="node5" href="dir_da6184c757d36191e8bd0ca7f438897b.html" title="computer_vision" alt="" coords="2537,70,2668,95"/>
+<area shape="rect" id="node6" href="dir_85cb12f06d1f74bbd311a5525962b95c.html" title="decision_tree" alt="" coords="2404,70,2513,95"/>
+<area shape="poly" id="edge1" href="dir_000021_000134.html" alt="" coords="2437,98,2339,147,2336,142,2435,93"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000021_000134.html" title="4" alt="" coords="2341,143,2350,157"/>
+<area shape="rect" id="node7" href="dir_bc2c96d36be120b7753bd145a5ac467b.html" title="deep_learning" alt="" coords="2265,70,2380,95"/>
+<area shape="rect" id="node8" href="dir_91ebe02e50dbf54c7ff140a386c88f8e.html" title="dimensionality_reduction" alt="" coords="2055,70,2241,95"/>
+<area shape="poly" id="edge2" href="dir_000023_000134.html" alt="" coords="2172,93,2269,142,2266,147,2170,98"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000023_000134.html" title="4" alt="" coords="2263,127,2272,142"/>
+<area shape="rect" id="node9" href="dir_6f30a81fb6136ea0cf5648835b5a5bac.html" title="distribution" alt="" coords="1935,70,2031,95"/>
+<area shape="rect" id="node10" href="dir_5975cb24c77bcf410e160efbb25a74c4.html" title="gabor_patches" alt="" coords="1793,70,1911,95"/>
+<area shape="rect" id="node11" href="dir_8e2b5ed85c87257cd3694f98e56b2f6d.html" title="generalized_linear\l_model" alt="" coords="1626,63,1769,103"/>
+<area shape="rect" id="node12" href="dir_dcbe034548cbe995cd7142a363848aa2.html" title="hidden_markov_model" alt="" coords="1431,70,1601,95"/>
+<area shape="rect" id="node13" href="dir_782d067376ce1556f6afd29adc633a8e.html" title="knn" alt="" coords="1359,70,1406,95"/>
+<area shape="rect" id="node14" href="dir_44cc0bc9f2c87ed9665232aeed4ccbd1.html" title="latent_sentiment_analysis" alt="" coords="1140,70,1335,95"/>
+<area shape="rect" id="node15" href="dir_4b7b28589758b909d564c1c028afb973.html" title="marked_point_process" alt="" coords="948,70,1116,95"/>
+<area shape="rect" id="node16" href="dir_81d9246ae3985a475bf221131a096983.html" title="multi_arm_bandit" alt="" coords="786,70,923,95"/>
+<area shape="rect" id="node17" href="dir_6bd347cd1cafd24175d3bc6e812a54dc.html" title="nlp" alt="" coords="719,70,761,95"/>
+<area shape="rect" id="node18" href="dir_59eae8c515df6389ae41cfcd936b8d9e.html" title="self_organizing_maps" alt="" coords="530,70,694,95"/>
+<area shape="rect" id="node19" href="dir_d5ed9e9ec3f49a18cef22c7afdfdd88a.html" title="support_vector_machine" alt="" coords="323,70,506,95"/>
+<area shape="rect" id="node20" href="dir_ce5dbfe108d474d439a139e920d95ee9.html" title="time_series" alt="" coords="200,70,299,95"/>
+<area shape="rect" id="node21" href="dir_b8be473b0011200b1a079f5bc6368768.html" title="tracker" alt="" coords="109,70,176,95"/>
+<area shape="rect" id="node22" href="dir_0458b093c08875e369ba38c2e97db2b0.html" title="vae" alt="" coords="38,70,85,95"/>
+<area shape="rect" id="clust2" href="dir_3ae905d26f40859a65d99f4f457912e9.html" alt="" coords="27,52,3119,113"/>
+<area shape="rect" id="clust1" href="dir_5541aac3074eab96dbc0dba51249ff79.html" title="backages" alt="" coords="16,16,3129,187"/>
+</map>

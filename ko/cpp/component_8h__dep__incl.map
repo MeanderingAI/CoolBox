@@ -1,0 +1,27 @@
+<map id="_libraries/backages/ELECTRONICS/curcuitry/include/component.h" name="_libraries/backages/ELECTRONICS/curcuitry/include/component.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="216,5,394,60"/>
+<area shape="rect" id="Node000002" href="$curcuitry_2include_2battery_8h.html" title=" " alt="" coords="27,108,204,163"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="245,69,167,110,164,105,242,64"/>
+<area shape="rect" id="Node000003" href="$circuit_8h.html" title=" " alt="" coords="204,211,382,265"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="285,73,272,109,269,135,271,162,284,210,279,211,266,163,264,135,266,107,280,71"/>
+<area shape="rect" id="Node000004" href="$circuit__solver_8h.html" title=" " alt="" coords="331,313,508,368"/>
+<area shape="poly" id="edge9_Node000001_Node000004" title=" " alt="" coords="408,56,444,76,473,107,485,133,490,161,488,190,483,219,462,272,440,314,435,312,458,270,477,217,483,189,484,161,480,134,468,109,441,81,405,60"/>
+<area shape="rect" id="Node000005" href="$curcuitry_8h.html" title="Convenience header – includes the entire curcuitry library." alt="" coords="267,416,444,471"/>
+<area shape="poly" id="edge10_Node000001_Node000005" title=" " alt="" coords="203,49,146,60,90,73,44,90,28,99,16,110,9,122,8,134,17,162,45,230,77,279,120,320,179,366,223,393,269,413,267,418,220,398,175,370,116,324,73,282,40,233,12,164,3,134,4,121,12,106,25,95,42,85,89,68,145,54,202,44"/>
+<area shape="rect" id="Node000006" href="$resistor_8h.html" title=" " alt="" coords="280,108,458,163"/>
+<area shape="poly" id="edge11_Node000001_Node000006" title=" " alt="" coords="331,70,355,106,350,109,327,73"/>
+<area shape="rect" id="Node000007" href="$wire_8h.html" title=" " alt="" coords="534,108,711,163"/>
+<area shape="poly" id="edge15_Node000001_Node000007" title=" " alt="" coords="401,62,540,105,539,110,400,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="175,167,248,208,245,213,172,172"/>
+<area shape="poly" id="edge6_Node000002_Node000004" title=" " alt="" coords="132,174,157,221,174,244,195,263,226,284,261,301,332,323,330,328,259,306,224,289,191,267,170,247,153,224,128,176"/>
+<area shape="poly" id="edge7_Node000002_Node000005" title=" " alt="" coords="120,176,128,220,146,264,182,311,225,353,270,387,310,414,308,418,267,391,222,357,178,315,141,267,123,222,115,177"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="339,272,388,311,385,315,336,276"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="301,278,310,322,322,367,343,415,339,417,317,369,304,323,296,279"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="398,381,375,417,370,414,393,378"/>
+<area shape="poly" id="edge12_Node000006_Node000003" title=" " alt="" coords="343,175,315,212,311,209,339,172"/>
+<area shape="poly" id="edge13_Node000006_Node000004" title=" " alt="" coords="386,175,397,210,418,312,413,314,392,211,381,176"/>
+<area shape="poly" id="edge14_Node000006_Node000005" title=" " alt="" coords="421,169,469,209,512,259,527,286,535,314,535,342,523,369,508,388,489,404,446,425,443,421,486,399,504,384,519,367,530,341,530,314,522,288,508,262,465,213,418,173"/>
+<area shape="poly" id="edge16_Node000007_Node000003" title=" " alt="" coords="525,169,380,213,378,208,523,164"/>
+<area shape="poly" id="edge17_Node000007_Node000004" title=" " alt="" coords="589,174,448,315,444,311,585,171"/>
+<area shape="poly" id="edge18_Node000007_Node000005" title=" " alt="" coords="622,177,615,221,601,272,579,324,547,370,525,389,499,405,446,427,444,422,497,400,521,385,543,366,575,322,596,271,610,220,617,176"/>
+</map>

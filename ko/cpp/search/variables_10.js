@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['r_0',['r',['../structgraphics_1_1Color.html#a09d15f00ab1ff20ae32ae90ea09de621',1,'graphics::Color::r'],['../structgraphics_1_1Color.html#abbb6666a8b5e9db4d0cc9e69bb7369ad',1,'graphics::Color::r']]],
+  ['radius_1',['radius',['../structgraphics_1_1Circle.html#ab3e88bd4b525527b922909f78e606ce5',1,'graphics::Circle']]],
+  ['reason_2',['reason',['../structauth_1_1PermissionResult.html#af73cd3f7452dd92e74da306e24d42b2e',1,'auth::PermissionResult']]],
+  ['recipient_3',['recipient',['../structutils_1_1cryptocurrency_1_1Transaction.html#a112acc27f11fce2746022e22865260a6',1,'utils::cryptocurrency::Transaction']]],
+  ['reconstruction_5floss_4',['reconstruction_loss',['../structml_1_1VAEEpochResult.html#a2beae27c1d1020335b2d01118509b2fe',1,'ml::VAEEpochResult']]],
+  ['red_5',['Red',['../namespacegraphics_1_1Colors.html#a7d8d9e9dd8de56b83cb3ddbecb4245d9',1,'graphics::Colors']]],
+  ['rejection_5freason_6',['rejection_reason',['../structsecurity_1_1scanner_1_1FileUploadScanner_1_1UploadScanResult.html#a76f352d9794a4d61030cadc6a768b2b4',1,'security::scanner::FileUploadScanner::UploadScanResult']]],
+  ['relation_5ffield_7',['relation_field',['../structml_1_1sql_1_1Field.html#a1ebbdfa1417db3e4e8eca5a42a12a4ed',1,'ml::sql::Field']]],
+  ['relation_5fmodel_8',['relation_model',['../structml_1_1sql_1_1Field.html#a9010ca5af8e6a31622025ffd66f511b8',1,'ml::sql::Field']]],
+  ['request_5fbody_9',['request_body',['../structml_1_1networking_1_1html_1_1ApiDocGenerator_1_1Endpoint.html#af4c9c4c6ae63e888dfa0e54d3fb0d2a0',1,'ml::networking::html::ApiDocGenerator::Endpoint']]],
+  ['required_5frole_10',['required_role',['../structio_1_1http__server_1_1ProtectedPathRule.html#a23269ddf4404c0ca6207d916dbb4ba28',1,'io::http_server::ProtectedPathRule']]],
+  ['residual_11',['residual',['../structml_1_1time__series_1_1SeasonalDecomposition.html#a561bc4268bc97a3b2ff61e548575a306',1,'ml::time_series::SeasonalDecomposition']]],
+  ['resistance_12',['resistance',['../structcurcuitry_1_1ComponentResult.html#a9e0acf10f2a6ab018f5a82b85ef6104d',1,'curcuitry::ComponentResult']]],
+  ['response_5fbody_13',['response_body',['../structml_1_1networking_1_1html_1_1ApiDocGenerator_1_1Endpoint.html#a6708efc488005a2890fbfa6a212ee024',1,'ml::networking::html::ApiDocGenerator::Endpoint']]],
+  ['response_5fcodes_14',['response_codes',['../structml_1_1networking_1_1html_1_1ApiDocGenerator_1_1Endpoint.html#a6edf047d588d5bfcc63476b396b50398',1,'ml::networking::html::ApiDocGenerator::Endpoint']]],
+  ['response_5ftime_5fms_15',['response_time_ms',['../structsecurity_1_1Host.html#a01f5acd94f60bb92d095fd386c72baa1',1,'security::Host']]],
+  ['right_16',['right',['../structdata__structures_1_1BinarySearchTree_1_1Node.html#a6036cc74eddd5696eb9a89a7c2d6ac37',1,'data_structures::BinarySearchTree::Node::right'],['../structdata__structures_1_1RedBlackTree_1_1Node.html#adb0e04b352a1720f7842d4ad7f1ead25',1,'data_structures::RedBlackTree::Node::right'],['../structdata__structures_1_1SplayTree_1_1Node.html#a5b11d09b235d7470bbff7ba9fb3d1d12',1,'data_structures::SplayTree::Node::right'],['../structml_1_1sql_1_1ast_1_1Expression.html#a66955c853fa77f103b0b0f7867247a21',1,'ml::sql::ast::Expression::right'],['../structplang_1_1BinaryExpr.html#a98b7994b3e719b4ec866ab572e4da0c0',1,'plang::BinaryExpr::right']]],
+  ['role_17',['role',['../structauth_1_1User.html#ab97ea3da9e6dacf0ebba77edb3ccd626',1,'auth::User::role'],['../structauth_1_1Session.html#a8b052e4534b1419db1c149729c0ba741',1,'auth::Session::role'],['../structauth_1_1JwtClaims.html#a70f476e4d086032d4095abd57afdeddf',1,'auth::JwtClaims::role']]],
+  ['root_18',['root',['../structgraphics_1_1components_1_1FileTreeModel.html#a47989e7f7037f1a43174c26657f74deb',1,'graphics::components::FileTreeModel']]],
+  ['row_19',['row',['../structml_1_1BMUResult.html#a01525ac48b755b7237d44edf4556c4ab',1,'ml::BMUResult']]],
+  ['rows_20',['rows',['../structml_1_1sql_1_1ResultSet.html#a4c105da2cfa845e22d2c1cd83d534b91',1,'ml::sql::ResultSet::rows'],['../classdataformats_1_1http_1_1ResponseDataFrame.html#a3f153eb82557bc9a7587164934c26a37',1,'dataformats::http::ResponseDataFrame::rows']]],
+  ['rule_21',['rule',['../structml_1_1sql_1_1semantic_1_1SemanticDiagnostic.html#ae7ff959e5b20632423b972bc63a9668e',1,'ml::sql::semantic::SemanticDiagnostic::rule'],['../structml_1_1sql_1_1validation_1_1Diagnostic.html#aad49ae25c0bd62fa0817a57ed74b9c08',1,'ml::sql::validation::Diagnostic::rule']]]
+];

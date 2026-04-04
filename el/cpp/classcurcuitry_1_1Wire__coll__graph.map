@@ -1,0 +1,7 @@
+<map id="curcuitry::Wire" name="curcuitry::Wire">
+<area shape="rect" id="Node000001" title="A wire (ideal conductor) component." alt="" coords="28,183,144,208"/>
+<area shape="rect" id="Node000002" href="$classcurcuitry_1_1Component.html" title="Base class for all circuit components." alt="" coords="5,108,167,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="89,148,89,182,83,182,83,148"/>
+<area shape="rect" id="Node000003" href="$structcurcuitry_1_1Point.html" title="2D coordinate point for circuit layout." alt="" coords="27,5,145,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="89,45,89,108,83,108,83,45"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="_libraries/backages/PARSER/database/lexical_analysis/parser/headers/sql_tokenizer.h" name="_libraries/backages/PARSER/database/lexical_analysis/parser/headers/sql_tokenizer.h">
+<area shape="rect" id="Node000001" title="SQL query tokenizer — splits raw SQL strings into typed token lists." alt="" coords="139,5,326,75"/>
+<area shape="rect" id="Node000002" href="$sql__ast_8h.html" title="SQL Abstract Syntax Tree — node types and parser that converts a token list (from sql_tokenizer) into..." alt="" coords="120,123,345,177"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="235,88,235,122,230,122,230,88"/>
+<area shape="rect" id="Node000003" href="$meaning__analysis_8h.html" title="SQL semantic / meaning analysis — validates AST nodes against a schema catalog to verify table existe..." alt="" coords="5,225,217,295"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="194,189,151,227,147,223,191,185"/>
+<area shape="rect" id="Node000004" href="$grammar__validation_8h.html" title="SQL grammar validation — validates AST nodes against SQL grammar rules, producing structured diagnost..." alt="" coords="242,225,469,295"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="275,185,319,223,315,227,272,189"/>
+</map>

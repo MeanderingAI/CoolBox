@@ -1,0 +1,31 @@
+<map id="_libraries/backages/ML/bayesian_network_ai/headers/bayesian_network.h" name="_libraries/backages/ML/bayesian_network_ai/headers/bayesian_network.h">
+<area shape="rect" id="Node000001" title="Discrete Bayesian Network with exact inference (variable elimination)." alt="" coords="587,5,755,75"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,123,68,148"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="588,52,363,80,225,100,82,125,81,120,224,95,362,74,587,47"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="93,123,151,148"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="588,55,398,82,165,125,164,120,397,77,587,49"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="175,123,226,148"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="588,57,430,85,240,125,239,120,429,79,587,52"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="250,123,293,148"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="588,60,459,87,307,125,305,120,458,82,587,55"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="317,123,441,148"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="588,71,429,121,427,116,586,65"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="465,123,552,148"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="614,77,542,118,539,113,611,72"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="577,123,662,148"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="655,76,635,112,630,109,650,73"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="686,123,761,148"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="692,73,712,109,708,112,688,76"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="785,123,848,148"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="725,73,788,113,786,117,722,77"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="873,123,942,148"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="757,72,867,115,865,120,755,77"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="966,123,1041,148"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="756,62,953,117,952,122,755,67"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="1065,123,1145,148"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="756,57,1052,120,1050,125,755,62"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="1169,123,1243,148"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="756,51,935,80,1155,120,1154,125,935,85,755,56"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="1268,123,1355,148"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="756,49,977,78,1255,120,1254,125,977,83,755,54"/>
+</map>

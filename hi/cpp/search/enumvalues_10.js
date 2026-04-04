@@ -1,0 +1,20 @@
+var searchData=
+[
+  ['radiobutton_0',['RadioButton',['../namespacegraphics_1_1components.html#a825254c2add3edba69d466de518da550accf0503df958552a245a3593e1063cd8',1,'graphics::components']]],
+  ['radioselector_1',['RadioSelector',['../namespacegraphics_1_1components.html#a825254c2add3edba69d466de518da550a16c14fe80051a9ef006741ee98fb7a0c',1,'graphics::components']]],
+  ['random_2',['RANDOM',['../namespacesecurity.html#adf41b2cf0868f01318414c22c39ac66fa170e02e86972c2be8559884cc3c12254',1,'security']]],
+  ['random_5fsample_3',['RANDOM_SAMPLE',['../namespaceml.html#a414829eb21d367ab04b53b40cc4b0929a040de288c4746f10cbd6ee3cbc5b903f',1,'ml']]],
+  ['random_5funiform_4',['RANDOM_UNIFORM',['../namespaceml.html#a414829eb21d367ab04b53b40cc4b0929acb3b2e38fa3bb5365b280e686953c5ad',1,'ml']]],
+  ['real_5',['REAL',['../namespaceml_1_1sql_1_1semantic.html#a0d99c71f1f3ac4828f93650c7ba7b679a8cf125b0e31559ba75a9d9b4f818a554',1,'ml::sql::semantic']]],
+  ['red_6',['RED',['../classdata__structures_1_1RedBlackTree.html#a15bb91895109b3d706a940fa3a974c70a7849bab30436e58fea36ce4f2bad19ca',1,'data_structures::RedBlackTree']]],
+  ['reduce_7',['REDUCE',['../namespacenetworking_1_1distributed.html#a026bb8e7c178e4fa67073c69f43cc06cac26e83d7610e4a0a9307a7bea9aec3d9',1,'networking::distributed']]],
+  ['regression_8',['REGRESSION',['../namespaceml.html#a3a28b3b6503168396f8dcc1eb8b21e45a3fb097abda02709442bb2857e258a251',1,'ml']]],
+  ['resistor_9',['RESISTOR',['../namespacecurcuitry.html#ac704d96cc8e163314fb47c06c20ec1e9abfacb102ae0b5bcbddf0de885d2068e5',1,'curcuitry']]],
+  ['resnet_10',['RESNET',['../classml_1_1deep__learning_1_1CNNTemplate.html#a8f9969de7e80392be2d0ca6dc32d19a0a0ac055c13475c472faaf4333401229f6',1,'ml::deep_learning::CNNTemplate']]],
+  ['result_11',['RESULT',['../namespacenetworking_1_1distributed.html#a026bb8e7c178e4fa67073c69f43cc06ca928d65c3e1f4f9738e635729274f126e',1,'networking::distributed']]],
+  ['reversesawtooth_12',['ReverseSawtooth',['../namespaceutils_1_1wave__generator.html#ad7ce3ba1b50ca60c5d057958bde2fc39afc2faec6bf2cfcf18b81357a9307069d',1,'utils::wave_generator']]],
+  ['rgb_13',['RGB',['../namespaceml_1_1cv.html#aab72dab4de75b7a2a5555f77ef50646aa889574aebacda6bfd3e534e2b49b8028',1,'ml::cv']]],
+  ['rgba_14',['RGBA',['../namespaceml_1_1cv.html#aab72dab4de75b7a2a5555f77ef50646aaea3495a278957dc58165e48a8945469f',1,'ml::cv']]],
+  ['right_15',['RIGHT',['../namespaceml_1_1sql_1_1ast.html#a1329239baf3caa450586b0f164dc4d1ba21507b40c80068eda19865706fdc2403',1,'ml::sql::ast']]],
+  ['ring_5fall_5freduce_16',['RING_ALL_REDUCE',['../namespacenetworking_1_1distributed.html#a7e6300c31dea047629d140272f749f8aafec55e4aa7819049b7967d4bc71ac886',1,'networking::distributed']]]
+];

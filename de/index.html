@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoolBox-Dokumentation</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+    main { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
+    .page-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+    h1 { margin-top: 0; margin-bottom: 0; }
+    ul { padding-left: 1.25rem; }
+    li { margin: 1rem 0; }
+    a { color: #2563eb; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    p { margin: 0.25rem 0 0; color: #475569; }
+    .section-title { margin: 0 0 0.75rem; }
+    .section-divider { border: 0; border-top: 2px solid #cbd5e1; margin: 2rem 0; }
+    .tutorials-list li { margin: 0.85rem 0; }
+    .muted { color: #64748b; font-size: 0.95rem; }
+    footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.95rem; }
+    footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .footer-language-switcher { margin-left: auto; display: flex; gap: 0.2rem; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .footer-language-switcher-mark { color: #475569; font-weight: 700; }
+    .footer-language-switcher-bracket { color: #475569; font-weight: 700; }
+    .footer-language-switcher a { font-weight: 600; white-space: nowrap; }
+    .footer-language-switcher a.active { color: #000000; }
+    .footer-left-mark { color: #64748b; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="page-header">
+      <h1>☉ CoolBox-Dokumentationsportal</h1>
+      <p class="muted">𓁿 Meandering LLC © 2026</p>
+    </div>
+    <p class="muted">Einheitlicher Einstiegspunkt für native C++-Dokumentation und erweiterungsspezifische Dokumentation.</p>
+    <p class="muted">GitHub-Releases: <a href="https://github.com/MeanderingAI/CoolBox/releases/latest">Neueste Version</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases">Alle Versionen</a></p>
+    <h2 class="section-title">Dokumentation und Downloads</h2>
+    <ul>
+      <li><a href="cpp/index.html">C++ API Reference</a><p>Doxygen output for the native CoolBox headers.</p></li>
+      <li><a href="extensions/r/index.html">R Extension Docs</a><p>pkgdown site for the R package bindings.</p><p class="muted">Release assets (v1.1.25): Linux (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-r-bindings-linux-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-r-bindings-linux-x86_64-v1.1.25.zip">zip</a>) · macOS (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-r-bindings-macos-arm64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-r-bindings-macos-arm64-v1.1.25.zip">zip</a>) · Windows (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-r-bindings-windows-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-r-bindings-windows-x86_64-v1.1.25.zip">zip</a>)</p></li>
+      <li><a href="extensions/python/index.html">Python Extension Docs</a><p>Rendered documentation for the Python bindings.</p><p class="muted">Release assets (v1.1.25): Linux (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-python-bindings-linux-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-python-bindings-linux-x86_64-v1.1.25.zip">zip</a>) · macOS (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-python-bindings-macos-arm64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-python-bindings-macos-arm64-v1.1.25.zip">zip</a>) · Windows (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-python-bindings-windows-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-python-bindings-windows-x86_64-v1.1.25.zip">zip</a>)</p></li>
+      <li><a href="extensions/go/index.html">Go Extension Docs</a><p>Go module overview and GitHub installation instructions for the bindings.</p><p class="muted">Release assets (v1.1.25): Linux (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-go-bindings-linux-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-go-bindings-linux-x86_64-v1.1.25.zip">zip</a>) · macOS (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-go-bindings-macos-arm64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-go-bindings-macos-arm64-v1.1.25.zip">zip</a>) · Windows (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-go-bindings-windows-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-go-bindings-windows-x86_64-v1.1.25.zip">zip</a>)</p></li>
+      <li><a href="extensions/javascript/index.html">JavaScript Extension Index</a><p>Inventory of Emscripten binding modules.</p><p class="muted">Release assets (v1.1.25): Linux (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-js-bindings-linux-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-js-bindings-linux-x86_64-v1.1.25.zip">zip</a>) · macOS (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-js-bindings-macos-arm64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-js-bindings-macos-arm64-v1.1.25.zip">zip</a>) · Windows (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-js-bindings-windows-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-js-bindings-windows-x86_64-v1.1.25.zip">zip</a>)</p></li>
+      <li><a href="extensions/c/index.html">C Extension Docs</a><p>Doxygen output for the plain C bindings.</p><p class="muted">Release assets (v1.1.25): Linux (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-c-bindings-linux-x86_64-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-c-bindings-linux-x86_64-v1.1.25.zip">zip</a>)</p></li>
+      
+      <li><a href="extensions/rust/index.html">Rust Extension Docs</a><p>Rendered documentation for the Rust crate bindings.</p><p class="muted">Release assets (v1.1.25): Rust package (<a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-rust-bindings-v1.1.25.crate">crate</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-rust-bindings-v1.1.25.tar.gz">tar.gz</a> · <a href="https://github.com/MeanderingAI/CoolBox/releases/download/v1.1.25/coolbox-rust-bindings-v1.1.25.zip">zip</a>)</p></li>
+      <li><a href="artifacts/c/index.html">C Binding Artifacts</a><p>Built C static libraries and installed headers.</p></li>
+      
+      <li><a href="artifacts/python/index.html">Python Binding Artifacts</a><p>Built Python extension outputs and package artifacts.</p></li>
+      
+      <li><a href="artifacts/javascript/index.html">JavaScript Binding Artifacts</a><p>Built Emscripten JavaScript and WASM outputs.</p></li>
+      <li><a href="artifacts/java/index.html">Java Binding Artifacts</a><p>Built Java jars and Maven metadata.</p></li>
+      
+    </ul>
+    <hr class="section-divider">
+    <section>
+      <h2 class="section-title">𓂀 Tutorials</h2>
+      <ul class="tutorials-list">
+        <li><a href="tutorials/index.html">Tutorials</a><p>Quick tutorials for using the CoolBox library.</p></li>
+        <li><a href="tutorials/wave-generation-python.html">Wave Generation Tutorial</a><p class="muted">Latest tutorial post · published 2026-04-04</p></li><li><a href="tutorials/machinelearning-python.html">Python Machine Learning Example</a><p class="muted">Latest tutorial post · published 2026-04-04</p></li><li><a href="tutorials/install-from-github.html">Install from GitHub</a><p class="muted">Latest tutorial post · published 2026-04-04</p></li>
+      </ul>
+    </section>
+    <hr class="section-divider">
+    <section>
+      <h2 class="section-title">இ Publikationen</h2>
+      <ul class="tutorials-list">
+        <li><p class="muted">Derzeit sind noch keine Publikationen verfügbar.</p></li>
+      </ul>
+    </section>
+    <footer>
+      <span class="footer-left-mark">𓎱</span>
+        <div class="footer-language-switcher" aria-label="Sprachen"><span class="footer-language-switcher-mark">𖧼</span><span class="footer-language-switcher-bracket">[</span><a class="language-link active" href="index.html">English</a>, <a class="language-link" href="es/index.html">Espanol</a>, <a class="language-link" href="fr/index.html">Francais</a>, <a class="language-link" href="de/index.html">Deutsch</a>, <a class="language-link" href="ja/index.html">日本語</a>, <a class="language-link" href="it/index.html">Italiano</a>, <a class="language-link" href="ko/index.html">한국어</a>, <a class="language-link" href="vi/index.html">Tieng Viet</a>, <a class="language-link" href="yue/index.html">廣東話</a>, <a class="language-link" href="el/index.html">Ελληνικά</a>, <a class="language-link" href="hi/index.html">हिन्दी</a><span class="footer-language-switcher-bracket">]</span></div>
+    </footer>
+  </main>
+</body>
+</html>

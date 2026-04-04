@@ -1,0 +1,13 @@
+<map id="BaseFilter" name="BaseFilter">
+<area shape="rect" id="Node000001" title="Abstract base class for filter implementations." alt="" coords="293,5,380,31"/>
+<area shape="rect" id="Node000002" href="$classBaseKalmanFilter.html" title="Abstract base class for Kalman filter variants." alt="" coords="180,79,317,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="314,41,265,81,261,76,310,37"/>
+<area shape="rect" id="Node000006" href="$classSequentialMonteCarlo.html" title=" " alt="" coords="341,79,508,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="363,37,412,76,409,81,360,41"/>
+<area shape="rect" id="Node000003" href="$classExtendedKalmanFilter.html" title="Extended Kalman Filter for nonlinear systems." alt="" coords="5,152,172,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="212,112,116,154,114,149,210,107"/>
+<area shape="rect" id="Node000004" href="$classKalmanFilter.html" title=" " alt="" coords="196,152,301,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="251,118,251,152,246,152,246,118"/>
+<area shape="rect" id="Node000005" href="$classUnscentedKalmanFilter.html" title="Public Methods:" alt="" coords="325,152,500,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="289,107,387,149,385,154,287,112"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="_libraries/backages/PARSER/database/syntax_analysis/ast/headers/sql_ast.h" name="_libraries/backages/PARSER/database/syntax_analysis/ast/headers/sql_ast.h">
+<area shape="rect" id="Node000001" title="SQL Abstract Syntax Tree — node types and parser that converts a token list (from sql_tokenizer) into..." alt="" coords="120,5,345,60"/>
+<area shape="rect" id="Node000002" href="$meaning__analysis_8h.html" title="SQL semantic / meaning analysis — validates AST nodes against a schema catalog to verify table existe..." alt="" coords="5,108,217,177"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,72,151,110,147,106,191,68"/>
+<area shape="rect" id="Node000003" href="$grammar__validation_8h.html" title="SQL grammar validation — validates AST nodes against SQL grammar rules, producing structured diagnost..." alt="" coords="242,108,469,177"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="275,68,319,106,315,110,272,72"/>
+</map>

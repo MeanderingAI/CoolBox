@@ -1,0 +1,5 @@
+<map id="ExponentialDistribution" name="ExponentialDistribution">
+<area shape="rect" id="Node000001" title="A concrete class for the Exponential distribution." alt="" coords="5,79,180,104"/>
+<area shape="rect" id="Node000002" href="$classDistribution.html" title="An abstract base class for a probability distribution." alt="" coords="43,5,142,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="95,44,95,79,90,79,90,44"/>
+</map>

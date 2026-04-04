@@ -1,0 +1,25 @@
+<map id="Distribution" name="Distribution">
+<area shape="rect" id="Node000001" title="An abstract base class for a probability distribution." alt="" coords="5,228,104,253"/>
+<area shape="rect" id="Node000002" href="$classDiscreteDistribution.html" title="An abstract base class for discrete probability distributions." alt="" coords="179,104,331,129"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,215,104,176,126,155,151,138,178,127,180,131,153,143,129,160,108,179,74,219"/>
+<area shape="rect" id="Node000008" href="$classExponentialDistribution.html" title="A concrete class for the Exponential distribution." alt="" coords="168,153,343,179"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="87,219,151,188,188,176,189,181,153,192,89,223"/>
+<area shape="rect" id="Node000009" href="$classGammaDistribution.html" title="A concrete class for the Gamma distribution." alt="" coords="180,203,331,228"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="118,230,179,222,180,227,119,235"/>
+<area shape="rect" id="Node000010" href="$classInverseGaussianDistribution.html" title="A concrete class for the Inverse Gaussian distribution." alt="" coords="152,252,359,277"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="118,246,152,250,151,255,117,251"/>
+<area shape="rect" id="Node000011" href="$classLaplaceDistribution.html" title="A concrete class for the Laplace distribution." alt="" coords="181,301,329,327"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="90,258,153,288,190,299,188,304,151,292,88,262"/>
+<area shape="rect" id="Node000012" href="$classNormalDistribution.html" title="A concrete class for the Normal (Gaussian) distribution." alt="" coords="182,351,329,376"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="75,263,108,301,130,321,153,337,183,349,181,354,151,342,126,325,104,305,71,266"/>
+<area shape="rect" id="Node000003" href="$classBernoulliDistribution.html" title="A concrete class for the Bernoulli distribution." alt="" coords="417,5,573,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="290,95,343,67,406,40,440,28,442,33,408,44,346,72,292,100"/>
+<area shape="rect" id="Node000004" href="$classBinomialDistribution.html" title="A concrete class for the Binomial distribution." alt="" coords="417,55,573,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="330,99,432,77,433,83,331,104"/>
+<area shape="rect" id="Node000005" href="$classCategoricalDistribution.html" title="A concrete class for the Categorical distribution." alt="" coords="409,104,581,129"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="345,114,409,114,409,119,345,119"/>
+<area shape="rect" id="Node000006" href="$classMultinomialDistribution.html" title="A concrete class for the Multinomial distribution." alt="" coords="407,153,583,179"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="331,130,433,151,432,156,330,135"/>
+<area shape="rect" id="Node000007" href="$classPoissonDistribution.html" title="A concrete class for the Poisson distribution." alt="" coords="421,203,569,228"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="345,131,360,138,376,151,385,164,394,176,408,188,435,200,433,205,405,192,390,180,381,167,372,154,357,143,343,136"/>
+</map>

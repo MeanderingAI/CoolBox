@@ -1,0 +1,13 @@
+<map id="_libraries/backages/ML/support_vector_machine/headers/kernel.h" name="_libraries/backages/ML/support_vector_machine/headers/kernel.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="477,5,687,60"/>
+<area shape="rect" id="Node000002" href="$linear__kernel_8h.html" title=" " alt="" coords="5,115,215,170"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="465,59,227,111,199,118,198,113,225,105,463,54"/>
+<area shape="rect" id="Node000003" href="$polynomial__kernel_8h.html" title=" " alt="" coords="239,115,453,170"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="513,68,405,118,402,113,511,63"/>
+<area shape="rect" id="Node000004" href="$rbf__kernel_8h.html" title=" " alt="" coords="477,115,687,170"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="585,74,585,115,579,115,579,74"/>
+<area shape="rect" id="Node000005" href="$sigmoid__kernel_8h.html" title=" " alt="" coords="711,115,920,170"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="652,63,760,113,757,118,650,68"/>
+<area shape="rect" id="Node000006" href="$support__vector__machine_8h.html" title=" " alt="" coords="944,108,1153,177"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="701,54,933,105,944,108,943,113,932,111,700,59"/>
+</map>

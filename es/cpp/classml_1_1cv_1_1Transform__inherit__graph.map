@@ -1,0 +1,31 @@
+<map id="ml::cv::Transform" name="ml::cv::Transform">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,327,140,352"/>
+<area shape="rect" id="Node000002" href="$classml_1_1cv_1_1AdjustBrightness.html" title=" " alt="" coords="206,5,385,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="73,312,82,255,101,182,115,143,134,105,157,70,186,40,204,28,207,33,190,44,162,74,139,108,120,145,106,183,87,256,79,313"/>
+<area shape="rect" id="Node000003" href="$classml_1_1cv_1_1AdjustContrast.html" title=" " alt="" coords="213,55,378,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="76,312,87,264,108,204,140,142,161,114,186,89,211,75,214,80,190,93,165,117,144,145,112,206,92,266,81,313"/>
+<area shape="rect" id="Node000004" href="$classml_1_1cv_1_1CenterCrop.html" title=" " alt="" coords="224,104,367,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="79,312,93,273,115,226,146,179,165,157,187,138,223,122,225,126,189,143,169,161,150,182,120,229,98,275,84,314"/>
+<area shape="rect" id="Node000005" href="$classml_1_1cv_1_1GaussianBlur.html" title=" " alt="" coords="218,153,373,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="84,313,123,250,152,216,187,188,217,174,219,179,189,192,156,220,128,253,88,316"/>
+<area shape="rect" id="Node000006" href="$classml_1_1cv_1_1HorizontalFlip.html" title=" " alt="" coords="215,203,375,228"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="92,314,133,274,159,254,187,237,216,226,218,231,189,242,162,258,136,278,96,318"/>
+<area shape="rect" id="Node000007" href="$classml_1_1cv_1_1Normalize.html" title=" " alt="" coords="227,252,363,277"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="110,318,187,286,228,275,229,280,189,291,112,323"/>
+<area shape="rect" id="Node000008" href="$classml_1_1cv_1_1Pad.html" title=" " alt="" coords="249,301,341,327"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="153,328,249,316,250,322,154,333"/>
+<area shape="rect" id="Node000009" href="$classml_1_1cv_1_1RandomCrop.html" title=" " alt="" coords="219,351,372,376"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="154,345,219,352,218,358,153,351"/>
+<area shape="rect" id="Node000010" href="$classml_1_1cv_1_1RandomHorizontalFlip.html" title=" " alt="" coords="188,400,403,425"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="114,355,189,385,234,397,232,402,187,390,112,360"/>
+<area shape="rect" id="Node000011" href="$classml_1_1cv_1_1RandomRotation.html" title=" " alt="" coords="206,449,385,475"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="96,360,137,399,189,434,221,447,220,452,187,439,134,403,93,364"/>
+<area shape="rect" id="Node000012" href="$classml_1_1cv_1_1Resize.html" title=" " alt="" coords="239,499,351,524"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="89,363,128,425,156,457,189,484,214,495,240,503,238,508,212,500,187,488,153,461,124,428,84,366"/>
+<area shape="rect" id="Node000013" href="$classml_1_1cv_1_1Rotate.html" title=" " alt="" coords="239,548,351,573"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="84,365,98,403,120,449,151,495,190,533,213,546,240,554,238,559,211,551,186,537,146,498,116,451,93,405,79,366"/>
+<area shape="rect" id="Node000014" href="$classml_1_1cv_1_1Standardize.html" title=" " alt="" coords="222,597,369,623"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="81,366,93,413,113,472,145,532,166,559,190,583,223,600,220,604,186,587,162,563,140,535,108,474,87,414,76,367"/>
+<area shape="rect" id="Node000015" href="$classml_1_1cv_1_1VerticalFlip.html" title=" " alt="" coords="224,647,367,672"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="79,365,87,421,106,494,121,532,139,569,162,603,190,632,206,643,225,650,223,655,204,648,186,636,158,606,134,571,116,534,101,495,82,423,74,366"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="Kernel" name="Kernel">
+<area shape="rect" id="Node000001" title=" " alt="" coords="237,5,300,31"/>
+<area shape="rect" id="Node000002" href="$classLinearKernel.html" title=" " alt="" coords="5,79,108,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="225,37,92,81,90,76,223,32"/>
+<area shape="rect" id="Node000003" href="$classPolynomialKernel.html" title=" " alt="" coords="133,79,269,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="250,42,214,80,210,77,246,39"/>
+<area shape="rect" id="Node000004" href="$classRBFKernel.html" title=" " alt="" coords="293,79,383,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="291,39,329,77,325,80,288,43"/>
+<area shape="rect" id="Node000005" href="$classSigmoidKernel.html" title=" " alt="" coords="407,79,523,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="314,33,434,76,432,81,312,38"/>
+</map>
