@@ -77,7 +77,7 @@ jobs:
       - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'
         id: msys2
-        uses: msys2/setup-msys2@v2.30.0
+        uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           path-type: inherit
@@ -148,24 +148,58 @@ jobs:
       - name: Build all libraries
         run: |
           cd build
+          help_out="$(cmake --build . --target help 2>&1 || true)"
+          skipped_libs=()
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E '^add_library' "$f" 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do
               echo "::group::Building $t"
-              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build $t"
+              if echo "$help_out" | grep -E "^${t}\\b" >/dev/null; then
+                cmake --build . --target "$t" --config Release || echo "::warning::Failed to build $t"
+              else
+                skipped_libs+=("$t")
+              fi
               echo "::endgroup::"
             done
           done
+          if [ ${#skipped_libs[@]} -gt 0 ]; then
+            echo "::warning::The following library targets were not present in the build system and were skipped: ${skipped_libs[*]}"
+            if [ -f CMakeCache.txt ]; then
+              echo "CMakeCache BUILD_TESTING:"
+              grep -i '^BUILD_TESTING:' CMakeCache.txt || true
+              echo "CMakeCache entries mentioning gtest/googletest:"
+              grep -i 'gtest\|googletest' CMakeCache.txt || true
+            else
+              echo "No CMakeCache.txt found in build/"
+            fi
+          fi
 
       - name: Build all tests
         run: |
           cd build
+          help_out="$(cmake --build . --target help 2>&1 || true)"
+          skipped_tests=()
           for f in $(find ../_libraries/backages -name CMakeLists.txt); do
             for t in $(grep -E 'add_executable.*_tests' "$f" 2>/dev/null | sed -E 's/.*add_executable\(([^ ]+).*/\1/'); do
               echo "::group::Building test $t"
-              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
+              if echo "$help_out" | grep -E "^${t}\\b" >/dev/null; then
+                cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
+              else
+                skipped_tests+=("$t")
+              fi
               echo "::endgroup::"
             done
           done
+          if [ ${#skipped_tests[@]} -gt 0 ]; then
+            echo "::warning::The following test targets were not present in the build system and were skipped: ${skipped_tests[*]}"
+            if [ -f CMakeCache.txt ]; then
+              echo "CMakeCache BUILD_TESTING:"
+              grep -i '^BUILD_TESTING:' CMakeCache.txt || true
+              echo "CMakeCache entries mentioning gtest/googletest:"
+              grep -i 'gtest\|googletest' CMakeCache.txt || true
+            else
+              echo "No CMakeCache.txt found in build/"
+            fi
+          fi
 
       - name: Run tests
         run: |
@@ -189,7 +223,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.platform }}
           path: build/Testing/
@@ -213,7 +247,7 @@ jobs:
           fi
 
       - name: Upload LSP dist archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pl_lsp_dist
           path: build/pl_lsp_dist.tar.gz
@@ -221,7 +255,7 @@ jobs:
           retention-days: 14
 
       - name: Upload individual LSP binaries (fallback)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: plang_lsp
           path: |
@@ -311,14 +345,14 @@ jobs:
           rm -rf staging-headers
 
       - name: Upload release assets
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets-${{ matrix.platform }}
           path: release-assets/
 
       - name: Upload full build directory
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coolbox-build-${{ matrix.platform }}-${{ github.ref_name }}
           path: build/

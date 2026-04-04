@@ -1,27 +1,14 @@
-include(FetchContent)
-
 set(FONTS_LIBRARY_TYPE SHARED)
 if(WIN32)
     set(FONTS_LIBRARY_TYPE STATIC)
 endif()
 
-FetchContent_Declare(
-    stb
-    GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG        master
-    GIT_SHALLOW    TRUE
-)
-FetchContent_GetProperties(stb)
-if(NOT stb_POPULATED)
-    FetchContent_MakeAvailable(stb)
-endif()
-
 add_library(fonts ${FONTS_LIBRARY_TYPE}
     source/fonts.cpp
+    source/stb_truetype.cpp
 )
 
 target_include_directories(fonts PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-target_include_directories(fonts SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_compile_features(fonts PUBLIC cxx_std_17)
 target_link_libraries(fonts PUBLIC charts)
 

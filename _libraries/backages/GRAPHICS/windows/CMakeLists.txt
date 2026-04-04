@@ -1,4 +1,8 @@
-add_library(windows SHARED
+
+cmake_minimum_required(VERSION 3.5)
+project(windows)
+
+add_library(windows
     source/windows.cpp
 )
 

@@ -2,6 +2,10 @@ name: build_ext_go
 
 on:
   workflow_call:
+    inputs:
+      build_libs_run_id:
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -58,16 +62,35 @@ jobs:
           echo "osname=${OSNAME}" >> $GITHUB_OUTPUT
           echo "arch=${ARCH}" >> $GITHUB_OUTPUT
 
-      - name: Download built C++ libraries (from build_libs)
+      - name: Download built C++ libraries (from build_libs) (with run-id)
+        id: download_build_with_run
+        if: "${{ inputs.build_libs_run_id != '' }}"
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ steps.compute_artifact.outputs.artifact_name }}
+          path: build/
+          run-id: ${{ inputs.build_libs_run_id }}
+
+      - name: Download built C++ libraries (from build_libs) (no run-id)
         id: download_build
+        if: "${{ inputs.build_libs_run_id == '' }}"
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: ${{ steps.compute_artifact.outputs.artifact_name }}
           path: build/
 
-      - name: "Fallback: download any matching build artifact"
-        if: steps.download_build.outcome != 'success'
+      - name: Fallback download (run-id)
+        if: "${{ inputs.build_libs_run_id != '' }}"
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "coolbox-build-${{ steps.compute_artifact.outputs.osname }}-${{ steps.compute_artifact.outputs.arch }}-*"
+          path: build/
+          merge-multiple: true
+
+      - name: Fallback download (no run-id)
+        if: "${{ inputs.build_libs_run_id == '' }}"
         uses: actions/download-artifact@v8
         with:
           pattern: ${{ format('coolbox-build-{0}-{1}-*', steps.compute_artifact.outputs.osname, steps.compute_artifact.outputs.arch) }}
@@ -101,7 +124,7 @@ jobs:
         id: msys2
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-        uses: msys2/setup-msys2@v2.30.0
+        uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           path-type: inherit
@@ -275,8 +298,39 @@ jobs:
               python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             "staging-go" "release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip"
 
+      - name: Probe configured CMake tests and package test binaries
+        run: |
+          if [ -d build ]; then
+            echo "--- CMake help (first 200 lines) ---"
+            cmake --build build --target help 2>&1 | head -n 200 || true
+            echo "--- CTest configured tests ---"
+            ctest --test-dir build -N || true
+            mkdir -p build/test-binaries || true
+            shopt -s globstar || true
+            for f in build/**/*_tests build/**/*_test build/**/tests/*; do
+              if [ -f "$f" ] && [ -x "$f" ]; then
+                cp "$f" build/test-binaries/ || true
+              fi
+            done
+            if [ -d build/test-binaries ] && [ "$(ls -A build/test-binaries 2>/dev/null)" ]; then
+              tar -czf build/test_binaries_go_job.tar.gz -C build test-binaries
+              ls -la build/test_binaries_go_job.tar.gz || true
+            else
+              echo "No test binaries found to package"
+            fi
+          else
+            echo "No build directory present; skipping CMake probe"
+          fi
+
+      - name: Upload test binaries artifact (Go job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: go_test_binaries
+          path: build/test_binaries_go_job.tar.gz
+          retention-days: 14
+
       - name: Upload Go archives
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: go-extension-${{ matrix.platform }}-${{ github.ref_name }}
           path: |

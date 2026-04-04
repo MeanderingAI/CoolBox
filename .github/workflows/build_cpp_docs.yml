@@ -28,7 +28,7 @@ jobs:
           bash ./_scripts/build_cpp_docs.sh "$GITHUB_WORKSPACE/cpp-docs-site"
 
       - name: Upload C++ Doxygen artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cpp-doxygen-site
           path: cpp-docs-site/

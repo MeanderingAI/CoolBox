@@ -28,7 +28,7 @@ jobs:
     name: CI diagnostics
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log guard evaluations
         run: |
@@ -61,7 +61,7 @@ jobs:
     name: Post-build diagnostics
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Report build_libs outcome
         run: |
@@ -101,7 +101,7 @@ jobs:
     name: Collect diagnostics artifact
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create diagnostics directory and run info
         run: |
@@ -154,7 +154,7 @@ jobs:
           tar -czf diagnostics-${{ github.run_id }}.tar.gz diagnostics || true
 
       - name: Upload diagnostics artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci-diagnostics-${{ github.run_id }}
           path: diagnostics-${{ github.run_id }}.tar.gz
@@ -174,6 +174,8 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_python.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -181,6 +183,8 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_js.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
     
@@ -188,6 +192,8 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_go.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -195,6 +201,8 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_c.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -203,6 +211,8 @@ jobs:
       - build_libs
       - build_ext_c
     uses: ./.github/workflows/build_ext_java.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -210,6 +220,8 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_r.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -217,6 +229,8 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build_ext_rust.yml
+    with:
+      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -247,7 +261,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install docker
         run: |
@@ -257,14 +271,14 @@ jobs:
           sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download LSP artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pl_lsp_dist
           path: apps/lsp/dist
           run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: "Fallback: download individual LSP binaries"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plang_lsp
           path: apps/lsp/dist
@@ -310,21 +324,21 @@ jobs:
           cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
 
       - name: Download rust artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plrust_lsp
           path: apps/lsp/dist
           run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Download java artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pljava_lsp
           path: apps/lsp/dist
           run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Download python artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plpython_lsp
           path: apps/lsp/dist
@@ -334,13 +348,13 @@ jobs:
         run: chmod +x apps/lsp/dist/* || true
 
       - name: Log in to GHCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build & push plang LSP image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: apps/lsp
           file: apps/lsp/docker/Dockerfile.plang
@@ -350,7 +364,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
 
       - name: Build & push plrust LSP image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: apps/lsp
           file: apps/lsp/docker/Dockerfile.rust
@@ -360,7 +374,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
 
       - name: Build & push pljava LSP image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: apps/lsp
           file: apps/lsp/docker/Dockerfile.java
@@ -370,7 +384,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
 
       - name: Build & push plpython LSP image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: apps/lsp
           file: apps/lsp/docker/Dockerfile.python
@@ -387,28 +401,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download plang LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plang_lsp
           path: dist/plang
 
       - name: Download plrust LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plrust_lsp
           path: dist/plrust
 
       - name: Download pljava LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pljava_lsp
           path: dist/pljava
 
       - name: Download plpython LSP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plpython_lsp
           path: dist/plpython

@@ -1,3 +1,4 @@
+#this isn't used
 cmake_minimum_required(VERSION 3.12)
 project(GRAPHICS LANGUAGES C CXX)
 

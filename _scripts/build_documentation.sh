@@ -72,3 +72,18 @@ if [ -d "${SITE_DIR}/tags" ]; then
 fi
 
 echo "[${SCRIPT_NAME}] ✓ Documentation site generated."
+
+# Safety: If some earlier step wrote docs to an alternate location, normalize
+# common variants into the expected `.site` directory so CI and publishing
+# always see a consistent output path.
+if [ ! -d "${SITE_DIR}" ] || [ -z "$(ls -A "${SITE_DIR}" 2>/dev/null)" ]; then
+  echo "[${SCRIPT_NAME}] .site is empty; searching for alternate output locations"
+  for alt in "build/documentation_site" "build/documentation" ".documentation" "documentation" "docs_output"; do
+    if [ -d "${PROJECT_ROOT}/${alt}" ] && [ "$(ls -A "${PROJECT_ROOT}/${alt}" 2>/dev/null)" ]; then
+      echo "[${SCRIPT_NAME}] Moving ${alt} -> .site"
+      rm -rf "${SITE_DIR}" || true
+      mv "${PROJECT_ROOT}/${alt}" "${SITE_DIR}"
+      break
+    fi
+  done
+fi

@@ -1,8 +1,12 @@
 name: Build & publish all LSP Docker images
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build Libraries & Release"]
+    types: [completed]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 jobs:
   build-and-push-all:
     runs-on: ubuntu-latest
@@ -11,7 +15,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -20,25 +24,25 @@ jobs:
           sudo apt-get install -y --no-install-recommends docker.io
 
       - name: Download artifacts (all LSP binaries)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plang_lsp
           path: apps/lsp/dist
 
       - name: Download rust artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plrust_lsp
           path: apps/lsp/dist
 
       - name: Download java artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pljava_lsp
           path: apps/lsp/dist
 
       - name: Download python artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plpython_lsp
           path: apps/lsp/dist
@@ -48,7 +52,7 @@ jobs:
           chmod +x apps/lsp/dist/* || true
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
