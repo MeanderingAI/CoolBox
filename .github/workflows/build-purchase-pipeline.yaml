@@ -364,26 +364,17 @@ jobs:
       - name: Download plang LSP artifact
         uses: actions/download-artifact@v8
         with:
-          name: plang_lsp
-          path: dist/plang
+          name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
+          path: dist/raw
 
-      - name: Download plrust LSP artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: plrust_lsp
-          path: dist/plrust
-
-      - name: Download pljava LSP artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: pljava_lsp
-          path: dist/pljava
-
-      - name: Download plpython LSP artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: plpython_lsp
-          path: dist/plpython
+      - name: Stage per-language LSP artifacts
+        run: |
+          set -e
+          mkdir -p dist/plang dist/plrust dist/pljava dist/plpython
+          cp dist/raw/plang_lsp dist/plang/ || true
+          cp dist/raw/plrust_lsp dist/plrust/ || true
+          cp dist/raw/pljava_lsp dist/pljava/ || true
+          cp dist/raw/plpython_lsp dist/plpython/ || true
 
       - name: Package artifacts
         run: |

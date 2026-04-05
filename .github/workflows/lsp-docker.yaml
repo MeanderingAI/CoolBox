@@ -26,26 +26,10 @@ jobs:
       - name: Download artifacts (all LSP binaries)
         uses: actions/download-artifact@v8
         with:
-          name: plang_lsp
+          pattern: pl-lsp-binaries-linux-x86_64-*
           path: apps/lsp/dist
-
-      - name: Download rust artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: plrust_lsp
-          path: apps/lsp/dist
-
-      - name: Download java artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: pljava_lsp
-          path: apps/lsp/dist
-
-      - name: Download python artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: plpython_lsp
-          path: apps/lsp/dist
+          merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: Ensure binaries are executable
         run: |

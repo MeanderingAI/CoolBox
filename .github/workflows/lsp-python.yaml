@@ -26,8 +26,9 @@ jobs:
       - name: Download plpython_lsp artifact
         uses: actions/download-artifact@v8
         with:
-          name: plpython_lsp
+          pattern: pl-lsp-binaries-linux-x86_64-*
           path: apps/lsp/dist
+          merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
 
       - name: Log in to GitHub Container Registry
