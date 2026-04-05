@@ -202,8 +202,8 @@ jobs:
         run: |
           cd build
           help_out="$(cmake --build . --target help 2>&1 || true)"
-          mapfile -t discovered_tests < <(printf '%s\n' "$help_out" | awk '{print $1}' | grep '_tests$' | sort -u)
-          if [ ${#discovered_tests[@]} -eq 0 ]; then
+          discovered_tests="$(printf '%s\n' "$help_out" | awk '{print $1}' | grep '_tests$' | sort -u || true)"
+          if [ -z "$discovered_tests" ]; then
             echo "::warning::No configured *_tests targets were found in the generated build system."
             if [ -f CMakeCache.txt ]; then
               echo "CMakeCache BUILD_TESTING:"
@@ -215,11 +215,14 @@ jobs:
             fi
             exit 0
           fi
-          for t in "${discovered_tests[@]}"; do
+          while IFS= read -r t; do
+            [ -n "$t" ] || continue
             echo "::group::Building test $t"
             cmake --build . --target "$t" --config Release || echo "::warning::Failed to build test $t"
             echo "::endgroup::"
-          fi
+          done <<EOF
+          $discovered_tests
+          EOF
 
       - name: Run tests
         run: |
