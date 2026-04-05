@@ -16,7 +16,34 @@ help:
 	@powershell -NoProfile -NonInteractive -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure           Configure CMake"; Write-Host "  make -f Makefile.win build               Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME          Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries     Build the configured libraries"; Write-Host "  make -f Makefile.win test                Build and run CTest"; Write-Host "  make -f Makefile.win test_logged         Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win install             Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean               Remove build/ and lib/"; Write-Host ""'
 
 configure:
-	@powershell -NoProfile -NonInteractive -Command "if (Test-Path 'build/CMakeCache.txt') { Write-Host '[Makefile.win] Build already configured (build/CMakeCache.txt exists).'; exit 0 }; Write-Host '[Makefile.win] Running CMake configuration...'; $$gen = ''; if ($$env:VS_GENERATOR) { $$gen = $$env:VS_GENERATOR } elseif (Get-Command vswhere.exe -ErrorAction SilentlyContinue) { $$vs = & vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -property displayName; if ($$vs -match '2026') { $$gen = 'Visual Studio 18 2026' } elseif ($$vs -match '2022') { $$gen = 'Visual Studio 17 2022' } elseif ($$vs -match '2019') { $$gen = 'Visual Studio 16 2019' } elseif ($$vs -match '2017') { $$gen = 'Visual Studio 15 2017' } }; $$args = @('-S', '.', '-B', 'build', '-DBUILD_BINARIES=OFF', '-DENABLE_GSL=ON'); if ($$gen -ne '') { $$args += @('-G', $$gen) }; $$vcpkgCandidates = @(); if ($$env:VCPKG_ROOT) { $$vcpkgCandidates += (Join-Path $$env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake') }; if ($$env:USERPROFILE) { $$vcpkgCandidates += (Join-Path $$env:USERPROFILE 'vcpkg\scripts\buildsystems\vcpkg.cmake') }; if ($$env:LOCALAPPDATA) { $$vcpkgCandidates += (Join-Path $$env:LOCALAPPDATA 'vcpkg\scripts\buildsystems\vcpkg.cmake') }; $$vcpkgCandidates = $$vcpkgCandidates | Select-Object -Unique; $$vcpkg = $$vcpkgCandidates | Where-Object { Test-Path $$_ } | Select-Object -First 1; if ($$vcpkg) { $$args += ('-DCMAKE_TOOLCHAIN_FILE=' + $$vcpkg) }; & cmake @args; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }"
+	@powershell -NoProfile -NonInteractive -Command '& {
+		if (Test-Path "build/CMakeCache.txt") {
+			Write-Host "[Makefile.win] Build already configured (build/CMakeCache.txt exists)."
+			exit 0
+		}
+		Write-Host "[Makefile.win] Running CMake configuration..."
+		$$gen = ""
+		if ($$env:VS_GENERATOR) {
+			$$gen = $$env:VS_GENERATOR
+		} elseif (Get-Command vswhere.exe -ErrorAction SilentlyContinue) {
+			$$vs = & vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -property displayName
+			if ($$vs -match "2026") { $$gen = "Visual Studio 18 2026" }
+			elseif ($$vs -match "2022") { $$gen = "Visual Studio 17 2022" }
+			elseif ($$vs -match "2019") { $$gen = "Visual Studio 16 2019" }
+			elseif ($$vs -match "2017") { $$gen = "Visual Studio 15 2017" }
+		}
+		$$args = @("-S", ".", "-B", "build", "-DBUILD_BINARIES=OFF", "-DENABLE_GSL=ON")
+		if ($$gen -ne "") { $$args += @("-G", $$gen) }
+		$$vcpkgCandidates = @()
+		if ($$env:VCPKG_ROOT) { $$vcpkgCandidates += (Join-Path $$env:VCPKG_ROOT "scripts\buildsystems\vcpkg.cmake") }
+		if ($$env:USERPROFILE) { $$vcpkgCandidates += (Join-Path $$env:USERPROFILE "vcpkg\scripts\buildsystems\vcpkg.cmake") }
+		if ($$env:LOCALAPPDATA) { $$vcpkgCandidates += (Join-Path $$env:LOCALAPPDATA "vcpkg\scripts\buildsystems\vcpkg.cmake") }
+		$$vcpkgCandidates = $$vcpkgCandidates | Select-Object -Unique
+		$$vcpkg = $$vcpkgCandidates | Where-Object { Test-Path $$_ } | Select-Object -First 1
+		if ($$vcpkg) { $$args += ("-DCMAKE_TOOLCHAIN_FILE=" + $$vcpkg) }
+		& cmake @args
+		if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }
+	}'
 
 build: configure
 	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building project...'; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host '[Makefile.win] Build complete.'"

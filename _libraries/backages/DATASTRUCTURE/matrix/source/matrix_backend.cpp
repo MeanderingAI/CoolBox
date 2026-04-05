@@ -2,6 +2,7 @@
 #include "matrix_dense.h"
 #include "matrix_sparse.h"
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace matrix {
