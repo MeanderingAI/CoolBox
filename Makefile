@@ -121,11 +121,11 @@ build_all: configure
 # Configure CMake (libraries only). To enable/disable SQL backage,
 # pass -DBUILD_IO_SQL=ON/OFF on the command line when running cmake.
 configure:
-	@if [ ! -f build/Makefile ]; then \
+	@if [ ! -f build/CMakeCache.txt ]; then \
 		echo "[Makefile] Running CMake configuration (libraries only)..."; \
 		cmake -S . -B build -DBUILD_BINARIES=OFF; \
 	else \
-		echo "[Makefile] Build already configured (build/Makefile exists)."; \
+		echo "[Makefile] Build already configured (build/CMakeCache.txt exists)."; \
 	fi
 
 build: configure
@@ -139,14 +139,8 @@ clean:
 # ── Library Builds ──────────────────────────────────────────────────
 build_libraries: configure
 	@echo "[Makefile] Building all libraries..."
-	@for f in $$(find _libraries/backages -name CMakeLists.txt); do \
-		for t in $$(grep -E '^add_library' $$f 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do \
-			echo "  → $$t"; \
-			cd build && cmake --build . --target $$t 2>&1 | tail -3 || true; cd ..; \
-		done; \
-	done
-	@echo ""
-	@echo "  (Header-only / INTERFACE libraries need no build step)"
+	@cmake --build build
+	@echo "[Makefile] Library build complete."
 
 # Category-specific library builds
 define BUILD_LIBS_IN
@@ -186,16 +180,13 @@ build_%: configure
 
 # ── Tests ───────────────────────────────────────────────────────────
 test: configure
-	@echo "Building all test executables..."
-	@for f in $$(find _libraries/backages -name CMakeLists.txt); do \
-		for t in $$(grep -E 'add_executable.*_tests' $$f 2>/dev/null | sed -E 's/.*add_executable\(([^ ]+).*/\1/'); do \
-			echo "  → building $$t"; \
-			cd build && cmake --build . --target $$t 2>&1 | tail -3 || true; cd ..; \
-		done; \
-	done
+	@echo "[Makefile] Building configured test binaries..."
+	@cmake --build build
+	@echo "[Makefile] Configured CTest suites:"
+	@cd build && ctest -N || true
 	@echo ""
-	@echo "Running all CTest suites (library tests only)..."
-	@cd build && ctest --output-on-failure -R "Tests$$" || true
+	@echo "[Makefile] Running all registered CTest suites..."
+	@cd build && ctest --output-on-failure || true
 
 test-%: configure
 	@echo "Building & running test: $*"

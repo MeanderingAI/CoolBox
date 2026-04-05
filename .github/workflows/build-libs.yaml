@@ -172,75 +172,18 @@ jobs:
           fi
       - name: Build all libraries
         run: |
-          cd build
-          help_out="$(cmake --build . --target help 2>&1 || true)"
-          configured_targets="$(printf '%s\n' "$help_out" | awk '{print $1}' | sort -u || true)"
-          source_libs="$(find ../_libraries/backages -name CMakeLists.txt -exec grep -h -E '^add_library\(' {} + 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ )]+).*/\1/' | sort -u || true)"
-          skipped_libs=()
-          while IFS= read -r t; do
-            [ -n "$t" ] || continue
-            echo "::group::Building $t"
-            if printf '%s\n' "$configured_targets" | grep -Fx "$t" >/dev/null; then
-              cmake --build . --target "$t" --config Release || echo "::warning::Failed to build $t"
-            else
-              skipped_libs+=("$t")
-            fi
-            echo "::endgroup::"
-          done <<EOF
-          $source_libs
-          EOF
-          if [ ${#skipped_libs[@]} -gt 0 ]; then
-            echo "::warning::The following library targets were not present in the build system and were skipped: ${skipped_libs[*]}"
-            if [ -f CMakeCache.txt ]; then
-              echo "CMakeCache BUILD_TESTING:"
-              grep -i '^BUILD_TESTING:' CMakeCache.txt || true
-              echo "CMakeCache entries mentioning gtest/googletest:"
-              grep -i 'gtest\|googletest' CMakeCache.txt || true
-            else
-              echo "No CMakeCache.txt found in build/"
-            fi
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            make -f Makefile.win build_libraries
+          else
+            make build_libraries
           fi
 
-      - name: Build all tests
+      - name: Build and run tests
         run: |
-          cd build
-          ctest_list="$(ctest -N -C Release 2>&1 || true)"
-          if ! printf '%s\n' "$ctest_list" | grep -E 'Total Tests: [1-9][0-9]*' >/dev/null; then
-            echo "::warning::No configured CTest tests were found in the generated build system."
-            if [ -f CMakeCache.txt ]; then
-              echo "CMakeCache BUILD_TESTING:"
-              grep -i '^BUILD_TESTING:' CMakeCache.txt || true
-              echo "CMakeCache entries mentioning gtest/googletest:"
-              grep -i 'gtest\|googletest' CMakeCache.txt || true
-            else
-              echo "No CMakeCache.txt found in build/"
-            fi
-            echo "CTest -N output:"
-            printf '%s\n' "$ctest_list"
-            exit 0
-          fi
-          echo "::group::Building configured test binaries"
-          cmake --build . --config Release || echo "::warning::Default build reported failures while building configured tests"
-          echo "::endgroup::"
-
-      - name: Run tests
-        run: |
-          cd build
-          echo "::group::CTest Results"
-          # Ensure we run tests for the Release configuration on multi-config generators
-          ctest -C Release --output-on-failure --no-compress-output -R "Tests$" 2>&1 || true
-          echo "::endgroup::"
-          echo ""
-          echo "═══════════════════════════════════════════"
-          echo "  TEST RESULTS SUMMARY (${{ matrix.platform }})"
-          echo "═══════════════════════════════════════════"
-          # Also show a concise summary
-          ctest -C Release --output-on-failure -R "Tests$" 2>&1 | tail -20 || true
-          echo ""
-          # If some CI tooling expects a DartConfiguration.tcl, generate it via a dashboard run
-          if [ ! -f DartConfiguration.tcl ]; then
-            echo "Generating DartConfiguration.tcl via 'ctest -D Experimental'"
-            ctest -D Experimental || true
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            make -f Makefile.win test
+          else
+            make test
           fi
 
       - name: Upload test results
