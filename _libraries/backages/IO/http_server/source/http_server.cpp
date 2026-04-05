@@ -6,6 +6,7 @@
 #include <sstream>
 #include <thread>
 #include <chrono>
+#include <cerrno>
 #include <cstring>
 
 #ifdef _WIN32
@@ -227,7 +228,25 @@ void HttpServer::start() {
                 send(client_fd, resp_str.c_str(), static_cast<int>(resp_str.size()), 0);
                 closesocket(client_fd);
 #else
-                write(client_fd, resp_str.c_str(), resp_str.size());
+                size_t total_written = 0;
+                while (total_written < resp_str.size()) {
+                    ssize_t bytes_written = write(
+                        client_fd,
+                        resp_str.c_str() + total_written,
+                        resp_str.size() - total_written
+                    );
+                    if (bytes_written < 0) {
+                        if (errno == EINTR) {
+                            continue;
+                        }
+                        std::cerr << "[HttpServer] Failed to write response." << std::endl;
+                        break;
+                    }
+                    if (bytes_written == 0) {
+                        break;
+                    }
+                    total_written += static_cast<size_t>(bytes_written);
+                }
                 close(client_fd);
 #endif
             }

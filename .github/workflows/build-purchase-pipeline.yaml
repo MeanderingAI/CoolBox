@@ -133,11 +133,8 @@ jobs:
         with:
           pattern: |
             release-assets-*
-            pl_lsp_dist
-            plang_lsp
-            plrust_lsp
-            pljava_lsp
-            plpython_lsp
+            pl-lsp-dist-*
+            pl-lsp-binaries-*
           path: diagnostics/artifacts
           merge-multiple: true
 
@@ -257,13 +254,13 @@ jobs:
       - name: Download LSP artifacts
         uses: actions/download-artifact@v8
         with:
-          name: pl_lsp_dist
+          name: pl-lsp-dist-linux-x86_64-${{ github.ref_name }}
           path: apps/lsp/dist
 
       - name: "Fallback: download individual LSP binaries"
         uses: actions/download-artifact@v8
         with:
-          name: plang_lsp
+          name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
           path: apps/lsp/dist
 
       - name: Extract LSP dist archive if present
@@ -303,24 +300,6 @@ jobs:
           cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
           cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
           cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
-
-      - name: Download rust artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: plrust_lsp
-          path: apps/lsp/dist
-
-      - name: Download java artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: pljava_lsp
-          path: apps/lsp/dist
-
-      - name: Download python artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: plpython_lsp
-          path: apps/lsp/dist
 
       - name: Ensure binaries are executable
         run: chmod +x apps/lsp/dist/* || true
