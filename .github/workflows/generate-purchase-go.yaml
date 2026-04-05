@@ -284,8 +284,10 @@ jobs:
 
       - name: Build and test Go bindings
         run: |
+          mkdir -p build/test-logs
           cd _libraries/go_bindings
-          go test ./...
+          set -o pipefail
+          go test -count=1 -v ./... | tee ../../build/test-logs/go-bindings-${{ matrix.platform }}.log
 
       - name: Package Go bindings
         run: |
@@ -326,6 +328,13 @@ jobs:
         with:
           name: go_test_binaries
           path: build/test_binaries_go_job.tar.gz
+          retention-days: 14
+
+      - name: Upload Go test log
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-test-log-${{ matrix.platform }}
+          path: build/test-logs/go-bindings-${{ matrix.platform }}.log
           retention-days: 14
 
       - name: Upload Go archives

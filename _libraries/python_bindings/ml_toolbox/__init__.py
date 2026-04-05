@@ -46,6 +46,7 @@ __version__ = "0.2.0"
 
 # Import the C++ extension
 try:
+    from . import ml_core as _ml_core
     from .ml_core import *
 except ImportError:
     # Try to import from the parent directory (during development)
@@ -62,6 +63,8 @@ except ImportError:
             "Failed to import ml_core extension. "
             "Please build the package first: python setup.py build_ext --inplace"
         ) from e
+
+ml_core = _ml_core if "_ml_core" in globals() else ml_core
 
 __all__ = [
     "deep_learning",

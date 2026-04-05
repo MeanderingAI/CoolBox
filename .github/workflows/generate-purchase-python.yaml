@@ -231,6 +231,8 @@ jobs:
         shell: bash
 
       - name: Build Python bindings
+        env:
+          COOLBOX_PYTHON_FORCE_VENDOR_SOURCES: ${{ runner.os != 'Windows' && '1' || '0' }}
         run: |
           cd _libraries/python_bindings
           rm -rf build dist ml_toolbox.egg-info vendor_include vendor_src

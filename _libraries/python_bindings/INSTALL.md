@@ -32,6 +32,21 @@ Or manually:
 python3 setup.py build_ext --inplace
 ```
 
+### Native Library Resolution During Build
+
+`setup.py` resolves CoolBox native libraries before linking the extension:
+
+- It searches recursively under `COOLBOX_LIB_DIR` if that variable is set.
+- If `COOLBOX_LIB_DIR` is not set, it searches the default repository build tree.
+- If `charts` or `wave_generator_utils` are not available as built libraries, the build falls back to the vendored source copies bundled under `vendor_src/`.
+
+Useful overrides:
+
+```bash
+COOLBOX_LIB_DIR=/path/to/build python3 setup.py build_ext --inplace
+COOLBOX_LIBS=charts,wave_generator_utils python3 setup.py build_ext --inplace
+```
+
 ### 3. Test the Installation
 
 ```bash
@@ -87,6 +102,11 @@ pip3 install .
    - Ensure you have a C++17 compatible compiler
    - Check that all source files are accessible
    - Verify CMake version >= 3.12
+
+5. **"library 'charts' not found" or missing `wave_generator_utils` at link time**
+   - Point `COOLBOX_LIB_DIR` at the root of the staged CoolBox build tree
+   - The build now searches that tree recursively rather than assuming a flat `build/` layout
+   - If those libraries are absent entirely, `setup.py` falls back to the vendored `graphics.cpp` and `wave_generator.cpp` sources automatically
 
 ### Platform-Specific Notes
 

@@ -95,6 +95,46 @@ def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
     return vendored_path
 
 
+def candidate_library_filenames(name: str):
+    if sys.platform.startswith("win"):
+        return [f"{name}.lib"]
+    if sys.platform == "darwin":
+        return [f"lib{name}.dylib", f"lib{name}.a"]
+    return [f"lib{name}.so", f"lib{name}.a"]
+
+
+def resolve_link_inputs(search_root: Path, library_names):
+    library_dirs = []
+    extra_objects = []
+    unresolved = []
+    seen_dirs = set()
+
+    for library_name in library_names:
+        resolved_path = None
+        for filename in candidate_library_filenames(library_name):
+            matches = sorted(search_root.rglob(filename))
+            if matches:
+                resolved_path = matches[0]
+                break
+
+        if resolved_path is None:
+            unresolved.append(library_name)
+            continue
+
+        extra_objects.append(str(resolved_path))
+        parent = str(resolved_path.parent)
+        if parent not in seen_dirs:
+            seen_dirs.add(parent)
+            library_dirs.append(parent)
+
+    return library_dirs, extra_objects, unresolved
+
+
+def env_flag(name: str) -> bool:
+    value = os.environ.get(name, "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # On Windows CI we prefer to use the cleaned include files under
 # `include/` to avoid parsing issues with any vendored files. Do not
 # overwrite those files on Windows.
@@ -196,9 +236,61 @@ for module_dir in source_modules:
 #     vendor_wave_source,
 # ])
 
+requested_libraries = [
+    lib for lib in os.environ.get("COOLBOX_LIBS", "charts,wave_generator_utils").split(",") if lib
+]
+force_vendor_sources = env_flag("COOLBOX_PYTHON_FORCE_VENDOR_SOURCES") and not sys.platform.startswith("win")
+link_search_root = Path(os.environ.get("COOLBOX_LIB_DIR", str(project_root.parent / "build")))
+resolved_library_dirs = []
+resolved_extra_objects = []
+unresolved_libraries = list(requested_libraries)
+
+if not force_vendor_sources:
+    resolved_library_dirs, resolved_extra_objects, unresolved_libraries = resolve_link_inputs(
+        link_search_root,
+        requested_libraries,
+    )
+
+fallback_sources = {
+    "charts": graphics_source,
+    "wave_generator_utils": wave_generator_source,
+}
+remaining_unresolved = []
+for library_name in unresolved_libraries:
+    fallback_source = fallback_sources.get(library_name)
+    if fallback_source is None or not Path(fallback_source).exists():
+        remaining_unresolved.append(library_name)
+        continue
+
+    fallback_source_str = str(fallback_source)
+    if fallback_source_str not in source_files:
+        source_files.append(fallback_source_str)
+
+unresolved_libraries = remaining_unresolved
+
+if requested_libraries:
+    print(f"Requested native libraries: {requested_libraries}")
+print(f"Native library search root: {link_search_root}")
+print(f"Force vendored sources: {force_vendor_sources}")
+if resolved_extra_objects:
+    print(f"Resolved native library objects: {resolved_extra_objects}")
+if unresolved_libraries:
+    print(f"Libraries still requiring linker resolution: {unresolved_libraries}")
+else:
+    print("No unresolved native libraries remain after fallback resolution")
+
+library_dirs = existing_dirs([
+    str(link_search_root),
+    *resolved_library_dirs,
+])
+
+runtime_library_dirs = []
+if not sys.platform.startswith("win"):
+    runtime_library_dirs = resolved_library_dirs[:]
+
 ext_modules = [
     Pybind11Extension(
-        "ml_core",
+        "ml_toolbox.ml_core",
         source_files,
         include_dirs=include_dirs,
         cxx_std=17,
@@ -206,8 +298,10 @@ ext_modules = [
         # Link against built CoolBox C++ libraries. Set COOLBOX_LIB_DIR to
         # the build output directory containing libcharts(.a/.so/.dylib)
         # and libwave_generator_utils.
-        library_dirs=[os.environ.get("COOLBOX_LIB_DIR", str(project_root.parent / "build"))],
-        libraries=[lib for lib in os.environ.get("COOLBOX_LIBS", "charts,wave_generator_utils").split(",") if lib],
+        library_dirs=library_dirs,
+        libraries=unresolved_libraries,
+        extra_objects=resolved_extra_objects,
+        runtime_library_dirs=runtime_library_dirs,
     ),
 ]
 

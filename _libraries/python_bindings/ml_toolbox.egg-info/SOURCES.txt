@@ -7,6 +7,8 @@ py_ml_core.cpp
 pyproject.toml
 requirements.txt
 setup.py
+C:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_libraries/python_bindings/vendor_src/GRAPHICS/charts/source/graphics.cpp
+C:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_libraries/python_bindings/vendor_src/MISC/wave_generator/source/wave_generator.cpp
 cmake/ExternalDependencies.cmake
 examples/PCA_VISUALIZATION.md
 examples/bayesian_network_example.py
@@ -84,6 +86,7 @@ include/tracker/extended_kalman_filter.h
 include/tracker/kalman_filter.h
 include/tracker/sequential_monte_carlo.h
 include/tracker/unscented_kalman_filter.h
+ml_core/__init__.py
 ml_toolbox/__init__.py
 ml_toolbox/py.typed
 ml_toolbox.egg-info/PKG-INFO

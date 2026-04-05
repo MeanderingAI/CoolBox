@@ -70,7 +70,7 @@ Repository = "https://github.com/MeanderingAI/CoolBox"
 Issues = "https://github.com/MeanderingAI/CoolBox/issues"
 
 [tool.setuptools]
-packages = ["ml_toolbox"]
+packages = ["ml_toolbox", "ml_core"]
 
 [tool.setuptools.package-data]
 ml_toolbox = ["*.so", "*.pyd", "*.dll", "py.typed"]

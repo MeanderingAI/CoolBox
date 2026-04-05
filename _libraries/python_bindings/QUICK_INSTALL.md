@@ -135,6 +135,21 @@ Or use the build script:
 
 ---
 
+## Native Build Notes
+
+- The Python extension prefers prebuilt CoolBox native libraries when they are available.
+- Set `COOLBOX_LIB_DIR` if your CMake build outputs are staged outside the default repository `build` tree.
+- The library search is recursive, so nested artifact layouts are supported.
+- If `charts` or `wave_generator_utils` are missing from the staged native build, the package falls back to compiling the vendored source copies that ship with the bindings.
+
+Example:
+
+```bash
+COOLBOX_LIB_DIR=/path/to/build pip install -e .
+```
+
+---
+
 ## Uninstall
 
 ```bash
