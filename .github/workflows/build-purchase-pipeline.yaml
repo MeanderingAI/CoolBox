@@ -221,6 +221,10 @@ jobs:
       - generate_purchase_java
       - generate_purchase_r
       - generate_purchase_rust
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     uses: ./.github/workflows/docs-publish.yaml
     with:
       publish_branch: ${{ inputs.publish_branch }}
