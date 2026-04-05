@@ -37,6 +37,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Normalize GHCR owner
+        id: ghcr-owner
+        run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -44,5 +48,5 @@ jobs:
           file: apps/lsp/docker/Dockerfile.java
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest

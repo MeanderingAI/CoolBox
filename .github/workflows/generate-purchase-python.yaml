@@ -1,4 +1,4 @@
-name: build_ext_python
+name: generate_purchase_python
 
 on:
   workflow_call:
@@ -14,12 +14,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: build-ext-python-${{ github.ref }}
+  group: generate-purchase-python-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_ext_python:
-    if: ${{ github.event_name == 'workflow_call' }}
+  generate_purchase_python:
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

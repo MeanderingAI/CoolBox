@@ -42,8 +42,8 @@ jobs:
             TAG_OK=false
           fi
           echo "startsWith(github.ref, 'refs/tags/v') => ${TAG_OK}"
-          echo "\nPer-job quick summary (each build_ext_* job also declares 'needs: build_libs')"
-          for job in build_libs build_cpp_docs build_tutorials build_ext_python build_ext_js build_ext_go build_ext_c build_ext_java build_ext_r build_ext_rust; do
+          echo "\nPer-job quick summary (each generate_purchase_* job also declares 'needs: build_libs')"
+          for job in build_libs build_cpp_docs build_tutorials generate_purchase_python generate_purchase_js generate_purchase_go generate_purchase_c generate_purchase_java generate_purchase_r generate_purchase_rust; do
             echo "- ${job}: if-condition (startsWith tag) => ${TAG_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
           done
           echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
@@ -87,13 +87,13 @@ jobs:
       - build_libs
       - build_cpp_docs
       - build_tutorials
-      - build_ext_python
-      - build_ext_js
-      - build_ext_go
-      - build_ext_c
-      - build_ext_java
-      - build_ext_r
-      - build_ext_rust
+      - generate_purchase_python
+      - generate_purchase_js
+      - generate_purchase_go
+      - generate_purchase_c
+      - generate_purchase_java
+      - generate_purchase_r
+      - generate_purchase_rust
       - generate_lsp_images
       - publish_lsp_packages
     runs-on: ubuntu-latest
@@ -115,13 +115,13 @@ jobs:
           echo "build_libs: ${{ needs.build_libs.result }}" > diagnostics/jobs_summary.txt
           echo "build_cpp_docs: ${{ needs.build_cpp_docs.result }}" >> diagnostics/jobs_summary.txt
           echo "build_tutorials: ${{ needs.build_tutorials.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_python: ${{ needs.build_ext_python.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_js: ${{ needs.build_ext_js.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_go: ${{ needs.build_ext_go.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_c: ${{ needs.build_ext_c.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_java: ${{ needs.build_ext_java.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_r: ${{ needs.build_ext_r.result }}" >> diagnostics/jobs_summary.txt
-          echo "build_ext_rust: ${{ needs.build_ext_rust.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_python: ${{ needs.generate_purchase_python.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_js: ${{ needs.generate_purchase_js.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_go: ${{ needs.generate_purchase_go.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_c: ${{ needs.generate_purchase_c.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_java: ${{ needs.generate_purchase_java.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_r: ${{ needs.generate_purchase_r.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_rust: ${{ needs.generate_purchase_rust.result }}" >> diagnostics/jobs_summary.txt
           echo "generate_lsp_images: ${{ needs.generate_lsp_images.result }}" >> diagnostics/jobs_summary.txt
           echo "publish_lsp_packages: ${{ needs.publish_lsp_packages.result }}" >> diagnostics/jobs_summary.txt
           echo "----" >> diagnostics/jobs_summary.txt
@@ -166,54 +166,47 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
-  build_ext_python:
+  generate_purchase_python:
     needs:
       - build_libs
-    uses: ./.github/workflows/build-ext-python.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/generate-purchase-python.yaml
     secrets: inherit
 
-  build_ext_js:
+  generate_purchase_js:
     needs:
       - build_libs
-    uses: ./.github/workflows/build-ext-js.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/generate-purchase-js.yaml
     secrets: inherit
 
-  build_ext_go:
+  generate_purchase_go:
     needs:
       - build_libs
-    uses: ./.github/workflows/build-ext-go.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/generate-purchase-go.yaml
     secrets: inherit
 
-  build_ext_c:
+  generate_purchase_c:
     needs:
       - build_libs
-    uses: ./.github/workflows/build-ext-c.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/generate-purchase-c.yaml
     secrets: inherit
 
-  build_ext_java:
+  generate_purchase_java:
     needs:
       - build_libs
-      - build_ext_c
-    uses: ./.github/workflows/build-ext-java.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+      - generate_purchase_c
+    uses: ./.github/workflows/generate-purchase-java.yaml
     secrets: inherit
 
-  build_ext_r:
+  generate_purchase_r:
     needs:
       - build_libs
-    uses: ./.github/workflows/build-ext-r.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/generate-purchase-r.yaml
     secrets: inherit
 
-  build_ext_rust:
+  generate_purchase_rust:
     needs:
       - build_libs
-    uses: ./.github/workflows/build-ext-rust.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/generate-purchase-rust.yaml
     secrets: inherit
 
   docs_publish:
@@ -221,13 +214,13 @@ jobs:
     needs:
       - build_cpp_docs
       - build_tutorials
-      - build_ext_python
-      - build_ext_js
-      - build_ext_go
-      - build_ext_c
-      - build_ext_java
-      - build_ext_r
-      - build_ext_rust
+      - generate_purchase_python
+      - generate_purchase_js
+      - generate_purchase_go
+      - generate_purchase_c
+      - generate_purchase_java
+      - generate_purchase_r
+      - generate_purchase_rust
     uses: ./.github/workflows/docs-publish.yaml
     with:
       publish_branch: ${{ inputs.publish_branch }}
@@ -310,6 +303,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Normalize GHCR owner
+        id: ghcr-owner
+        run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
       - name: Build & push plang LSP image
         uses: docker/build-push-action@v5
         with:
@@ -317,8 +315,8 @@ jobs:
           file: apps/lsp/docker/Dockerfile.plang
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:latest
 
       - name: Build & push plrust LSP image
         uses: docker/build-push-action@v5
@@ -327,8 +325,8 @@ jobs:
           file: apps/lsp/docker/Dockerfile.rust
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:latest
 
       - name: Build & push pljava LSP image
         uses: docker/build-push-action@v5
@@ -337,8 +335,8 @@ jobs:
           file: apps/lsp/docker/Dockerfile.java
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
 
       - name: Build & push plpython LSP image
         uses: docker/build-push-action@v5
@@ -347,8 +345,8 @@ jobs:
           file: apps/lsp/docker/Dockerfile.python
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest
 
   publish_lsp_packages:
     needs:

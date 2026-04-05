@@ -1,4 +1,4 @@
-name: build_ext_rust
+name: generate_purchase_rust
 
 on:
   workflow_call:
@@ -14,12 +14,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: build-ext-rust-${{ github.ref }}
+  group: generate-purchase-rust-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_ext_rust:
-    if: ${{ github.event_name == 'workflow_call' }}
+  generate_purchase_rust:
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

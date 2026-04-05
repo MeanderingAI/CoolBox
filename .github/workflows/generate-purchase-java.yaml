@@ -1,4 +1,4 @@
-name: build_ext_java
+name: generate_purchase_java
 
 on:
   workflow_call:
@@ -14,12 +14,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: build-ext-java-${{ github.ref }}
+  group: generate-purchase-java-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_ext_java:
-    if: ${{ github.event_name == 'workflow_call' }}
+  generate_purchase_java:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

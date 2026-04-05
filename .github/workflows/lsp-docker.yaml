@@ -58,25 +58,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Normalize GHCR owner
+        id: ghcr-owner
+        run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
       - name: Build & push all images
         run: |
           set -e
-          docker build -f apps/lsp/docker/Dockerfile.plang -t ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/plang-lsp:plang_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/plang-lsp:latest
+          docker build -f apps/lsp/docker/Dockerfile.plang -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.rust -t ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/plrust-lsp:plrust_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/plrust-lsp:latest
+          docker build -f apps/lsp/docker/Dockerfile.rust -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.java -t ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/pljava-lsp:pljava_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/pljava-lsp:latest
+          docker build -f apps/lsp/docker/Dockerfile.java -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }} apps/lsp
-          docker push ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
-          docker push ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
+          docker build -f apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest

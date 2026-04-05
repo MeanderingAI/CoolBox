@@ -1,4 +1,4 @@
-name: build_ext_c
+name: generate_purchase_c
 
 on:
   workflow_call:
@@ -14,12 +14,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: build-ext-c-${{ github.ref }}
+  group: generate-purchase-c-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_ext_c:
-    if: ${{ github.event_name == 'workflow_call' }}
+  generate_purchase_c:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

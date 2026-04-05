@@ -1,4 +1,4 @@
-name: build_ext_r
+name: generate_purchase_r
 
 on:
   workflow_call:
@@ -15,12 +15,11 @@ env:
   R_LIBS_USER: ${{ github.workspace }}/.r-library
 
 concurrency:
-  group: build-ext-r-${{ github.ref }}
+  group: generate-purchase-r-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_ext_r:
-    if: ${{ github.event_name == 'workflow_call' }}
+  generate_purchase_r:
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

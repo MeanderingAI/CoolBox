@@ -17,6 +17,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -28,6 +30,8 @@ concurrency:
 jobs:
   build_and_publish:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
@@ -511,10 +515,10 @@ jobs:
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: .site
 
       - name: Deploy to GitHub Pages
         if: github.event_name != 'pull_request'
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4

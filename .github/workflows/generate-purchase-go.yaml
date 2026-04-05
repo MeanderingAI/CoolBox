@@ -1,4 +1,4 @@
-name: build_ext_go
+name: generate_purchase_go
 
 on:
   workflow_call:
@@ -14,12 +14,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 concurrency:
-  group: build-ext-go-${{ github.ref }}
+  group: generate-purchase-go-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build_ext_go:
-    if: ${{ github.event_name == 'workflow_call' }}
+  generate_purchase_go:
     runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
