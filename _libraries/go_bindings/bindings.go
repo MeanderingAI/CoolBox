@@ -6,7 +6,7 @@ package coolboxgo
 #cgo darwin LDFLAGS: -lc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
 #cgo linux LDFLAGS: -lstdc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
 #include <stdlib.h>
-/* Forward declarations for opaque FFI types (avoid including large C++ headers) */
+// Forward declarations for opaque FFI types.
 #include "bridge_forward.h"
 #include "bridge.h"
 */

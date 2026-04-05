@@ -9,7 +9,8 @@
 #include <sstream>
 #include <string>
 
-#include "graphics_stub_clean.h"
+#include "../../../backages/GRAPHICS/charts/headers/graphics.h"
+#include "../../../backages/GRAPHICS/components/headers/components.hpp"
 #include "wave_generator.hpp"
 
 namespace py = pybind11;

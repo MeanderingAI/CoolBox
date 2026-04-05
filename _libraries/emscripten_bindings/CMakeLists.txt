@@ -95,6 +95,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
         ${COOLBOX_ROOT}/_libraries/include
         ${BATTERY_SRC_DIR}/include
         ${CURCUITRY_SRC_DIR}/include
+        ${COOLBOX_ROOT}/_libraries/backages/CHEMISTRY/include
     )
     if(EMSCRIPTEN)
         set_target_properties(battery_js PROPERTIES
