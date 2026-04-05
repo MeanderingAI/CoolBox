@@ -374,6 +374,49 @@ func withFinalizer[T any](value *T, closeFn func(*T)) *T {
 	return value
 }
 
+const (
+	FitMethodClosedForm     = "closed_form"
+	FitMethodGradientDescent = "gradient_descent"
+
+	SplitCriterionGini    = "gini"
+	SplitCriterionEntropy = "entropy"
+
+	KernelLinear     = "linear"
+	KernelRBF        = "rbf"
+	KernelPolynomial = "polynomial"
+	KernelSigmoid    = "sigmoid"
+)
+
+type LinearRegression struct{ handle *C.CoolBoxLinearRegressionModel }
+
+type DecisionTree struct{ handle *C.CoolBoxDecisionTreeModel }
+
+type BayesianNetwork struct{ handle *C.CoolBoxBayesianNetworkModel }
+
+type HMM struct {
+	handle       *C.CoolBoxHMMModel
+	states       int
+	observations int
+}
+
+type PCA struct{ handle *C.CoolBoxPCAModel }
+
+type SVM struct{ handle *C.CoolBoxSVMModel }
+
+type BanditArm struct{ handle *C.CoolBoxBanditArmModel }
+
+type BanditAgent struct{ handle *C.CoolBoxBanditAgentModel }
+
+type BanditStats struct {
+	TrueProbability      float64
+	EstimatedProbability float64
+	TimesPulled          int
+}
+
+type SimulationResult struct {
+	Bandits []BanditStats
+}
+
 func FitLinearRegression(x [][]float64, y []float64, method string, iterations uint32, learningRate float64) (*LinearRegression, error) {
 	xFlat, rows, cols, err := flattenFloatMatrix(x)
 	if err != nil {

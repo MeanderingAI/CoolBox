@@ -1,3 +1,9 @@
+#pragma once
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "bridge_forward.h"
 
 #ifdef __cplusplus
 extern "C" {
