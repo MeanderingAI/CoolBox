@@ -270,7 +270,7 @@ An initial R package scaffold now lives in `_libraries/r_bindings/coolboxr`. It 
 
 ## Unified Documentation Site
 
-The documentation publishing workflow is defined in `.github/workflows/docs-publish.yml`. It builds a unified static site with:
+The documentation publishing workflow is defined in `.github/workflows/docs-publish.yaml`. It builds a unified static site with:
 
 - C++ API docs from Doxygen
 - R extension docs from pkgdown

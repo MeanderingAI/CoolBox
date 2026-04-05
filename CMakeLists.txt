@@ -1,8 +1,13 @@
-# Option to control Emscripten MODULARIZE (default ON, can override with -DEMSCRIPTEN_MODULARIZE=OFF)
-option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async JS loading)" ON)
-
 cmake_minimum_required(VERSION 3.12)
 project(Models LANGUAGES C CXX)
+
+# Ensure custom Find*.cmake modules are found before dependency checks run.
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
+
+include(cmake/FindAllDependencies.cmake)
+
+# Option to control Emscripten MODULARIZE (default ON, can override with -DEMSCRIPTEN_MODULARIZE=OFF)
+option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async JS loading)" ON)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -161,6 +166,7 @@ if(COOLBOX_INSTALL_PACKAGE)
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
             INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         )
 

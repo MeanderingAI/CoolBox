@@ -353,7 +353,7 @@ jobs:
           cp .prebuilt/rust/*.tar.gz _libraries/rust_bindings/dist/ 2>/dev/null || true
           cp .prebuilt/rust/*.zip _libraries/rust_bindings/dist/ 2>/dev/null || true
 
-          if find _libraries/rust_bindings/dist -maxdepth 1 -type f | grep -q .; then
+          if find _libraries/rust_bindings/dist -type f | grep -q .; then
             echo "restored=true" >> "$GITHUB_OUTPUT"
           else
             echo "restored=false" >> "$GITHUB_OUTPUT"

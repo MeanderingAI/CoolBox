@@ -15,10 +15,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup CMake 4.3.1
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.3.1'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl pkg-config
+          sudo apt-get install -y build-essential curl pkg-config
+
+      - name: Verify CMake 4.3.1 is available
+        run: |
+          command -v cmake
+          cmake --version
+          cmake --version | grep 'cmake version 4.3.1'
 
       - name: Configure CMake (enable tests)
         run: |

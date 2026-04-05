@@ -226,7 +226,6 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir -p build/test-binaries-emscripten || true
-          # copy any artifacts from build-emscripten/tests or executables
           cp -R build-emscripten/tests build/test-binaries-emscripten 2>/dev/null || true
           if [ -d build/test-binaries-emscripten ] && [ "$(ls -A build/test-binaries-emscripten 2>/dev/null)" ]; then
             tar -czf build/emscripten_test_artifacts.tar.gz -C build test-binaries-emscripten

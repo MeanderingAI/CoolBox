@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HOST_SCANNER_H
+#define HOST_SCANNER_H
 
 #include <string>
 #include <vector>
@@ -25,6 +26,8 @@ struct CPUInfo {
 struct MemoryInfo {
     size_t total_bytes;
     size_t available_bytes;
+
+#endif // HOST_SCANNER_H
     size_t used_bytes;
     double usage_percent;
     size_t swap_total_bytes;

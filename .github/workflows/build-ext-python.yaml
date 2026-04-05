@@ -43,7 +43,6 @@ jobs:
       - name: Compute artifact name
         id: compute_artifact
         run: |
-          # Determine arch (x86_64 or arm64) from RUNNER_ARCH or uname
           arch_env="${RUNNER_ARCH:-$(uname -m)}"
           arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
           if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
@@ -185,7 +184,6 @@ jobs:
 
       - name: Configure and build C++ libraries (top-level, enable tests)
         run: |
-          # If a prebuilt build was downloaded, still probe it; otherwise configure top-level with tests enabled
           if [ -d build/_libraries ]; then
             echo "Using downloaded build/ from build_libs; will probe existing targets"
             ls -la build/_libraries || true
@@ -216,7 +214,6 @@ jobs:
           echo "--- CTest configured tests ---"
           ctest --test-dir build -N || true
 
-          # Attempt to build a set of known test targets if they exist in the generated buildsystem
           help_out="$(cmake --build build --target help 2>&1 || true)"
           MISSING=(data_structures_tests battery_tests curcuitry_tests canvas_tests charts_tests components_tests fonts_tests windows_tests cryptocurrency_utils_tests password_hash_utils_tests metadata_management_tests thread_pool_tests wave_generator_utils_tests bayesian_network_tests decision_tree_tests deep_learning_tests dimensionality_reduction_tests distribution_tests gabor_patches_tests generalized_linear_model_tests hidden_markov_model_tests knn_tests latent_sentiment_analysis_tests marked_point_process_tests multi_arm_bandit_tests self_organizing_maps_tests support_vector_machine_tests tracker_tests vae_tests)
           for t in "${MISSING[@]}"; do

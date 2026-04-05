@@ -15,10 +15,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Setup CMake 4.3.1
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.3.1'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make libeigen3-dev
+          sudo apt-get install -y g++ make libeigen3-dev
+
+      - name: Verify CMake 4.3.1 is available
+        run: |
+          command -v cmake
+          cmake --version
+          cmake --version | grep 'cmake version 4.3.1'
 
       - name: Build all targets
         run: |
@@ -28,7 +39,6 @@ jobs:
       - name: Build and Run detected tests
         run: |
           cd build
-          # Ensure CMake help lists available targets and only build test targets that exist
           help_out="$(cmake --build . --target help 2>&1 || true)"
           tests_found=()
           for t in $(echo "$help_out" | awk '{print $1}' | grep '_tests$' || true); do

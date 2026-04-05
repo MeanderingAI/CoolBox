@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PROXY_SERVER_H
+#define PROXY_SERVER_H
 
 #include <string>
 #include <memory>
@@ -38,6 +39,8 @@ struct CachedResponse {
         auto age = std::chrono::duration_cast<std::chrono::seconds>(now - cached_at).count();
         return age > max_age_seconds;
     }
+
+#endif // PROXY_SERVER_H
 };
 
 // HTTP Proxy Server

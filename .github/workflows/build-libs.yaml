@@ -2,6 +2,10 @@ name: Build Libraries & Release
 
 on:
   workflow_call:
+    outputs:
+      run_id:
+        description: Workflow run identifier for downstream artifact downloads
+        value: ${{ jobs.build.outputs.run_id }}
   workflow_dispatch:
 
 permissions:
@@ -49,16 +53,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Setup CMake 4.3.1
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.3.1'
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ make libeigen3-dev libgtest-dev libgsl-dev libsqlite3-dev doxygen gfortran
+          sudo apt-get install -y g++ make libeigen3-dev libgtest-dev libgsl-dev libsqlite3-dev doxygen gfortran
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          for pkg in cmake eigen googletest gsl doxygen gcc; do
+          for pkg in eigen googletest gsl doxygen gcc; do
             brew list "$pkg" &>/dev/null || brew install "$pkg"
           done
           # Ensure sqlite is available for find_package(SQLite3)
@@ -88,7 +97,7 @@ jobs:
         run: |
           set -e
           echo "Installing x86_64 packages"
-          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 make
+          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 make
         shell: msys2 {0}
 
       - name: Install MSYS2 packages (Windows ARM64)
@@ -96,7 +105,7 @@ jobs:
         run: |
           set -e
           echo "Installing aarch64 packages"
-          pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-cmake mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 make
+          pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 make
         shell: msys2 {0}
 
       - name: Ensure mingw in PATH (Windows)
@@ -113,12 +122,20 @@ jobs:
           if (Test-Path $msysBin) { echo "$msysBin" >> $env:GITHUB_PATH }
         shell: powershell
 
-      - name: Verify CMake is available (Windows)
+      - name: Verify CMake 4.3.1 is available (Windows)
         if: runner.os == 'Windows'
         run: |
           command -v cmake
           cmake --version
+          cmake --version | grep 'cmake version 4.3.1'
         shell: msys2 {0}
+
+      - name: Verify CMake 4.3.1 is available (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          command -v cmake
+          cmake --version
+          cmake --version | grep 'cmake version 4.3.1'
 
       - name: Configure CMake (Windows / MSYS2)
         if: runner.os == 'Windows'

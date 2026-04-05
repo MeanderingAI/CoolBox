@@ -1,44 +1,46 @@
 # Windows-specific Makefile for CoolBox
 # Usage: make -f Makefile.win <target>
+#
+# This Makefile auto-detects the latest installed Visual Studio version for CMake.
+# You can override it by setting VS_GENERATOR, for example:
+#   set VS_GENERATOR=Visual Studio 17 2022
+
+VS_GENERATOR := $(shell powershell -NoProfile -NonInteractive -Command "if ($$env:VS_GENERATOR) { Write-Output $$env:VS_GENERATOR } elseif (Get-Command vswhere.exe -ErrorAction SilentlyContinue) { $$vs = & vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -property displayName; if ($$vs -match '2026') { 'Visual Studio 18 2026' } elseif ($$vs -match '2022') { 'Visual Studio 17 2022' } elseif ($$vs -match '2019') { 'Visual Studio 16 2019' } elseif ($$vs -match '2017') { 'Visual Studio 15 2017' } else { '' } } else { '' } }")
+VCPKG_TOOLCHAIN := $(shell powershell -NoProfile -NonInteractive -Command "if (Test-Path \"$${env:LOCALAPPDATA}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake\") { Write-Output \"$${env:LOCALAPPDATA}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake\" }")
 
 .PHONY: help configure build build_libraries build_libraries_io build_libraries_ml \
 	build_libraries_security build_libraries_misc build_libraries_graphics \
-	build_libraries_electronics build_% test test-% install clean completion
+	build_libraries_electronics build_% test test-% test_logged install clean completion
 
 help:
-	@powershell -NoProfile -NonInteractive -Command "Write-Host ''; Write-Host 'CoolBox Build System (Windows)'; Write-Host ''; Write-Host '  make -f Makefile.win configure           Configure CMake (libraries only)'; Write-Host '  make -f Makefile.win build               Build configured CMake project'; Write-Host '  make -f Makefile.win build_NAME          Build a specific CMake target (use target name)'; Write-Host '  make -f Makefile.win build_libraries     Build all libraries (uses cmake --build)'; Write-Host '  make -f Makefile.win test                Build+run tests via ctest (if available)'; Write-Host '  make -f Makefile.win install             Copy built DLLs to ./lib'; Write-Host '  make -f Makefile.win clean               Remove build/ and lib/'; Write-Host ''"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure           Configure CMake"; Write-Host "  make -f Makefile.win build               Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME          Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries     Build the configured libraries"; Write-Host "  make -f Makefile.win test                Build and run CTest"; Write-Host "  make -f Makefile.win test_logged         Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win install             Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean               Remove build/ and lib/"; Write-Host ""'
 
-# Configure CMake (libraries only by default)
 configure:
-	@powershell -NoProfile -NonInteractive -Command "if (-not (Test-Path 'build/Makefile')) { Write-Host '[Makefile.win] Running CMake configuration (libraries only)...'; cmake -S . -B build -DBUILD_BINARIES=OFF -DENABLE_GSL=OFF } else { Write-Host '[Makefile.win] Build already configured (build/Makefile exists).' }"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Running CMake configuration...'; $$gen = ''; if ($$env:VS_GENERATOR) { $$gen = $$env:VS_GENERATOR } elseif (Get-Command vswhere.exe -ErrorAction SilentlyContinue) { $$vs = & vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -property displayName; if ($$vs -match '2026') { $$gen = 'Visual Studio 18 2026' } elseif ($$vs -match '2022') { $$gen = 'Visual Studio 17 2022' } elseif ($$vs -match '2019') { $$gen = 'Visual Studio 16 2019' } elseif ($$vs -match '2017') { $$gen = 'Visual Studio 15 2017' } }; $$args = @('-S', '.', '-B', 'build', '-DBUILD_BINARIES=OFF', '-DENABLE_GSL=ON'); if ($$gen -ne '') { $$args += @('-G', $$gen) }; $$vcpkgCandidates = @(); if ($$env:VCPKG_ROOT) { $$vcpkgCandidates += (Join-Path $$env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake') }; if ($$env:USERPROFILE) { $$vcpkgCandidates += (Join-Path $$env:USERPROFILE 'vcpkg\scripts\buildsystems\vcpkg.cmake') }; if ($$env:LOCALAPPDATA) { $$vcpkgCandidates += (Join-Path $$env:LOCALAPPDATA 'vcpkg\scripts\buildsystems\vcpkg.cmake') }; $$vcpkgCandidates = $$vcpkgCandidates | Select-Object -Unique; $$vcpkg = $$vcpkgCandidates | Where-Object { Test-Path $$_ } | Select-Object -First 1; if ($$vcpkg) { $$args += ('-DCMAKE_TOOLCHAIN_FILE=' + $$vcpkg) }; & cmake @args; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }"
 
-# Build everything configured in `build`
 build: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building project...'; cmake --build build; Write-Host '[Makefile.win] Build complete.'"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building project...'; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host '[Makefile.win] Build complete.'"
 
-# Build all libraries (delegates to CMake build)
 build_libraries: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building libraries (delegating to CMake)...'; & cmake --build build --config Release; if ($LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Release build failed, retrying default configuration...'; & cmake --build build; if ($LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Both Release and default builds failed.' } } ; Write-Host '[Makefile.win] Build step finished.'"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building libraries (delegating to CMake)...'; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Release build failed, retrying default configuration...'; cmake --build build; if ($$LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Both Release and default builds failed.'; exit $$LASTEXITCODE } }; Write-Host '[Makefile.win] Build step finished.'"
 
-# Convenience: build a specific target
 build_%: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building target: $*'; & cmake --build build --target $* --config Release; if ($LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Target build failed or not found.' }"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building target: $*'; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Target build failed or not found.'; exit $$LASTEXITCODE }"
 
-# Tests
-test: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Running tests...'; if (Test-Path build) { Push-Location build; try { ctest --output-on-failure } catch { Write-Host '[Makefile.win] ctest not available or tests failed.' } finally { Pop-Location } } else { Write-Host '[Makefile.win] build/ not found; run make -f Makefile.win configure first.' }"
+test: build_libraries
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Running tests...'; if (-not (Test-Path 'build/CTestTestfile.cmake')) { Write-Host '[Makefile.win] CTest was not generated. Tests were likely skipped during configure.'; exit 1 }; Push-Location build; try { ctest --output-on-failure --build-config Release } finally { Pop-Location }"
+
+test_logged: build_libraries
+	@powershell -NoProfile -NonInteractive -File .\_scripts\run_release_tests.ps1
 
 test-%: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building & running test: $*'; cmake --build build --target $* --config Release; if (Test-Path build/$*) { & build\$* } else { Write-Host '[Makefile.win] Could not find executable build/$*' }"
+	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building & running test: $*'; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Push-Location build; try { ctest -R '^$*$$' --output-on-failure --build-config Release } finally { Pop-Location }"
 
-# Install: copy built DLLs into lib/
 install:
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Installing DLLs to ./lib ...'; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $_.FullName -Destination (Join-Path (Resolve-Path .).ToString() 'lib') -Force; Write-Host '  Copied: ' $_.FullName }
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Installing DLLs to ./lib ..."; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $$_.FullName -Destination (Join-Path (Resolve-Path .).ToString() "lib") -Force; Write-Host "  Copied: " $$_.FullName }'
 
-# Clean: remove build and lib
 clean:
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Cleaning build artifacts...'; if (Test-Path build) { Remove-Item -LiteralPath build -Recurse -Force -ErrorAction SilentlyContinue }; if (Test-Path lib) { Remove-Item -LiteralPath lib -Recurse -Force -ErrorAction SilentlyContinue }; Write-Host '[Makefile.win] Clean complete.'"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Cleaning build artifacts..."; if (Test-Path build) { Remove-Item -LiteralPath build -Recurse -Force -ErrorAction SilentlyContinue }; if (Test-Path lib) { Remove-Item -LiteralPath lib -Recurse -Force -ErrorAction SilentlyContinue }; Write-Host "[Makefile.win] Clean complete."'
 
-# Simple completion output (bash/zsh) - not useful on Windows, but provided for compatibility
 completion:
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '# completion script not implemented for Windows Makefile'"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "# completion script not implemented for Windows Makefile"'

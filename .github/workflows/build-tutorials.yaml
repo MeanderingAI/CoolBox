@@ -35,41 +35,26 @@ jobs:
       - name: Normalize output to .site (fallbacks)
         run: |
           set -e
-          # If the official .site was produced, nothing to do
           if [ -d ".site" ] && [ "$(ls -A .site)" ]; then
             echo ".site exists and is non-empty"
             exit 0
           fi
-
-          # Common alternate output locations
           if [ -d "build/documentation_site" ]; then
             echo "Moving build/documentation_site -> .site"
             rm -rf .site || true
             mv build/documentation_site .site
             exit 0
           fi
-
           if [ -d "build/documentation" ]; then
             echo "Moving build/documentation -> .site"
             rm -rf .site || true
             mv build/documentation .site
             exit 0
           fi
-
           if [ -d ".documentation" ]; then
             echo "Moving .documentation -> .site"
             rm -rf .site || true
             mv .documentation .site
             exit 0
           fi
-
           echo "No documentation output found; .site will be empty"
-
-      # === The following upload-artifact step is DISABLED ===
-      # It is no longer allowed to upload .site as an artifact; site should only be published to a branch.
-      # - name: Upload documentation artifact
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: documentation
-      #     path: .site/
-      #     retention-days: 14

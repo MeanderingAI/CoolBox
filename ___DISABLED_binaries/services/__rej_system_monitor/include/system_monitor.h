@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SYSTEM_MONITOR_H
+#define SYSTEM_MONITOR_H
 
 #include <string>
 #include <map>
@@ -37,6 +38,8 @@ public:
     
     // Get current metrics
     SystemMetrics get_metrics();
+
+#endif // SYSTEM_MONITOR_H
     
     // Get historical data (last N samples)
     std::vector<SystemMetrics> get_history(int limit = 10);

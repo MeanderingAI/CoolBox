@@ -33,9 +33,9 @@ jobs:
       - name: Log guard evaluations
         run: |
           set -euo pipefail
-          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME:-}" 
-          echo "GITHUB_REF=${GITHUB_REF:-}" 
-          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}" 
+          echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME:-}"
+          echo "GITHUB_REF=${GITHUB_REF:-}"
+          echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}"
           if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             TAG_OK=true
           else
@@ -49,7 +49,7 @@ jobs:
           echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
 
   build_libs:
-    uses: ./.github/workflows/build_libs.yml
+    uses: ./.github/workflows/build-libs.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -139,7 +139,6 @@ jobs:
             pljava_lsp
             plpython_lsp
           path: diagnostics/artifacts
-          run-id: ${{ needs.build_libs.outputs.run_id }}
           merge-multiple: true
 
       - name: List diagnostics contents
@@ -161,48 +160,40 @@ jobs:
           retention-days: 30
 
   build_cpp_docs:
-    uses: ./.github/workflows/build_cpp_docs.yml
+    uses: ./.github/workflows/build-cpp-docs.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_tutorials:
-    uses: ./.github/workflows/build_tutorials.yml
+    uses: ./.github/workflows/build-tutorials.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_python:
     needs:
       - build_libs
-    uses: ./.github/workflows/build_ext_python.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-python.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_js:
     needs:
       - build_libs
-    uses: ./.github/workflows/build_ext_js.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-js.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
-    
+
   build_ext_go:
     needs:
       - build_libs
-    uses: ./.github/workflows/build_ext_go.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-go.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_c:
     needs:
       - build_libs
-    uses: ./.github/workflows/build_ext_c.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-c.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -210,27 +201,21 @@ jobs:
     needs:
       - build_libs
       - build_ext_c
-    uses: ./.github/workflows/build_ext_java.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-java.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_r:
     needs:
       - build_libs
-    uses: ./.github/workflows/build_ext_r.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-r.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
   build_ext_rust:
     needs:
       - build_libs
-    uses: ./.github/workflows/build_ext_rust.yml
-    with:
-      build_libs_run_id: ${{ needs.build_libs.outputs.run_id }}
+    uses: ./.github/workflows/build-ext-rust.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -246,7 +231,7 @@ jobs:
       - build_ext_java
       - build_ext_r
       - build_ext_rust
-    uses: ./.github/workflows/docs_publish.yml
+    uses: ./.github/workflows/docs-publish.yaml
     with:
       publish_branch: ${{ inputs.publish_branch }}
     secrets: inherit
@@ -266,7 +251,6 @@ jobs:
       - name: Install docker
         run: |
           sudo apt-get update
-          # Remove potential conflicting package installed from Docker repos
           sudo apt-get remove -y containerd.io || true
           sudo apt-get install -y --no-install-recommends docker.io
 
@@ -275,14 +259,12 @@ jobs:
         with:
           name: pl_lsp_dist
           path: apps/lsp/dist
-          run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: "Fallback: download individual LSP binaries"
         uses: actions/download-artifact@v8
         with:
           name: plang_lsp
           path: apps/lsp/dist
-          run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Extract LSP dist archive if present
         run: |
@@ -294,7 +276,6 @@ jobs:
             tar -xzf "$ARGV" -C apps/lsp || true
             ls -la apps/lsp/dist || true
           else
-            # maybe artifact was downloaded as build/pl_lsp_dist.tar.gz
             ALT="apps/lsp/dist/build/pl_lsp_dist.tar.gz"
             if [ -f "$ALT" ]; then
               echo "Extracting $ALT -> apps/lsp"
@@ -328,21 +309,18 @@ jobs:
         with:
           name: plrust_lsp
           path: apps/lsp/dist
-          run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Download java artifact
         uses: actions/download-artifact@v8
         with:
           name: pljava_lsp
           path: apps/lsp/dist
-          run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Download python artifact
         uses: actions/download-artifact@v8
         with:
           name: plpython_lsp
           path: apps/lsp/dist
-          run-id: ${{ needs.build_libs.outputs.run_id }}
 
       - name: Ensure binaries are executable
         run: chmod +x apps/lsp/dist/* || true
@@ -393,7 +371,6 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/plpython-lsp:plpython_lsp-${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/plpython-lsp:latest
 
-  
   publish_lsp_packages:
     needs:
       - generate_lsp_images
@@ -431,13 +408,11 @@ jobs:
         run: |
           set -e
           mkdir -p release_assets
-          # copy any downloaded artifact dirs into release_assets
           for d in dist/*; do
             if [ -e "$d" ]; then
               cp -r "$d" release_assets/ || true
             fi
           done
-          # create tarballs per artifact
           for entry in release_assets/*; do
             if [ -d "$entry" ]; then
               base=$(basename "$entry")
