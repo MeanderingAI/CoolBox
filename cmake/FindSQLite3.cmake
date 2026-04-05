@@ -6,82 +6,79 @@
 # Allow user to specify custom paths
 set(SQLite3_ROOT $ENV{SQLITE3_ROOT} CACHE PATH "Root directory of SQLite3 installation")
 
+set(_sqlite3_roots
+    ${SQLite3_ROOT}
+    $ENV{SQLite3_ROOT}
+    $ENV{SQLITE3_ROOT}
+)
+
 if (WIN32)
     # Windows: look for vcpkg, system, or user-provided
+    list(APPEND _sqlite3_roots
+        $ENV{VCPKG_ROOT}/installed/x64-windows
+        "$ENV{ProgramFiles}/SQLite"
+        "$ENV{ProgramFiles_x86}/SQLite"
+        "C:/SQLite"
+        "C:/sqlite"
+        "C:/msys64/mingw64"
+        "C:/msys64/mingw32"
+    )
     find_path(SQLite3_INCLUDE_DIR
         NAMES sqlite3.h
-        PATHS
-            ${SQLite3_ROOT}/include
-            $ENV{VCPKG_ROOT}/installed/x64-windows/include
-            "$ENV{ProgramFiles}/SQLite/include"
-            "$ENV{ProgramFiles_x86}/SQLite/include" # CMake does not allow () in ENV var names, use ProgramFiles_x86
-            "C:/SQLite/include"
-            "C:/sqlite/include"
-            "C:/msys64/mingw64/include"
-            "C:/msys64/mingw32/include"
+        PATHS ${_sqlite3_roots}
         PATH_SUFFIXES include
-        NO_DEFAULT_PATH
     )
     find_library(SQLite3_LIBRARY
         NAMES sqlite3 sqlite3.lib
-        PATHS
-            ${SQLite3_ROOT}/lib
-            $ENV{VCPKG_ROOT}/installed/x64-windows/lib
-            "$ENV{ProgramFiles}/SQLite/lib"
-            "$ENV{ProgramFiles_x86}/SQLite/lib" # CMake does not allow () in ENV var names, use ProgramFiles_x86
-            "C:/SQLite/lib"
-            "C:/sqlite/lib"
-            "C:/msys64/mingw64/lib"
-            "C:/msys64/mingw32/lib"
+        PATHS ${_sqlite3_roots}
         PATH_SUFFIXES lib
-        NO_DEFAULT_PATH
     )
 elseif(APPLE)
     # macOS: Homebrew, MacPorts, system
+    list(APPEND _sqlite3_roots
+        /opt/homebrew
+        /opt/homebrew/opt/sqlite
+        /usr/local
+        /usr/local/opt/sqlite
+        /opt/local
+        /opt/local/opt/sqlite
+        /opt/local/libexec
+        /usr
+    )
     find_path(SQLite3_INCLUDE_DIR
         NAMES sqlite3.h
-        PATHS
-            ${SQLite3_ROOT}/include
-            /usr/local/include
-            /opt/homebrew/include
-            /opt/local/include
-            /usr/include
+        PATHS ${_sqlite3_roots}
         PATH_SUFFIXES include
-        NO_DEFAULT_PATH
     )
     find_library(SQLite3_LIBRARY
         NAMES sqlite3
-        PATHS
-            ${SQLite3_ROOT}/lib
-            /usr/local/lib
-            /opt/homebrew/lib
-            /opt/local/lib
-            /usr/lib
+        PATHS ${_sqlite3_roots}
         PATH_SUFFIXES lib
-        NO_DEFAULT_PATH
     )
 else()
     # Linux/Unix
+    list(APPEND _sqlite3_roots
+        /usr/local
+        /usr
+    )
     find_path(SQLite3_INCLUDE_DIR
         NAMES sqlite3.h
-        PATHS
-            ${SQLite3_ROOT}/include
-            /usr/local/include
-            /usr/include
-            /usr/include/sqlite3
+        PATHS ${_sqlite3_roots}
         PATH_SUFFIXES include
-        NO_DEFAULT_PATH
     )
     find_library(SQLite3_LIBRARY
         NAMES sqlite3
-        PATHS
-            ${SQLite3_ROOT}/lib
-            /usr/local/lib
-            /usr/lib
-            /usr/lib/x86_64-linux-gnu
+        PATHS ${_sqlite3_roots}
         PATH_SUFFIXES lib
-        NO_DEFAULT_PATH
     )
+endif()
+
+if(NOT SQLite3_INCLUDE_DIR)
+    find_path(SQLite3_INCLUDE_DIR NAMES sqlite3.h)
+endif()
+
+if(NOT SQLite3_LIBRARY)
+    find_library(SQLite3_LIBRARY NAMES sqlite3 sqlite3.lib)
 endif()
 
 include(FindPackageHandleStandardArgs)
