@@ -160,7 +160,7 @@ CommandResult ShellSession::run_parsed_command(const ParsedCommand& command) {
     return command_unknown(command);
 }
 
-BackgroundJob ShellSession::build_background_job(const ParsedCommand& command) const {
+BackgroundJob ShellSession::build_background_job(const ParsedCommand& command) {
     BackgroundJob job;
     job.command_line = command.name;
     if (!command.arguments.empty()) {

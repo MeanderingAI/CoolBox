@@ -15,7 +15,7 @@
 
 ## Documentation Portal Follow-Up
 - Added an internal narrative documentation layer so the portal is no longer limited to raw Doxygen output for library discovery.
-- Added `_scripts/build_solution_catalog.py` to generate a solutions catalog, category pages, per-library summaries, and a dependency map from repository structure, README content, metadata macros, product definitions, and CMake link relationships.
+- Added the catalog generator that now lives at `_scripts/build_product_catalog.py` to generate a solutions catalog, category pages, per-library summaries, and a dependency map from repository structure, README content, metadata macros, product definitions, and CMake link relationships.
 - Extended the documentation hub so it links to `Solutions Catalog`, `Dependency Map`, and the generated product pages alongside the existing API-oriented docs.
 - The dependency map now shows which libraries are consumed by products and apps, which closes a gap that was not visible in the C++ API docs alone.
 - The portal direction for upcoming revisions is to keep pairing API docs with narrative descriptions, build/run hints, architecture notes, and consumer maps so products and reusable libraries can be understood from the same entry point.

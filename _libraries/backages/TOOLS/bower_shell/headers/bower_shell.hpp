@@ -60,7 +60,7 @@ private:
     ParsedCommand parse_command_line(const std::string& command_line) const;
     CommandResult run_parsed_command(const ParsedCommand& command);
     CommandResult launch_background_job(const ParsedCommand& command);
-    BackgroundJob build_background_job(const ParsedCommand& command) const;
+    BackgroundJob build_background_job(const ParsedCommand& command);
 
     CommandResult command_help() const;
     CommandResult command_pwd() const;

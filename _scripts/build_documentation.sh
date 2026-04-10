@@ -48,8 +48,10 @@ if [ -d "${TUTORIALS_DIR}/tags" ]; then
 fi
 
 # 2. Generate narrative solution and library catalog pages
-echo "[${SCRIPT_NAME}] Running build_solution_catalog.py → ${SITE_DIR}/solutions"
-"${PYTHON}" "${PROJECT_ROOT}/_scripts/build_solution_catalog.py" \
+CATALOG_SCRIPT="${PROJECT_ROOT}/_scripts/build_product_catalog.py"
+
+echo "[${SCRIPT_NAME}] Running $(basename "${CATALOG_SCRIPT}") → ${SITE_DIR}/solutions"
+"${PYTHON}" "${CATALOG_SCRIPT}" \
   "${PROJECT_ROOT}" \
   "${SITE_DIR}"
 

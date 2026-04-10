@@ -6,7 +6,6 @@ build-emscripten-local-check
 build-emscripten-local-check-default
 bin
 apps/__pycache__/
-_scripts/__pycache__/
 .site
 .site_validation
 .site_validation_docs
