@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_PYTHON_BINDINGS_INCLUDE_GRAPHICS_STUB_CLEAN_H
+#define COOLBOX__LIBRARIES_PYTHON_BINDINGS_INCLUDE_GRAPHICS_STUB_CLEAN_H
 
 #include <cstdint>
 #include <string>
@@ -118,3 +119,4 @@ struct CheckboxGroupModel {
 } // namespace components
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_PYTHON_BINDINGS_INCLUDE_GRAPHICS_STUB_CLEAN_H

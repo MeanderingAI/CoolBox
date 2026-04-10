@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_RUST_BINDINGS_INCLUDE_BRIDGE_H
+#define COOLBOX__LIBRARIES_RUST_BINDINGS_INCLUDE_BRIDGE_H
 
 #include "rust/cxx.h"
 
@@ -43,3 +44,4 @@ rust::Vec<double> predict_linear_regression(
     std::size_t cols);
 
 } // namespace coolbox::rust_bindings
+#endif  // COOLBOX__LIBRARIES_RUST_BINDINGS_INCLUDE_BRIDGE_H

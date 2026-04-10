@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_ELF_MANAGEMENT_BINARY_INFO_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_ELF_MANAGEMENT_BINARY_INFO_HPP
 #include <string>
 #include <ctime>
 #include <vector>
@@ -40,3 +41,4 @@ inline std::vector<BinaryInfo> scan_binaries(const std::string& workspace_path) 
 
 } // namespace elf_management
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_ELF_MANAGEMENT_BINARY_INFO_HPP

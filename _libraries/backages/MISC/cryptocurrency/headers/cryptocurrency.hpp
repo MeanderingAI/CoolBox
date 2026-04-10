@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_CRYPTOCURRENCY_HEADERS_CRYPTOCURRENCY_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_CRYPTOCURRENCY_HEADERS_CRYPTOCURRENCY_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -135,3 +136,4 @@ HashString compute_hash_hex(const std::string& value);
 
 } // namespace cryptocurrency
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_CRYPTOCURRENCY_HEADERS_CRYPTOCURRENCY_HPP

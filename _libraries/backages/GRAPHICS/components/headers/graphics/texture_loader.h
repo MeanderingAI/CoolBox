@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_GRAPHICS_TEXTURE_LOADER_H
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_GRAPHICS_TEXTURE_LOADER_H
 
 #include <string>
 #include <vector>
@@ -18,3 +19,4 @@ struct Texture {
 bool loadTextureFromFile(const std::string& path, Texture &out);
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_GRAPHICS_TEXTURE_LOADER_H

@@ -5,8 +5,8 @@
 - Clarified the earlier "slice" wording by describing the migration units as feature modules with their own ABI, Go wrapper, and native implementation targets.
 
 ## Files Updated
-- `internal_documents/extensions/go/narrow_c_abi_migration.md`
-- `internal_documents/extensions/go/README.md`
+- `docs/internal_documents/extensions/go/narrow_c_abi_migration.md`
+- `docs/internal_documents/extensions/go/README.md`
 
 ## Result
 - The Go migration plan now includes dedicated sections for:

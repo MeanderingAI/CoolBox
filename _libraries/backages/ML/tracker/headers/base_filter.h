@@ -1,7 +1,7 @@
 #ifndef BASE_FILTER_H
 #define BASE_FILTER_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 
 /**
  * @brief Abstract base class for filter implementations.

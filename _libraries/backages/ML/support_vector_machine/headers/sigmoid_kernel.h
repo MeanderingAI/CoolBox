@@ -2,7 +2,7 @@
 #define SIGMOID_KERNEL_H
 
 #include "kernel.h"
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 
 class SigmoidKernel : public Kernel {
 public:

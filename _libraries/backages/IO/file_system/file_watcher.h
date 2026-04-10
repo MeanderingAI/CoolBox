@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_FILE_SYSTEM_FILE_WATCHER_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_FILE_SYSTEM_FILE_WATCHER_H
 #include <string>
 #include <vector>
 #include <functional>
@@ -19,3 +20,5 @@ private:
 };
 
 } // namespace file_system
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_FILE_SYSTEM_FILE_WATCHER_H

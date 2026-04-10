@@ -46,7 +46,7 @@
 #ifndef UNSCENTED_KALMAN_FILTER_H
 #define UNSCENTED_KALMAN_FILTER_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include "base_kalman_filter.h"
 

@@ -8,7 +8,7 @@
  *   - BatteryPack series/parallel configurations
  */
 
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "battery.h"
 
 #include <cmath>

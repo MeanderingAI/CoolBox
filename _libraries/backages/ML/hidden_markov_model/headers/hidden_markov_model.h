@@ -4,7 +4,7 @@
 #include <vector>
 #include <numeric>
 #include <random>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 
 class HMM {
 private:

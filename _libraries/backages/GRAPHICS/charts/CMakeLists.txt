@@ -32,9 +32,9 @@ target_include_directories(charts SYSTEM PRIVATE
 )
 
 # Tests
-if(BUILD_TESTING AND TARGET GTest::gtest_main)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(charts_tests tests/test_graphics.cpp)
-    target_link_libraries(charts_tests PRIVATE charts GTest::gtest_main)
+    target_link_libraries(charts_tests PRIVATE charts tyst_framework_main)
     add_test(NAME ChartsTests COMMAND charts_tests)
 endif()

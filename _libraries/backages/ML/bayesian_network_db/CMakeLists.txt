@@ -5,9 +5,9 @@ target_include_directories(bayesian_network_db PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 target_link_libraries(bayesian_network_db PUBLIC mytrix)
 
 # Tests
-if(BUILD_TESTING)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(bayesian_network_db_tests tests/test_bayesian_network_db.cpp)
-    target_link_libraries(bayesian_network_db_tests PRIVATE bayesian_network_db GTest::gtest_main)
+    target_link_libraries(bayesian_network_db_tests PRIVATE bayesian_network_db tyst_framework_main)
     add_test(NAME BayesianNetworkDBTests COMMAND bayesian_network_db_tests)
 endif()

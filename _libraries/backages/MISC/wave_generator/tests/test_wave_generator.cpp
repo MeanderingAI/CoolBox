@@ -1,6 +1,6 @@
 #include "wave_generator.hpp"
 
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 
 #include <algorithm>
 #include <cmath>

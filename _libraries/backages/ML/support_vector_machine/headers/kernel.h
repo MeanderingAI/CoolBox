@@ -1,7 +1,7 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 
 class Kernel {
 public:

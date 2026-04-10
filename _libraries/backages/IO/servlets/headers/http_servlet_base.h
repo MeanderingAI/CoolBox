@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP_SERVLET_BASE_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP_SERVLET_BASE_H
 
 
 #include "../../dataformats/http/headers/request_response.h"
@@ -24,3 +25,5 @@ public:
 
 } // namespace servlets
 } // namespace networking
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP_SERVLET_BASE_H

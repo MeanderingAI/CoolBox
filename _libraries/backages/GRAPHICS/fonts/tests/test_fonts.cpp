@@ -1,6 +1,6 @@
 #include "fonts.hpp"
 
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 
 TEST(GraphicsFontsTest, MissingFontFailsGracefully) {
     graphics::fonts::FontFace font;

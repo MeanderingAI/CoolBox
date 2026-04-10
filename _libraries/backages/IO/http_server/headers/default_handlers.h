@@ -1,6 +1,7 @@
 
 // Only one set of class and namespace definitions, properly closed
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_HEADERS_DEFAULT_HANDLERS_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_HEADERS_DEFAULT_HANDLERS_H
 #include <string>
 #include <fstream>
 #include "request_handle.h"
@@ -64,4 +65,6 @@ inline std::string FileHandler::get_mime_type(const std::string& path) {
 
 } // namespace http_server
 } // namespace io
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_HEADERS_DEFAULT_HANDLERS_H
 

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_CANVAS_HEADERS_GRAPHICS_PRIMITIVES_H
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_CANVAS_HEADERS_GRAPHICS_PRIMITIVES_H
 
 #include <string>
 #include <variant>
@@ -21,3 +22,4 @@ inline Color rgba(unsigned char r, unsigned char g, unsigned char b, unsigned ch
 }
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_CANVAS_HEADERS_GRAPHICS_PRIMITIVES_H

@@ -1,12 +1,12 @@
 # Internal Extension Documentation
 
 ## Summary
-- Added a new `internal_documents/` folder at the repository root for maintainer-facing documentation.
+- Added maintainer-facing documentation under `docs/internal_documents/`.
 - Added an internal extension catalog describing the different language bindings and extension artifact families shipped from this repository.
 
 ## Files Added
-- `internal_documents/README.md`
-- `internal_documents/extensions_overview.md`
+- `docs/internal_documents/README.md`
+- `docs/internal_documents/extensions_overview.md`
 
 ## Details
 - The new internal documentation summarizes the current extension inventory across:

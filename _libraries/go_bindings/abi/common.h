@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_GO_BINDINGS_ABI_COMMON_H
+#define COOLBOX__LIBRARIES_GO_BINDINGS_ABI_COMMON_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -18,3 +19,4 @@ typedef enum CoolBoxStatus {
 #ifdef __cplusplus
 }
 #endif
+#endif  // COOLBOX__LIBRARIES_GO_BINDINGS_ABI_COMMON_H

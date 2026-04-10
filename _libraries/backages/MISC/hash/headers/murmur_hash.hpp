@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_HASH_HEADERS_MURMUR_HASH_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_HASH_HEADERS_MURMUR_HASH_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -132,3 +133,4 @@ inline std::uint64_t hash_value(const T& value, std::uint64_t seed = 0xc70f6907U
 } // namespace murmur
 } // namespace hash
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_HASH_HEADERS_MURMUR_HASH_HPP

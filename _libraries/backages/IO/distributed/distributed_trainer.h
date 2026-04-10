@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DISTRIBUTED_DISTRIBUTED_TRAINER_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DISTRIBUTED_DISTRIBUTED_TRAINER_H
 
 #include "message_passing.h"
 #include <vector>
@@ -184,3 +185,5 @@ namespace utils {
 
 } // namespace distributed
 } // namespace networking
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DISTRIBUTED_DISTRIBUTED_TRAINER_H

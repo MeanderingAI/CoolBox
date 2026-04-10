@@ -14,11 +14,11 @@ if(OpenSSL_FOUND)
     target_compile_definitions(cryptocurrency_utils PRIVATE COOLBOX_CRYPTOCURRENCY_USE_OPENSSL_PROVIDER=1)
 endif()
 
-if(BUILD_TESTING AND TARGET GTest::gtest_main)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(cryptocurrency_utils_tests
         tests/test_cryptocurrency.cpp
     )
-    target_link_libraries(cryptocurrency_utils_tests PRIVATE cryptocurrency_utils GTest::gtest_main)
+    target_link_libraries(cryptocurrency_utils_tests PRIVATE cryptocurrency_utils tyst_framework_main)
     add_test(NAME CryptocurrencyUtilsTests COMMAND cryptocurrency_utils_tests)
 endif()

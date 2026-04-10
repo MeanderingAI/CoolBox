@@ -5,8 +5,7 @@
 #include "lib_metadata.h"
 // Metadata only defined in svd.cpp to avoid duplicate symbols
 
-#include <Eigen/Dense>
-#include <Eigen/SVD>
+#include "mytrix_eigen_compat.hpp"
 #include <stdexcept>
 
 namespace dimensionality_reduction {

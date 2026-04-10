@@ -3,7 +3,8 @@
 // the project does not depend on external FetchContent. It is intentionally
 // minimal and should be extended to implement full TTF parsing and rasterization.
 
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_STB_TRUETYPE_H
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_STB_TRUETYPE_H
 
 #include <cstddef>
 
@@ -36,3 +37,4 @@ void stbtt_GetCodepointHMetrics(const stbtt_fontinfo* info, int codepoint, int* 
 int stbtt_GetCodepointKernAdvance(const stbtt_fontinfo* info, int ch1, int ch2);
 
 }
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_STB_TRUETYPE_H

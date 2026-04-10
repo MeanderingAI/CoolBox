@@ -15,9 +15,11 @@ add_library(distribution SHARED
 target_include_directories(distribution PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 
 # Tests
-enable_testing()
-add_executable(distribution_tests
-    tests/test_distribution.cpp
-)
-target_link_libraries(distribution_tests PRIVATE distribution GTest::gtest_main)
-add_test(NAME DistributionTests COMMAND distribution_tests)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
+    enable_testing()
+    add_executable(distribution_tests
+        tests/test_distribution.cpp
+    )
+    target_link_libraries(distribution_tests PRIVATE distribution tyst_framework_main)
+    add_test(NAME DistributionTests COMMAND distribution_tests)
+endif()

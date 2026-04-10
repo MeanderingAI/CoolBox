@@ -91,6 +91,9 @@ option(BUILD_IO_SQL "Build IO SQL backage (requires SQLite3)" ON)
 add_subdirectory_if_exists(backages/MISC/thread_pool)
 add_subdirectory_if_exists(backages/IO/advanced_logging)
 add_subdirectory_if_exists(backages/DATASTRUCTURE)  # Now includes matrix library
+if(BUILD_PRODUCT_INSTALLER_ABSTRACTIONS)
+    add_subdirectory_if_exists(backages/OS_GENERICS)
+endif()
 if(BUILD_IO_SQL)
     add_subdirectory_if_exists(backages/PARSER/database)
         add_subdirectory_if_exists(backages/PARSER/programming_language)
@@ -111,10 +114,14 @@ if(BUILD_IO_SQL)
 else()
     message(STATUS "Skipping IO SQL backage (BUILD_IO_SQL=OFF)")
 endif()
+    add_subdirectory_if_exists(backages/TOOLS/tyst_framework)
+    add_subdirectory_if_exists(backages/TOOLS/bower_shell)
+    add_subdirectory_if_exists(backages/TOOLS/file_browser)
 add_subdirectory_if_exists(backages/IO/dataformats/json)  # json library now located here
 add_subdirectory_if_exists(backages/IO/databases)
 add_subdirectory_if_exists(backages/IO/distributed)
 add_subdirectory_if_exists(backages/IO/file_system)
+add_subdirectory_if_exists(backages/IO/quic_transport)
 
 # Utils/security backages needed by auth/http
 add_subdirectory_force(backages/MISC/hash)
@@ -165,6 +172,7 @@ add_subdirectory_force(backages/GRAPHICS/charts)
 add_subdirectory_force(backages/GRAPHICS/fonts)
 add_subdirectory_force(backages/GRAPHICS/components)
 add_subdirectory_force(backages/GRAPHICS/windows)
+add_subdirectory_force(backages/GRAPHICS/full_application_window)
 
 # Chemistry backage (provides periodic_table.h)
 add_subdirectory_force(backages/CHEMISTRY)
@@ -172,3 +180,6 @@ add_subdirectory_force(backages/CHEMISTRY)
 # Electronics backages
 add_subdirectory_force(backages/ELECTRONICS/curcuitry)
 add_subdirectory_force(backages/ELECTRONICS/battery)
+
+# Signal processing backages
+add_subdirectory_force(backages/SP)

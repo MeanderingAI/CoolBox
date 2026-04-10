@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "normal_distribution.h"
 #include "poisson_distribution.h"
 #include <numeric>

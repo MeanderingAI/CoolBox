@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTPU_SERVLET_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTPU_SERVLET_H
 
 #include <string>
 #include <memory>
@@ -35,3 +36,5 @@ public:
 
 } // namespace servlets
 } // namespace io
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTPU_SERVLET_H

@@ -1,8 +1,5 @@
-#pragma once
-
-#include <string>
-
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_CHEMISTRY_INCLUDE_CHEMISTRY_PERIODIC_TABLE_H
+#define COOLBOX__LIBRARIES_BACKAGES_CHEMISTRY_INCLUDE_CHEMISTRY_PERIODIC_TABLE_H
 
 #include <string>
 #include <array>
@@ -168,3 +165,4 @@ inline std::vector<Element> elements_from_symbols(const std::vector<std::string>
 }
 
 } // namespace chemistry
+#endif  // COOLBOX__LIBRARIES_BACKAGES_CHEMISTRY_INCLUDE_CHEMISTRY_PERIODIC_TABLE_H

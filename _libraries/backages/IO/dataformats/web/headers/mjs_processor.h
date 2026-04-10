@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_MJS_PROCESSOR_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_MJS_PROCESSOR_H
 
 namespace networking {
 namespace document {
@@ -12,3 +13,5 @@ public:
 
 } // namespace document
 } // namespace networking
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_MJS_PROCESSOR_H

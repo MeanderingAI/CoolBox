@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_ELECTRONICS_BATTERY_INCLUDE_CELL_H
+#define COOLBOX__LIBRARIES_BACKAGES_ELECTRONICS_BATTERY_INCLUDE_CELL_H
 
 #include <string>
 #include <sstream>
@@ -291,6 +292,7 @@ public:
 };
 
 } // namespace battery
+#endif  // COOLBOX__LIBRARIES_BACKAGES_ELECTRONICS_BATTERY_INCLUDE_CELL_H
 
 // -----------------------------------------------------------------------------
 // Mapping helpers: map `battery::Chemistry` to elements from the periodic table

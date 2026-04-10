@@ -33,8 +33,22 @@ jobs:
 
       - name: Build all targets
         run: |
-          cmake -S . -B build -DBUILD_TESTING=ON
+          cmake -S . -B build -DBUILD_TESTING=ON -DBUILD_PRODUCTS=ON
           cmake --build build -- -j $(nproc || 2)
+
+      - name: Build product targets explicitly
+        run: |
+          set -e
+          help_out="$(cmake --build build --target help 2>&1 || true)"
+          products=(MStudio file_browser bower_shell)
+          for product in "${products[@]}"; do
+            if echo "$help_out" | grep -Eq "(^|[[:space:]])${product}([[:space:]]|$)"; then
+              echo "Building product target: $product"
+              cmake --build build --target "$product" -- -j $(nproc || 2)
+            else
+              echo "Skipping missing product target: $product"
+            fi
+          done
 
       - name: Build and Run detected tests
         run: |

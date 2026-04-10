@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "concurrent_linked_list.h"
 #include <thread>
 #include <vector>

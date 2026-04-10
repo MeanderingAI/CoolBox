@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_DEFAULT_HANDLERS_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_DEFAULT_HANDLERS_H
 #include <string>
 #include <functional>
 #include <memory>
@@ -72,3 +73,5 @@ inline RequestHandle build_wildcard_handler(const std::string& url_prefix, std::
 
 } // namespace http_server
 } // namespace io
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_DEFAULT_HANDLERS_H

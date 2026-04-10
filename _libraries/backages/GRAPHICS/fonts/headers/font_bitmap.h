@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_FONT_BITMAP_H
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_FONT_BITMAP_H
 
 #include <array>
 #include <cstdint>
@@ -41,3 +42,4 @@ inline std::vector<unsigned char> text_to_bitmap(const std::string& s, int& out_
 }
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_FONT_BITMAP_H

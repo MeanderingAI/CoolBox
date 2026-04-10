@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "knn.h"
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <cmath>
 #include <random>
 #include <vector>

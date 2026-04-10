@@ -1,7 +1,7 @@
 #ifndef PIECEWISE_CONDITIONAL_INTENSITY_MODEL_H
 #define PIECEWISE_CONDITIONAL_INTENSITY_MODEL_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include <functional>
 #include <memory>

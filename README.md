@@ -5,6 +5,22 @@
 The cmake generates shared objects which can be used with other projects for each of these categories of machine learning.
 We also include gunit tests for the entire suite.
 
+## Python Install
+
+The Python bindings can now be installed directly from the repository root:
+
+```bash
+pip install git+https://github.com/MeanderingAI/CoolBox.git
+```
+
+Local source installs also work from the repository root:
+
+```bash
+pip install .
+```
+
+The Python package exposes both `ml_toolbox` and the legacy compatibility import `ml_core`.
+
 ## Filters
 
 Here we provide a Kalman Filter library which contains CPP implementation of the standard array of implementations;
@@ -332,3 +348,7 @@ target_link_libraries(your_app PRIVATE CoolBox::deep_learning)
 ```
 
 If CoolBox is installed to a custom location, set `CMAKE_PREFIX_PATH` to `<install-prefix>`.
+
+## Internal Maintainer Notes
+
+Internal extension documentation is available in `docs/internal_documents/`, with the main index at `docs/internal_documents/README.md`.

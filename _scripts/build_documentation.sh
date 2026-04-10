@@ -47,16 +47,28 @@ if [ -d "${TUTORIALS_DIR}/tags" ]; then
   echo "[${SCRIPT_NAME}] Removed tutorial tags folder to avoid duplicate structure"
 fi
 
-# 2. Generate the docs hub portal
+# 2. Generate narrative solution and library catalog pages
+echo "[${SCRIPT_NAME}] Running build_solution_catalog.py → ${SITE_DIR}/solutions"
+"${PYTHON}" "${PROJECT_ROOT}/_scripts/build_solution_catalog.py" \
+  "${PROJECT_ROOT}" \
+  "${SITE_DIR}"
+
+# 3. Generate product and artifact pages
+echo "[${SCRIPT_NAME}] Running build_product_assets.py → ${SITE_DIR}/products and ${SITE_DIR}/artifacts/products"
+"${PYTHON}" "${PROJECT_ROOT}/_scripts/build_product_assets.py" \
+  "${PROJECT_ROOT}" \
+  "${SITE_DIR}"
+
+# 4. Generate the docs hub portal
 echo "[${SCRIPT_NAME}] Running generate_docs_hub.sh → ${SITE_DIR}"
 DOCS_TUTORIALS_DIR="${TUTORIALS_DIR}" \
   bash "${PROJECT_ROOT}/_scripts/generate_docs_hub.sh" "${SITE_DIR}"
 
-# 3. Build references into .site/references/
+# 5. Build references into .site/references/
 echo "[${SCRIPT_NAME}] Running build_references.py → ${SITE_DIR}/references"
 "${PYTHON}" "${PROJECT_ROOT}/_scripts/build_references.py" --bib "${PROJECT_ROOT}/bib" --out "${SITE_DIR}/references"
 
-# 4. Build tag pages into .site/tags/
+# 6. Build tag pages into .site/tags/
 echo "[${SCRIPT_NAME}] Running build_tags.py → ${SITE_DIR}/tags"
 "${PYTHON}" "${PROJECT_ROOT}/_scripts/build_tags.py" --out "${SITE_DIR}/tags"
 

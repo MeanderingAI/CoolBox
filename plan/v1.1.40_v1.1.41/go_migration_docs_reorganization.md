@@ -5,7 +5,7 @@
 - Split the roadmap into dedicated Markdown files for each migration module.
 
 ## Files Updated
-- `internal_documents/extensions/go/README.md`
+- `docs/internal_documents/extensions/go/README.md`
 
 ## Files Added
 - `plan/v1.1.40_v1.1.41/go_narrow_c_abi_migration_overview.md`
@@ -21,7 +21,7 @@
 - `plan/v1.1.40_v1.1.41/validation_results.md`
 
 ## Files Removed
-- `internal_documents/extensions/go/narrow_c_abi_migration.md`
+- `docs/internal_documents/extensions/go/narrow_c_abi_migration.md`
 
 ## Result
 - The Go internal README now points at the plan-based overview and per-module migration documents.

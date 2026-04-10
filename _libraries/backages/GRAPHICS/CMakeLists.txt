@@ -50,10 +50,10 @@ if(TARGET graphics_textures)
 endif()
 
 # GTest is provided centrally via `cmake/ExternalDependencies.cmake`.
-# Subpackages should link `GTest::gtest_main` if the target exists.
+# Subpackages should link `tyst_framework_main` if the target exists.
 if(BUILD_TESTING)
-  if(NOT TARGET GTest::gtest_main)
-    message(STATUS "GTest::gtest_main not available; GRAPHICS tests will be skipped")
+  if(NOT TARGET tyst_framework_main)
+    message(STATUS "tyst_framework_main not available; GRAPHICS tests will be skipped")
   endif()
 endif()
 
@@ -63,3 +63,4 @@ add_subdirectory(charts)
 add_subdirectory(fonts)
 add_subdirectory(canvas)
 add_subdirectory(windows)
+add_subdirectory(full_application_window)

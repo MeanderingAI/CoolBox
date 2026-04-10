@@ -143,7 +143,7 @@ jobs:
       - name: Configure CMake (Windows / MSYS2)
         if: runner.os == 'Windows'
         run: |
-          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/mingw64
+          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/mingw64
         shell: msys2 {0}
 
       - name: Show CMake cache (Windows)
@@ -166,9 +166,9 @@ jobs:
           fi
           if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
             CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
-            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS $CMAKE_SQLITE_ARGS
+            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS $CMAKE_SQLITE_ARGS
           else
-            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_SQLITE_ARGS
+            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_SQLITE_ARGS
           fi
       - name: Build all libraries
         run: |
@@ -177,6 +177,20 @@ jobs:
           else
             make build_libraries
           fi
+
+      - name: Build product targets explicitly
+        run: |
+          set -e
+          help_out="$(cmake --build build --target help 2>&1 || true)"
+          products=(MStudio file_browser bower_shell)
+          for product in "${products[@]}"; do
+            if echo "$help_out" | grep -Eq "(^|[[:space:]])${product}([[:space:]]|$)"; then
+              echo "Building product target: $product"
+              cmake --build build --target "$product" --config Release
+            else
+              echo "Skipping missing product target: $product"
+            fi
+          done
 
       - name: Build and run tests
         run: |
@@ -193,6 +207,73 @@ jobs:
           name: test-results-${{ matrix.platform }}
           path: build/Testing/
           if-no-files-found: ignore
+
+      - name: Package product artifacts
+        if: always()
+        run: |
+          set -e
+          mkdir -p release-assets
+
+          create_archives() {
+            local source_dir="$1"
+            local base_name="$2"
+
+            tar czf "release-assets/${base_name}.tar.gz" -C "${source_dir}" .
+            python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+              "$source_dir" "release-assets/${base_name}.zip"
+          }
+
+          package_product() {
+            local product="$1"
+            local product_bin
+            product_bin="$(find build -type f \( -name "$product" -o -name "$product.exe" \) | head -n 1)"
+
+            if [ -z "$product_bin" ]; then
+              echo "⚠ No built executable found for ${product}"
+              return
+            fi
+
+            local product_dir
+            local staging="staging-product-${product}"
+            local notes_tool
+            local product_title
+            product_dir="$(dirname "$product_bin")"
+            mkdir -p "${staging}"
+
+            notes_tool="$(find build -type f \( -name 'installer_abstraction_notes' -o -name 'installer_abstraction_notes.exe' \) | head -n 1)"
+            if [ -z "$notes_tool" ]; then
+              echo "⚠ No installer notes generator found for ${product}"
+              rm -rf "${staging}"
+              return
+            fi
+
+            case "$product" in
+              MStudio)
+                product_title="MStudio"
+                ;;
+              file_browser)
+                product_title="File Browser"
+                ;;
+              bower_shell)
+                product_title="Bower Shell"
+                ;;
+              *)
+                product_title="$product"
+                ;;
+            esac
+
+            cp -v "$product_bin" "${staging}/"
+            find "$product_dir" -maxdepth 1 -type f \( -name '*.dll' -o -name '*.so' -o -name '*.so.*' -o -name '*.dylib' \) -exec cp -v {} "${staging}/" \; 2>/dev/null || true
+            "$notes_tool" pre-release "$product_title" "$product" > "${staging}/PRERELEASE.txt"
+            "$notes_tool" install "$product_title" "$product" > "${staging}/INSTALL.txt"
+
+            create_archives "${staging}" "coolbox-product-${product}-${{ matrix.platform }}-${{ github.ref_name }}"
+            rm -rf "${staging}"
+          }
+
+          package_product MStudio
+          package_product file_browser
+          package_product bower_shell
 
       - name: Package and upload LSP artifacts
         if: always()

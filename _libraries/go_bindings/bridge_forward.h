@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_GO_BINDINGS_BRIDGE_FORWARD_H
+#define COOLBOX__LIBRARIES_GO_BINDINGS_BRIDGE_FORWARD_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,3 +26,4 @@ typedef struct CoolBoxCheckboxGroup CoolBoxCheckboxGroup;
 #ifdef __cplusplus
 }
 #endif
+#endif  // COOLBOX__LIBRARIES_GO_BINDINGS_BRIDGE_FORWARD_H

@@ -58,6 +58,7 @@ enable_testing()
 # Option to skip building apps/services/demos
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
+option(BUILD_PRODUCT_INSTALLER_ABSTRACTIONS "Build installer abstraction helpers for release-packaged products" OFF)
 if(BUILD_BINARIES)
     if(EXISTS "${CMAKE_SOURCE_DIR}/_binaries")
         add_subdirectory(_binaries)
@@ -71,6 +72,11 @@ add_subdirectory(_libraries)
 # Build apps if present (e.g., apps/lsp)
 if(EXISTS "${CMAKE_SOURCE_DIR}/apps")
     add_subdirectory(apps)
+endif()
+
+option(BUILD_PRODUCTS "Build products under _Product" ON)
+if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_Product")
+    add_subdirectory(_Product)
 endif()
 
 # Option to install and export CoolBox CMake package for external consumers
@@ -146,7 +152,7 @@ if(COOLBOX_INSTALL_PACKAGE)
             continue()
         endif()
 
-        if(target_name MATCHES "(^test_|_test$|_tests$|bindings|ml_core)")
+        if(target_name MATCHES "(^test_|_test$|_tests$|bindings|ml_core|^tyst_framework$|^tyst_framework_main$)")
             continue()
         endif()
 

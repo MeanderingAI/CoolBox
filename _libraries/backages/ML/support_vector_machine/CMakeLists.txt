@@ -6,12 +6,14 @@ add_library(support_vector_machine SHARED
     source/support_vector_machine.cpp
 )
 target_include_directories(support_vector_machine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-target_link_libraries(support_vector_machine PRIVATE Eigen3::Eigen)
+target_link_libraries(support_vector_machine PRIVATE mytrix)
 
 # Tests
-enable_testing()
-add_executable(support_vector_machine_tests
-    tests/test_support_vector_machine.cpp
-)
-target_link_libraries(support_vector_machine_tests PRIVATE support_vector_machine GTest::gtest_main)
-add_test(NAME SupportVectorMachineTests COMMAND support_vector_machine_tests)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
+    enable_testing()
+    add_executable(support_vector_machine_tests
+        tests/test_support_vector_machine.cpp
+    )
+    target_link_libraries(support_vector_machine_tests PRIVATE support_vector_machine tyst_framework_main)
+    add_test(NAME SupportVectorMachineTests COMMAND support_vector_machine_tests)
+endif()

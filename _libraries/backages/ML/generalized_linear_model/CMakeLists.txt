@@ -6,8 +6,10 @@ target_include_directories(generalized_linear_model PUBLIC ${CMAKE_CURRENT_SOURC
 
 # Tests
 enable_testing()
-add_executable(generalized_linear_model_tests
-    tests/test_linear_regression.cpp
-)
-target_link_libraries(generalized_linear_model_tests PRIVATE generalized_linear_model GTest::gtest_main)
-add_test(NAME GeneralizedLinearModelTests COMMAND generalized_linear_model_tests)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
+    add_executable(generalized_linear_model_tests
+        tests/test_linear_regression.cpp
+    )
+    target_link_libraries(generalized_linear_model_tests PRIVATE generalized_linear_model tyst_framework_main)
+    add_test(NAME GeneralizedLinearModelTests COMMAND generalized_linear_model_tests)
+endif()

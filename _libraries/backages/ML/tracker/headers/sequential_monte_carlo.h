@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <random>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include "base_filter.h"
 
 struct Particle {

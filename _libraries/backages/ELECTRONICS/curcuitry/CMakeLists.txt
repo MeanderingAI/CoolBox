@@ -35,5 +35,5 @@ add_executable(curcuitry_tests
 target_include_directories(curcuitry_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-target_link_libraries(curcuitry_tests PRIVATE curcuitry GTest::gtest_main)
+target_link_libraries(curcuitry_tests PRIVATE curcuitry tyst_framework_main)
 add_test(NAME CurcuitryTests COMMAND curcuitry_tests)

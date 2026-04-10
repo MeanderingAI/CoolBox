@@ -1,7 +1,7 @@
 #ifndef MARKED_POINT_PROCESS_H
 #define MARKED_POINT_PROCESS_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include <functional>
 #include <memory>

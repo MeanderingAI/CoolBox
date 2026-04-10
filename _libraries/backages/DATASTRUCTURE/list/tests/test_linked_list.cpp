@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "linked_list.h"
 
 using namespace data_structures;

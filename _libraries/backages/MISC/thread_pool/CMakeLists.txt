@@ -10,7 +10,7 @@ enable_testing()
 add_executable(thread_pool_tests
     tests/test_thread_pool.cpp
 )
-target_link_libraries(thread_pool_tests PRIVATE thread_pool_utils GTest::gtest_main)
+target_link_libraries(thread_pool_tests PRIVATE thread_pool_utils tyst_framework_main)
 add_test(NAME ThreadPoolTests COMMAND thread_pool_tests)
 
 set_target_properties(thread_pool_utils PROPERTIES PUBLIC_HEADER "headers/thread_pool.h")

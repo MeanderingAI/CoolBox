@@ -39,12 +39,12 @@ if(COOLBOX_HASH_HAS_CRYPT_SYMBOL AND COOLBOX_HASH_CRYPT_LIBRARY)
     target_link_libraries(password_hash_utils PUBLIC ${COOLBOX_HASH_CRYPT_LIBRARY})
 endif()
 
-if(BUILD_TESTING AND TARGET GTest::gtest_main)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(password_hash_utils_tests
         tests/test_password_hash.cpp
         tests/test_murmur_hash.cpp
     )
-    target_link_libraries(password_hash_utils_tests PRIVATE password_hash_utils GTest::gtest_main)
+    target_link_libraries(password_hash_utils_tests PRIVATE password_hash_utils tyst_framework_main)
     add_test(NAME PasswordHashUtilsTests COMMAND password_hash_utils_tests)
 endif()

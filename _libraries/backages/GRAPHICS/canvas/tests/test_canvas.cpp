@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include <graphics/primitives.h>
 #include <graphics/texture_loader.h>
 

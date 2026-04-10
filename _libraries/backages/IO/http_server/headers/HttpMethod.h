@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_HEADERS_HTTPMETHOD_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_HEADERS_HTTPMETHOD_H
 #include <string>
 
 namespace io {
@@ -41,4 +42,6 @@ inline HttpMethod from_string(const std::string& method) {
 
 } // namespace http_server
 } // namespace io
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_HTTP_SERVER_HEADERS_HTTPMETHOD_H
 

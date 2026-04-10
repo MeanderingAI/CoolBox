@@ -1,9 +1,12 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_COMPONENTS_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_COMPONENTS_HPP
 
 #include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "../../graphics_object.hpp"
 
 namespace graphics {
 namespace components {
@@ -33,18 +36,24 @@ struct ToolbarModel {
         : actions(std::move(actions)), spacing(spacing) {}
     ToolbarModel& add_action(const std::string& action) { actions.push_back(action); return *this; }
     ToolbarModel& set_spacing(std::size_t s) { spacing = s; return *this; }
+    std::string graphics_object_kind() const override { return "toolbarModel"; }
+    std::string graphics_object_name() const override {
+        return actions.empty() ? std::string("toolbar") : actions.front();
+    }
 };
 
-struct DockPanelModel {
+struct DockPanelModel : public ::graphics::GraphicsObject {
     std::string title;
     bool floating = false;
     DockPanelModel() = default;
     explicit DockPanelModel(std::string title, bool floating = false)
         : title(std::move(title)), floating(floating) {}
     DockPanelModel& set_floating(bool f) { floating = f; return *this; }
+    std::string graphics_object_kind() const override { return "dockPanelModel"; }
+    std::string graphics_object_name() const override { return title; }
 };
 
-struct LayerListModel {
+struct LayerListModel : public ::graphics::GraphicsObject {
     std::vector<std::string> layers;
     std::size_t selected = 0;
     LayerListModel() = default;
@@ -52,28 +61,45 @@ struct LayerListModel {
         : layers(std::move(layers)), selected(selected) {}
     LayerListModel& add_layer(const std::string& l) { layers.push_back(l); return *this; }
     LayerListModel& set_selected(std::size_t s) { selected = s; return *this; }
+    std::string graphics_object_kind() const override { return "layerListModel"; }
+    std::string graphics_object_name() const override {
+        return layers.empty() ? std::string("layers") : layers[std::min(selected, layers.size() - 1U)];
+    }
 };
 
-struct PropertyInspectorModel {
+struct PropertyInspectorModel : public ::graphics::GraphicsObject {
     std::vector<std::pair<std::string, std::string>> properties;
     PropertyInspectorModel() = default;
     explicit PropertyInspectorModel(std::vector<std::pair<std::string, std::string>> props)
         : properties(std::move(props)) {}
     PropertyInspectorModel& add_property(const std::string& k, const std::string& v) { properties.emplace_back(k, v); return *this; }
+    std::string graphics_object_kind() const override { return "propertyInspectorModel"; }
+    std::string graphics_object_name() const override {
+        return properties.empty() ? std::string("properties") : properties.front().first;
+    }
 };
 
-struct FileTreeModel {
-    struct Node {
+struct FileTreeModel : public ::graphics::GraphicsObject {
+    struct Node : public ::graphics::GraphicsObject {
         std::string name;
         bool is_dir = false;
         std::vector<Node> children;
+
+        Node() = default;
+        Node(std::string node_name, bool directory = false, std::vector<Node> node_children = {})
+            : name(std::move(node_name)), is_dir(directory), children(std::move(node_children)) {}
+
+        std::string graphics_object_kind() const override { return "fileTreeNode"; }
+        std::string graphics_object_name() const override { return name; }
     };
     Node root;
     FileTreeModel() = default;
     explicit FileTreeModel(Node root) : root(std::move(root)) {}
+    std::string graphics_object_kind() const override { return "fileTreeModel"; }
+    std::string graphics_object_name() const override { return root.name; }
 };
 
-struct RadioSelectorModel {
+struct RadioSelectorModel : public ::graphics::GraphicsObject {
     std::vector<std::string> options;
     std::size_t selected = 0;
     RadioSelectorModel() = default;
@@ -81,9 +107,13 @@ struct RadioSelectorModel {
         : options(std::move(opts)), selected(sel) {}
     RadioSelectorModel& add_option(const std::string& o) { options.push_back(o); return *this; }
     RadioSelectorModel& set_selected(std::size_t s) { selected = s; return *this; }
+    std::string graphics_object_kind() const override { return "radioSelectorModel"; }
+    std::string graphics_object_name() const override {
+        return options.empty() ? std::string("radioSelector") : options[std::min(selected, options.size() - 1U)];
+    }
 };
 
-struct CheckboxGroupModel {
+struct CheckboxGroupModel : public ::graphics::GraphicsObject {
     std::vector<std::string> options;
     std::vector<bool> checked;
     CheckboxGroupModel() = default;
@@ -93,6 +123,10 @@ struct CheckboxGroupModel {
     }
     CheckboxGroupModel& add_option(const std::string& o, bool c = false) { options.push_back(o); checked.push_back(c); return *this; }
     CheckboxGroupModel& set_checked(std::size_t i, bool c) { if (i < checked.size()) checked[i] = c; return *this; }
+    std::string graphics_object_kind() const override { return "checkboxGroupModel"; }
+    std::string graphics_object_name() const override {
+        return options.empty() ? std::string("checkboxGroup") : options.front();
+    }
 };
 // Factory functions and model getters are declared on `Component` below.
 
@@ -105,7 +139,7 @@ enum class LayoutType {
 std::string component_type_name(ComponentType type);
 std::string layout_type_name(LayoutType type);
 
-struct MenuItem {
+struct MenuItem : public ::graphics::GraphicsObject {
     std::string label;
     std::string shortcut;
     bool enabled = true;
@@ -119,9 +153,12 @@ struct MenuItem {
                            bool checked = false,
                            bool has_submenu = false);
     static MenuItem divider();
+
+    std::string graphics_object_kind() const override { return "menuItem"; }
+    std::string graphics_object_name() const override { return separator ? std::string("divider") : label; }
 };
 
-struct MenuModel {
+struct MenuModel : public ::graphics::GraphicsObject {
     std::string title;
     std::vector<MenuItem> items;
     bool highlighted = false;
@@ -131,9 +168,12 @@ struct MenuModel {
 
     MenuModel& add_item(const MenuItem& item);
     MenuModel& set_highlighted(bool highlighted_state);
+
+    std::string graphics_object_kind() const override { return "menuModel"; }
+    std::string graphics_object_name() const override { return title; }
 };
 
-struct MenuBarModel {
+struct MenuBarModel : public ::graphics::GraphicsObject {
     std::vector<MenuModel> menus;
     std::size_t spacing = 3;
 
@@ -143,11 +183,16 @@ struct MenuBarModel {
 
     MenuBarModel& add_menu(const MenuModel& menu);
     MenuBarModel& set_spacing(std::size_t spacing_value);
+
+    std::string graphics_object_kind() const override { return "menuBarModel"; }
+    std::string graphics_object_name() const override {
+        return menus.empty() ? std::string("menuBar") : menus.front().title;
+    }
 };
 
 class ComponentHolder;
 
-class Component {
+class Component : public ::graphics::GraphicsObject {
 public:
     static Component button(std::string label,
                             bool enabled = true,
@@ -202,6 +247,17 @@ public:
     const MenuBarModel* menu_bar_model() const { return menu_bar_model_.get(); }
     const MenuModel* dropdown_menu_model() const { return dropdown_menu_model_.get(); }
 
+    std::string graphics_object_kind() const override { return "component"; }
+    std::string graphics_object_name() const override {
+        if (!label_.empty()) {
+            return label_;
+        }
+        if (!text_.empty()) {
+            return text_;
+        }
+        return component_type_name(type_);
+    }
+
     std::vector<std::string> render() const;
 
 private:
@@ -227,7 +283,7 @@ private:
     std::shared_ptr<CheckboxGroupModel> checkbox_group_model_;
 };
 
-class ComponentHolder {
+class ComponentHolder : public ::graphics::GraphicsObject {
 public:
     static ComponentHolder vertical(std::vector<Component> components = {},
                                     std::size_t spacing = 1);
@@ -246,6 +302,9 @@ public:
     std::size_t horizontal_spacing() const { return horizontal_spacing_; }
     std::size_t vertical_spacing() const { return vertical_spacing_; }
 
+    std::string graphics_object_kind() const override { return "componentHolder"; }
+    std::string graphics_object_name() const override { return layout_type_name(layout_); }
+
     std::vector<std::string> render() const;
 
 private:
@@ -258,3 +317,4 @@ private:
 
 } // namespace components
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_COMPONENTS_HPP

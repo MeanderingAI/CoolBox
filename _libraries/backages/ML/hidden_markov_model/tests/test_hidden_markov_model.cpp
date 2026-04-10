@@ -1,5 +1,5 @@
 
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "../headers/hidden_markov_model.h"
 
 using namespace std;
@@ -51,7 +51,3 @@ TEST(HiddenMarkovModel, GettersAndSetters) {
 	EXPECT_EQ(model.get_emission_matrix().cols(), 2);
 }
 
-int main(int argc, char **argv) {
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
-}

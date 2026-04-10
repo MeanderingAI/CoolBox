@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_HASH_HEADERS_PASSWORD_HASH_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_HASH_HEADERS_PASSWORD_HASH_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -90,3 +91,4 @@ bool verify_argon2id(const std::string& password,
 
 } // namespace hash
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_HASH_HEADERS_PASSWORD_HASH_HPP

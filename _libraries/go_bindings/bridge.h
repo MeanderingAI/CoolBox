@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_GO_BINDINGS_BRIDGE_H
+#define COOLBOX__LIBRARIES_GO_BINDINGS_BRIDGE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -22,3 +23,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+#endif  // COOLBOX__LIBRARIES_GO_BINDINGS_BRIDGE_H

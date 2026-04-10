@@ -1,7 +1,7 @@
 #ifndef BASE_KALMAN_FILTER_H
 #define BASE_KALMAN_FILTER_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include "base_filter.h"
 
 /**

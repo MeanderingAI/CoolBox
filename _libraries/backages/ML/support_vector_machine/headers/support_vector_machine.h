@@ -51,7 +51,7 @@
 
 #include <vector>
 #include <iostream>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include "kernel.h"
 
 class SVM {

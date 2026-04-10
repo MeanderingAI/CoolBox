@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_HTML_PROCESSOR_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_HTML_PROCESSOR_H
 
 #include <string>
 #include <vector>
@@ -264,3 +265,5 @@ private:
 } // namespace html
 } // namespace networking
 } // namespace ml
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_HTML_PROCESSOR_H

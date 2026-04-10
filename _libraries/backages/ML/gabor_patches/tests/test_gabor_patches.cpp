@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "gabor_patches.h"
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <cmath>
 #include <vector>
 

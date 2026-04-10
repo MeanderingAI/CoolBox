@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_FONTS_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_FONTS_HPP
 
 #include "graphics.h"
 
@@ -62,3 +63,4 @@ private:
 };
 
 } // namespace graphics::fonts
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_FONTS_HEADERS_FONTS_HPP

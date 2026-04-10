@@ -4,11 +4,11 @@ add_library(metadata_management SHARED
 target_include_directories(metadata_management PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 
 # Tests
-if(BUILD_TESTING AND TARGET GTest::gtest_main)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(metadata_management_tests
         tests/test_metadata_management.cpp
     )
-    target_link_libraries(metadata_management_tests PRIVATE metadata_management GTest::gtest_main)
+    target_link_libraries(metadata_management_tests PRIVATE metadata_management tyst_framework_main)
     add_test(NAME MetadataManagementTests COMMAND metadata_management_tests)
 endif()

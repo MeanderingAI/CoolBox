@@ -38,7 +38,8 @@
  * t.render().save_bmp("grades.bmp");
  * @endcode
  */
-#pragma once
+#ifndef COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
+#define COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
 
 #include <cstdint>
 #include <string>
@@ -213,3 +214,4 @@ private:
 };
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H

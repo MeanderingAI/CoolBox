@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_ELF_MANAGEMENT_SHARED_LIBRARY_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_ELF_MANAGEMENT_SHARED_LIBRARY_HPP
 #include <string>
 #include <dlfcn.h>
 #include <vector>
@@ -66,3 +67,4 @@ inline std::vector<LibraryInfo> scan_libraries(const std::string& workspace_path
 
 } // namespace elf_management
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_ELF_MANAGEMENT_SHARED_LIBRARY_HPP

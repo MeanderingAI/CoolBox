@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "binary_search_tree.h"
 #include <string>
 #include <vector>

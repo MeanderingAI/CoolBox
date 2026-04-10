@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_GO_BINDINGS_CBRIDGE_BRIDGE_H
+#define COOLBOX__LIBRARIES_GO_BINDINGS_CBRIDGE_BRIDGE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,3 +95,4 @@ void coolbox_checkboxgroup_free(CoolBoxCheckboxGroup* c);
 #ifdef __cplusplus
 }
 #endif
+#endif  // COOLBOX__LIBRARIES_GO_BINDINGS_CBRIDGE_BRIDGE_H

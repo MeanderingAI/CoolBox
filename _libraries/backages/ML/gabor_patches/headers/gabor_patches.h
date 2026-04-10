@@ -40,7 +40,7 @@
  */
 #pragma once
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include <cmath>
 #include <stdexcept>

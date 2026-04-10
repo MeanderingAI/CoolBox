@@ -3,7 +3,7 @@
  * @brief Tests for the metadata management macros.
  */
 
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "lib_metadata.h"
 
 // Register test-specific metadata using the macros

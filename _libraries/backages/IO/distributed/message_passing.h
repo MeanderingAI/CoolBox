@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DISTRIBUTED_MESSAGE_PASSING_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DISTRIBUTED_MESSAGE_PASSING_H
 
 #include <vector>
 #include <string>
@@ -148,3 +149,5 @@ private:
 
 } // namespace distributed
 } // namespace networking
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DISTRIBUTED_MESSAGE_PASSING_H

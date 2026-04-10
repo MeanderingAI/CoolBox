@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_MISC_WAVE_GENERATOR_HEADERS_WAVE_GENERATOR_HPP
+#define COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_MISC_WAVE_GENERATOR_HEADERS_WAVE_GENERATOR_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -38,3 +39,4 @@ std::vector<double> generate_samples_for_duration(double duration_seconds,
 
 } // namespace wave_generator
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_MISC_WAVE_GENERATOR_HEADERS_WAVE_GENERATOR_HPP

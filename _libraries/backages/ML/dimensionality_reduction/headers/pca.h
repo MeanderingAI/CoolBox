@@ -5,7 +5,7 @@
 #include "lib_metadata.h"
 // Metadata only defined in pca.cpp to avoid duplicate symbols
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include "svd.h"
 
 namespace dimensionality_reduction {

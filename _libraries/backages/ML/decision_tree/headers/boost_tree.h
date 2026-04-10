@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <memory>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 
 // Forward declaration of the DecisionTree class to avoid circular dependencies
 class DecisionTree;

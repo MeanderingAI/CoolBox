@@ -66,6 +66,10 @@ help:
 	@echo "  make completion         Output shell completion script"
 	@echo "  make install_tutorial_editor_deps Install tutorial editor Python dependencies"
 	@echo "  make launch_editor      Launch the tutorial editor app"
+	@echo "  make worksplace_editor Build the worksplace_editor product target"
+	@echo "  make run_worksplace_editor Build and launch the worksplace_editor product"
+	@echo "  make file_browser      Build the file_browser product target"
+	@echo "  make run_file_browser  Build and launch the file_browser product"
 	@echo "  make build_c_bindings   Build the plain C bindings"
 	@echo "  make build_java_bindings Build the plain Java bindings"
 	@echo ""
@@ -106,8 +110,8 @@ help:
 		build_java_bindings \
 	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
 	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
-		build_rust_bindings test_rust_bindings build_docs_portal launch_editor
-		notepad
+		build_rust_bindings test_rust_bindings build_docs_portal launch_editor \
+		worksplace_editor run_worksplace_editor file_browser run_file_browser
 
 all: build_all
 
@@ -301,11 +305,42 @@ build_rust_bindings:
 	@echo "Building Rust bindings..."
 	@cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
 
-# Build the notepad product
-notepad:
-	@echo "Building notepad product..."
-	@$(MAKE) -C _Product/notepad all || true
-	@echo "notepad build complete. Binary (if produced) in _Product/notepad/bin"
+# Build the worksplace_editor product
+worksplace_editor: configure
+	@echo "[Makefile] Building worksplace_editor product..."
+	@cmake --build build --target worksplace_editor
+	@echo "[Makefile] worksplace_editor build complete."
+
+run_worksplace_editor: worksplace_editor
+	@echo "[Makefile] Launching worksplace_editor product..."
+	@if [ -f build/_Product/notepad/Debug/worksplace_editor.exe ]; then \
+		build/_Product/notepad/Debug/worksplace_editor.exe; \
+	elif [ -f build/_Product/notepad/Release/worksplace_editor.exe ]; then \
+		build/_Product/notepad/Release/worksplace_editor.exe; \
+	elif [ -f build/_Product/notepad/worksplace_editor ]; then \
+		./build/_Product/notepad/worksplace_editor; \
+	else \
+		echo "[Makefile] worksplace_editor executable not found under build/_Product/notepad"; \
+		exit 1; \
+	fi
+
+file_browser: configure
+	@echo "[Makefile] Building file_browser product..."
+	@cmake --build build --target file_browser
+	@echo "[Makefile] file_browser build complete."
+
+run_file_browser: file_browser
+	@echo "[Makefile] Launching file_browser product..."
+	@if [ -f build/_Product/file_browser/Debug/file_browser.exe ]; then \
+		build/_Product/file_browser/Debug/file_browser.exe; \
+	elif [ -f build/_Product/file_browser/Release/file_browser.exe ]; then \
+		build/_Product/file_browser/Release/file_browser.exe; \
+	elif [ -f build/_Product/file_browser/file_browser ]; then \
+		./build/_Product/file_browser/file_browser; \
+	else \
+		echo "[Makefile] file_browser executable not found under build/_Product/file_browser"; \
+		exit 1; \
+	fi
 
 test_rust_bindings:
 	@echo "Testing Rust bindings..."

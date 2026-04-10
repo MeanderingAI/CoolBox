@@ -28,7 +28,7 @@
 
 ### Static Validation
 - Validation was re-run after adding the internal extension documentation folder and files.
-- The new markdown files under `internal_documents/` and `plan/v1.1.40_v1.1.41/` reported no diagnostics after creation.
+- The new markdown files under `docs/internal_documents/` and `plan/v1.1.40_v1.1.41/` reported no diagnostics after creation.
 - The extension summary content was cross-checked against the repository binding directories and the reusable workflow artifact names restored by `.github/workflows/docs-publish.yaml`.
 
 ### Remaining Note
@@ -39,7 +39,7 @@
 
 ### Static Validation
 - Validation was re-run after adding the per-extension internal READMEs and the root README link.
-- `README.md`, `internal_documents/README.md`, `internal_documents/extensions_overview.md`, and the new per-extension markdown files reported no diagnostics after the update.
+- `README.md`, `docs/internal_documents/README.md`, `docs/internal_documents/extensions_overview.md`, and the new per-extension markdown files reported no diagnostics after the update.
 - The per-extension setup steps were cross-checked against the existing binding READMEs, package manifests, and reusable workflow definitions already present in the repository.
 
 ### Remaining Note
@@ -82,7 +82,7 @@
 
 ### Static Validation
 - Validation was re-run after expanding the Go migration notes into a module-by-module roadmap.
-- `internal_documents/extensions/go/narrow_c_abi_migration.md`, `internal_documents/extensions/go/README.md`, and the new plan files reported no diagnostics after the change.
+- `docs/internal_documents/extensions/go/narrow_c_abi_migration.md`, `docs/internal_documents/extensions/go/README.md`, and the new plan files reported no diagnostics after the change.
 
 ### Remaining Note
 - This change is documentation-only and does not alter the current Go binding implementation.
@@ -92,8 +92,8 @@
 
 ### Static Validation
 - Validation was re-run after moving the Go narrow C ABI roadmap into `plan/` and splitting it into module-specific documents.
-- `internal_documents/extensions/go/README.md` and the new plan markdown files reported no diagnostics after the change.
-- The removed `internal_documents/extensions/go/narrow_c_abi_migration.md` was replaced by plan references from the Go internal README.
+- `docs/internal_documents/extensions/go/README.md` and the new plan markdown files reported no diagnostics after the change.
+- The removed `docs/internal_documents/extensions/go/narrow_c_abi_migration.md` was replaced by plan references from the Go internal README.
 
 ### Remaining Note
 - This change is documentation-only and does not alter the current Go binding implementation.
@@ -121,3 +121,36 @@
 - A root-level editable install was attempted with the configured workspace interpreter.
 - The terminal environment remained unreliable for full command output capture, but the captured pip log showed the install reaching the build phase from the repository root.
 - A full clean success transcript could not be confirmed from this environment, so final runtime confirmation should come from a normal `pip install git+https://github.com/MeanderingAI/CoolBox.git` run outside this terminal session or from CI.
+
+## Public Language Docs Follow-Up
+
+### Static Validation
+- Validation was re-run after adding public language guides under `docs/core-lib/languages/`.
+- The new markdown files in `docs/core-lib/languages/` and `plan/v1.1.40_v1.1.41/public_language_binding_docs.md` reported no diagnostics after creation.
+- The new public language guides were cross-checked against the existing internal extension READMEs and binding package locations already present in the repository.
+
+### Remaining Note
+- This change is documentation-only and did not require a runtime build or CI rerun.
+- The new public docs currently cover the repository binding languages plus the existing MATLAB and VHDL specification pages already present in `docs/core-lib/languages/`.
+
+## Docs Layout Reorganization
+
+### Static Validation
+- Validation was re-run after moving the public language docs into `docs/core-lib/languages/` and relocating maintainer docs under `docs/internal_documents/`.
+- The new markdown files under `docs/core-lib/languages/`, `docs/internal_documents/`, and `plan/v1.1.40_v1.1.41/docs_layout_reorganization.md` reported no diagnostics after the path updates.
+- Repository references in `README.md` and the tracked plan notes were updated to the new docs locations.
+
+### Remaining Note
+- This change is documentation-only and did not require a runtime build or CI rerun.
+- Empty legacy directories may remain until they are removed by a normal filesystem cleanup, but the tracked files now point at the new docs locations.
+
+## Pragma Once Script Execution
+
+### Static Validation
+- `_scripts/tmp_replace_pragma_once.ps1` was executed from the repository root to attempt a repository-wide `#pragma once` to `#ifndef` conversion.
+- Follow-up verification re-read `_libraries/go_bindings/abi/common.h` and re-scanned `_libraries/**/*.{h,hpp,hh,hxx}` for `#pragma once`.
+- The verification showed that the script execution did not change the checked headers in this environment.
+
+### Remaining Note
+- This execution attempt did not complete the intended include-guard migration.
+- A non-terminal edit path is still required if the repository-wide conversion should be applied reliably.

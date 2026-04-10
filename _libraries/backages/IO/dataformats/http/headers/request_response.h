@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_REQUEST_RESPONSE_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_REQUEST_RESPONSE_H
 
 #include <string>
 #include <map>
@@ -121,6 +122,7 @@ struct Request {
     }
 };
 
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_REQUEST_RESPONSE_H
 struct Response {
     int status_code;
     std::map<HeaderKeyType, std::string> headers;

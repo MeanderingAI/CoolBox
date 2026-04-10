@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "linear_regression.h"
 
 TEST(LinearRegression, ClosedFormPerfectFit) {

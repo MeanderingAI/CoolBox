@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_SYSTEM_STATS_HEADERS_SYSTEM_STATS_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_SYSTEM_STATS_HEADERS_SYSTEM_STATS_HPP
 #include <string>
 #include <vector>
 
@@ -37,3 +38,4 @@ std::vector<GPUInfo> get_gpu_info();
 
 } // namespace system_stats
 } // namespace utils
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_SYSTEM_STATS_HEADERS_SYSTEM_STATS_HPP

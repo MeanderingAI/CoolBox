@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_GO_BINDINGS_ABI_LINEAR_REGRESSION_H
+#define COOLBOX__LIBRARIES_GO_BINDINGS_ABI_LINEAR_REGRESSION_H
 
 #include "common.h"
 
@@ -45,3 +46,4 @@ void coolbox_free_linear_regression(
 #ifdef __cplusplus
 }
 #endif
+#endif  // COOLBOX__LIBRARIES_GO_BINDINGS_ABI_LINEAR_REGRESSION_H

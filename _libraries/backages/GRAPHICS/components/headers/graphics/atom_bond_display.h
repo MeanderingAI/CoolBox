@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_GRAPHICS_ATOM_BOND_DISPLAY_H
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_GRAPHICS_ATOM_BOND_DISPLAY_H
 
 #include <string>
 #include <vector>
@@ -73,3 +74,4 @@ inline std::vector<Primitive> render_text_box(const std::string& text, float x, 
 }
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_COMPONENTS_HEADERS_GRAPHICS_ATOM_BOND_DISPLAY_H

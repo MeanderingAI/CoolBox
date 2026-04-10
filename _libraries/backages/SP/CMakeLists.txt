@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.16)
+get_filename_component(BACKAGE_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+project(${BACKAGE_NAME} NONE)
+message(STATUS "Configuring backage: ${BACKAGE_NAME}")
+
+file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*")
+foreach(child ${children})
+  if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${child}" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${child}/CMakeLists.txt")
+    message(STATUS "  adding subdir ${child}")
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/${child}" "${CMAKE_BINARY_DIR}/${BACKAGE_NAME}_${child}_build")
+  endif()
+endforeach()

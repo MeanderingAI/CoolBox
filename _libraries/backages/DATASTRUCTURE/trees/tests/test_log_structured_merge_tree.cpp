@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 
 #include "log_structured_merge_tree.h"
 

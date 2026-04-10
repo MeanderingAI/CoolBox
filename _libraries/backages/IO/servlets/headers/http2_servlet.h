@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP2_SERVLET_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP2_SERVLET_H
 #include "http_servlet_base.h"
 
 namespace networking {
@@ -12,3 +13,5 @@ public:
 
 } // namespace servlets
 } // namespace networking
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP2_SERVLET_H

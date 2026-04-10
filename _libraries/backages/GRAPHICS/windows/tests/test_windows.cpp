@@ -1,11 +1,29 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 
 #include <filesystem>
+#include <type_traits>
 
 #include "components.hpp"
 #include "graphics.h"
 #include "json.h"
 #include "windows.hpp"
+
+namespace {
+
+void assert_graphics_object_contract(const graphics::GraphicsObject& object,
+                                     const std::string& expected_kind,
+                                     const std::string& expected_name) {
+    EXPECT_EQ(object.graphics_object_kind(), expected_kind);
+    EXPECT_EQ(object.graphics_object_name(), expected_name);
+}
+
+static_assert(std::is_base_of_v<graphics::GraphicsObject, graphics::windows::MenuItem>);
+static_assert(std::is_base_of_v<graphics::GraphicsObject, graphics::windows::Menu>);
+static_assert(std::is_base_of_v<graphics::GraphicsObject, graphics::windows::CadViewport>);
+static_assert(std::is_base_of_v<graphics::GraphicsObject, graphics::windows::Panel>);
+static_assert(std::is_base_of_v<graphics::GraphicsObject, graphics::windows::WindowSimulator>);
+
+} // namespace
 
 TEST(WindowSimulatorTest, RendersPlatformSpecificTitleBarAndMenus) {
     graphics::windows::WindowSimulator window("CoolBox", 60, 12, graphics::windows::PlatformStyle::MacOS);
@@ -185,4 +203,44 @@ TEST(WindowSimulatorTest, EmbedsComponentHolderLayoutsInWindowsPanels) {
     const auto components = panel.get("components").as_array();
     EXPECT_EQ(components.get(0).as_object().get("type").as_string(), "layoutGroup");
     EXPECT_EQ(components.get(0).as_object().get("layoutGroup").as_object().get("layout").as_string(), "horizontal");
+}
+
+TEST(WindowSimulatorTest, SharedBaseContractCoversWindowModels) {
+    graphics::windows::MenuItem item = graphics::windows::MenuItem::action("Save", "Ctrl+S");
+    graphics::windows::Menu menu("File");
+    menu.add_item(item);
+
+    graphics::windows::CadViewport viewport("Assembly");
+    graphics::windows::Panel panel = graphics::windows::Panel::generic("Inspector", {"Selection"}, 4);
+    graphics::windows::WindowSimulator window("Workbench", 64, 20, graphics::windows::PlatformStyle::Windows);
+
+    assert_graphics_object_contract(item, "windowMenuItem", "Save");
+    assert_graphics_object_contract(menu, "windowMenu", "File");
+    assert_graphics_object_contract(viewport, "cadViewport", "Assembly");
+    assert_graphics_object_contract(panel, "panel", "Inspector");
+    assert_graphics_object_contract(window, "windowSimulator", "Workbench");
+}
+
+TEST(WindowSimulatorTest, RegistryCreatesWindowObjectsPolymorphically) {
+    graphics::GraphicsObjectRegistry registry;
+    ASSERT_TRUE(registry.register_type<graphics::windows::Menu>("menu"));
+    ASSERT_TRUE(registry.register_factory("chartPanel", []() {
+        return std::make_unique<graphics::windows::Panel>(
+            graphics::windows::Panel::generic("Registry Panel", {"Line 1"}, 4));
+    }));
+    ASSERT_TRUE(registry.register_factory("window", []() {
+        return std::make_unique<graphics::windows::WindowSimulator>(
+            graphics::windows::WindowSimulator("Registry Window", 70, 24, graphics::windows::PlatformStyle::Linux));
+    }));
+
+    EXPECT_TRUE(registry.contains("menu"));
+    EXPECT_GE(registry.registered_keys().size(), 3U);
+
+    const auto menu = registry.create("menu");
+    const auto panel = registry.create("chartPanel");
+    const auto window = registry.create("window");
+
+    assert_graphics_object_contract(*menu, "windowMenu", "");
+    assert_graphics_object_contract(*panel, "panel", "Registry Panel");
+    assert_graphics_object_contract(*window, "windowSimulator", "Registry Window");
 }

@@ -56,6 +56,7 @@ has_c_docs=false
 has_java_docs=false
 has_rust_docs=false
 has_tutorials=false
+has_products=false
 has_c_artifacts=false
 has_r_artifacts=false
 has_python_artifacts=false
@@ -63,6 +64,7 @@ has_go_artifacts=false
 has_js_artifacts=false
 has_java_artifacts=false
 has_rust_artifacts=false
+has_product_artifacts=false
 tutorials_latest_posts=''
 publications_latest_posts=''
 
@@ -691,6 +693,8 @@ java_link=''
 rust_link=''
 tutorials_link=''
 publications_link=''
+products_link=''
+dependency_link=''
 c_artifacts_link=''
 r_artifacts_link=''
 python_artifacts_link=''
@@ -698,6 +702,7 @@ go_artifacts_link=''
 js_artifacts_link=''
 java_artifacts_link=''
 rust_artifacts_link=''
+product_artifacts_link=''
 c_release_links=''
 python_release_links=''
 go_release_links=''
@@ -770,6 +775,19 @@ if [ "${has_tutorials}" = true ]; then
   echo "[generate_docs_hub.sh] Placing tutorials link."
   tutorials_link='<li><a href="tutorials/index.html">Tutorials</a><p>Quick tutorials for using the CoolBox library.</p></li>'
 fi
+if [ -f "${SITE_DIR}/products/index.html" ]; then
+  echo "[generate_docs_hub.sh] Placing products link."
+  has_products=true
+  products_link='<li><a href="products/index.html">Products</a><p>Standalone CoolBox applications built from the shared library stack.</p></li>'
+fi
+if [ -f "${SITE_DIR}/solutions/index.html" ]; then
+  echo "[generate_docs_hub.sh] Placing solutions link."
+  solutions_link='<li><a href="solutions/index.html">Solutions Catalog</a><p>Narrative guide to library areas, package responsibilities, and product relationships.</p></li>'
+fi
+if [ -f "${SITE_DIR}/solutions/dependencies/index.html" ]; then
+  echo "[generate_docs_hub.sh] Placing dependency map link."
+  dependency_link='<li><a href="solutions/dependencies/index.html">Dependency Map</a><p>Interdependency view showing how libraries flow into apps and products.</p></li>'
+fi
 if [ -z "${tutorials_latest_posts}" ]; then
   echo "[generate_docs_hub.sh] No recent tutorial posts found; placing placeholder message."
   tutorials_latest_posts='<li><p class="muted">No recent tutorial posts are available yet.</p></li>'
@@ -801,6 +819,11 @@ fi
 if [ "${has_rust_artifacts}" = true ]; then
   echo "[generate_docs_hub.sh] Placing rust artifact link."
   rust_artifacts_link='<li><a href="artifacts/rust/index.html">Rust Binding Artifacts</a><p>Built Rust crate packages and release archives.</p></li>'
+fi
+if [ -f "${SITE_DIR}/artifacts/products/index.html" ]; then
+  echo "[generate_docs_hub.sh] Placing product artifact link."
+  has_product_artifacts=true
+  product_artifacts_link='<li><a href="artifacts/products/index.html">Product Artifacts</a><p>Packaged executables, runtime bundles, and copied product outputs.</p></li>'
 fi
 
 
@@ -842,6 +865,8 @@ cat > "${SITE_DIR}/index.html" <<EOF
     <h2 class="section-title">Documentation & Downloads</h2>
     <ul>
       ${cpp_link}
+      ${solutions_link}
+      ${dependency_link}
       ${r_link}
       ${python_link}
       ${go_link}
@@ -849,6 +874,7 @@ cat > "${SITE_DIR}/index.html" <<EOF
       ${c_link}
       ${java_link}
       ${rust_link}
+      ${products_link}
       ${c_artifacts_link}
       ${r_artifacts_link}
       ${python_artifacts_link}
@@ -856,6 +882,7 @@ cat > "${SITE_DIR}/index.html" <<EOF
       ${js_artifacts_link}
       ${java_artifacts_link}
       ${rust_artifacts_link}
+      ${product_artifacts_link}
     </ul>
     <hr class="section-divider">
     <section>

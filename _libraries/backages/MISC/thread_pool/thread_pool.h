@@ -1,5 +1,6 @@
 // Minimal thread pool implementation
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_MISC_THREAD_POOL_THREAD_POOL_H
+#define COOLBOX__LIBRARIES_BACKAGES_MISC_THREAD_POOL_THREAD_POOL_H
 #include <vector>
 #include <thread>
 #include <queue>
@@ -64,3 +65,4 @@ private:
     std::condition_variable condition_;
     std::atomic<bool> stop_flag_;
 };
+#endif  // COOLBOX__LIBRARIES_BACKAGES_MISC_THREAD_POOL_THREAD_POOL_H

@@ -76,6 +76,387 @@
 				"cwd": "${workspaceFolder}/internal_gui"
 			},
 			"problemMatcher": []
+		},
+		{
+			"label": "build-render-hooks-and-fourier",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"full_application_window",
+				"full_application_window_tests",
+				"fourier_tranforms",
+				"fourier_tranforms_tests"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "run-full-application-window-tests",
+			"type": "shell",
+			"command": "build\\_libraries\\backages\\GRAPHICS\\full_application_window\\Debug\\full_application_window_tests.exe",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-fourier-tranforms-tests",
+			"type": "shell",
+			"command": "build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "inspect-fourier-tranforms-tests",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$env:PATH = (Resolve-Path 'build\\SP_fourier_tranforms_build\\Debug').Path + ';' + (Resolve-Path 'build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug').Path + ';' + $env:PATH; & '.\\build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe'"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "rebuild-render-hooks-and-fourier",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"full_application_window_tests",
+				"fourier_tranforms_tests"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build-tyst-framework-tests",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"tyst_framework_tests"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "run-tyst-framework-tests",
+			"type": "shell",
+			"command": "build\\_libraries\\backages\\TOOLS\\tyst_framework\\Debug\\tyst_framework_tests.exe",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "build-fourier-tranforms-tests-via-tyst",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"fourier_tranforms_tests"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "run-fourier-tranforms-tests-via-tyst",
+			"type": "shell",
+			"command": "build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "capture-fourier-tranforms-tests-via-tyst",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "rebuild-fourier-after-idst-fix",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"fourier_tranforms_tests"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "capture-fourier-after-idst-fix",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "clean-rebuild-fourier-after-idst-fix",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"fourier_tranforms_tests",
+				"--clean-first"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "capture-fourier-after-clean-rebuild",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst_after_clean.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "build-components-tests-via-tyst",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"components_tests",
+				"--clean-first"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "capture-components-tests-via-tyst",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"set PATH=%CD%\\build\\_libraries\\backages\\GRAPHICS\\components\\Debug;%PATH% && build\\_libraries\\backages\\GRAPHICS\\components\\Debug\\components_tests.exe > build\\components_tests_tyst.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "rebuild-components-tests-via-tyst-clean",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"components_tests"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "capture-components-build-log",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"cmake --build build --config Debug --target components_tests > build\\components_build_tyst.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "capture-components-run-log",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"set PATH=%CD%\\build\\_libraries\\backages\\GRAPHICS\\components\\Debug;%PATH% && build\\_libraries\\backages\\GRAPHICS\\components\\Debug\\components_tests.exe > build\\components_tests_tyst.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "build-MStudio-full-application-window",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"MStudio"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "capture-MStudio-build-log",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"cmake --build build --config Debug --target MStudio > build\\mstudio_full_application_window_build.log 2>&1"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild-MStudio-with-runtime-dlls",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"MStudio"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "configure-products-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-S",
+				".",
+				"-B",
+				"build",
+				"-DBUILD_PRODUCTS=ON"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-MStudio-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"MStudio"
+			],
+			"dependsOn": [
+				"configure-products-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "launch-MStudio-debug",
+			"type": "shell",
+			"command": "${workspaceFolder}\\build\\_Product\\MStudio\\Debug\\MStudio.exe",
+			"dependsOn": [
+				"build-MStudio-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "build-file-browser-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"file_browser"
+			],
+			"dependsOn": [
+				"configure-products-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "launch-file-browser-debug",
+			"type": "shell",
+			"command": "${workspaceFolder}\\build\\_Product\\file_browser\\Debug\\file_browser.exe",
+			"dependsOn": [
+				"build-file-browser-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "build-bower-shell-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"bower_shell"
+			],
+			"dependsOn": [
+				"configure-products-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "launch-bower-shell-debug",
+			"type": "shell",
+			"command": "${workspaceFolder}\\build\\_Product\\bower_shell\\Debug\\bower_shell.exe",
+			"dependsOn": [
+				"build-bower-shell-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

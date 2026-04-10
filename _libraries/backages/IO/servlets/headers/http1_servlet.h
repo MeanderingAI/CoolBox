@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP1_SERVLET_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP1_SERVLET_H
 #include "http_servlet_base.h"
 #include "../../../../_binaries/apps/app_service_manager/include/static_assets/service_manager_html.h"
 #include <fstream>
@@ -22,3 +23,5 @@ private:
 
 } // namespace servlets
 } // namespace networking
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_SERVLETS_HEADERS_HTTP1_SERVLET_H

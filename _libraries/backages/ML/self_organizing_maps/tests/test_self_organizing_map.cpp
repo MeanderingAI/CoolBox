@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 #include "self_organizing_map.h"
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <cmath>
 
 using namespace ml;

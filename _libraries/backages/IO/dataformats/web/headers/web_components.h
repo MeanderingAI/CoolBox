@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_WEB_COMPONENTS_H
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_WEB_COMPONENTS_H
 
 #include <string>
 #include <vector>
@@ -206,3 +207,5 @@ std::string generate_component_id();
 } // namespace html
 } // namespace networking
 } // namespace ml
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_WEB_HEADERS_WEB_COMPONENTS_H

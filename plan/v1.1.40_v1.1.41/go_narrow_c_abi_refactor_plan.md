@@ -5,12 +5,12 @@
 - Documented the first recommended migration slice as linear regression, including a proposed minimal ABI shape and migration steps.
 
 ## Files Added
-- `internal_documents/extensions/go/narrow_c_abi_migration.md`
+- `docs/internal_documents/extensions/go/narrow_c_abi_migration.md`
 - `plan/v1.1.40_v1.1.41/go_narrow_c_abi_refactor_plan.md`
 - `plan/v1.1.40_v1.1.41/validation_results.md`
 
 ## Files Updated
-- `internal_documents/extensions/go/README.md`
+- `docs/internal_documents/extensions/go/README.md`
 
 ## Result
 - The Go internal documentation now includes a concrete path for moving from the current broad bridge toward a smaller supported C ABI.

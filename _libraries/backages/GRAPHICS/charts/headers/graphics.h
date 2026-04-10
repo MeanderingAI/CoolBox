@@ -38,7 +38,8 @@
  * t.render().save_bmp("grades.bmp");
  * @endcode
  */
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
+#define COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
 /**
  * @file graphics.h
  * @brief Lightweight charting & table-rendering library with image export.
@@ -79,8 +80,6 @@
  * t.render().save_bmp("grades.bmp");
  * @endcode
  */
-#pragma once
-
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -336,3 +335,4 @@ private:
 };
 
 } // namespace graphics
+#endif  // COOLBOX__LIBRARIES_BACKAGES_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H

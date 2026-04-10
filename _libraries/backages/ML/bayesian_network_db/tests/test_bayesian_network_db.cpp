@@ -1,5 +1,5 @@
 #include "../headers/bayesian_network.h"
-#include <gtest/gtest.h>
+#include "tyst_framework.hpp"
 
 using namespace bayesian_db;
 

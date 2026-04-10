@@ -10,9 +10,11 @@ add_library(multi_arm_bandit SHARED
 target_include_directories(multi_arm_bandit PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 
 # Tests
-enable_testing()
-add_executable(multi_arm_bandit_tests
-    tests/test_multi_arm_bandit.cpp
-)
-target_link_libraries(multi_arm_bandit_tests PRIVATE multi_arm_bandit GTest::gtest_main)
-add_test(NAME MultiArmBanditTests COMMAND multi_arm_bandit_tests)
+if(BUILD_TESTING AND TARGET tyst_framework_main)
+    enable_testing()
+    add_executable(multi_arm_bandit_tests
+        tests/test_multi_arm_bandit.cpp
+    )
+    target_link_libraries(multi_arm_bandit_tests PRIVATE multi_arm_bandit tyst_framework_main)
+    add_test(NAME MultiArmBanditTests COMMAND multi_arm_bandit_tests)
+endif()

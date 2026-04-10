@@ -13,8 +13,8 @@
 - `_libraries/go_bindings/bridge.h`
 - `_libraries/go_bindings/bindings.go`
 - `_libraries/go_bindings/linear_regression.go`
-- `internal_documents/extensions/go/README.md`
-- `internal_documents/extensions/go/narrow_c_abi_migration.md`
+- `docs/internal_documents/extensions/go/README.md`
+- `docs/internal_documents/extensions/go/narrow_c_abi_migration.md`
 
 ## Details
 - The linear regression declarations were removed from the umbrella `bridge.h` body and moved into a dedicated ABI header that `bridge.h` now includes.

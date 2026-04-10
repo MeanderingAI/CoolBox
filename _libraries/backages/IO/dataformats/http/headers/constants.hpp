@@ -1,6 +1,7 @@
 
 // HTTP constants in global namespace
-#pragma once
+#ifndef COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_CONSTANTS_HPP
+#define COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_CONSTANTS_HPP
 #include <string>
 
 namespace http_constants {
@@ -18,3 +19,5 @@ namespace http_constants {
     constexpr const char* CONTENT_TYPE_TEXT = "text/plain";
     constexpr const char* CONTENT_TYPE_OCTET = "application/octet-stream";
 }
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_CONSTANTS_HPP

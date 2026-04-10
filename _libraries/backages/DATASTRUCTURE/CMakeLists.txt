@@ -42,7 +42,7 @@ if(BUILD_TESTING)
 		filters/tests/test_bloom_filter.cpp
 		filters/tests/test_egh_filter.cpp
 	)
-	target_link_libraries(data_structures_tests PRIVATE data_structures GTest::gtest_main Threads::Threads thread_pool_utils)
+	target_link_libraries(data_structures_tests PRIVATE data_structures tyst_framework_main Threads::Threads thread_pool_utils)
 	target_include_directories(data_structures_tests PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/headers
 		${CMAKE_CURRENT_SOURCE_DIR}/trees/headers
