@@ -42,14 +42,21 @@ jobs:
             TAG_OK=false
           fi
           echo "startsWith(github.ref, 'refs/tags/v') => ${TAG_OK}"
-          echo "\nPer-job quick summary (each generate_purchase_* job also declares 'needs: build_libs')"
-          for job in build_libs build_cpp_docs build_tutorials generate_purchase_python generate_purchase_js generate_purchase_go generate_purchase_c generate_purchase_java generate_purchase_r generate_purchase_rust; do
+          echo "\nPer-job quick summary (purchase generation and product builds both fan out from build_libs)"
+          for job in build_libs build_products build_cpp_docs build_tutorials generate_purchase_python generate_purchase_js generate_purchase_go generate_purchase_c generate_purchase_java generate_purchase_r generate_purchase_rust; do
             echo "- ${job}: if-condition (startsWith tag) => ${TAG_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
           done
           echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
 
   build_libs:
     uses: ./.github/workflows/build-libs.yaml
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    secrets: inherit
+
+  build_products:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/build-products.yaml
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     secrets: inherit
 
@@ -85,6 +92,7 @@ jobs:
   collect_diagnostics_artifact:
     needs:
       - build_libs
+      - build_products
       - build_cpp_docs
       - build_tutorials
       - generate_purchase_python
@@ -113,6 +121,7 @@ jobs:
       - name: Summarize job results
         run: |
           echo "build_libs: ${{ needs.build_libs.result }}" > diagnostics/jobs_summary.txt
+          echo "build_products: ${{ needs.build_products.result }}" >> diagnostics/jobs_summary.txt
           echo "build_cpp_docs: ${{ needs.build_cpp_docs.result }}" >> diagnostics/jobs_summary.txt
           echo "build_tutorials: ${{ needs.build_tutorials.result }}" >> diagnostics/jobs_summary.txt
           echo "generate_purchase_python: ${{ needs.generate_purchase_python.result }}" >> diagnostics/jobs_summary.txt
