@@ -34,13 +34,15 @@ Example usage:
 __version__ = "0.1.0"
 __author__ = "ML Core Team"
 
+from .metadata_client import Client, create_default, for_endpoint
+
 # Note: The actual ml_core module is a compiled C++ extension
 # It will be available after building the bindings
 
 try:
     # Try to import the compiled extension
     from . import ml_core
-    __all__ = ['ml_core']
+    __all__ = ['ml_core', 'Client', 'create_default', 'for_endpoint']
 except ImportError:
     # Extension not built yet
     import warnings
@@ -50,4 +52,4 @@ except ImportError:
         "or 'pip install .'",
         ImportWarning
     )
-    __all__ = []
+    __all__ = ['Client', 'create_default', 'for_endpoint']

@@ -15,8 +15,6 @@ apps/__pycache__/
 .r-makevars.local
 Testing
 **/a.out
-_libraries/gen_docs/html/
-_libraries/gen_docs/CMakeFiles/
 *.log
 gen_docs/
 **/*.o
@@ -28,6 +26,9 @@ _deps/
 build-emscripten
 eigen-src
 eigen-build
+_local_build_pipeline/out
+_libraries/gen_docs/html/
+_libraries/gen_docs/CMakeFiles/
 _libraries/rust_bindings/target/
 _libraries/rust_bindings/Cargo.lock
 external

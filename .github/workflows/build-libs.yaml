@@ -203,6 +203,8 @@ jobs:
           cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
           cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
           cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+          cp build/apps/lsp/plvlang_lsp apps/lsp/dist/plvlang_lsp || cp build/plvlang_lsp apps/lsp/dist/plvlang_lsp || true
+          cp build/apps/lsp/plc3_lsp apps/lsp/dist/plc3_lsp || cp build/plc3_lsp apps/lsp/dist/plc3_lsp || true
           if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
             mkdir -p build
             tar -czf build/pl_lsp_dist.tar.gz -C apps/lsp dist
@@ -228,6 +230,8 @@ jobs:
             apps/lsp/dist/plrust_lsp
             apps/lsp/dist/pljava_lsp
             apps/lsp/dist/plpython_lsp
+            apps/lsp/dist/plvlang_lsp
+            apps/lsp/dist/plc3_lsp
           if-no-files-found: ignore
           retention-days: 14
 

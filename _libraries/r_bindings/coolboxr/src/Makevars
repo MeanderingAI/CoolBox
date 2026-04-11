@@ -1,5 +1,6 @@
 CXX_STD = CXX17
 PKG_CPPFLAGS = \
+	-I../../../c_bindings/include \
 	-I../../../backages/MISC/metadata_management/headers \
 	-I../../../backages/ML/generalized_linear_model/headers \
 	-I../../../backages/ML/time_series/headers \
@@ -17,3 +18,5 @@ PKG_CPPFLAGS = \
 	-I/opt/homebrew/include/eigen3 \
 	-I/opt/homebrew/opt/eigen/include/eigen3 \
 	-I/usr/local/opt/eigen/include/eigen3
+
+PKG_LIBS = -L../../../c_bindings/build -L../../../c_bindings/build/Release -lcoolbox_c_bindings

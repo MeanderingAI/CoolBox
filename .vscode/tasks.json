@@ -457,6 +457,109 @@
 			"dependsOrder": "sequence",
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "validate-lsp-c3-linux",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$repo='c:/Users/mngha/OneDrive/Documents/GitHub/CoolBox'; $out='c:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_local_build_pipeline/out/build-lsp-c3-final'; New-Item -ItemType Directory -Force -Path $out | Out-Null; docker image inspect coolbox-local-linux-ci:latest *> $null; if ($LASTEXITCODE -ne 0) { docker build -t coolbox-local-linux-ci:latest -f \"$repo/_local_build_pipeline/docker/linux-ci.Dockerfile\" $repo }; docker run --rm -t -e CI=true -e GITHUB_ACTIONS=false -e GITHUB_WORKSPACE=/workspace -e HOST_OUT=/hostout -v ${repo}:/repo -v ${out}:/hostout -w /workspace coolbox-local-linux-ci:latest bash /repo/_local_build_pipeline/scripts/container_entrypoint.sh build-lsp-c3-final bash /workspace/_local_build_pipeline/scripts/jobs/build-lsp-target.sh plc3_lsp plc3_lsp_test plc3_lsp"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "validate-lsp-c3-linux-bash",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"repo='c:/Users/mngha/OneDrive/Documents/GitHub/CoolBox'; out='c:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_local_build_pipeline/out/build-lsp-c3-final'; mkdir -p \"$out\"; docker image inspect coolbox-local-linux-ci:latest >/dev/null 2>&1 || docker build -t coolbox-local-linux-ci:latest -f \"$repo/_local_build_pipeline/docker/linux-ci.Dockerfile\" \"$repo\"; docker run --rm -t -e CI=true -e GITHUB_ACTIONS=false -e GITHUB_WORKSPACE=/workspace -e HOST_OUT=/hostout -v \"$repo:/repo\" -v \"$out:/hostout\" -w /workspace coolbox-local-linux-ci:latest bash /repo/_local_build_pipeline/scripts/container_entrypoint.sh build-lsp-c3-final bash /workspace/_local_build_pipeline/scripts/jobs/build-lsp-target.sh plc3_lsp plc3_lsp_test plc3_lsp"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "validate-lsp-c3-linux-plain",
+			"type": "shell",
+			"command": "$repo = \"c:/Users/mngha/OneDrive/Documents/GitHub/CoolBox\"; $out = \"c:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_local_build_pipeline/out/build-lsp-c3-final\"; New-Item -ItemType Directory -Force -Path $out | Out-Null; docker image inspect coolbox-local-linux-ci:latest *> $null; if ($LASTEXITCODE -ne 0) { docker build -t coolbox-local-linux-ci:latest -f \"$repo/_local_build_pipeline/docker/linux-ci.Dockerfile\" $repo }; docker run --rm -t -e CI=true -e GITHUB_ACTIONS=false -e GITHUB_WORKSPACE=/workspace -e HOST_OUT=/hostout -v ${repo}:/repo -v ${out}:/hostout -w /workspace coolbox-local-linux-ci:latest bash /repo/_local_build_pipeline/scripts/container_entrypoint.sh build-lsp-c3-final bash /workspace/_local_build_pipeline/scripts/jobs/build-lsp-target.sh plc3_lsp plc3_lsp_test plc3_lsp",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "validate-lsp-c3-wrapper",
+			"type": "shell",
+			"command": "& .\\_local_build_pipeline\\scripts\\validate_lsp_target.ps1 -JobName build-lsp-c3-final -BinaryTarget plc3_lsp -TestTarget plc3_lsp_test -BinaryName plc3_lsp",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "validate-lsp-c3-wrapper-bypass",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				".\\_local_build_pipeline\\scripts\\validate_lsp_target.ps1",
+				"-JobName",
+				"build-lsp-c3-final",
+				"-BinaryTarget",
+				"plc3_lsp",
+				"-TestTarget",
+				"plc3_lsp_test",
+				"-BinaryName",
+				"plc3_lsp"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "validate-lsp-c3-wrapper-bypass-logged",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				".\\_local_build_pipeline\\scripts\\validate_lsp_target.ps1",
+				"-JobName",
+				"build-lsp-c3-final",
+				"-BinaryTarget",
+				"plc3_lsp",
+				"-TestTarget",
+				"plc3_lsp_test",
+				"-BinaryName",
+				"plc3_lsp"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "validate-lsp-vlang-wrapper-bypass-logged",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				".\\_local_build_pipeline\\scripts\\validate_lsp_target.ps1",
+				"-JobName",
+				"build-lsp-vlang-final",
+				"-BinaryTarget",
+				"plvlang_lsp",
+				"-TestTarget",
+				"plvlang_lsp_test",
+				"-BinaryName",
+				"plvlang_lsp"
+			],
+			"isBackground": false,
+			"group": "test"
 		}
 	]
 }

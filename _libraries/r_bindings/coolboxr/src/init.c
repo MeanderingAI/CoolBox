@@ -60,6 +60,11 @@ extern SEXP _coolboxr_knn_pairwise_distances(SEXP, SEXP, SEXP);
 extern SEXP _coolboxr_fit_umap(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _coolboxr_umap_transform(SEXP, SEXP);
 extern SEXP _coolboxr_umap_embedding(SEXP);
+extern SEXP _coolboxr_metadata_version(void);
+extern SEXP _coolboxr_metadata_describe(void);
+extern SEXP _coolboxr_metadata_capability_count(void);
+extern SEXP _coolboxr_metadata_capability_at(SEXP);
+extern SEXP _coolboxr_metadata_is_ready(void);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_coolboxr_fit_linear_regression", (DL_FUNC) &_coolboxr_fit_linear_regression, 5},
@@ -120,6 +125,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_coolboxr_fit_umap", (DL_FUNC) &_coolboxr_fit_umap, 8},
     {"_coolboxr_umap_transform", (DL_FUNC) &_coolboxr_umap_transform, 2},
     {"_coolboxr_umap_embedding", (DL_FUNC) &_coolboxr_umap_embedding, 1},
+    {"_coolboxr_metadata_version", (DL_FUNC) &_coolboxr_metadata_version, 0},
+    {"_coolboxr_metadata_describe", (DL_FUNC) &_coolboxr_metadata_describe, 0},
+    {"_coolboxr_metadata_capability_count", (DL_FUNC) &_coolboxr_metadata_capability_count, 0},
+    {"_coolboxr_metadata_capability_at", (DL_FUNC) &_coolboxr_metadata_capability_at, 1},
+    {"_coolboxr_metadata_is_ready", (DL_FUNC) &_coolboxr_metadata_is_ready, 0},
     {NULL, NULL, 0}
 };
 

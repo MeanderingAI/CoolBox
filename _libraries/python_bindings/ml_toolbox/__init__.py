@@ -44,6 +44,8 @@ See the examples/ directory for comprehensive usage examples:
 
 __version__ = "0.2.0"
 
+from ..metadata_client import Client, create_default, for_endpoint
+
 # Import the C++ extension
 try:
     from . import ml_core as _ml_core
@@ -67,6 +69,9 @@ except ImportError:
 ml_core = _ml_core if "_ml_core" in globals() else ml_core
 
 __all__ = [
+    "Client",
+    "create_default",
+    "for_endpoint",
     "deep_learning",
     "distributed", 
     "decision_tree",

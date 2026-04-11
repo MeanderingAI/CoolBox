@@ -1,9 +1,21 @@
 use cxx::UniquePtr;
+use std::ffi::CStr;
 
 mod stubs;
 
 pub use stubs::*;
 pub use stubs::{Toolbar, DockPanel, LayerList, PropertyInspector, FileTree, RadioSelector, CheckboxGroup};
+
+const DEFAULT_ENDPOINT: &str = "local://coolbox";
+
+#[link(name = "coolbox_c_bindings")]
+unsafe extern "C" {
+    fn coolbox_c_version() -> *const std::ffi::c_char;
+    fn coolbox_c_describe() -> *const std::ffi::c_char;
+    fn coolbox_c_capability_count() -> usize;
+    fn coolbox_c_capability_at(index: usize) -> *const std::ffi::c_char;
+    fn coolbox_c_is_ready() -> i32;
+}
 
 #[cxx::bridge]
 mod ffi {
@@ -54,6 +66,67 @@ impl FitMethod {
 
 pub struct LinearRegression {
     inner: UniquePtr<ffi::LinearRegressionModel>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Client {
+    endpoint: String,
+}
+
+impl Client {
+    pub fn create_default() -> Self {
+        Self {
+            endpoint: DEFAULT_ENDPOINT.to_string(),
+        }
+    }
+
+    pub fn for_endpoint(endpoint: impl Into<String>) -> Self {
+        let endpoint = endpoint.into();
+        Self {
+            endpoint: if endpoint.is_empty() {
+                DEFAULT_ENDPOINT.to_string()
+            } else {
+                endpoint
+            },
+        }
+    }
+
+    pub fn endpoint(&self) -> &str {
+        &self.endpoint
+    }
+
+    pub fn version(&self) -> String {
+        let _ = self;
+        c_string(unsafe { coolbox_c_version() })
+    }
+
+    pub fn describe(&self) -> String {
+        let _ = self;
+        c_string(unsafe { coolbox_c_describe() })
+    }
+
+    pub fn is_ready(&self) -> bool {
+        let _ = self;
+        unsafe { coolbox_c_is_ready() != 0 }
+    }
+
+    pub fn capability_count(&self) -> usize {
+        let _ = self;
+        unsafe { coolbox_c_capability_count() }
+    }
+
+    pub fn capability_at(&self, index: usize) -> String {
+        if index >= self.capability_count() {
+            return String::new();
+        }
+        c_string(unsafe { coolbox_c_capability_at(index) })
+    }
+
+    pub fn capabilities(&self) -> Vec<String> {
+        (0..self.capability_count())
+            .map(|index| self.capability_at(index))
+            .collect()
+    }
 }
 
 impl LinearRegression {
@@ -141,4 +214,14 @@ fn flatten_matrix(x: &[Vec<f64>]) -> Result<(Vec<f64>, usize, usize), String> {
     }
 
     Ok((flat, x.len(), cols))
+}
+
+fn c_string(value: *const std::ffi::c_char) -> String {
+    if value.is_null() {
+        return String::new();
+    }
+
+    unsafe { CStr::from_ptr(value) }
+        .to_string_lossy()
+        .into_owned()
 }

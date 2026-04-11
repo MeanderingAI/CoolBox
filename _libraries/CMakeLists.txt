@@ -108,6 +108,8 @@ if(BUILD_IO_SQL)
         add_subdirectory_if_exists(backages/TOOLS/lsp_java)      # pljava_lsp_lib
         add_subdirectory_if_exists(backages/TOOLS/lsp_python)    # plpython_lsp_lib
         add_subdirectory_if_exists(backages/TOOLS/lsp_rust)      # plrust_lsp_lib
+        add_subdirectory_if_exists(backages/TOOLS/lsp_vlang)     # plvlang_lsp_lib
+        add_subdirectory_if_exists(backages/TOOLS/lsp_c3)        # plc3_lsp_lib
         add_subdirectory_if_exists(backages/TOOLS/lsp_vhdl)      # plvhdl_lsp_lib
         add_subdirectory_if_exists(backages/TOOLS/lsp_matlab)    # plmatlab_lsp_lib
         add_subdirectory_if_exists(backages/PARSER/javascript)

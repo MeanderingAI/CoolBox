@@ -41,11 +41,22 @@ public final class CoolBoxClient {
         return NATIVE.coolbox_c_describe();
     }
 
+    public int getCapabilityCount() {
+        return NATIVE.coolbox_c_capability_count();
+    }
+
+    public String getCapabilityAt(int index) {
+        if (index < 0 || index >= getCapabilityCount()) {
+            return "";
+        }
+        return NATIVE.coolbox_c_capability_at(index);
+    }
+
     public List<String> getCapabilities() {
-        int capabilityCount = NATIVE.coolbox_c_capability_count();
+        int capabilityCount = getCapabilityCount();
         List<String> capabilities = new ArrayList<>(capabilityCount);
         for (int i = 0; i < capabilityCount; i++) {
-            capabilities.add(NATIVE.coolbox_c_capability_at(i));
+            capabilities.add(getCapabilityAt(i));
         }
         return List.copyOf(capabilities);
     }

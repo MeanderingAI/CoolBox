@@ -13,6 +13,12 @@ target_link_libraries(pljava_lsp PRIVATE pljava_lsp_lib)
 add_executable(plpython_lsp src/main_python.cpp)
 target_link_libraries(plpython_lsp PRIVATE plpython_lsp_lib)
 
+add_executable(plvlang_lsp src/main_vlang.cpp)
+target_link_libraries(plvlang_lsp PRIVATE plvlang_lsp_lib)
+
+add_executable(plc3_lsp src/main_c3.cpp)
+target_link_libraries(plc3_lsp PRIVATE plc3_lsp_lib)
+
 # VHDL and MATLAB LSP frontends
 add_executable(plvhdl_lsp src/main_vhdl.cpp)
 target_link_libraries(plvhdl_lsp PRIVATE plvhdl_lsp_lib)
@@ -24,5 +30,5 @@ target_link_libraries(plmatlab_lsp PRIVATE plmatlab_lsp_lib)
 target_include_directories(plmatlab_lsp PRIVATE ${CMAKE_SOURCE_DIR}/_libraries/backages/TOOLS/lsp_matlab/headers)
 target_link_libraries(plmatlab_lsp PRIVATE matlab_parser)
 
-install(TARGETS plang_lsp plrust_lsp pljava_lsp plpython_lsp)
+install(TARGETS plang_lsp plrust_lsp pljava_lsp plpython_lsp plvlang_lsp plc3_lsp)
 install(TARGETS plvhdl_lsp plmatlab_lsp)

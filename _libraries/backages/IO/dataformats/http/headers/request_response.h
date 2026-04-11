@@ -122,7 +122,6 @@ struct Request {
     }
 };
 
-#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_REQUEST_RESPONSE_H
 struct Response {
     int status_code;
     std::map<HeaderKeyType, std::string> headers;
@@ -170,4 +169,6 @@ struct Response {
         }
     }
 };
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_IO_DATAFORMATS_HTTP_HEADERS_REQUEST_RESPONSE_H
 

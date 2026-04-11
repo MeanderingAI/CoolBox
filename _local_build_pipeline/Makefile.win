@@ -1,0 +1,86 @@
+SHELL := powershell.exe
+
+.DEFAULT_GOAL := help
+
+.PHONY: help build-image all-supported \
+	build-libs build-tests build-products build-cpp-docs build-tutorials build-purchase-pipeline docs-publish-dry-run \
+	generate-purchase-c generate-purchase-python generate-purchase-go generate-purchase-js \
+	generate-purchase-rust generate-purchase-r generate-purchase-java
+
+help:
+	@Write-Host "Local build pipeline targets"
+	@Write-Host "  mingw32-make -f Makefile.win build-image"
+	@Write-Host "  mingw32-make -f Makefile.win build-libs"
+	@Write-Host "  mingw32-make -f Makefile.win build-tests"
+	@Write-Host "  mingw32-make -f Makefile.win build-products"
+	@Write-Host "  mingw32-make -f Makefile.win build-cpp-docs"
+	@Write-Host "  mingw32-make -f Makefile.win build-tutorials"
+	@Write-Host "  mingw32-make -f Makefile.win build-purchase-pipeline"
+	@Write-Host "  mingw32-make -f Makefile.win docs-publish-dry-run"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-c"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-python"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-go"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-js"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-rust"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-r"
+	@Write-Host "  mingw32-make -f Makefile.win generate-purchase-java"
+	@Write-Host "  mingw32-make -f Makefile.win all-supported"
+
+build-image:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-libs.yaml -RebuildImage
+
+build-libs:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-libs.yaml
+
+build-tests:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-tests
+
+build-products:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-products.yaml
+
+build-cpp-docs:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-cpp-docs.yaml
+
+build-tutorials:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-tutorials.yaml
+
+build-purchase-pipeline:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-purchase-pipeline.yaml
+
+docs-publish-dry-run:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow docs-publish.yaml
+
+generate-purchase-c:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-c.yaml
+
+generate-purchase-python:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-python.yaml
+
+generate-purchase-go:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-go.yaml
+
+generate-purchase-js:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-js.yaml
+
+generate-purchase-rust:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-rust.yaml
+
+generate-purchase-r:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-r.yaml
+
+generate-purchase-java:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-java.yaml
+
+all-supported:
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-libs.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-products.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-cpp-docs.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-tutorials.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-c.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-python.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-go.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-js.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-rust.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-r.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow generate-purchase-java.yaml
+	@powershell -ExecutionPolicy Bypass -File .\run_workflow.ps1 -Workflow build-purchase-pipeline.yaml

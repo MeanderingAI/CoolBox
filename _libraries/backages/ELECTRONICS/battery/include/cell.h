@@ -292,7 +292,6 @@ public:
 };
 
 } // namespace battery
-#endif  // COOLBOX__LIBRARIES_BACKAGES_ELECTRONICS_BATTERY_INCLUDE_CELL_H
 
 // -----------------------------------------------------------------------------
 // Mapping helpers: map `battery::Chemistry` to elements from the periodic table
@@ -322,3 +321,5 @@ inline std::vector<chemistry::Element> elements_for_chemistry(Chemistry chem) {
 }
 
 } // namespace battery
+
+#endif  // COOLBOX__LIBRARIES_BACKAGES_ELECTRONICS_BATTERY_INCLUDE_CELL_H

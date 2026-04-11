@@ -68,3 +68,13 @@ jobs:
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest
+
+          docker build -f apps/lsp/docker/Dockerfile.vlang -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:latest
+
+          docker build -f apps/lsp/docker/Dockerfile.c3 -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:latest

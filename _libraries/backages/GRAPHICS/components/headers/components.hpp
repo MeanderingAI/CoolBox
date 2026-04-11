@@ -28,7 +28,7 @@ enum class ComponentType {
     ,RadioSelector
     ,CheckboxGroup
 };
-struct ToolbarModel {
+struct ToolbarModel : public ::graphics::GraphicsObject {
     std::vector<std::string> actions;
     std::size_t spacing = 2;
     ToolbarModel() = default;

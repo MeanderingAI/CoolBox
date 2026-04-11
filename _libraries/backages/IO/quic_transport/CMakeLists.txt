@@ -6,6 +6,8 @@ add_library(quic_transport
     source/quic_transport.cpp
 )
 
+set_target_properties(quic_transport PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(quic_transport PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/../dataformats/http/headers
