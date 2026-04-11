@@ -17,6 +17,10 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     add_executable(quic_transport_tests
         tests/test_quic_transport.cpp
     )
+    target_include_directories(quic_transport_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/headers
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dataformats/http/headers
+    )
     target_link_libraries(quic_transport_tests PRIVATE quic_transport tyst_framework_main)
     add_test(NAME QuicTransportTests COMMAND quic_transport_tests)
 endif()
