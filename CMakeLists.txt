@@ -23,9 +23,6 @@ endif()
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
 endif()
-if(MSVC)
-    set(gtest_force_shared_crt ON CACHE BOOL "Force googletest to use the shared MSVC CRT" FORCE)
-endif()
 
 # Ensure std::filesystem is available on macOS
 if(APPLE)
@@ -236,4 +233,4 @@ endif()
 
 
 
-# QUICHE/HTTP3/Unified server support disabled for pure HTTP2 build
+# External QUIC/HTTP3 dependency support disabled for pure HTTP2 build

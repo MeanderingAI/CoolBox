@@ -49,7 +49,7 @@ if(TARGET graphics_textures)
   target_link_libraries(graphics INTERFACE graphics_textures)
 endif()
 
-# GTest is provided centrally via `cmake/ExternalDependencies.cmake`.
+# The local test runtime is provided by the TOOLS/tyst_framework backage.
 # Subpackages should link `tyst_framework_main` if the target exists.
 if(BUILD_TESTING)
   if(NOT TARGET tyst_framework_main)

@@ -6,7 +6,7 @@ add_library(support_vector_machine SHARED
     source/support_vector_machine.cpp
 )
 target_include_directories(support_vector_machine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-target_link_libraries(support_vector_machine PRIVATE mytrix)
+target_link_libraries(support_vector_machine PUBLIC mytrix)
 
 # Tests
 if(BUILD_TESTING AND TARGET tyst_framework_main)

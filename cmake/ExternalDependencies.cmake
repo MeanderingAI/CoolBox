@@ -24,34 +24,6 @@ set(CMAKE_WARN_DEPRECATED ${_coolbox_old_warn_deprecated})
 # Re-enable BUILD_TESTING for our own project tests
 set(BUILD_TESTING ON CACHE BOOL "" FORCE)
 
-if(BUILD_TESTING)
-  # Prefer an installed/system GTest if available, otherwise fetch via FetchContent
-  find_package(GTest QUIET)
-  if(NOT TARGET GTest::gtest_main)
-    message(STATUS "GTest not found by find_package; fetching googletest via FetchContent...")
-    FetchContent_Declare(
-      googletest
-      URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-      SOURCE_DIR ${CMAKE_BINARY_DIR}/googletest-src
-      BINARY_DIR ${CMAKE_BINARY_DIR}/googletest-build
-      DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    )
-    FetchContent_MakeAvailable(googletest)
-
-    # Ensure the expected imported targets exist in the GTest:: namespace
-    if(TARGET gtest_main AND NOT TARGET GTest::gtest_main)
-      add_library(GTest::gtest_main ALIAS gtest_main)
-    endif()
-    if(TARGET gtest AND NOT TARGET GTest::gtest)
-      add_library(GTest::gtest ALIAS gtest)
-    endif()
-  else()
-    message(STATUS "Using system-provided GTest targets")
-  endif()
-else()
-  message(STATUS "BUILD_TESTING is OFF; skipping GTest fetch")
-endif()
-
 
 # Find or fetch Doxygen
 
@@ -60,25 +32,6 @@ if(NOT DOXYGEN_FOUND)
   message(STATUS "Doxygen not found, fetching via FetchContent...")
   include(FetchContent)
 endif()
-
-# =============================
-# Fetch quiche (QUIC/HTTP3)
-# =============================
-# quiche is a Rust/Cargo project, not CMake. We fetch it for its C headers
-# but do NOT call FetchContent_MakeAvailable (which would try to add_subdirectory).
-include(FetchContent)
-FetchContent_Declare(
-  quiche
-  GIT_REPOSITORY https://github.com/cloudflare/quiche.git
-  GIT_TAG 0.21.0
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/quiche
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-# Use FetchContent_Populate directly (quiche is Rust/Cargo, not CMake)
-# Suppress CMP0169 deprecation warning
-cmake_policy(SET CMP0169 OLD)
-FetchContent_Populate(quiche)
-cmake_policy(SET CMP0169 NEW)
 
 # Make GSL optional; FindGSL (MODULE mode) may trigger FindBLAS which
 # probes for a Fortran compiler. Disabling GSL on Windows avoids failing

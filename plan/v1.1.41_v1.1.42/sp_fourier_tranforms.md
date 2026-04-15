@@ -24,7 +24,7 @@
 - Added `_libraries/backages/SP/fourier_tranforms/CMakeLists.txt` with library and test targets.
 - Updated `_libraries/CMakeLists.txt` so the root build includes the new `SP` category.
 - Linked `fourier_tranforms` against the `mytrix` library and moved matrix-valued Fourier storage onto `matrix::DenseMatrix`.
-- Converted the Fourier test target into the first consumer of `TOOLS/tyst_framework`, replacing direct `GTest::gtest_main` linkage with `tyst_framework_main`.
+- Converted the Fourier test target into the first consumer of `TOOLS/tyst_framework`, linking it through `tyst_framework_main`.
 
 ## Result
 - The repository now has a signal-processing backage category and a reusable Fourier transform library named `fourier_tranforms`.

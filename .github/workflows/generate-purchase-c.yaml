@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PLATFORM: linux-x86_64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -77,17 +78,31 @@ jobs:
           cp -R _libraries/c_bindings/include/. staging-c/include/
           cp -R _libraries/c_bindings/target/. staging-c/
           find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c/lib/ \;
-          tar -C staging-c -czf release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz .
+          tar -C staging-c -czf release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-            staging-c release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip
+            staging-c release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip
+
+      - name: Finalize C release assets
+        uses: ./.github/actions/finalize-purchase-assets
+        with:
+          assets_dir: release-assets
+          ref_name: ${{ github.ref_name }}
+          platform: ${{ env.PLATFORM }}
+          workflow_name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
 
       - name: Upload C archives
         uses: actions/upload-artifact@v7
         with:
-          name: c-extension-linux-x86_64-${{ github.ref_name }}
+          name: c-extension-${{ env.PLATFORM }}-${{ github.ref_name }}
           path: |
-            release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.tar.gz
-            release-assets/coolbox-c-bindings-linux-x86_64-${{ github.ref_name }}.zip
+            release-assets/coolbox-c-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-c-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.zip
+            release-assets/manifest.txt
+            release-assets/SHA256SUMS
           retention-days: 14
 
       - name: Attach C archives to release
@@ -96,7 +111,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
-            release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.tar.gz \
-            release-assets/coolbox-c-bindings-linux-x86_64-${GITHUB_REF_NAME}.zip \
+            release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip \
+            release-assets/manifest.txt \
+            release-assets/SHA256SUMS \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"

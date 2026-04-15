@@ -8,8 +8,8 @@
 ## Specific Checks Completed
 - Confirmed `cmake/FindSQLite3.cmake` accepts additional macOS package roots and includes fallback discovery logic.
 - Confirmed `.github/workflows/build-libs.yaml` exports SQLite root hints on macOS before configure.
-- Confirmed `.github/workflows/build-libs.yaml` installs `gtest` and `bison` in the Windows MSYS2 package steps.
-- Confirmed `cmake/FindAllDependencies.cmake` no longer treats missing GTest as a fatal pre-check failure when project testing can fetch googletest automatically.
+- Confirmed `.github/workflows/build-libs.yaml` installs the required Windows build tools and `bison` in the MSYS2 package steps.
+- Confirmed `cmake/FindAllDependencies.cmake` limits its dependency pre-checks to the remaining external packages needed for configuration.
 
 ## Final Status
 - The repository is internally consistent for the newly added CI dependency logic.

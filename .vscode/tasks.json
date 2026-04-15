@@ -560,6 +560,41 @@
 			],
 			"isBackground": false,
 			"group": "test"
+		},
+		{
+			"label": "build-components-tests-direct",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"components_tests",
+				"--clean-first"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "build-zero-test-ml-targets",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"decision_tree_tests",
+				"dimensionality_reduction_tests",
+				"latent_sentiment_analysis_tests",
+				"marked_point_process_tests",
+				"tracker_tests"
+			],
+			"isBackground": false,
+			"group": "test"
 		}
 	]
 }

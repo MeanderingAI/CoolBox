@@ -193,11 +193,13 @@ bool FullApplicationWindow::create() {
     return impl_->open;
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     using MsgSend = id (*)(id, SEL, ...);
+    using CocoaInteger = long;
+    using CocoaUnsignedInteger = unsigned long;
     auto* ns_application = reinterpret_cast<MsgSend>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSApplication")), sel_registerName("sharedApplication"));
-    reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(ns_application, sel_registerName("setActivationPolicy:"), 0);
+    reinterpret_cast<void (*)(id, SEL, CocoaInteger)>(objc_msgSend)(ns_application, sel_registerName("setActivationPolicy:"), 0);
 
     const CGRect rect = CGRectMake(0.0, 0.0, static_cast<double>(impl_->config.width), static_cast<double>(impl_->config.height));
-    const NSUInteger style = (1U << 0U) | (1U << 1U) | (1U << 3U);
+    const CocoaUnsignedInteger style = (1UL << 0U) | (1UL << 1U) | (1UL << 3U);
     auto* window = reinterpret_cast<MsgSend>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSWindow")), sel_registerName("alloc"));
     window = reinterpret_cast<MsgSend>(objc_msgSend)(window,
                                                      sel_registerName("initWithContentRect:styleMask:backing:defer:"),

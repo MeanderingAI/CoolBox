@@ -122,22 +122,37 @@ jobs:
           rm -rf release-assets staging-rust
           mkdir -p release-assets staging-rust
           cargo package --manifest-path _libraries/rust_bindings/Cargo.toml --allow-dirty --no-verify
-          cp target/package/*.crate release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate
-          tar -xzf release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate -C staging-rust
+          cp target/package/*.crate release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate
+          tar -xzf release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate -C staging-rust
           find staging-rust -exec touch -t 198001010000 {} +
-          tar -C staging-rust -czf release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.tar.gz .
+          tar -C staging-rust -czf release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-            staging-rust release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.zip
+            staging-rust release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip
+
+      - name: Finalize Rust release assets
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/finalize-purchase-assets
+        with:
+          assets_dir: release-assets
+          ref_name: ${{ github.ref_name }}
+          platform: ${{ matrix.platform }}
+          workflow_name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
 
       - name: Upload Rust archives
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
-          name: rust-extension-${{ github.ref_name }}
+          name: rust-extension-${{ matrix.platform }}-${{ github.ref_name }}
           path: |
-            release-assets/coolbox-rust-bindings-${{ github.ref_name }}.crate
-            release-assets/coolbox-rust-bindings-${{ github.ref_name }}.tar.gz
-            release-assets/coolbox-rust-bindings-${{ github.ref_name }}.zip
+            release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${{ github.ref_name }}.crate
+            release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${{ github.ref_name }}.zip
+            release-assets/manifest.txt
+            release-assets/SHA256SUMS
           retention-days: 14
 
       - name: Attach Rust archives to release
@@ -146,9 +161,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
-            release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.crate \
-            release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.tar.gz \
-            release-assets/coolbox-rust-bindings-${GITHUB_REF_NAME}.zip \
+            release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate \
+            release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
+            release-assets/manifest.txt \
+            release-assets/SHA256SUMS \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"
 

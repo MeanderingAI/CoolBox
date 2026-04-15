@@ -25,7 +25,6 @@ This document records the Windows build-system and dependency fixes completed du
 
 ### 3. Dependency resolution
 - Installed and validated:
-  - `gtest:x64-windows`
   - `gsl:x64-windows`
   - `sqlite3:x64-windows`
 - Moved dependency checks in top-level `CMakeLists.txt` so they run after `cmake_minimum_required()` and `project()`.
@@ -49,4 +48,4 @@ This document records the Windows build-system and dependency fixes completed du
 
 ## Result
 - `make -f .\Makefile.win build_libraries` completes successfully on Windows.
-- Dependency configuration for GTest, GSL, and SQLite3 is stable.
+- Dependency configuration for the test runtime, GSL, and SQLite3 is stable.

@@ -16,13 +16,12 @@ This document records the CI dependency-resolution fixes completed during the v1
 - Passed explicit SQLite-related CMake arguments during Linux/macOS configure so the macOS runner exposes the correct prefix to the build.
 
 ### 3. Fix Windows dependency pre-check behavior
-- Adjusted `cmake/FindAllDependencies.cmake` so missing GTest does not hard-fail configure when `BUILD_TESTING=ON`.
-- Kept the dependency check informative while allowing the existing `FetchContent` fallback in `cmake/ExternalDependencies.cmake` to supply googletest when needed.
-- Preserved the ability to skip the GTest pre-check entirely when `BUILD_TESTING=OFF`.
+- Adjusted `cmake/FindAllDependencies.cmake` so Windows configure only pre-checks the remaining external packages that must already exist.
+- Kept the dependency check informative while allowing test-target configuration to rely on the repository-owned test runtime.
+- Preserved the ability to skip optional dependency checks when the related feature toggles are disabled.
 
 ### 4. Install missing Windows CI packages
 - Updated the Windows MSYS2 package install steps in `.github/workflows/build-libs.yaml`.
-- Added `mingw-w64-x86_64-gtest` and `mingw-w64-aarch64-gtest` for the two Windows matrix entries.
 - Added `bison` to the Windows CI package list so the parser-generator dependency check passes during configure.
 
 ## Primary Files Updated
@@ -32,5 +31,5 @@ This document records the CI dependency-resolution fixes completed during the v1
 
 ## Result
 - macOS CI now provides explicit SQLite3 hints to CMake and the custom finder is more robust against Homebrew layout differences.
-- Windows CI no longer blocks configure just because GTest is not preinstalled when the project can fetch it automatically.
+- Windows CI no longer blocks configure on a missing external test package.
 - Windows CI now installs Bison explicitly instead of assuming it is already available on the runner.

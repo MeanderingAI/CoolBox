@@ -1,6 +1,6 @@
 /**
  * @file circuit_test.cpp
- * @brief GTest suite for the curcuitry library.
+ * @brief Test suite for the curcuitry library.
  *
  * Tests cover:
  *   - Component construction and field parsing

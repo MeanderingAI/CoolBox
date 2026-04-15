@@ -25,6 +25,6 @@ cmake --build build-emscripten --config Release
 
 mkdir -p staging-js
 cp -R build-emscripten/. staging-js/ 2>/dev/null || true
-tar -C staging-js -czf "release-assets/coolbox-js-bindings-linux-x86_64-${ref_name}.tar.gz" .
-python3 -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-  staging-js "release-assets/coolbox-js-bindings-linux-x86_64-${ref_name}.zip"
+tar -C staging-js -czf "$(package_tarball_path js-bindings)" .
+create_zip_from_dir staging-js "$(package_zip_path js-bindings)"
+finalize_release_assets

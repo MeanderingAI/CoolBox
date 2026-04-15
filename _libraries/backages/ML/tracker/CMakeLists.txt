@@ -5,7 +5,7 @@ add_library(tracker SHARED
     source/unscented_kalman_filter.cpp
 )
 target_include_directories(tracker PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-target_link_libraries(tracker PRIVATE mytrix)
+target_link_libraries(tracker PUBLIC mytrix)
 
 # Tests
 if(BUILD_TESTING AND TARGET tyst_framework_main)

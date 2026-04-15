@@ -1,6 +1,6 @@
 /**
  * @file battery_test.cpp
- * @brief GTest suite for the battery library.
+ * @brief Test suite for the battery library.
  *
  * Tests cover:
  *   - Cell construction, SoC, voltage models

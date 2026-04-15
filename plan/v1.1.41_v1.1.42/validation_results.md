@@ -10,7 +10,7 @@
 - The new `_libraries/backages/SP/fourier_tranforms` sources and tests were reviewed to confirm the new signal-processing backage is wired into the root library build.
 - The new `_libraries/backages/GRAPHICS/full_application_window` sources and tests were reviewed to confirm the GRAPHICS package now exposes a native window backend abstraction.
 - The `full_application_window` API was extended with rendering hooks and the `fourier_tranforms` API was extended with additional transform, reconstruction, and spectral-analysis variants.
-- The new `_libraries/backages/TOOLS/tyst_framework` backage and its self-test were reviewed to confirm the repository now exposes a local GTest-style test wrapper.
+- The new `_libraries/backages/TOOLS/tyst_framework` backage and its self-test were reviewed to confirm the repository now exposes a local project-owned test runtime.
 - The Fourier test suite was reviewed to confirm one existing library now uses `tyst_framework` as the adoption example.
 - The new `graphics::GraphicsObject` contract and `GraphicsObjectRegistry` factory layer were reviewed to confirm the GRAPHICS package now exposes a shared polymorphic base plus generic object creation by registry key.
 - The updated GRAPHICS component, window, and full-application-window tests were reviewed to confirm they now assert compile-time inheritance and runtime shared-base behavior for the expanded public model surface.

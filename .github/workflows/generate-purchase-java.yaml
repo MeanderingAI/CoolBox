@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PLATFORM: linux-x86_64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -172,17 +173,31 @@ jobs:
           cp -R _libraries/java_bindings/target/. staging-java/
           mkdir -p staging-java/native
           cp -R .prebuilt/java-native/. staging-java/native/
-          tar -C staging-java -czf release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.tar.gz .
+          tar -C staging-java -czf release-assets/coolbox-java-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-            staging-java release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.zip
+            staging-java release-assets/coolbox-java-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip
+
+      - name: Finalize Java release assets
+        uses: ./.github/actions/finalize-purchase-assets
+        with:
+          assets_dir: release-assets
+          ref_name: ${{ github.ref_name }}
+          platform: ${{ env.PLATFORM }}
+          workflow_name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
 
       - name: Upload Java archives
         uses: actions/upload-artifact@v7
         with:
-          name: java-extension-${{ github.ref_name }}
+          name: java-extension-${{ env.PLATFORM }}-${{ github.ref_name }}
           path: |
-            release-assets/coolbox-java-bindings-${{ github.ref_name }}.tar.gz
-            release-assets/coolbox-java-bindings-${{ github.ref_name }}.zip
+            release-assets/coolbox-java-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-java-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.zip
+            release-assets/manifest.txt
+            release-assets/SHA256SUMS
           retention-days: 14
 
       - name: Attach Java archives to release
@@ -191,7 +206,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
-            release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.tar.gz \
-            release-assets/coolbox-java-bindings-${GITHUB_REF_NAME}.zip \
+            release-assets/coolbox-java-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-java-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip \
+            release-assets/manifest.txt \
+            release-assets/SHA256SUMS \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"

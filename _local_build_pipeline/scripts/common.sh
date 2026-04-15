@@ -42,7 +42,7 @@ docker_run_repo() {
       job_name="$(basename "${arg}" .sh)"
     fi
   done
-  docker run --rm -t \
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' docker run --rm -t \
     -e CI=true \
     -e GITHUB_ACTIONS=false \
     -e GITHUB_WORKSPACE=/workspace \

@@ -56,6 +56,7 @@ help:
 	@echo ""
 	@echo "  make test               Run all registered CTest suites"
 	@echo "  make test-NAME          Run a specific test by name"
+	@echo "  make test_local_pipeline Run local build-libs pipelines for supported backends"
 	@echo ""
 	@echo "━━━ Install / Utility ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
@@ -100,7 +101,7 @@ help:
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo ""
 
-.PHONY: all help configure build build_all clean test install completion \
+.PHONY: all help configure build build_all clean test test_local_pipeline install completion \
         build_libraries build_libraries_io build_libraries_ml \
         build_libraries_security build_libraries_misc build_libraries_electronics \
         build_libraries_graphics \
@@ -196,6 +197,10 @@ test-%: configure
 	@echo "Building & running test: $*"
 	@cd build && cmake --build . --target $* && ./$* || \
 		(find . -name "$*" -type f -perm +111 -exec {} \;)
+
+test_local_pipeline:
+	@echo "[Makefile] Running local pipeline launcher..."
+	@$(PYTHON) _local_build_pipeline/scripts/test_local_pipeline.py
 
 # ── Install ─────────────────────────────────────────────────────────
 install:

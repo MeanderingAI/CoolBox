@@ -69,6 +69,6 @@ TEST(CanvasTextureLoader, LoadBMPFallback) {
 }
 
 int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    tyst::framework::init(&argc, argv);
+    return tyst::framework::run_all_tests();
 }

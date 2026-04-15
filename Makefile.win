@@ -7,11 +7,11 @@
 
 .PHONY: help configure build build_libraries build_libraries_io build_libraries_ml \
 	build_libraries_security build_libraries_misc build_libraries_graphics \
-	build_libraries_electronics build_% test test-% test_logged install clean completion \
+	build_libraries_electronics build_% test test-% test_logged test_local_pipeline install clean completion \
 	worksplace_editor run_worksplace_editor file_browser run_file_browser
 
 help:
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure              Configure CMake"; Write-Host "  make -f Makefile.win build                  Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME             Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries        Build the configured libraries"; Write-Host "  make -f Makefile.win worksplace_editor      Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor  Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser           Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser       Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                   Build and run CTest"; Write-Host "  make -f Makefile.win test_logged            Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win install                Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                  Remove build/ and lib/"; Write-Host ""'
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure              Configure CMake"; Write-Host "  make -f Makefile.win build                  Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME             Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries        Build the configured libraries"; Write-Host "  make -f Makefile.win worksplace_editor      Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor  Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser           Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser       Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                   Build and run CTest"; Write-Host "  make -f Makefile.win test_logged            Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win test_local_pipeline    Run local build-libs pipelines for supported backends"; Write-Host "  make -f Makefile.win install                Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                  Remove build/ and lib/"; Write-Host ""'
 
 configure:
 	@powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\_scripts\configure_windows.ps1
@@ -42,6 +42,9 @@ test: build_libraries
 
 test_logged: build_libraries
 	@powershell -NoProfile -NonInteractive -File .\_scripts\run_release_tests.ps1
+
+test_local_pipeline:
+	@powershell -NoProfile -NonInteractive -Command "$$repoRoot = (Resolve-Path .).Path; $$venvPython = Join-Path $$repoRoot '.venv\Scripts\python.exe'; if (Test-Path $$venvPython) { $$python = $$venvPython } elseif (Get-Command py -ErrorAction SilentlyContinue) { $$python = 'py -3' } elseif (Get-Command python -ErrorAction SilentlyContinue) { $$python = 'python' } else { throw 'Python is required to run the local pipeline launcher.' }; Write-Host '[Makefile.win] Running local pipeline launcher with' $$python; Invoke-Expression \"& '$$python' _local_build_pipeline/scripts/test_local_pipeline.py\"; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }"
 
 test-%: configure
 	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building & running test: $*'; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Push-Location build; try { ctest -R '^$*$$' --output-on-failure --build-config Release } finally { Pop-Location }"

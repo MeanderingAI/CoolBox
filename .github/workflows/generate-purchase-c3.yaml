@@ -1,0 +1,86 @@
+name: generate_purchase_c3
+
+on:
+  workflow_call:
+    inputs:
+      build_libs_run_id:
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: generate-purchase-c3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate_purchase_c3:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PLATFORM: linux-x86_64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install native build tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Build C bindings required by C3 package
+        run: |
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+          cmake --build _libraries/c_bindings/build --config Release
+          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+
+      - name: Stage C3 bindings package
+        run: |
+          rm -rf release-assets staging-c3
+          mkdir -p release-assets staging-c3/module staging-c3/native/include staging-c3/native/lib
+          cp -R _libraries/c3_bindings/. staging-c3/module/
+          cp -R _libraries/c_bindings/include/. staging-c3/native/include/
+          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c3/native/lib/ \;
+          tar -C staging-c3 -czf release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-c3 release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip
+
+      - name: Finalize C3 release assets
+        uses: ./.github/actions/finalize-purchase-assets
+        with:
+          assets_dir: release-assets
+          ref_name: ${{ github.ref_name }}
+          platform: ${{ env.PLATFORM }}
+          workflow_name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+
+      - name: Upload C3 archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: c3-extension-${{ env.PLATFORM }}-${{ github.ref_name }}
+          path: |
+            release-assets/coolbox-c3-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-c3-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.zip
+            release-assets/manifest.txt
+            release-assets/SHA256SUMS
+          retention-days: 14
+
+      - name: Attach C3 archives to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip \
+            release-assets/manifest.txt \
+            release-assets/SHA256SUMS \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

@@ -5,7 +5,10 @@ add_library(dimensionality_reduction SHARED
     source/umap.cpp
 )
 target_include_directories(dimensionality_reduction PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-target_link_libraries(dimensionality_reduction PRIVATE mytrix metadata_management)
+target_link_libraries(dimensionality_reduction PUBLIC mytrix metadata_management)
+if(MSVC)
+    target_compile_options(dimensionality_reduction PRIVATE /bigobj)
+endif()
 
 # Tests
 if(BUILD_TESTING AND TARGET tyst_framework_main)

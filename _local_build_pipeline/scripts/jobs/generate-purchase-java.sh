@@ -29,6 +29,6 @@ mvn \
 cp -R _libraries/java_bindings/target/. staging-java/
 mkdir -p staging-java/native
 cp -R .prebuilt/java-native/. staging-java/native/
-tar -C staging-java -czf "release-assets/coolbox-java-bindings-${ref_name}.tar.gz" .
-python3 -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-  staging-java "release-assets/coolbox-java-bindings-${ref_name}.zip"
+tar -C staging-java -czf "$(package_tarball_path java-bindings)" .
+create_zip_from_dir staging-java "$(package_zip_path java-bindings)"
+finalize_release_assets

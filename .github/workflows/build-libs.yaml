@@ -62,12 +62,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ make libeigen3-dev libgtest-dev libgsl-dev libsqlite3-dev doxygen gfortran
+          sudo apt-get install -y g++ make libeigen3-dev libgsl-dev libsqlite3-dev doxygen gfortran
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          for pkg in eigen googletest gsl doxygen gcc sqlite; do
+          for pkg in eigen gsl doxygen gcc sqlite; do
             brew list "$pkg" &>/dev/null || brew install "$pkg"
           done
           sqlite_prefix="$(brew --prefix sqlite)"
@@ -100,7 +100,7 @@ jobs:
         run: |
           set -e
           echo "Installing x86_64 packages"
-          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-gtest bison make
+          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison make
         shell: msys2 {0}
 
       - name: Install MSYS2 packages (Windows ARM64)
@@ -108,7 +108,7 @@ jobs:
         run: |
           set -e
           echo "Installing aarch64 packages"
-          pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 mingw-w64-aarch64-gtest bison make
+          pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 bison make
         shell: msys2 {0}
 
       - name: Ensure mingw in PATH (Windows)

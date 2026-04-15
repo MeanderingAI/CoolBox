@@ -4,7 +4,7 @@ add_library(decision_tree SHARED
     source/random_forest.cpp
     source/boost_tree.cpp
 )
-target_link_libraries(decision_tree PRIVATE mytrix metadata_management)
+target_link_libraries(decision_tree PUBLIC mytrix metadata_management)
 target_include_directories(decision_tree PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_compile_features(decision_tree PUBLIC cxx_std_17)
 

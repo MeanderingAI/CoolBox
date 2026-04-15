@@ -29,9 +29,7 @@ if(WIN32)
             if(EXISTS "${_vcpkg_root}/installed/x64-windows")
                 list(APPEND CMAKE_PREFIX_PATH
                     "${_vcpkg_root}/installed/x64-windows"
-                    "${_vcpkg_root}/installed/x64-windows/share/gtest"
                     "${_vcpkg_root}/installed/x64-windows/share/gsl"
-                    "${_vcpkg_root}/installed/x64-windows/lib/cmake/GTest"
                     "${_vcpkg_root}/installed/x64-windows/lib/cmake/GSL"
                 )
             endif()
@@ -43,36 +41,6 @@ endif()
 # Check for CMake itself (should always be present)
 if(NOT CMAKE_VERSION)
     list(APPEND _missing_deps "CMake (build tool)")
-endif()
-
-# Check for GTest
-set(_gtest_required TRUE)
-if(DEFINED BUILD_TESTING AND NOT BUILD_TESTING)
-    set(_gtest_required FALSE)
-elseif(DEFINED CACHE{BUILD_TESTING})
-    get_property(_coolbox_build_testing CACHE BUILD_TESTING PROPERTY VALUE)
-    if(NOT _coolbox_build_testing)
-        set(_gtest_required FALSE)
-    endif()
-endif()
-
-if(_gtest_required)
-    set(_gtest_found FALSE)
-    find_package(GTest QUIET)
-    if(GTest_FOUND)
-        set(_gtest_found TRUE)
-    endif()
-    if(NOT _gtest_found AND WIN32 AND NOT _coolbox_vcpkg_toolchain_file STREQUAL "")
-        find_package(GTest QUIET)
-        if(GTest_FOUND)
-            set(_gtest_found TRUE)
-        endif()
-    endif()
-    if(NOT _gtest_found)
-        message(STATUS "GTest not found by dependency pre-check; configure will fall back to FetchContent while BUILD_TESTING=ON.")
-    endif()
-else()
-    message(STATUS "BUILD_TESTING is OFF; skipping GTest dependency check.")
 endif()
 
 # Check for GSL

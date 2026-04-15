@@ -20,7 +20,7 @@
 - **Previous Status:** Present, but may be skipped
 - **Resolution:**
 	- All four libraries have valid folders and CMakeLists.txt under `_libraries/backages/MISC/`.
-	- `wave_generator_utils` and `metadata_management` both use modern CMake patterns: C++17, public headers, and conditional GTest-based tests wrapped in `if(BUILD_TESTING)`.
+	- `wave_generator_utils` and `metadata_management` both use modern CMake patterns: C++17, public headers, and conditional C++ test targets wrapped in `if(BUILD_TESTING)`.
 	- `thread_pool_utils` is an INTERFACE library (header-only), included via `add_library(thread_pool_utils INTERFACE)` and exposes its headers.
 	- `system_stats` is a standard shared library with public headers.
 	- All are included in the parent `_libraries/CMakeLists.txt` via `add_subdirectory_if_exists` with no conditional logic or gating options.

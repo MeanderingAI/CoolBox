@@ -16,8 +16,6 @@ This document tracks the runtime loader and malformed CMake file repairs complet
 - Verified output directories contain required DLLs:
   - `components.dll`
   - `json.dll`
-  - `gtest.dll`
-  - `gtest_main.dll`
 
 ## App runtime copy cleanup
 - Removed a broken generic runtime-DLL copy helper from `apps/lsp/CMakeLists.txt` because it generated invalid MSBuild post-build commands when `TARGET_RUNTIME_DLLS` expanded to an empty list.

@@ -154,6 +154,18 @@ jobs:
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-r release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip
 
+      - name: Finalize R release assets
+        uses: ./.github/actions/finalize-purchase-assets
+        with:
+          assets_dir: release-assets
+          ref_name: ${{ github.ref_name }}
+          platform: ${{ matrix.platform }}
+          workflow_name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+
       - name: Upload R archives
         uses: actions/upload-artifact@v7
         with:
@@ -161,6 +173,8 @@ jobs:
           path: |
             release-assets/coolbox-r-bindings-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
             release-assets/coolbox-r-bindings-${{ matrix.platform }}-${{ github.ref_name }}.zip
+            release-assets/manifest.txt
+            release-assets/SHA256SUMS
           retention-days: 14
 
       - name: Attach R archives to release
@@ -171,6 +185,8 @@ jobs:
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
             release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
+            release-assets/manifest.txt \
+            release-assets/SHA256SUMS \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"
       - name: Probe configured CMake tests (R job)

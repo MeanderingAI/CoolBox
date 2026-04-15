@@ -16,9 +16,9 @@ cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
 rm -rf staging-rust
 mkdir -p staging-rust
 cargo package --manifest-path _libraries/rust_bindings/Cargo.toml --allow-dirty --no-verify
-cp target/package/*.crate "release-assets/coolbox-rust-bindings-${ref_name}.crate"
-tar -xzf "release-assets/coolbox-rust-bindings-${ref_name}.crate" -C staging-rust
+cp target/package/*.crate "release-assets/$(package_stem rust-bindings).crate"
+tar -xzf "release-assets/$(package_stem rust-bindings).crate" -C staging-rust
 find staging-rust -exec touch -t 198001010000 {} +
-tar -C staging-rust -czf "release-assets/coolbox-rust-bindings-${ref_name}.tar.gz" .
-python3 -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-  staging-rust "release-assets/coolbox-rust-bindings-${ref_name}.zip"
+tar -C staging-rust -czf "$(package_tarball_path rust-bindings)" .
+create_zip_from_dir staging-rust "$(package_zip_path rust-bindings)"
+finalize_release_assets

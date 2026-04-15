@@ -30,7 +30,7 @@ TEST(PasswordHashUtilityTest, HexEncodeProducesLowercaseHex) {
 
 TEST(PBKDF2PasswordHashTest, SupportsAvailabilityQuery) {
     if (!utils::hash::supports_pbkdf2_sha256()) {
-        GTEST_SKIP() << "PBKDF2 provider unavailable in this build";
+        TYST_SKIP() << "PBKDF2 provider unavailable in this build";
     }
 
     const auto derived = utils::hash::pbkdf2_sha256_derive("password",
@@ -43,7 +43,7 @@ TEST(PBKDF2PasswordHashTest, SupportsAvailabilityQuery) {
 
 TEST(PBKDF2PasswordHashTest, EncodedHashRoundTrips) {
     if (!utils::hash::supports_pbkdf2_sha256()) {
-        GTEST_SKIP() << "PBKDF2 provider unavailable in this build";
+        TYST_SKIP() << "PBKDF2 provider unavailable in this build";
     }
 
     utils::hash::PBKDF2Params params;
@@ -58,7 +58,7 @@ TEST(PBKDF2PasswordHashTest, EncodedHashRoundTrips) {
 
 TEST(ScryptPasswordHashTest, SupportsAvailabilityQuery) {
     if (!utils::hash::supports_scrypt()) {
-        GTEST_SKIP() << "scrypt provider unavailable in this build";
+        TYST_SKIP() << "scrypt provider unavailable in this build";
     }
 
     const auto derived = utils::hash::scrypt_derive("",
@@ -74,7 +74,7 @@ TEST(ScryptPasswordHashTest, SupportsAvailabilityQuery) {
 
 TEST(ScryptPasswordHashTest, EncodedHashRoundTrips) {
     if (!utils::hash::supports_scrypt()) {
-        GTEST_SKIP() << "scrypt provider unavailable in this build";
+        TYST_SKIP() << "scrypt provider unavailable in this build";
     }
 
     utils::hash::ScryptParams params;
@@ -91,7 +91,7 @@ TEST(ScryptPasswordHashTest, EncodedHashRoundTrips) {
 
 TEST(BCryptPasswordHashTest, RoundTripsWhenSupported) {
     if (!utils::hash::supports_bcrypt()) {
-        GTEST_SKIP() << "bcrypt provider unavailable in this build";
+        TYST_SKIP() << "bcrypt provider unavailable in this build";
     }
 
     utils::hash::BCryptParams params;
@@ -104,7 +104,7 @@ TEST(BCryptPasswordHashTest, RoundTripsWhenSupported) {
 
 TEST(Argon2PasswordHashTest, RoundTripsWhenSupported) {
     if (!utils::hash::supports_argon2id()) {
-        GTEST_SKIP() << "Argon2id provider unavailable in this build";
+        TYST_SKIP() << "Argon2id provider unavailable in this build";
     }
 
     utils::hash::Argon2idParams params;

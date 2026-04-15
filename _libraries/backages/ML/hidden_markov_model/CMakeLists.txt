@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(hidden_markov_model LANGUAGES CXX)
 
-find_package(GTest QUIET)
-
 add_library(hidden_markov_model SHARED
     source/hidden_markov_model.cpp
 )

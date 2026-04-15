@@ -254,9 +254,9 @@ brew install doxygen
 
 This library is automatically installed by cmake during compilation
 
-## GoogleTest
+## Test framework
 
-This library is automatically installed by cmake during compilation
+The repository uses its local `tyst_framework` backage for C++ tests
 
 # Compiling
 

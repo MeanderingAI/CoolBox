@@ -17,7 +17,7 @@ rm -rf staging-r
 mkdir -p staging-r
 find _libraries/r_bindings/coolboxr/src -maxdepth 1 -type f \( -name '*.o' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name '*.a' -o -name '*.lib' \) -delete
 R CMD build _libraries/r_bindings/coolboxr
-mv coolboxr_*.tar.gz "release-assets/coolbox-r-bindings-linux-x86_64-${ref_name}.tar.gz"
-tar -xzf "release-assets/coolbox-r-bindings-linux-x86_64-${ref_name}.tar.gz" -C staging-r
-python3 -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
-  staging-r "release-assets/coolbox-r-bindings-linux-x86_64-${ref_name}.zip"
+mv coolboxr_*.tar.gz "$(package_tarball_path r-bindings)"
+tar -xzf "$(package_tarball_path r-bindings)" -C staging-r
+create_zip_from_dir staging-r "$(package_zip_path r-bindings)"
+finalize_release_assets
