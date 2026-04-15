@@ -5,55 +5,87 @@
 # You can override it by setting VS_GENERATOR, for example:
 #   set VS_GENERATOR=Visual Studio 17 2022
 
+POWERSHELL := powershell -NoProfile -NonInteractive
+POWERSHELL_BYPASS := powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass
+
+WINDOWS_SDK_CHANNEL ?= Windows11
+WINDOWS_SDK_ARTIFACT ?= Installer
+WINDOWS_SDK_OUTPUT_DIR ?=
+WINDOWS_SDK_INSTALLER_PATH ?=
+WINDOWS_SDK_INSTALLER_ARGS ?= /quiet /norestart
+
+WINDOWS_SIGN_CERT_SUBJECT ?= CN=CoolBox Dev Signing
+WINDOWS_SIGN_CERT_FRIENDLY_NAME ?= CoolBox Dev Signing
+WINDOWS_SIGN_CERT_OUTPUT_DIR ?=
+WINDOWS_SIGN_CERT_FILE_NAME ?= coolbox-dev-signing
+WINDOWS_SIGN_CERT_VALID_YEARS ?= 3
+WINDOWS_SIGN_CERT_PASSWORD ?=
+WINDOWS_SIGN_CERT_INSTALL_TO_TRUSTED_PEOPLE ?= 0
+
 .PHONY: help configure build build_libraries build_libraries_io build_libraries_ml \
 	build_libraries_security build_libraries_misc build_libraries_graphics \
-	build_libraries_electronics build_% test test-% test_logged test_local_pipeline install clean completion \
+	build_libraries_electronics build_% sign_windows_artifacts download_latest_windows_sdk install_latest_windows_sdk generate_windows_signing_cert \
+	test test-% test_logged test_local_pipeline install clean completion \
 	worksplace_editor run_worksplace_editor file_browser run_file_browser
 
 help:
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure              Configure CMake"; Write-Host "  make -f Makefile.win build                  Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME             Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries        Build the configured libraries"; Write-Host "  make -f Makefile.win worksplace_editor      Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor  Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser           Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser       Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                   Build and run CTest"; Write-Host "  make -f Makefile.win test_logged            Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win test_local_pipeline    Run local build-libs pipelines for supported backends"; Write-Host "  make -f Makefile.win install                Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                  Remove build/ and lib/"; Write-Host ""'
+	@$(POWERSHELL) -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure                     Configure CMake"; Write-Host "  make -f Makefile.win build                         Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME                    Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries               Build the configured libraries"; Write-Host "  make -f Makefile.win sign_windows_artifacts        Sign Release .exe/.dll outputs when a cert is configured"; Write-Host "  make -f Makefile.win download_latest_windows_sdk   Download the latest Windows SDK installer or ISO"; Write-Host "  make -f Makefile.win install_latest_windows_sdk    Download and install the latest Windows SDK"; Write-Host "  make -f Makefile.win generate_windows_signing_cert Generate a self-signed Windows code-signing cert"; Write-Host "  make -f Makefile.win worksplace_editor             Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor         Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser                  Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser              Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                          Build and run CTest"; Write-Host "  make -f Makefile.win test_logged                   Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win test_local_pipeline           Run local build-libs pipelines for supported backends"; Write-Host "  make -f Makefile.win install                       Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                         Remove build/ and lib/"; Write-Host ""'
 
 configure:
-	@powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\_scripts\configure_windows.ps1
+	@$(POWERSHELL_BYPASS) -File .\_scripts\configure_windows.ps1
 
 build: configure
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building project..."; cmake --build build --config Release; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Write-Host "[Makefile.win] Build complete."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building project..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] Build complete."'
 
 build_libraries: configure
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building libraries (delegating to CMake)..."; cmake --build build --config Release; if ($LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Release build failed, retrying default configuration..."; cmake --build build; if ($LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Both Release and default builds failed."; exit $LASTEXITCODE } }; Write-Host "[Makefile.win] Build step finished."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building libraries (delegating to CMake)..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Release build failed, retrying default configuration..."; cmake --build build; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Both Release and default builds failed."; exit $$LASTEXITCODE } }; Write-Host "[Makefile.win] Build step finished."'
+	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
 
 build_%: configure
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building target: $*"; cmake --build build --target $* --config Release; if ($LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Target build failed or not found."; exit $LASTEXITCODE }'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building target: $*"; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Target build failed or not found."; exit $$LASTEXITCODE }'
+	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
+
+sign_windows_artifacts:
+	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
+
+download_latest_windows_sdk:
+	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Channel = "$(WINDOWS_SDK_CHANNEL)"; Artifact = "$(WINDOWS_SDK_ARTIFACT)" }; if ("$(WINDOWS_SDK_OUTPUT_DIR)") { $$arguments.OutputDirectory = "$(WINDOWS_SDK_OUTPUT_DIR)" }; & .\_scripts\download_latest_windows_sdk.ps1 @arguments'
+
+install_latest_windows_sdk:
+	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Channel = "$(WINDOWS_SDK_CHANNEL)" }; if ("$(WINDOWS_SDK_OUTPUT_DIR)") { $$arguments.DownloadDirectory = "$(WINDOWS_SDK_OUTPUT_DIR)" }; if ("$(WINDOWS_SDK_INSTALLER_PATH)") { $$arguments.InstallerPath = "$(WINDOWS_SDK_INSTALLER_PATH)" }; if ("$(WINDOWS_SDK_INSTALLER_ARGS)") { $$arguments.InstallerArguments = @("$(WINDOWS_SDK_INSTALLER_ARGS)".Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)) }; & .\_scripts\install_latest_windows_sdk.ps1 @arguments'
+
+generate_windows_signing_cert:
+	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Subject = "$(WINDOWS_SIGN_CERT_SUBJECT)"; FriendlyName = "$(WINDOWS_SIGN_CERT_FRIENDLY_NAME)"; CertFileName = "$(WINDOWS_SIGN_CERT_FILE_NAME)"; ValidYears = [int]"$(WINDOWS_SIGN_CERT_VALID_YEARS)" }; if ("$(WINDOWS_SIGN_CERT_OUTPUT_DIR)") { $$arguments.OutputDirectory = "$(WINDOWS_SIGN_CERT_OUTPUT_DIR)" }; if ("$(WINDOWS_SIGN_CERT_PASSWORD)") { $$arguments.PfxPassword = "$(WINDOWS_SIGN_CERT_PASSWORD)" }; if ("$(WINDOWS_SIGN_CERT_INSTALL_TO_TRUSTED_PEOPLE)" -eq "1") { $$arguments.InstallToTrustedPeople = $$true }; & .\_scripts\generate_windows_signing_cert.ps1 @arguments'
 
 worksplace_editor: configure
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building worksplace_editor product..."; cmake --build build --target worksplace_editor --config Debug; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Write-Host "[Makefile.win] worksplace_editor build complete."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building worksplace_editor product..."; cmake --build build --target worksplace_editor --config Debug; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] worksplace_editor build complete."'
 
 run_worksplace_editor: worksplace_editor
-	@powershell -NoProfile -NonInteractive -Command '$exe = Join-Path (Resolve-Path .) "build\_Product\notepad\Debug\worksplace_editor.exe"; if (-not (Test-Path $exe)) { Write-Host "[Makefile.win] worksplace_editor executable not found:" $exe; exit 1 }; Write-Host "[Makefile.win] Launching" $exe; Start-Process -FilePath $exe'
+	@$(POWERSHELL) -Command '$$exe = Join-Path (Resolve-Path .) "build\_Product\notepad\Debug\worksplace_editor.exe"; if (-not (Test-Path $$exe)) { Write-Host "[Makefile.win] worksplace_editor executable not found:" $$exe; exit 1 }; Write-Host "[Makefile.win] Launching" $$exe; Start-Process -FilePath $$exe'
 
 file_browser: configure
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building file_browser product..."; cmake --build build --target file_browser --config Debug; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Write-Host "[Makefile.win] file_browser build complete."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building file_browser product..."; cmake --build build --target file_browser --config Debug; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] file_browser build complete."'
 
 run_file_browser: file_browser
-	@powershell -NoProfile -NonInteractive -Command '$exe = Join-Path (Resolve-Path .) "build\_Product\file_browser\Debug\file_browser.exe"; if (-not (Test-Path $exe)) { Write-Host "[Makefile.win] file_browser executable not found:" $exe; exit 1 }; Write-Host "[Makefile.win] Launching" $exe; Start-Process -FilePath $exe'
+	@$(POWERSHELL) -Command '$$exe = Join-Path (Resolve-Path .) "build\_Product\file_browser\Debug\file_browser.exe"; if (-not (Test-Path $$exe)) { Write-Host "[Makefile.win] file_browser executable not found:" $$exe; exit 1 }; Write-Host "[Makefile.win] Launching" $$exe; Start-Process -FilePath $$exe'
 
 test: build_libraries
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Running tests...'; if (-not (Test-Path 'build/CTestTestfile.cmake')) { Write-Host '[Makefile.win] CTest was not generated. Tests were likely skipped during configure.'; exit 1 }; Push-Location build; try { ctest --output-on-failure --build-config Release } finally { Pop-Location }"
+	@$(POWERSHELL) -Command "Write-Host '[Makefile.win] Running tests...'; if (-not (Test-Path 'build/CTestTestfile.cmake')) { Write-Host '[Makefile.win] CTest was not generated. Tests were likely skipped during configure.'; exit 1 }; Push-Location build; try { ctest --output-on-failure --build-config Release } finally { Pop-Location }"
 
 test_logged: build_libraries
-	@powershell -NoProfile -NonInteractive -File .\_scripts\run_release_tests.ps1
+	@$(POWERSHELL) -File .\_scripts\run_release_tests.ps1
 
 test_local_pipeline:
-	@powershell -NoProfile -NonInteractive -Command '$repoRoot = (Resolve-Path .).Path; $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"; if (Test-Path $venvPython) { $python = $venvPython } elseif (Get-Command py -ErrorAction SilentlyContinue) { $python = "py -3" } elseif (Get-Command python -ErrorAction SilentlyContinue) { $python = "python" } else { throw "Python is required to run the local pipeline launcher." }; Write-Host "[Makefile.win] Running local pipeline launcher with" $python; Invoke-Expression "& '$python' _local_build_pipeline/scripts/test_local_pipeline.py"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
+	@$(POWERSHELL) -Command '$$repoRoot = (Resolve-Path .).Path; $$venvPython = Join-Path $$repoRoot ".venv\Scripts\python.exe"; if (Test-Path $$venvPython) { $$python = $$venvPython } elseif (Get-Command py -ErrorAction SilentlyContinue) { $$python = "py -3" } elseif (Get-Command python -ErrorAction SilentlyContinue) { $$python = "python" } else { throw "Python is required to run the local pipeline launcher." }; Write-Host "[Makefile.win] Running local pipeline launcher with" $$python; Invoke-Expression "& '$$python' _local_build_pipeline/scripts/test_local_pipeline.py"; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
 
 test-%: configure
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building & running test: $*"; cmake --build build --target $* --config Release; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Push-Location build; try { ctest -R "^$*$" --output-on-failure --build-config Release } finally { Pop-Location }'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building & running test: $*"; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Push-Location build; try { ctest -R "^$*$$" --output-on-failure --build-config Release } finally { Pop-Location }'
 
 install:
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Installing DLLs to ./lib ..."; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $$_.FullName -Destination (Join-Path (Resolve-Path .).ToString() "lib") -Force; Write-Host "  Copied: " $$_.FullName }'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Installing DLLs to ./lib ..."; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $$_.FullName -Destination (Join-Path (Resolve-Path .).ToString() "lib") -Force; Write-Host "  Copied: " $$_.FullName }'
 
 clean:
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Cleaning build artifacts..."; if (Test-Path build) { Remove-Item -LiteralPath build -Recurse -Force -ErrorAction SilentlyContinue }; if (Test-Path lib) { Remove-Item -LiteralPath lib -Recurse -Force -ErrorAction SilentlyContinue }; Write-Host "[Makefile.win] Clean complete."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Cleaning build artifacts..."; if (Test-Path build) { Remove-Item -LiteralPath build -Recurse -Force -ErrorAction SilentlyContinue }; if (Test-Path lib) { Remove-Item -LiteralPath lib -Recurse -Force -ErrorAction SilentlyContinue }; Write-Host "[Makefile.win] Clean complete."'
 
 completion:
-	@powershell -NoProfile -NonInteractive -Command 'Write-Host "# completion script not implemented for Windows Makefile"'
+	@$(POWERSHELL) -Command 'Write-Host "# completion script not implemented for Windows Makefile"'

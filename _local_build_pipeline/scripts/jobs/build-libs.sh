@@ -12,5 +12,5 @@ cmake -S . -B build -Wno-dev \
   -DBUILD_TESTING=ON \
   -DCMAKE_BUILD_TYPE=Release
 
-make build_libraries
-make test
+cmake --build build --target build_libraries
+ctest --test-dir build --output-on-failure

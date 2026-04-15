@@ -256,7 +256,7 @@ This library is automatically installed by cmake during compilation
 
 ## Test framework
 
-The repository uses its local `tyst_framework` backage for C++ tests
+The repository uses its local `tyst_framework` package for C++ tests
 
 # Compiling
 

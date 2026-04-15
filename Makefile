@@ -123,7 +123,7 @@ build_all: configure
 	@echo "[Makefile] Build complete."
 
 # ── CMake Configuration (libraries only, skip binaries) ─────────────
-# Configure CMake (libraries only). To enable/disable SQL backage,
+# Configure CMake (libraries only). To enable/disable SQL package,
 # pass -DBUILD_IO_SQL=ON/OFF on the command line when running cmake.
 configure:
 	@if [ ! -f build/CMakeCache.txt ]; then \
@@ -150,7 +150,7 @@ build_libraries: configure
 # Category-specific library builds
 define BUILD_LIBS_IN
 	@echo "[Makefile] Building $(1) libraries..."
-	@for f in $$(find _libraries/backages/$(1) -name CMakeLists.txt 2>/dev/null); do \
+	@for f in $$(find _libraries/packages/$(1) -name CMakeLists.txt 2>/dev/null); do \
 		for t in $$(grep -E '^add_library' $$f 2>/dev/null | grep -v 'INTERFACE' | sed -E 's/add_library\(([^ ]+).*/\1/'); do \
 			echo "  → $$t"; \
 			cd build && cmake --build . --target $$t || true; cd ..; \

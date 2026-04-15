@@ -20,7 +20,7 @@ set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(eigen)
 
 # ── advanced_logging source (compiled directly for Emscripten) ──────
-set(ADV_LOG_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/IO/advanced_logging")
+set(ADV_LOG_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/IO/advanced_logging")
 
 add_executable(advanced_logging_js
     advanced_logging_bindings.cpp
@@ -55,7 +55,7 @@ else()
 endif()
 
 # ── curcuitry bindings ──────────────────────────────────────────────
-set(CURCUITRY_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/ELECTRONICS/curcuitry")
+set(CURCUITRY_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/ELECTRONICS/curcuitry")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/curcuitry_bindings.cpp")
     add_executable(curcuitry_js
@@ -85,7 +85,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/curcuitry_bindings.cpp")
 endif()
 
 # ── battery bindings ────────────────────────────────────────────────
-set(BATTERY_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/ELECTRONICS/battery")
+set(BATTERY_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/ELECTRONICS/battery")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
     add_executable(battery_js
@@ -95,7 +95,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
         ${COOLBOX_ROOT}/_libraries/include
         ${BATTERY_SRC_DIR}/include
         ${CURCUITRY_SRC_DIR}/include
-        ${COOLBOX_ROOT}/_libraries/backages/CHEMISTRY/include
+        ${COOLBOX_ROOT}/_libraries/packages/CHEMISTRY/include
     )
     if(EMSCRIPTEN)
         set_target_properties(battery_js PROPERTIES
@@ -115,7 +115,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
 endif()
 
 # ── data_structures bindings ────────────────────────────────────────
-set(DS_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/DATASTRUCTURE")
+set(DS_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/DATASTRUCTURE")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data_structures_bindings.cpp")
     add_executable(data_structures_js
@@ -149,7 +149,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data_structures_bindings.cpp")
 endif()
 
 # ── gabor_patches bindings ──────────────────────────────────────────
-set(GP_SRC_DIR "${COOLBOX_ROOT}/_libraries/backages/ML/gabor_patches")
+set(GP_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/ML/gabor_patches")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gabor_patches_bindings.cpp")
     add_executable(gabor_patches_js
@@ -178,8 +178,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gabor_patches_bindings.cpp")
 endif()
 
 # Global include for lib_metadata.h and other shared headers
-set(BACKAGES_ROOT "${COOLBOX_ROOT}/_libraries/backages")
-set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/backages/MISC/metadata_management/headers")
+set(PACKAGES_ROOT "${COOLBOX_ROOT}/_libraries/packages")
+set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/packages/MISC/metadata_management/headers")
 
 # ===================================================================
 # Helper macro: add an emscripten JS module from a bindings file + sources
@@ -187,7 +187,7 @@ set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/backages/MISC/metadata_mana
 macro(add_emscripten_module NAME EXPORT_NAME BINDING_FILE SOURCES INCLUDE_DIRS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${BINDING_FILE}")
         add_executable(${NAME} ${BINDING_FILE} ${SOURCES})
-        target_include_directories(${NAME} PRIVATE ${INCLUDE_DIRS} ${METADATA_HEADERS_DIR} ${BACKAGES_ROOT} ${COOLBOX_ROOT}/_libraries/include)
+        target_include_directories(${NAME} PRIVATE ${INCLUDE_DIRS} ${METADATA_HEADERS_DIR} ${PACKAGES_ROOT} ${COOLBOX_ROOT}/_libraries/include)
         if(EMSCRIPTEN)
             set_target_properties(${NAME} PROPERTIES SUFFIX ".js")
             if(EMSCRIPTEN_MODULARIZE)
@@ -204,7 +204,7 @@ macro(add_emscripten_module NAME EXPORT_NAME BINDING_FILE SOURCES INCLUDE_DIRS)
 endmacro()
 
 # ── ML library source directories ──────────────────────────────────
-set(ML_ROOT "${COOLBOX_ROOT}/_libraries/backages/ML")
+set(ML_ROOT "${COOLBOX_ROOT}/_libraries/packages/ML")
 
 # ── Decision Tree ──────────────────────────────────────────────────
 add_emscripten_module(decision_tree_js createDecisionTreeModule

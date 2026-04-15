@@ -4,17 +4,17 @@ This document lists all files in the codebase where `#pragma once` was replaced 
 
 ## Files Updated
 
-- _libraries/backages/ML/bayesian_network_db/headers/bayesian_network.h
+- _libraries/packages/ML/bayesian_network_db/headers/bayesian_network.h
 - ___DISABLED_binaries/services/__rej_system_monitor/include/system_monitor.h
 - ___DISABLED_binaries/abbs/__host_scanner/host_scanner.h
 - ___DISABLED_binaries/services/__rej_proxy_service/include/proxy_server.h
-- _libraries/backages/CHEMISTRY/include/chemistry/periodic_table.h
-- _libraries/backages/ELECTRONICS/curcuitry/include/wire.h
-- _libraries/backages/ELECTRONICS/curcuitry/include/resistor.h
-- _libraries/backages/ELECTRONICS/curcuitry/include/curcuitry.h
-- _libraries/backages/ELECTRONICS/curcuitry/include/component.h
-- _libraries/backages/ELECTRONICS/curcuitry/include/circuit_solver.h
-- _libraries/backages/ELECTRONICS/curcuitry/include/battery.h
+- _libraries/packages/CHEMISTRY/include/chemistry/periodic_table.h
+- _libraries/packages/ELECTRONICS/curcuitry/include/wire.h
+- _libraries/packages/ELECTRONICS/curcuitry/include/resistor.h
+- _libraries/packages/ELECTRONICS/curcuitry/include/curcuitry.h
+- _libraries/packages/ELECTRONICS/curcuitry/include/component.h
+- _libraries/packages/ELECTRONICS/curcuitry/include/circuit_solver.h
+- _libraries/packages/ELECTRONICS/curcuitry/include/battery.h
 
 <!-- Add more files here as the conversion progresses -->
 

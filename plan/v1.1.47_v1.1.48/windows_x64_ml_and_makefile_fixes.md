@@ -1,8 +1,8 @@
 # Windows x64 ML and Makefile Fixes
 
 ## Summary
-- Updated `_libraries/backages/ML/decision_tree/headers/boost_tree.h` and `_libraries/backages/ML/decision_tree/source/boost_tree.cpp` so `BoostTree` learns usable regression updates instead of collapsing to fixed sign-only inference steps.
-- Updated `_libraries/backages/ML/latent_sentiment_analysis/source/latent_sentiment_analysis.cpp` so training also regularizes unobserved document-term entries toward zero, improving the stability of the observed-vs-unobserved score ordering checked by the Windows x64 test.
+- Updated `_libraries/packages/ML/decision_tree/headers/boost_tree.h` and `_libraries/packages/ML/decision_tree/source/boost_tree.cpp` so `BoostTree` learns usable regression updates instead of collapsing to fixed sign-only inference steps.
+- Updated `_libraries/packages/ML/latent_sentiment_analysis/source/latent_sentiment_analysis.cpp` so training also regularizes unobserved document-term entries toward zero, improving the stability of the observed-vs-unobserved score ordering checked by the Windows x64 test.
 - Updated `Makefile.win` PowerShell invocations so `$LASTEXITCODE` is evaluated inside PowerShell rather than being stripped by `make` before execution.
 
 ## Rationale

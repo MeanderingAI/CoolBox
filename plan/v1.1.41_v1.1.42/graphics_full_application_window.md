@@ -34,8 +34,8 @@
 - Added registry-based tests that create component, window, and full-application-window objects polymorphically through `GraphicsObjectRegistry`.
 
 ## Build Integration
-- Added `_libraries/backages/GRAPHICS/full_application_window/CMakeLists.txt`.
-- Updated `_libraries/backages/GRAPHICS/CMakeLists.txt` so standalone GRAPHICS builds include the new library.
+- Added `_libraries/packages/GRAPHICS/full_application_window/CMakeLists.txt`.
+- Updated `_libraries/packages/GRAPHICS/CMakeLists.txt` so standalone GRAPHICS builds include the new library.
 - Updated `_libraries/CMakeLists.txt` so the root library build includes the new GRAPHICS target.
 
 ## Result

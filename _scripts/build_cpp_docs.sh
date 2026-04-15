@@ -14,8 +14,8 @@ cpp_inputs=()
 if [ -d "${ROOT_DIR}/_libraries/include" ]; then
   cpp_inputs+=("${ROOT_DIR}/_libraries/include")
 fi
-if [ -d "${ROOT_DIR}/_libraries/backages" ]; then
-  cpp_inputs+=("${ROOT_DIR}/_libraries/backages")
+if [ -d "${ROOT_DIR}/_libraries/packages" ]; then
+  cpp_inputs+=("${ROOT_DIR}/_libraries/packages")
 fi
 
 if [ ${#cpp_inputs[@]} -eq 0 ]; then

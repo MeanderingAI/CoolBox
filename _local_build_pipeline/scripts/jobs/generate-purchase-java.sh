@@ -15,7 +15,7 @@ mkdir -p .prebuilt/java-native staging-java
 bash ./_local_build_pipeline/scripts/jobs/generate-purchase-c.sh
 
 tar -xzf "release-assets/coolbox-c-bindings-linux-x86_64-${ref_name}.tar.gz" -C .prebuilt/java-native
-find build/_libraries/backages/MISC -maxdepth 2 -type f \( -name '*.so' -o -name '*.a' \) -exec cp {} .prebuilt/java-native/lib/ \; 2>/dev/null || true
+find build/_libraries/packages/MISC -maxdepth 2 -type f \( -name '*.so' -o -name '*.a' \) -exec cp {} .prebuilt/java-native/lib/ \; 2>/dev/null || true
 
 export COOLBOX_C_BINDINGS_DIR=/workspace/.prebuilt/java-native/lib
 export LD_LIBRARY_PATH=/workspace/.prebuilt/java-native/lib:${LD_LIBRARY_PATH:-}

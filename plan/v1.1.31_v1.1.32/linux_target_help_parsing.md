@@ -9,7 +9,7 @@ This document records the Linux build-workflow fix applied during the v1.1.31 to
 - The `Build all libraries` step in `.github/workflows/build-libs.yaml` compared source-declared library names against parsed output from `cmake --build . --target help`.
 - On Linux Makefile-style generators, the help output lists targets in a formatted style such as `... target_name`.
 - The workflow parser was taking the wrong token from those lines, so real configured targets were interpreted as missing.
-- This produced misleading warnings for valid libraries including `data_structures`, `json`, `sql`, `fuzzer`, and many other backages.
+- This produced misleading warnings for valid libraries including `data_structures`, `json`, `sql`, `fuzzer`, and many other packages.
 
 ## Why This Was Not A Source-CMake Difference
 - The reported targets were still being added normally through `_libraries/CMakeLists.txt`.

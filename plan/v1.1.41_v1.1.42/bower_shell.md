@@ -1,7 +1,7 @@
 # Bower Shell Product
 
 ## Summary
-- Added a reusable `bower_shell` library under `_libraries/backages/TOOLS/bower_shell`.
+- Added a reusable `bower_shell` library under `_libraries/packages/TOOLS/bower_shell`.
 - Added a standalone `_Product/bower_shell` console application that drives the library through a REPL.
 - Kept the shell engine operating-system independent by implementing commands and background jobs in standard C++ instead of delegating to platform shells.
 

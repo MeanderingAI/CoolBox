@@ -15,6 +15,6 @@
 
 ## Result
 - The Python bindings now include the real graphics declarations from:
-  - `_libraries/backages/GRAPHICS/charts/headers/graphics.h`
-  - `_libraries/backages/GRAPHICS/components/headers/components.hpp`
+  - `_libraries/packages/GRAPHICS/charts/headers/graphics.h`
+  - `_libraries/packages/GRAPHICS/components/headers/components.hpp`
 - The bindings compile against the same `graphics::Canvas` API that the repository implementation provides.

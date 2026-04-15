@@ -14,14 +14,14 @@ add_library(coolboxbridge STATIC bridge.cpp)
 target_include_directories(coolboxbridge PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..   # for bridge_forward.h
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/GRAPHICS/charts/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/generalized_linear_model/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/decision_tree/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/bayesian_network_ai/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/hidden_markov_model/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/dimensionality_reduction/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/support_vector_machine/headers
-    ${CMAKE_SOURCE_DIR}/_libraries/backages/ML/multi_arm_bandit/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/GRAPHICS/charts/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/generalized_linear_model/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/decision_tree/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/bayesian_network_ai/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/hidden_markov_model/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/dimensionality_reduction/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/support_vector_machine/headers
+    ${CMAKE_SOURCE_DIR}/_libraries/packages/ML/multi_arm_bandit/headers
     ${CMAKE_SOURCE_DIR}/build/eigen-src
 )
 

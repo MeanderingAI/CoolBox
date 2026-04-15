@@ -8,7 +8,7 @@
 ## Static Validation
 - Validation was re-run after the Emscripten battery include-path update.
 - `_libraries/emscripten_bindings/CMakeLists.txt` reported no diagnostics after adding the chemistry include root to `battery_js`.
-- A follow-up read confirmed the `battery_js` target now includes `_libraries/backages/CHEMISTRY/include`.
+- A follow-up read confirmed the `battery_js` target now includes `_libraries/packages/CHEMISTRY/include`.
 
 ## Static Validation
 - Validation was re-run after the Go bindings cgo preamble fix.

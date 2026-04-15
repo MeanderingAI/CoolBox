@@ -98,7 +98,7 @@
 		{
 			"label": "run-full-application-window-tests",
 			"type": "shell",
-			"command": "build\\_libraries\\backages\\GRAPHICS\\full_application_window\\Debug\\full_application_window_tests.exe",
+			"command": "build\\_libraries\\packages\\GRAPHICS\\full_application_window\\Debug\\full_application_window_tests.exe",
 			"isBackground": false,
 			"group": "test"
 		},
@@ -116,7 +116,7 @@
 			"args": [
 				"-NoProfile",
 				"-Command",
-				"$env:PATH = (Resolve-Path 'build\\SP_fourier_tranforms_build\\Debug').Path + ';' + (Resolve-Path 'build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug').Path + ';' + $env:PATH; & '.\\build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe'"
+				"$env:PATH = (Resolve-Path 'build\\SP_fourier_tranforms_build\\Debug').Path + ';' + (Resolve-Path 'build\\_libraries\\packages\\DATASTRUCTURE\\matrix\\Debug').Path + ';' + $env:PATH; & '.\\build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe'"
 			],
 			"isBackground": false,
 			"group": "test"
@@ -155,7 +155,7 @@
 		{
 			"label": "run-tyst-framework-tests",
 			"type": "shell",
-			"command": "build\\_libraries\\backages\\TOOLS\\tyst_framework\\Debug\\tyst_framework_tests.exe",
+			"command": "build\\_libraries\\packages\\TOOLS\\tyst_framework\\Debug\\tyst_framework_tests.exe",
 			"isBackground": false,
 			"group": "test"
 		},
@@ -187,7 +187,7 @@
 			"command": "cmd",
 			"args": [
 				"/c",
-				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst.log 2>&1"
+				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\packages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst.log 2>&1"
 			],
 			"isBackground": false,
 			"group": "test"
@@ -213,7 +213,7 @@
 			"command": "cmd",
 			"args": [
 				"/c",
-				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst.log 2>&1"
+				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\packages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst.log 2>&1"
 			],
 			"isBackground": false,
 			"group": "test"
@@ -240,7 +240,7 @@
 			"command": "cmd",
 			"args": [
 				"/c",
-				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\backages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst_after_clean.log 2>&1"
+				"set PATH=%CD%\\build\\SP_fourier_tranforms_build\\Debug;%CD%\\build\\_libraries\\packages\\DATASTRUCTURE\\matrix\\Debug;%PATH% && build\\SP_fourier_tranforms_build\\Debug\\fourier_tranforms_tests.exe > build\\fourier_tranforms_tests_tyst_after_clean.log 2>&1"
 			],
 			"isBackground": false,
 			"group": "test"
@@ -267,7 +267,7 @@
 			"command": "cmd",
 			"args": [
 				"/c",
-				"set PATH=%CD%\\build\\_libraries\\backages\\GRAPHICS\\components\\Debug;%PATH% && build\\_libraries\\backages\\GRAPHICS\\components\\Debug\\components_tests.exe > build\\components_tests_tyst.log 2>&1"
+				"set PATH=%CD%\\build\\_libraries\\packages\\GRAPHICS\\components\\Debug;%PATH% && build\\_libraries\\packages\\GRAPHICS\\components\\Debug\\components_tests.exe > build\\components_tests_tyst.log 2>&1"
 			],
 			"isBackground": false,
 			"group": "test"
@@ -304,7 +304,7 @@
 			"command": "cmd",
 			"args": [
 				"/c",
-				"set PATH=%CD%\\build\\_libraries\\backages\\GRAPHICS\\components\\Debug;%PATH% && build\\_libraries\\backages\\GRAPHICS\\components\\Debug\\components_tests.exe > build\\components_tests_tyst.log 2>&1"
+				"set PATH=%CD%\\build\\_libraries\\packages\\GRAPHICS\\components\\Debug;%PATH% && build\\_libraries\\packages\\GRAPHICS\\components\\Debug\\components_tests.exe > build\\components_tests_tyst.log 2>&1"
 			],
 			"isBackground": false,
 			"group": "test"

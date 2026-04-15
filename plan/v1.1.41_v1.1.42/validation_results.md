@@ -7,14 +7,14 @@
 - The patched headers were reviewed to confirm the changed files use explicit `#ifndef` guards instead of `#pragma once`.
 - The `_Product/MStudio` product sources and build files were reviewed to confirm the product now creates a native GUI shell backed by GRAPHICS component models.
 - The `_Product/MStudio` host path was reviewed to confirm the product now uses `GRAPHICS/full_application_window` as the native window shell while keeping its editor panels driven by GRAPHICS component models.
-- The new `_libraries/backages/SP/fourier_tranforms` sources and tests were reviewed to confirm the new signal-processing backage is wired into the root library build.
-- The new `_libraries/backages/GRAPHICS/full_application_window` sources and tests were reviewed to confirm the GRAPHICS package now exposes a native window backend abstraction.
+- The new `_libraries/packages/SP/fourier_tranforms` sources and tests were reviewed to confirm the new signal-processing package is wired into the root library build.
+- The new `_libraries/packages/GRAPHICS/full_application_window` sources and tests were reviewed to confirm the GRAPHICS package now exposes a native window backend abstraction.
 - The `full_application_window` API was extended with rendering hooks and the `fourier_tranforms` API was extended with additional transform, reconstruction, and spectral-analysis variants.
-- The new `_libraries/backages/TOOLS/tyst_framework` backage and its self-test were reviewed to confirm the repository now exposes a local project-owned test runtime.
+- The new `_libraries/packages/TOOLS/tyst_framework` package and its self-test were reviewed to confirm the repository now exposes a local project-owned test runtime.
 - The Fourier test suite was reviewed to confirm one existing library now uses `tyst_framework` as the adoption example.
 - The new `graphics::GraphicsObject` contract and `GraphicsObjectRegistry` factory layer were reviewed to confirm the GRAPHICS package now exposes a shared polymorphic base plus generic object creation by registry key.
 - The updated GRAPHICS component, window, and full-application-window tests were reviewed to confirm they now assert compile-time inheritance and runtime shared-base behavior for the expanded public model surface.
-- The new `_libraries/backages/OS_GENERICS/installer_abstraction` library, test target, and notes-generator tool were reviewed to confirm the repository now exposes a release-oriented product packaging abstraction plus a shared text-rendering entrypoint for package notes.
+- The new `_libraries/packages/OS_GENERICS/installer_abstraction` library, test target, and notes-generator tool were reviewed to confirm the repository now exposes a release-oriented product packaging abstraction plus a shared text-rendering entrypoint for package notes.
 - The product sources for `MStudio`, `file_browser`, and `bower_shell` were reviewed to confirm prerelease/install guidance is compiled conditionally and remains disabled for ordinary local builds.
 - The release workflow was reviewed to confirm packaged product artifacts now generate `PRERELEASE.txt` and `INSTALL.txt` through the shared installer abstraction implementation instead of duplicating that text in YAML.
 
@@ -36,7 +36,7 @@
 - A follow-up CMake build validation for the new GRAPHICS contract work was started but not completed because the configure command was cancelled before returning output in this session.
 
 ## Test Validation
-- Ran `build/_libraries/backages/TOOLS/tyst_framework/Debug/tyst_framework_tests.exe` successfully; all 3 tests passed.
+- Ran `build/_libraries/packages/TOOLS/tyst_framework/Debug/tyst_framework_tests.exe` successfully; all 3 tests passed.
 - Ran `build/SP_fourier_tranforms_build/Debug/fourier_tranforms_tests.exe` after the `tyst_framework` conversion and DST/IDST normalization fix; all 13 tests passed.
 
 ## Launch Validation

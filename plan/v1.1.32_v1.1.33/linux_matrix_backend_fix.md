@@ -11,10 +11,10 @@ This document records the Linux build fix applied during the v1.1.32 to v1.1.33 
 - The compiler output also pointed directly to the missing header.
 
 ## Change Implemented
-- Added `#include <stdexcept>` to `_libraries/backages/DATASTRUCTURE/matrix/source/matrix_backend.cpp`.
+- Added `#include <stdexcept>` to `_libraries/packages/DATASTRUCTURE/matrix/source/matrix_backend.cpp`.
 
 ## Primary File Updated
-- `_libraries/backages/DATASTRUCTURE/matrix/source/matrix_backend.cpp`
+- `_libraries/packages/DATASTRUCTURE/matrix/source/matrix_backend.cpp`
 
 ## Result
 - The matrix backend source now includes the standard exception declarations it uses.

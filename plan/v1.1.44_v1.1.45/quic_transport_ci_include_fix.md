@@ -1,7 +1,7 @@
 # Quic Transport CI Include Fix
 
 ## Summary
-- Updated `_libraries/backages/IO/quic_transport/CMakeLists.txt` so the `quic_transport_tests` target explicitly includes the HTTP request/response headers consumed by `quic_transport.hpp`.
+- Updated `_libraries/packages/IO/quic_transport/CMakeLists.txt` so the `quic_transport_tests` target explicitly includes the HTTP request/response headers consumed by `quic_transport.hpp`.
 - Kept the earlier `quic_transport` library include-path fix in place and extended the same header visibility to the test executable.
 
 ## Reason For The Change

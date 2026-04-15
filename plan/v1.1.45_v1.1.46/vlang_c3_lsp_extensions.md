@@ -1,14 +1,14 @@
 # VLang And C3 LSP Extensions
 
 ## Summary
-- Added new V and C3 LSP libraries under `_libraries/backages/TOOLS/`.
+- Added new V and C3 LSP libraries under `_libraries/packages/TOOLS/`.
 - Added `plvlang_lsp` and `plc3_lsp` front-end binaries under `apps/lsp`.
 - Added Dockerfiles and dedicated `workflow_run` publish workflows for the new extension images.
 - Extended the local build pipeline with focused runners that build, test, and package the V and C3 extensions locally.
 - Kept the LSP deliverable separate from the language-binding surface work tracked in `binding_surface_alignment.md`.
 
 ## Implementation Details
-- `_libraries/CMakeLists.txt` now includes `backages/TOOLS/lsp_vlang` and `backages/TOOLS/lsp_c3`.
+- `_libraries/CMakeLists.txt` now includes `packages/TOOLS/lsp_vlang` and `packages/TOOLS/lsp_c3`.
 - `apps/lsp/CMakeLists.txt` now builds and installs `plvlang_lsp` and `plc3_lsp` alongside the existing language servers.
 - `.github/workflows/build-libs.yaml` now stages the new binaries into `apps/lsp/dist` and uploads them with the existing LSP artifact family.
 - `.github/workflows/lsp-vlang.yaml` and `.github/workflows/lsp-c3.yaml` publish dedicated container images for the new extension binaries.

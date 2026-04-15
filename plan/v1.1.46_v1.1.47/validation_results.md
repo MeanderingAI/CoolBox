@@ -1,7 +1,7 @@
 # Validation Results (v1.1.46 -> v1.1.47)
 
 ## Static Validation
-- Reviewed the macOS Cocoa runtime path in `_libraries/backages/GRAPHICS/full_application_window/source/full_application_window.cpp`.
+- Reviewed the macOS Cocoa runtime path in `_libraries/packages/GRAPHICS/full_application_window/source/full_application_window.cpp`.
 - Confirmed the failing `NSInteger` and `NSUInteger` references were used only as Objective-C runtime scalar arguments and could be replaced by ABI-compatible C++ integer aliases.
 - Reviewed the runner feasibility question against the repository's existing Linux Docker-based local pipeline and documented the resulting platform split in `runner_platform_strategy.md`.
 - Reviewed the existing `_local_build_pipeline` dispatcher, Windows PowerShell wrapper, and job-script layout to turn the runner strategy into a concrete repository implementation plan in `runner_platform_implementation.md`.

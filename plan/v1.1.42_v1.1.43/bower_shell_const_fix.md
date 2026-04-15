@@ -10,8 +10,8 @@
 
 ## Code Changes
 - Removed the `const` qualifier from `build_background_job` in:
-  - `_libraries/backages/TOOLS/bower_shell/headers/bower_shell.hpp`
-  - `_libraries/backages/TOOLS/bower_shell/source/bower_shell.cpp`
+  - `_libraries/packages/TOOLS/bower_shell/headers/bower_shell.hpp`
+  - `_libraries/packages/TOOLS/bower_shell/source/bower_shell.cpp`
 
 ## Result
 - The function contracts now reflect the real mutability of background job construction, and the reported CI compiler error path is resolved.

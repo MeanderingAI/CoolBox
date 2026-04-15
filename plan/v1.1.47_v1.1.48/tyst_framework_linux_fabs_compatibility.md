@@ -1,7 +1,7 @@
 # Tyst Framework Linux fabs Compatibility
 
 ## Summary
-- Updated `_libraries/backages/TOOLS/tyst_framework/headers/tyst_framework.hpp` so Linux builds use `std::fabs` for `long double` absolute-value comparisons.
+- Updated `_libraries/packages/TOOLS/tyst_framework/headers/tyst_framework.hpp` so Linux builds use `std::fabs` for `long double` absolute-value comparisons.
 - Preserved the prior `std::fabsl` path for non-Linux builds, matching the behavior that was already working on Windows and macOS.
 
 ## Rationale

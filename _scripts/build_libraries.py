@@ -52,7 +52,7 @@ def split_payload(payload: str) -> tuple[str, str]:
 
 def normalize_library_reference(reference: str) -> str:
     value = reference.strip().replace("\\", "/")
-    for prefix in ("_libraries/backages/", "/_libraries/backages/", "backages/", "/backages/"):
+    for prefix in ("_libraries/packages/", "/_libraries/packages/", "packages/", "/packages/"):
         if value.startswith(prefix):
             return value[len(prefix):].strip("/")
     return value.strip("/")

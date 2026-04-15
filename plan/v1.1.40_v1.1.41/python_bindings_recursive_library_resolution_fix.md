@@ -11,7 +11,7 @@
 - In CI, the build completed compilation successfully but failed at the final link step with:
   - `/usr/bin/ld: cannot find -lcharts`
   - `/usr/bin/ld: cannot find -lwave_generator_utils`
-- The actual CMake outputs were placed in nested paths under the build tree, such as `_libraries/backages/GRAPHICS/charts` and `_libraries/backages/MISC/wave_generator`, not directly in `${GITHUB_WORKSPACE}/build`.
+- The actual CMake outputs were placed in nested paths under the build tree, such as `_libraries/packages/GRAPHICS/charts` and `_libraries/packages/MISC/wave_generator`, not directly in `${GITHUB_WORKSPACE}/build`.
 
 ## Files Updated
 - `_libraries/python_bindings/setup.py`

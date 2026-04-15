@@ -15,5 +15,5 @@
 - `_libraries/emscripten_bindings/CMakeLists.txt`
 
 ## Result
-- `battery_js` now includes `_libraries/backages/CHEMISTRY/include` during the Emscripten build.
+- `battery_js` now includes `_libraries/packages/CHEMISTRY/include` during the Emscripten build.
 - Local reproduction remains possible using `emcmake` and `cmake --build build-emscripten --target battery_js` on Linux, macOS, or WSL.

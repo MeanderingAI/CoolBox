@@ -1,7 +1,7 @@
 # File Browser Product
 
 ## Summary
-- Added a reusable `file_browser_lib` library under `_libraries/backages/TOOLS/file_browser`.
+- Added a reusable `file_browser_lib` library under `_libraries/packages/TOOLS/file_browser`.
 - Added a standalone `_Product/file_browser` desktop application backed by the shared `WorkspaceDockHost` abstraction.
 - The library is independent of the host product and can be embedded into other applications, including the editor product.
 

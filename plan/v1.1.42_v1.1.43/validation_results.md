@@ -9,7 +9,7 @@
 ## Build Validation
 - Editor diagnostics reported no errors in `_Product/MStudio/CMakeLists.txt`, `_Product/MStudio/src/gui_gtk_like.cpp`, `.vscode/tasks.json`, `.github/workflows/build-libs.yaml`, `.github/workflows/ci.yaml`, and `_scripts/build_product_assets.py` after the executable rename from `worksplace_editor` to `MStudio`.
 - Editor diagnostics reported no errors in `_scripts/build_documentation.sh` and the new `_scripts/build_product_catalog.py` after the catalog-generator handoff was added.
-- Editor diagnostics reported no errors in `_libraries/backages/TOOLS/bower_shell/headers/bower_shell.hpp` and `_libraries/backages/TOOLS/bower_shell/source/bower_shell.cpp` after the const-correctness repair.
+- Editor diagnostics reported no errors in `_libraries/packages/TOOLS/bower_shell/headers/bower_shell.hpp` and `_libraries/packages/TOOLS/bower_shell/source/bower_shell.cpp` after the const-correctness repair.
 
 ## Execution Note
 - The workflow and script changes in this revision were validated through file inspection and editor diagnostics only; no full GitHub Actions run was executed from this environment.

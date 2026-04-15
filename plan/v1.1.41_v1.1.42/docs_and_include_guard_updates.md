@@ -4,7 +4,7 @@
 - Moved the public language guides into `docs/core-lib/languages/` and relocated maintainer-facing docs into `docs/internal_documents/`.
 - Updated repository and plan references to point at the new docs layout.
 - Normalized the binding package labels in the docs to Rust-style namespace aliases such as `coolbox::python` and `coolbox::java` while preserving the real package-manager identifiers.
-- Replaced `#pragma once` with `#ifndef` include guards for the currently patched header set across Go bindings, Rust bindings, Python bindings, and selected `_libraries/backages` and `_Product` headers.
+- Replaced `#pragma once` with `#ifndef` include guards for the currently patched header set across Go bindings, Rust bindings, Python bindings, and selected `_libraries/packages` and `_Product` headers.
 - Added `_scripts/tmp_replace_pragma_once.ps1` as a repository helper for include-guard conversion attempts.
 
 ## Docs Changes
@@ -22,12 +22,12 @@
 
 ## Include Guard Changes
 - Converted the currently patched headers from `#pragma once` to path-derived include guards using the `COOLBOX_...` macro naming pattern.
-- Cleaned duplicate `#pragma once` directives in headers such as `_libraries/backages/CHEMISTRY/include/chemistry/periodic_table.h` and `_libraries/backages/GRAPHICS/charts/headers/graphics.h` while adding a single guard pair.
+- Cleaned duplicate `#pragma once` directives in headers such as `_libraries/packages/CHEMISTRY/include/chemistry/periodic_table.h` and `_libraries/packages/GRAPHICS/charts/headers/graphics.h` while adding a single guard pair.
 - The patched header set includes:
   - Go binding ABI and bridge headers
   - Rust binding bridge header
   - Python binding distributed and graphics-related headers plus vendored chart and wave-generator headers
-  - Selected `_libraries/backages` headers under `TOOLS`, `IO`, `GRAPHICS`, `MISC`, `ELECTRONICS`, and `CHEMISTRY`
+  - Selected `_libraries/packages` headers under `TOOLS`, `IO`, `GRAPHICS`, `MISC`, `ELECTRONICS`, and `CHEMISTRY`
   - `_Product/MStudio/src/gui_gtk_like.hpp`
   - `_Product/MStudio/src/text_box_editor.hpp`
 

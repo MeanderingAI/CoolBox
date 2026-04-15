@@ -1,7 +1,7 @@
 # macOS Full Application Window Cocoa Types Fix
 
 ## Summary
-- Fixed the macOS Cocoa-runtime build failure in `_libraries/backages/GRAPHICS/full_application_window/source/full_application_window.cpp`.
+- Fixed the macOS Cocoa-runtime build failure in `_libraries/packages/GRAPHICS/full_application_window/source/full_application_window.cpp`.
 - Replaced direct use of Objective-C scalar aliases that were not available in the C++ translation unit with ABI-compatible plain C++ types.
 
 ## Problem
@@ -26,4 +26,4 @@
 - Full macOS rebuild still needs to be re-run on a macOS-capable runner to confirm the repository progresses past the earlier compile stop.
 
 ## Files
-- `_libraries/backages/GRAPHICS/full_application_window/source/full_application_window.cpp`
+- `_libraries/packages/GRAPHICS/full_application_window/source/full_application_window.cpp`

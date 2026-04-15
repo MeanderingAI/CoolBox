@@ -6,11 +6,11 @@ This document lists each library target that was skipped or missing in the build
 
 ## 1. password_hash_utils
 - **Status:** Directory missing
-- **Reason:** The folder `_libraries/backages/SECURITY/password_hash_utils` does not exist. It may have been deleted, renamed, or never implemented.
+- **Reason:** The folder `_libraries/packages/SECURITY/password_hash_utils` does not exist. It may have been deleted, renamed, or never implemented.
 
 ## 2. plpython_parser_lib, pljava_parser_lib, plrust_parser_lib
 - **Status:** Directory missing
-- **Reason:** No folders found for these parser libraries under `_libraries/backages/PARSER/`. They may have been renamed, removed, or not yet implemented.
+- **Reason:** No folders found for these parser libraries under `_libraries/packages/PARSER/`. They may have been renamed, removed, or not yet implemented.
 
 ## 3. plpython_lsp_lib, pljava_lsp_lib, plrust_lsp_lib, plvhdl_lsp_lib, plmatlab_lsp_lib
 - **Status:** Some present, some missing/empty
@@ -18,11 +18,11 @@ This document lists each library target that was skipped or missing in the build
 
 ## 4. json
 - **Status:** Directory missing
-- **Reason:** The folder `_libraries/backages/IO/json` does not exist. It may have been renamed, deleted, or never implemented.
+- **Reason:** The folder `_libraries/packages/IO/json` does not exist. It may have been renamed, deleted, or never implemented.
 
 ## 5. data_structures
 - **Status:** Present
-- **Reason:** The main library exists at `_libraries/backages/DATASTRUCTURE/` with a valid CMakeLists.txt and is correctly referenced in the build. A legacy stub existed at `_libraries/backages/IO/data_structures/` (single file, no CMakeLists.txt), which has now been removed to prevent confusion. Only the main DATASTRUCTURE library is used.
+- **Reason:** The main library exists at `_libraries/packages/DATASTRUCTURE/` with a valid CMakeLists.txt and is correctly referenced in the build. A legacy stub existed at `_libraries/packages/IO/data_structures/` (single file, no CMakeLists.txt), which has now been removed to prevent confusion. Only the main DATASTRUCTURE library is used.
 
 ## 6. auth, network_scanner, malware_scanner, fuzzer
 - **Status:** Present

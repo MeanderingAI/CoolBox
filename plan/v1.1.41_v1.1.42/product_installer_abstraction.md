@@ -1,7 +1,7 @@
 # Product Installer Abstraction
 
 ## Summary
-- Added `_libraries/backages/OS_GENERICS/installer_abstraction` as a release-oriented packaging helper for products.
+- Added `_libraries/packages/OS_GENERICS/installer_abstraction` as a release-oriented packaging helper for products.
 - Modeled prerelease packaging around three installation experiences: Windows `Install Genie`, macOS `Drag And Drop Bundle`, and Linux or other platforms as a `Portable Binary`.
 - Kept the abstraction focused on packaged products and prerelease guidance rather than forcing installer behavior into ordinary development builds.
 

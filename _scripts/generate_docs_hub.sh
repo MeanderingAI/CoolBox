@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SITE_DIR="${1:-${ROOT_DIR}/.site}"
 CPP_INPUT_DIR="${ROOT_DIR}/_libraries/include"
-CPP_BACKAGES_DIR="${ROOT_DIR}/_libraries/backages"
+CPP_PACKAGES_DIR="${ROOT_DIR}/_libraries/packages"
 R_PKG_DIR="${ROOT_DIR}/_libraries/r_bindings/coolboxr"
 R_DOCS_DIR="${DOCS_R_DIR:-${R_PKG_DIR}/docs}"
 R_DIST_DIR="${R_PKG_DIR}/dist"
@@ -167,13 +167,13 @@ if [ -n "${PREBUILT_CPP_DOCS_DIR}" ] && [ -d "${PREBUILT_CPP_DOCS_DIR}" ]; then
   mkdir -p "${SITE_DIR}/cpp"
   cp -R "${PREBUILT_CPP_DOCS_DIR}/." "${SITE_DIR}/cpp/"
   has_cpp_docs=true
-elif command -v doxygen >/dev/null 2>&1 && { [ -d "${CPP_INPUT_DIR}" ] || [ -d "${CPP_BACKAGES_DIR}" ]; }; then
+elif command -v doxygen >/dev/null 2>&1 && { [ -d "${CPP_INPUT_DIR}" ] || [ -d "${CPP_PACKAGES_DIR}" ]; }; then
   cpp_inputs=()
   if [ -d "${CPP_INPUT_DIR}" ]; then
     cpp_inputs+=("${CPP_INPUT_DIR}")
   fi
-  if [ -d "${CPP_BACKAGES_DIR}" ]; then
-    cpp_inputs+=("${CPP_BACKAGES_DIR}")
+  if [ -d "${CPP_PACKAGES_DIR}" ]; then
+    cpp_inputs+=("${CPP_PACKAGES_DIR}")
   fi
 
   cat > "${SITE_DIR}/Doxyfile" <<EOF

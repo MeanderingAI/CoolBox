@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 #include "time_series.h"
 
-#include "../../../backages/ML/time_series/source/time_series.cpp"
+#include "../../../packages/ML/time_series/source/time_series.cpp"
 
 namespace {
 ml::time_series::TimeSeries to_time_series(const Rcpp::NumericVector& values) {

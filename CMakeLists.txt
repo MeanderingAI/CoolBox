@@ -52,6 +52,68 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Enable CTest so add_test() calls in subdirectories are discovered
 enable_testing()
 
+function(_coolbox_collect_runtime_dependency_targets target out_var)
+    get_property(visited_targets GLOBAL PROPERTY COOLBOX_RUNTIME_DEP_VISITED)
+    if(NOT visited_targets)
+        set(visited_targets "")
+    endif()
+
+    list(FIND visited_targets "${target}" target_index)
+    if(NOT target_index EQUAL -1)
+        set(${out_var} "" PARENT_SCOPE)
+        return()
+    endif()
+
+    list(APPEND visited_targets "${target}")
+    set_property(GLOBAL PROPERTY COOLBOX_RUNTIME_DEP_VISITED "${visited_targets}")
+
+    set(runtime_targets "")
+    get_target_property(target_type "${target}" TYPE)
+    if(target_type STREQUAL "SHARED_LIBRARY" OR target_type STREQUAL "MODULE_LIBRARY")
+        list(APPEND runtime_targets "${target}")
+    endif()
+
+    foreach(link_property IN ITEMS LINK_LIBRARIES INTERFACE_LINK_LIBRARIES)
+        get_target_property(linked_items "${target}" ${link_property})
+        if(linked_items AND NOT linked_items STREQUAL "linked_items-NOTFOUND")
+            foreach(linked_item IN LISTS linked_items)
+                if(TARGET "${linked_item}")
+                    _coolbox_collect_runtime_dependency_targets("${linked_item}" dependency_targets)
+                    list(APPEND runtime_targets ${dependency_targets})
+                endif()
+            endforeach()
+        endif()
+    endforeach()
+
+    list(REMOVE_DUPLICATES runtime_targets)
+    set(${out_var} "${runtime_targets}" PARENT_SCOPE)
+endfunction()
+
+function(coolbox_stage_test_runtime_dependencies test_target)
+    if(NOT WIN32 OR NOT TARGET "${test_target}")
+        return()
+    endif()
+
+    set_property(GLOBAL PROPERTY COOLBOX_RUNTIME_DEP_VISITED "")
+    _coolbox_collect_runtime_dependency_targets("${test_target}" runtime_targets)
+    list(REMOVE_ITEM runtime_targets "${test_target}")
+    list(REMOVE_DUPLICATES runtime_targets)
+
+    if(runtime_targets)
+        set(copy_sources "")
+        foreach(runtime_target IN LISTS runtime_targets)
+            list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
+        endforeach()
+
+        add_custom_command(TARGET ${test_target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${copy_sources}
+                $<TARGET_FILE_DIR:${test_target}>
+            COMMAND_EXPAND_LISTS
+        )
+    endif()
+endfunction()
+
 # Option to skip building apps/services/demos
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
@@ -179,8 +241,8 @@ if(COOLBOX_INSTALL_PACKAGE)
             )
         endif()
 
-        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_libraries/backages/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/backages
+        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_libraries/packages/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/packages
             FILES_MATCHING
                 PATTERN "*.h"
                 PATTERN "*.hpp"

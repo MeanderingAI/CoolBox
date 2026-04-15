@@ -1,8 +1,8 @@
 #include <Rcpp.h>
 #include "linear_regression.h"
 
-#include "../../../backages/ML/generalized_linear_model/source/generalized_linear_model.cpp"
-#include "../../../backages/ML/generalized_linear_model/source/linear_regression.cpp"
+#include "../../../packages/ML/generalized_linear_model/source/generalized_linear_model.cpp"
+#include "../../../packages/ML/generalized_linear_model/source/linear_regression.cpp"
 
 namespace {
 std::vector<std::vector<double>> to_std_matrix(const Rcpp::NumericMatrix& x) {

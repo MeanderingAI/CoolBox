@@ -15,7 +15,7 @@ except ImportError:
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 TUTORIALS_DIR = ROOT_DIR / "tutorials"
-BACKAGES_DIR = ROOT_DIR / "_libraries" / "backages"
+PACKAGES_DIR = ROOT_DIR / "_libraries" / "packages"
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
@@ -103,12 +103,12 @@ BASE_TK = TkinterDnD.Tk if TKDND_AVAILABLE and TkinterDnD is not None else tk.Tk
 
 def discover_local_library_references() -> list[str]:
     references: list[str] = []
-    if not BACKAGES_DIR.exists():
+    if not PACKAGES_DIR.exists():
         return references
 
-    for cmake_file in sorted(BACKAGES_DIR.rglob("CMakeLists.txt")):
+    for cmake_file in sorted(PACKAGES_DIR.rglob("CMakeLists.txt")):
         library_dir = cmake_file.parent
-        relative_dir = library_dir.relative_to(BACKAGES_DIR).as_posix()
+        relative_dir = library_dir.relative_to(PACKAGES_DIR).as_posix()
 
         if relative_dir == ".":
             continue
@@ -231,7 +231,7 @@ class CodeSectionDialog(simpledialog.Dialog):
 
         helper = ttk.Label(
             master,
-            text="Comma-separate local library folders under backages/, for example: MISC/hash, IO/http_server",
+            text="Comma-separate local library folders under packages/, for example: MISC/hash, IO/http_server",
             foreground="#64748b",
             wraplength=540,
             justify="left",
@@ -459,7 +459,7 @@ class TutorialEditor(BASE_TK):
             "• Keep local media next to the tutorial file or in tutorials/assets/.\n"
             "• Use the Image/Video buttons to browse for files, or drag media files into the editor.\n"
             "• The editor keeps the top metadata ordered as @title, then @tags, then @libs, then @repo.\n"
-            "• For code sections, list local libraries as folder references relative to backages/, such as MISC/hash or IO/http_server.\n"
+            "• For code sections, list local libraries as folder references relative to packages/, such as MISC/hash or IO/http_server.\n"
             "• The tutorials pipeline will convert each .tut file into static HTML.\n",
         )
         guide.bind("<Key>", lambda _event: "break")

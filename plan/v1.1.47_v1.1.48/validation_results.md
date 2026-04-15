@@ -1,7 +1,7 @@
 # Validation Results (v1.1.47 -> v1.1.48)
 
 ## Static Validation
-- Reviewed `_libraries/backages/TOOLS/tyst_framework/headers/tyst_framework.hpp` around `compare_near` to confirm the Linux failure was isolated to the `std::fabsl` calls.
+- Reviewed `_libraries/packages/TOOLS/tyst_framework/headers/tyst_framework.hpp` around `compare_near` to confirm the Linux failure was isolated to the `std::fabsl` calls.
 - Confirmed the header already includes `<cmath>`, so the Linux break was due to standard-library symbol availability in that toolchain rather than a missing include.
 - Confirmed the requested platform split could be implemented locally in the header without changing the framework API.
 

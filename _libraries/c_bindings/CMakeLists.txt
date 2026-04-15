@@ -10,7 +10,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 if(NOT TARGET metadata_management)
     add_subdirectory(
-        ${CMAKE_CURRENT_SOURCE_DIR}/../backages/MISC/metadata_management
+        ${CMAKE_CURRENT_SOURCE_DIR}/../packages/MISC/metadata_management
         ${CMAKE_CURRENT_BINARY_DIR}/metadata_management
     )
 endif()

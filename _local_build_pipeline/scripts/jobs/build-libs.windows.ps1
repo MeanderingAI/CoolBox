@@ -123,6 +123,11 @@ try {
         throw "CMake build failed with exit code $LASTEXITCODE"
     }
 
+    & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $repoRoot '_scripts\sign_windows_artifacts.ps1') -Root $buildDir -Configuration 'Release'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Artifact signing failed with exit code $LASTEXITCODE"
+    }
+
     if (-not (Test-Path (Join-Path $buildDir 'CTestTestfile.cmake'))) {
         throw 'CTest was not generated. Tests were likely skipped during configure.'
     }

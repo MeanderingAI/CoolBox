@@ -13,7 +13,7 @@ from typing import Iterable
 from build_product_assets import PRODUCTS
 
 
-BACKAGES_ROOT = Path("_libraries/backages")
+PACKAGES_ROOT = Path("_libraries/packages")
 APPS_ROOT = Path("apps")
 
 CATEGORY_SUMMARIES = {
@@ -371,15 +371,15 @@ def build_app_index(project_root: Path) -> dict[str, list[str]]:
 
 
 def build_library_entries(project_root: Path) -> list[LibraryEntry]:
-    backages_dir = project_root / BACKAGES_ROOT
+    packages_dir = project_root / PACKAGES_ROOT
     readme_sections = parse_markdown_sections(read_text(project_root / "README.md"))
     product_index = build_product_index()
     app_index = build_app_index(project_root)
     entries: list[LibraryEntry] = []
 
-    for cmake_path in sorted(backages_dir.rglob("CMakeLists.txt")):
+    for cmake_path in sorted(packages_dir.rglob("CMakeLists.txt")):
         package_dir = cmake_path.parent
-        relative_dir = package_dir.relative_to(backages_dir).as_posix()
+        relative_dir = package_dir.relative_to(packages_dir).as_posix()
         parts = relative_dir.split("/")
         if len(parts) < 2:
             continue

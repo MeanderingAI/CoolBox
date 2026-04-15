@@ -2,7 +2,7 @@ package coolboxgo
 
 /*
 #cgo CXXFLAGS: -std=c++17
-#cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/cbridge -I${SRCDIR}/../backages/ML/generalized_linear_model/headers -I${SRCDIR}/../backages/ML/decision_tree/headers -I${SRCDIR}/../backages/ML/bayesian_network_ai/headers -I${SRCDIR}/../backages/ML/hidden_markov_model/headers -I${SRCDIR}/../backages/ML/dimensionality_reduction/headers -I${SRCDIR}/../backages/ML/support_vector_machine/headers -I${SRCDIR}/../backages/ML/multi_arm_bandit/headers -I${SRCDIR}/../backages/MISC/metadata_management/headers -I${SRCDIR}/../../build/eigen-src -I${SRCDIR}/../backages/GRAPHICS/charts/headers
+#cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/cbridge -I${SRCDIR}/../packages/ML/generalized_linear_model/headers -I${SRCDIR}/../packages/ML/decision_tree/headers -I${SRCDIR}/../packages/ML/bayesian_network_ai/headers -I${SRCDIR}/../packages/ML/hidden_markov_model/headers -I${SRCDIR}/../packages/ML/dimensionality_reduction/headers -I${SRCDIR}/../packages/ML/support_vector_machine/headers -I${SRCDIR}/../packages/ML/multi_arm_bandit/headers -I${SRCDIR}/../packages/MISC/metadata_management/headers -I${SRCDIR}/../../build/eigen-src -I${SRCDIR}/../packages/GRAPHICS/charts/headers
 #cgo darwin LDFLAGS: -lc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
 #cgo linux LDFLAGS: -lstdc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
 #include <stdlib.h>

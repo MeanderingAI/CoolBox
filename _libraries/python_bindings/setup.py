@@ -145,9 +145,9 @@ if sys.platform.startswith("win"):
     if cleaned.exists():
         graphics_header = cleaned
     else:
-        # Fallback: copy from repository backages if available.
+        # Fallback: copy from repository packages if available.
         graphics_header = sync_vendor_file(
-            repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+            repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
             project_root / vendor_graphics_header,
         )
 
@@ -157,7 +157,7 @@ if sys.platform.startswith("win"):
         wave_generator_header = wave_candidate
     else:
         wave_generator_header = sync_vendor_file(
-            repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+            repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
             project_root / vendor_wave_header,
         )
 
@@ -167,19 +167,19 @@ if sys.platform.startswith("win"):
     wave_generator_source = project_root / vendor_wave_source
 else:
     graphics_header = sync_vendor_file(
-        repo_root / "_libraries/backages/GRAPHICS/charts/headers/graphics.h",
+        repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
         project_root / vendor_graphics_header,
     )
     wave_generator_header = sync_vendor_file(
-        repo_root / "_libraries/backages/MISC/wave_generator/headers/wave_generator.hpp",
+        repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
         project_root / vendor_wave_header,
     )
     graphics_source = sync_vendor_file(
-        repo_root / "_libraries/backages/GRAPHICS/charts/source/graphics.cpp",
+        repo_root / "_libraries/packages/GRAPHICS/charts/source/graphics.cpp",
         project_root / vendor_graphics_source,
     )
     wave_generator_source = sync_vendor_file(
-        repo_root / "_libraries/backages/MISC/wave_generator/source/wave_generator.cpp",
+        repo_root / "_libraries/packages/MISC/wave_generator/source/wave_generator.cpp",
         project_root / vendor_wave_source,
     )
 
