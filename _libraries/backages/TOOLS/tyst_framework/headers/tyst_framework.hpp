@@ -173,6 +173,14 @@ AssertionResult compare_ge(const Left& left_value, const Right& right_value, con
     return make_binary_result(left_value >= right_value, ">=", left_expr, right_expr, left_value, right_value);
 }
 
+inline long double absolute_long_double(long double value) {
+#if defined(__linux__)
+    return std::fabs(value);
+#else
+    return std::fabsl(value);
+#endif
+}
+
 template <typename Left, typename Right, typename Error>
 AssertionResult compare_near(
     const Left& left_value,
@@ -181,8 +189,8 @@ AssertionResult compare_near(
     const char* left_expr,
     const char* right_expr,
     const char* error_expr) {
-    const long double difference = std::fabsl(static_cast<long double>(left_value) - static_cast<long double>(right_value));
-    const long double tolerance = std::fabsl(static_cast<long double>(error_value));
+    const long double difference = absolute_long_double(static_cast<long double>(left_value) - static_cast<long double>(right_value));
+    const long double tolerance = absolute_long_double(static_cast<long double>(error_value));
     if (difference <= tolerance) {
         return {true, {}};
     }

@@ -17,25 +17,25 @@ configure:
 	@powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\_scripts\configure_windows.ps1
 
 build: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building project...'; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host '[Makefile.win] Build complete.'"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building project..."; cmake --build build --config Release; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Write-Host "[Makefile.win] Build complete."'
 
 build_libraries: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building libraries (delegating to CMake)...'; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Release build failed, retrying default configuration...'; cmake --build build; if ($$LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Both Release and default builds failed.'; exit $$LASTEXITCODE } }; Write-Host '[Makefile.win] Build step finished.'"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building libraries (delegating to CMake)..."; cmake --build build --config Release; if ($LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Release build failed, retrying default configuration..."; cmake --build build; if ($LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Both Release and default builds failed."; exit $LASTEXITCODE } }; Write-Host "[Makefile.win] Build step finished."'
 
 build_%: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building target: $*'; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host '[Makefile.win] Target build failed or not found.'; exit $$LASTEXITCODE }"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building target: $*"; cmake --build build --target $* --config Release; if ($LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Target build failed or not found."; exit $LASTEXITCODE }'
 
 worksplace_editor: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building worksplace_editor product...'; cmake --build build --target worksplace_editor --config Debug; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host '[Makefile.win] worksplace_editor build complete.'"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building worksplace_editor product..."; cmake --build build --target worksplace_editor --config Debug; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Write-Host "[Makefile.win] worksplace_editor build complete."'
 
 run_worksplace_editor: worksplace_editor
-	@powershell -NoProfile -NonInteractive -Command "$$exe = Join-Path (Resolve-Path .) 'build\_Product\notepad\Debug\worksplace_editor.exe'; if (-not (Test-Path $$exe)) { Write-Host '[Makefile.win] worksplace_editor executable not found:' $$exe; exit 1 }; Write-Host '[Makefile.win] Launching' $$exe; Start-Process -FilePath $$exe"
+	@powershell -NoProfile -NonInteractive -Command '$exe = Join-Path (Resolve-Path .) "build\_Product\notepad\Debug\worksplace_editor.exe"; if (-not (Test-Path $exe)) { Write-Host "[Makefile.win] worksplace_editor executable not found:" $exe; exit 1 }; Write-Host "[Makefile.win] Launching" $exe; Start-Process -FilePath $exe'
 
 file_browser: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building file_browser product...'; cmake --build build --target file_browser --config Debug; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host '[Makefile.win] file_browser build complete.'"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building file_browser product..."; cmake --build build --target file_browser --config Debug; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Write-Host "[Makefile.win] file_browser build complete."'
 
 run_file_browser: file_browser
-	@powershell -NoProfile -NonInteractive -Command "$$exe = Join-Path (Resolve-Path .) 'build\_Product\file_browser\Debug\file_browser.exe'; if (-not (Test-Path $$exe)) { Write-Host '[Makefile.win] file_browser executable not found:' $$exe; exit 1 }; Write-Host '[Makefile.win] Launching' $$exe; Start-Process -FilePath $$exe"
+	@powershell -NoProfile -NonInteractive -Command '$exe = Join-Path (Resolve-Path .) "build\_Product\file_browser\Debug\file_browser.exe"; if (-not (Test-Path $exe)) { Write-Host "[Makefile.win] file_browser executable not found:" $exe; exit 1 }; Write-Host "[Makefile.win] Launching" $exe; Start-Process -FilePath $exe'
 
 test: build_libraries
 	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Running tests...'; if (-not (Test-Path 'build/CTestTestfile.cmake')) { Write-Host '[Makefile.win] CTest was not generated. Tests were likely skipped during configure.'; exit 1 }; Push-Location build; try { ctest --output-on-failure --build-config Release } finally { Pop-Location }"
@@ -44,10 +44,10 @@ test_logged: build_libraries
 	@powershell -NoProfile -NonInteractive -File .\_scripts\run_release_tests.ps1
 
 test_local_pipeline:
-	@powershell -NoProfile -NonInteractive -Command "$$repoRoot = (Resolve-Path .).Path; $$venvPython = Join-Path $$repoRoot '.venv\Scripts\python.exe'; if (Test-Path $$venvPython) { $$python = $$venvPython } elseif (Get-Command py -ErrorAction SilentlyContinue) { $$python = 'py -3' } elseif (Get-Command python -ErrorAction SilentlyContinue) { $$python = 'python' } else { throw 'Python is required to run the local pipeline launcher.' }; Write-Host '[Makefile.win] Running local pipeline launcher with' $$python; Invoke-Expression \"& '$$python' _local_build_pipeline/scripts/test_local_pipeline.py\"; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }"
+	@powershell -NoProfile -NonInteractive -Command '$repoRoot = (Resolve-Path .).Path; $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"; if (Test-Path $venvPython) { $python = $venvPython } elseif (Get-Command py -ErrorAction SilentlyContinue) { $python = "py -3" } elseif (Get-Command python -ErrorAction SilentlyContinue) { $python = "python" } else { throw "Python is required to run the local pipeline launcher." }; Write-Host "[Makefile.win] Running local pipeline launcher with" $python; Invoke-Expression "& '$python' _local_build_pipeline/scripts/test_local_pipeline.py"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
 
 test-%: configure
-	@powershell -NoProfile -NonInteractive -Command "Write-Host '[Makefile.win] Building & running test: $*'; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Push-Location build; try { ctest -R '^$*$$' --output-on-failure --build-config Release } finally { Pop-Location }"
+	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Building & running test: $*"; cmake --build build --target $* --config Release; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Push-Location build; try { ctest -R "^$*$" --output-on-failure --build-config Release } finally { Pop-Location }'
 
 install:
 	@powershell -NoProfile -NonInteractive -Command 'Write-Host "[Makefile.win] Installing DLLs to ./lib ..."; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $$_.FullName -Destination (Join-Path (Resolve-Path .).ToString() "lib") -Force; Write-Host "  Copied: " $$_.FullName }'

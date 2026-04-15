@@ -6,11 +6,7 @@
 // Metadata only defined in decision_tree.h to avoid duplicate symbols
 
 #include <vector>
-#include <memory>
 #include "mytrix_eigen_compat.hpp"
-
-// Forward declaration of the DecisionTree class to avoid circular dependencies
-class DecisionTree;
 
 /**
  * @struct BoostTreeParameters
@@ -31,11 +27,19 @@ struct BoostTreeParameters {
  */
 class BoostTree {
 private:
+    struct WeakLearner {
+        size_t feature_index = 0;
+        double threshold = 0.0;
+        double left_value = 0.0;
+        double right_value = 0.0;
+        bool has_split = false;
+    };
+
     // Model parameters
     BoostTreeParameters params_;
-    
-    // The collection of trained weak learners (decision trees)
-    std::vector<std::unique_ptr<DecisionTree>> estimators_;
+
+    // The collection of trained weak learners.
+    std::vector<WeakLearner> estimators_;
 
     // The initial prediction, which serves as the starting point for the residuals
     double initial_prediction_ = 0.0;

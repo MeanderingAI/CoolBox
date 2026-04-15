@@ -34,11 +34,12 @@ void LatentSentimentAnalysis::train(const Eigen::MatrixXd& document_term_matrix)
     for (int iter = 0; iter < max_iter; ++iter) {
         for (Eigen::Index i = 0; i < num_documents; ++i) {
             for (Eigen::Index j = 0; j < num_terms; ++j) {
-                if (document_term_matrix(i, j) > 0) {
-                    double pred = U.row(i).dot(V.row(j));
-                    double error = document_term_matrix(i, j) - pred;
-                    sgd_step(i, j, error);
-                }
+                const double observed_value = document_term_matrix(i, j);
+                const double target_value = observed_value > 0.0 ? observed_value : 0.0;
+                const double sample_weight = observed_value > 0.0 ? 1.0 : 0.25;
+                const double pred = U.row(i).dot(V.row(j));
+                const double error = (target_value - pred) * sample_weight;
+                sgd_step(i, j, error);
             }
         }
     }

@@ -178,7 +178,8 @@ Windows PowerShell wrapper with native backend:
 
 ## Notes
 - The Docker runner copies the repository into a container-local `/workspace` before running builds. This avoids Windows-mounted filesystem issues with tools like `FetchContent` that delete and recreate directories during configure.
-- Logs and selected outputs are synced back to `_local_build_pipeline/out/<job-name>/` on the host after each Docker run.
+- On Linux and macOS hosts, Docker logs and selected outputs are synced back to `_local_build_pipeline/out/<job-name>/`.
+- On Windows hosts, Docker runs now stage those outputs under `%TEMP%/coolbox-local-pipeline-out/<job-name>/` by default so the sync step does not depend on a OneDrive-backed `_local_build_pipeline/out` mount. Set `COOLBOX_LOCAL_HOST_OUT_ROOT` to override that location.
 - Native backend runs also write logs and selected outputs under `_local_build_pipeline/out/`, currently:
   - `build-libs-native-windows`
   - `build-libs-native-macos`
