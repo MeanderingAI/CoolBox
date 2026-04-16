@@ -25,6 +25,7 @@
   - `%LOCALAPPDATA%\vcpkg\vcpkg.exe`
 - If none of those locations contain `vcpkg.exe`, the workflow now runs `_scripts/install_vcpkg.ps1` and retries discovery.
 - If discovery still fails after installation, the workflow now stops with an explicit error instead of dereferencing a null path.
+- Updated the Windows ARM64 CMake configure steps to invoke `cmake` through a PowerShell argument array so `-DCMAKE_TOOLCHAIN_FILE` receives the resolved path instead of a literal variable token.
 - Updated `_scripts/install_vcpkg.ps1` so it:
   - exits early only when `vcpkg.exe` already exists
   - reuses an existing clone when the directory exists but the executable does not
@@ -33,4 +34,5 @@
 ## Result
 - Windows ARM64 hosted builds no longer fail at the first `vcpkg` lookup when the executable is not already in `PATH`.
 - The fallback bootstrap path is resilient to partially initialized local `vcpkg` directories.
+- The ARM64 configure step now passes the `vcpkg.cmake` path to CMake deterministically under PowerShell.
 - ARM64 dependency installation now fails with a clear actionable error only if `vcpkg` is genuinely unavailable after bootstrap.
