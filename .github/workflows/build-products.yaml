@@ -87,19 +87,44 @@ jobs:
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         shell: powershell
         run: |
-          $vcpkg = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
-          if ($null -eq $vcpkg -and (Test-Path 'C:\vcpkg\vcpkg.exe')) {
-            $vcpkg = Get-Item 'C:\vcpkg\vcpkg.exe'
-          }
-          if ($null -eq $vcpkg) {
-            throw 'vcpkg.exe was not found. Windows ARM64 hosted cross-builds require vcpkg with arm64-windows dependencies.'
+          function Find-VcpkgExe {
+            $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+            $candidates = @(
+              $(if ($null -ne $command) { $command.Source }),
+              $(if ($null -ne $command) { $command.Path }),
+              $(if ($env:VCPKG_ROOT) { Join-Path $env:VCPKG_ROOT 'vcpkg.exe' }),
+              'C:\vcpkg\vcpkg.exe',
+              $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'vcpkg\vcpkg.exe' }),
+              $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'vcpkg\vcpkg.exe' })
+            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+            foreach ($candidate in $candidates) {
+              if (Test-Path $candidate) {
+                return $candidate
+              }
+            }
+
+            return $null
           }
 
-          $vcpkgRoot = Split-Path -Parent $vcpkg.FullName
+          $vcpkgExe = Find-VcpkgExe
+          if ($null -eq $vcpkgExe) {
+            & .\_scripts\install_vcpkg.ps1
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+            $vcpkgExe = Find-VcpkgExe
+          }
+
+          if ($null -eq $vcpkgExe) {
+            throw 'vcpkg.exe was not found after installation attempt. Windows ARM64 hosted cross-builds require vcpkg with arm64-windows dependencies.'
+          }
+
+          $vcpkgRoot = Split-Path -Parent $vcpkgExe
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
           Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
 
-          & $vcpkg.FullName install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows
+          & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }

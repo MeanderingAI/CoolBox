@@ -5,17 +5,26 @@ $ErrorActionPreference = 'Stop'
 
 # Set install directory
 $vcpkgRoot = "$env:USERPROFILE\vcpkg"
+$vcpkgExe = Join-Path $vcpkgRoot 'vcpkg.exe'
 
-if (Test-Path $vcpkgRoot) {
-    Write-Host "vcpkg already exists at $vcpkgRoot"
+if (Test-Path $vcpkgExe) {
+    Write-Host "vcpkg already exists at $vcpkgExe"
     exit 0
 }
 
-Write-Host "Cloning vcpkg into $vcpkgRoot..."
-git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+if (!(Test-Path $vcpkgRoot)) {
+    Write-Host "Cloning vcpkg into $vcpkgRoot..."
+    git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+} else {
+    Write-Host "vcpkg directory exists at $vcpkgRoot but vcpkg.exe is missing; reusing existing clone."
+}
 
 Write-Host "Bootstrapping vcpkg..."
 & "$vcpkgRoot\bootstrap-vcpkg.bat"
+
+if (!(Test-Path $vcpkgExe)) {
+    throw "vcpkg bootstrap completed but $vcpkgExe was not created"
+}
 
 [Environment]::SetEnvironmentVariable('VCPKG_ROOT', $vcpkgRoot, 'User')
 

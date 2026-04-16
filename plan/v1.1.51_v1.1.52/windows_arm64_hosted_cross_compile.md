@@ -23,6 +23,7 @@
 - Kept x64-host-executable helper tools for Windows CI shell steps.
 - Switched the Windows ARM64 configure path to `Visual Studio 17 2022` with `-A ARM64`.
 - Installed `arm64-windows` vcpkg dependencies for Eigen, SQLite, and GSL before ARM64 configure.
+- Hardened the Windows ARM64 vcpkg bootstrap step so it searches common install locations and falls back to `_scripts/install_vcpkg.ps1` if `vcpkg.exe` is not already available.
 - Updated the shared Windows configure script to honor `VS_GENERATOR_PLATFORM` and `VCPKG_TARGET_TRIPLET`.
 - Updated Windows dependency discovery helpers so they can resolve `arm64-windows` package roots instead of assuming `x64-windows`.
 - Skipped Windows ARM64 test execution in the hosted library workflow because the x64 runner cannot execute the produced ARM64 binaries.
