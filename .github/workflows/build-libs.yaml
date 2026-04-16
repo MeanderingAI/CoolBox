@@ -108,7 +108,7 @@ jobs:
         run: |
           set -e
           echo "Installing clangarm64 packages"
-          pacman -S --noconfirm --needed mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-gcc-compat mingw-w64-clang-aarch64-eigen3 mingw-w64-clang-aarch64-gsl mingw-w64-clang-aarch64-sqlite3 mingw-w64-clang-aarch64-make bison
+          pacman -S --noconfirm --needed mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-gcc-compat mingw-w64-clang-aarch64-eigen3 mingw-w64-clang-aarch64-gsl mingw-w64-clang-aarch64-sqlite3 mingw-w64-clang-aarch64-ninja bison
         shell: msys2 {0}
 
       - name: Ensure mingw in PATH (Windows)
@@ -130,6 +130,10 @@ jobs:
           command -v cmake
           cmake --version
           cmake --version | grep 'cmake version 4.3.1'
+          if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
+            command -v ninja
+            ninja --version
+          fi
         shell: msys2 {0}
 
       - name: Verify CMake 4.3.1 is available (Linux/macOS)
@@ -144,10 +148,12 @@ jobs:
         run: |
           if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
             MSYS_PREFIX=/clangarm64
+            CMAKE_GENERATOR='Ninja'
           else
             MSYS_PREFIX=/mingw64
+            CMAKE_GENERATOR='MinGW Makefiles'
           fi
-          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$MSYS_PREFIX"
+          cmake -S . -B build -Wno-dev -G "$CMAKE_GENERATOR" -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$MSYS_PREFIX"
         shell: msys2 {0}
 
       - name: Show CMake cache (Windows)
