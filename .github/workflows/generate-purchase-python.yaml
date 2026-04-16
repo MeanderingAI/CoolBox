@@ -226,9 +226,23 @@ jobs:
         shell: bash
 
       - name: Set COOLBOX_LIB_DIR for Python build
+        if: runner.os != 'Windows'
         run: |
           echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
         shell: bash
+
+      - name: Build Windows native libraries for Python packaging
+        if: runner.os == 'Windows'
+        run: |
+          cmake -S . -B build-python-msvc -A x64 -DBUILD_TESTING=OFF -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-python-msvc --config Release --target charts wave_generator_utils --parallel
+        shell: powershell
+
+      - name: Set COOLBOX_LIB_DIR for Python build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          "COOLBOX_LIB_DIR=$env:GITHUB_WORKSPACE\build-python-msvc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: powershell
 
       - name: Build Python bindings
         env:

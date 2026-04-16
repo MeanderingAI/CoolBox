@@ -7,8 +7,6 @@ py_ml_core.cpp
 pyproject.toml
 requirements.txt
 setup.py
-C:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_libraries/python_bindings/vendor_src/GRAPHICS/charts/source/graphics.cpp
-C:/Users/mngha/OneDrive/Documents/GitHub/CoolBox/_libraries/python_bindings/vendor_src/MISC/wave_generator/source/wave_generator.cpp
 cmake/ExternalDependencies.cmake
 examples/PCA_VISUALIZATION.md
 examples/bayesian_network_example.py

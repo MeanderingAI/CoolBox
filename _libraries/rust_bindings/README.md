@@ -28,6 +28,8 @@ fn main() -> Result<(), String> {
 ## Build
 
 ```bash
+cmake -S ../c_bindings -B ../c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build ../c_bindings/build --config Release
 cargo build --release
 cargo test
 ```

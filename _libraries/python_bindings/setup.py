@@ -95,6 +95,21 @@ def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
     return vendored_path
 
 
+def to_setup_relative_path(path: Path | str) -> str:
+    path_obj = Path(path)
+
+    if not path_obj.is_absolute():
+        return path_obj.as_posix()
+
+    normalized_path = Path(os.path.normpath(str(path_obj)))
+    normalized_root = Path(os.path.normpath(str(project_root)))
+
+    try:
+        return normalized_path.relative_to(normalized_root).as_posix()
+    except ValueError:
+        return Path(os.path.relpath(normalized_path, normalized_root)).as_posix()
+
+
 def candidate_library_filenames(name: str):
     if sys.platform.startswith("win"):
         return [f"{name}.lib"]
@@ -262,7 +277,7 @@ for library_name in unresolved_libraries:
         remaining_unresolved.append(library_name)
         continue
 
-    fallback_source_str = str(fallback_source)
+    fallback_source_str = to_setup_relative_path(fallback_source)
     if fallback_source_str not in source_files:
         source_files.append(fallback_source_str)
 

@@ -65,7 +65,7 @@ jobs:
         id: msys2
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ${{ matrix.platform == 'windows-arm64' && 'CLANGARM64' || 'MINGW64' }}
           path-type: inherit
           update: true
 
@@ -80,7 +80,7 @@ jobs:
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
           set -e
-          pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 bison make
+          pacman -S --noconfirm --needed mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-gcc-compat mingw-w64-clang-aarch64-eigen3 mingw-w64-clang-aarch64-gsl mingw-w64-clang-aarch64-sqlite3 mingw-w64-clang-aarch64-make bison
         shell: msys2 {0}
 
       - name: Verify CMake 4.3.1 is available (Windows)
@@ -101,7 +101,12 @@ jobs:
       - name: Configure product build (Windows / MSYS2)
         if: runner.os == 'Windows'
         run: |
-          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/mingw64
+          if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
+            MSYS_PREFIX=/clangarm64
+          else
+            MSYS_PREFIX=/mingw64
+          fi
+          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$MSYS_PREFIX"
         shell: msys2 {0}
 
       - name: Configure product build (Linux/macOS)

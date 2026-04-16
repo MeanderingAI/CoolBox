@@ -9,6 +9,11 @@ ref_name="$(default_ref_name)"
 stage_release_dir
 
 export COOLBOX_LIB_DIR=/workspace/build
+export COOLBOX_C_BINDINGS_BUILD_DIR=/workspace/_libraries/c_bindings/build
+export COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR=/workspace/_libraries/c_bindings/build/Release
+
+cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build _libraries/c_bindings/build --config Release
 
 cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
 cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release

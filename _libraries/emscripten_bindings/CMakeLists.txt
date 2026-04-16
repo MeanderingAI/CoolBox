@@ -157,7 +157,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gabor_patches_bindings.cpp")
         ${GP_SRC_DIR}/source/gabor_patches.cpp
     )
     target_include_directories(gabor_patches_js PRIVATE
-        ${GP_SRC_DIR}/headers
+            ${GP_SRC_DIR}/headers
+            ${COOLBOX_ROOT}/_libraries/packages/DATASTRUCTURE/matrix/headers
+            ${COOLBOX_ROOT}/_libraries/include
     )
     target_link_libraries(gabor_patches_js PRIVATE Eigen3::Eigen)
     if(EMSCRIPTEN)
@@ -180,6 +182,7 @@ endif()
 # Global include for lib_metadata.h and other shared headers
 set(PACKAGES_ROOT "${COOLBOX_ROOT}/_libraries/packages")
 set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/packages/MISC/metadata_management/headers")
+set(MATRIX_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/packages/DATASTRUCTURE/matrix/headers")
 
 # ===================================================================
 # Helper macro: add an emscripten JS module from a bindings file + sources
@@ -187,7 +190,7 @@ set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_libraries/packages/MISC/metadata_mana
 macro(add_emscripten_module NAME EXPORT_NAME BINDING_FILE SOURCES INCLUDE_DIRS)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${BINDING_FILE}")
         add_executable(${NAME} ${BINDING_FILE} ${SOURCES})
-        target_include_directories(${NAME} PRIVATE ${INCLUDE_DIRS} ${METADATA_HEADERS_DIR} ${PACKAGES_ROOT} ${COOLBOX_ROOT}/_libraries/include)
+        target_include_directories(${NAME} PRIVATE ${INCLUDE_DIRS} ${METADATA_HEADERS_DIR} ${MATRIX_HEADERS_DIR} ${PACKAGES_ROOT} ${COOLBOX_ROOT}/_libraries/include)
         if(EMSCRIPTEN)
             set_target_properties(${NAME} PROPERTIES SUFFIX ".js")
             if(EMSCRIPTEN_MODULARIZE)

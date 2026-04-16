@@ -91,12 +91,12 @@ jobs:
         id: msys2
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ${{ matrix.platform == 'windows-arm64' && 'CLANGARM64' || 'MINGW64' }}
           path-type: inherit
           update: true
 
       - name: Install MSYS2 packages (Windows x86_64)
-        if: runner.os == 'Windows' && runner.arch == 'X64'
+        if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
         run: |
           set -e
           echo "Installing x86_64 packages"
@@ -104,11 +104,11 @@ jobs:
         shell: msys2 {0}
 
       - name: Install MSYS2 packages (Windows ARM64)
-        if: runner.os == 'Windows' && runner.arch == 'ARM64'
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
           set -e
-          echo "Installing aarch64 packages"
-          pacman -S --noconfirm --needed mingw-w64-aarch64-toolchain mingw-w64-aarch64-gcc mingw-w64-aarch64-eigen3 mingw-w64-aarch64-gsl mingw-w64-aarch64-sqlite3 bison make
+          echo "Installing clangarm64 packages"
+          pacman -S --noconfirm --needed mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-gcc-compat mingw-w64-clang-aarch64-eigen3 mingw-w64-clang-aarch64-gsl mingw-w64-clang-aarch64-sqlite3 mingw-w64-clang-aarch64-make bison
         shell: msys2 {0}
 
       - name: Ensure mingw in PATH (Windows)
@@ -119,8 +119,7 @@ jobs:
             $msysRoot = "C:\\msys64"
           }
           if (!(Test-Path $msysRoot)) { $msysRoot = "C:\\tools\\msys64" }
-          $targetBin = if (${env:matrix_platform} -like '*arm64*') { 'mingw64\bin' } else { 'mingw64\bin' }
-          # For MSYS2, both aarch64 and x86_64 use mingw64 layout for GitHub runners
+          $targetBin = if ("${{ matrix.platform }}" -eq 'windows-arm64') { 'clangarm64\bin' } else { 'mingw64\bin' }
           $msysBin = Join-Path $msysRoot $targetBin
           if (Test-Path $msysBin) { echo "$msysBin" >> $env:GITHUB_PATH }
         shell: powershell
@@ -143,7 +142,12 @@ jobs:
       - name: Configure CMake (Windows / MSYS2)
         if: runner.os == 'Windows'
         run: |
-          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/mingw64
+          if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
+            MSYS_PREFIX=/clangarm64
+          else
+            MSYS_PREFIX=/mingw64
+          fi
+          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$MSYS_PREFIX"
         shell: msys2 {0}
 
       - name: Show CMake cache (Windows)

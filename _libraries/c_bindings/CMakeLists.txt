@@ -21,11 +21,40 @@ add_library(coolbox_c_bindings SHARED
 
 add_library(CoolBox::c_bindings ALIAS coolbox_c_bindings)
 
+set(COOLBOX_C_BINDINGS_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+
 set_target_properties(coolbox_c_bindings PROPERTIES
     OUTPUT_NAME coolbox_c_bindings
     LINKER_LANGUAGE CXX
     POSITION_INDEPENDENT_CODE ON
+    ARCHIVE_OUTPUT_DIRECTORY "${COOLBOX_C_BINDINGS_OUTPUT_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${COOLBOX_C_BINDINGS_OUTPUT_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${COOLBOX_C_BINDINGS_OUTPUT_DIR}"
 )
+
+foreach(config IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER "${config}" config_upper)
+    set_target_properties(coolbox_c_bindings PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_${config_upper} "${COOLBOX_C_BINDINGS_OUTPUT_DIR}/${config}"
+        LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${COOLBOX_C_BINDINGS_OUTPUT_DIR}/${config}"
+        RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${COOLBOX_C_BINDINGS_OUTPUT_DIR}/${config}"
+    )
+endforeach()
+
+target_compile_definitions(coolbox_c_bindings
+    PRIVATE
+        COOLBOX_C_BINDINGS_EXPORTS
+)
+
+if(WIN32)
+    target_compile_definitions(coolbox_c_bindings
+        PUBLIC
+            COOLBOX_C_BINDINGS_SHARED
+    )
+    set_target_properties(coolbox_c_bindings PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+    )
+endif()
 
 target_include_directories(coolbox_c_bindings
     PUBLIC

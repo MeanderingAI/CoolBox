@@ -282,6 +282,23 @@ jobs:
           go version
           go env
 
+      - name: Build native libraries for Go bindings (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build _libraries/c_bindings/build --config Release --parallel
+          cmake -S _libraries/go_bindings/cbridge -B _libraries/go_bindings/cbridge/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build _libraries/go_bindings/cbridge/build --config Release --target coolboxbridge --parallel
+
+      - name: Build native libraries for Go bindings (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "MinGW Makefiles" -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build _libraries/c_bindings/build --config Release --parallel
+          cmake -S _libraries/go_bindings/cbridge -B _libraries/go_bindings/cbridge/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+          cmake --build _libraries/go_bindings/cbridge/build --config Release --target coolboxbridge --parallel
+        shell: msys2 {0}
+
       - name: Build and test Go bindings
         run: |
           mkdir -p build/test-logs
