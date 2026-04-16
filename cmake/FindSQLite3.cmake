@@ -13,9 +13,25 @@ set(_sqlite3_roots
 )
 
 if (WIN32)
+    set(_sqlite3_vcpkg_triplets)
+    if(DEFINED VCPKG_TARGET_TRIPLET AND NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "")
+        list(APPEND _sqlite3_vcpkg_triplets "${VCPKG_TARGET_TRIPLET}")
+    endif()
+    if(CMAKE_GENERATOR_PLATFORM MATCHES "^[Aa][Rr][Mm]64$")
+        list(APPEND _sqlite3_vcpkg_triplets "arm64-windows")
+    elseif(CMAKE_GENERATOR_PLATFORM MATCHES "^[Xx]64$")
+        list(APPEND _sqlite3_vcpkg_triplets "x64-windows")
+    endif()
+    list(APPEND _sqlite3_vcpkg_triplets "x64-windows")
+    list(REMOVE_DUPLICATES _sqlite3_vcpkg_triplets)
+
     # Windows: look for vcpkg, system, or user-provided
+    foreach(_sqlite3_triplet IN LISTS _sqlite3_vcpkg_triplets)
+        list(APPEND _sqlite3_roots
+            $ENV{VCPKG_ROOT}/installed/${_sqlite3_triplet}
+        )
+    endforeach()
     list(APPEND _sqlite3_roots
-        $ENV{VCPKG_ROOT}/installed/x64-windows
         "$ENV{ProgramFiles}/SQLite"
         "$ENV{ProgramFiles_x86}/SQLite"
         "C:/SQLite"

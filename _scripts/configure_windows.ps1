@@ -23,6 +23,11 @@ if ($env:VS_GENERATOR) {
     }
 }
 
+$generatorPlatform = ''
+if ($env:VS_GENERATOR_PLATFORM) {
+    $generatorPlatform = $env:VS_GENERATOR_PLATFORM
+}
+
 $args = @(
     '-S', '.',
     '-B', 'build',
@@ -32,6 +37,14 @@ $args = @(
 
 if ($generator) {
     $args += @('-G', $generator)
+}
+
+if ($generatorPlatform) {
+    $args += @('-A', $generatorPlatform)
+}
+
+if ($env:VCPKG_TARGET_TRIPLET) {
+    $args += "-DVCPKG_TARGET_TRIPLET=$($env:VCPKG_TARGET_TRIPLET)"
 }
 
 $vcpkgCandidates = @()

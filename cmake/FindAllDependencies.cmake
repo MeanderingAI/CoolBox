@@ -4,6 +4,18 @@
 set(_missing_deps)
 
 if(WIN32)
+    set(_coolbox_vcpkg_triplets)
+    if(DEFINED VCPKG_TARGET_TRIPLET AND NOT "${VCPKG_TARGET_TRIPLET}" STREQUAL "")
+        list(APPEND _coolbox_vcpkg_triplets "${VCPKG_TARGET_TRIPLET}")
+    endif()
+    if(CMAKE_GENERATOR_PLATFORM MATCHES "^[Aa][Rr][Mm]64$")
+        list(APPEND _coolbox_vcpkg_triplets "arm64-windows")
+    elseif(CMAKE_GENERATOR_PLATFORM MATCHES "^[Xx]64$")
+        list(APPEND _coolbox_vcpkg_triplets "x64-windows")
+    endif()
+    list(APPEND _coolbox_vcpkg_triplets "x64-windows")
+    list(REMOVE_DUPLICATES _coolbox_vcpkg_triplets)
+
     set(_coolbox_vcpkg_roots)
     if(DEFINED ENV{VCPKG_ROOT} AND NOT "$ENV{VCPKG_ROOT}" STREQUAL "")
         list(APPEND _coolbox_vcpkg_roots "$ENV{VCPKG_ROOT}")
@@ -26,13 +38,15 @@ if(WIN32)
 
     if(NOT _coolbox_vcpkg_toolchain_file STREQUAL "")
         foreach(_vcpkg_root IN LISTS _coolbox_vcpkg_roots)
-            if(EXISTS "${_vcpkg_root}/installed/x64-windows")
-                list(APPEND CMAKE_PREFIX_PATH
-                    "${_vcpkg_root}/installed/x64-windows"
-                    "${_vcpkg_root}/installed/x64-windows/share/gsl"
-                    "${_vcpkg_root}/installed/x64-windows/lib/cmake/GSL"
-                )
-            endif()
+            foreach(_coolbox_vcpkg_triplet IN LISTS _coolbox_vcpkg_triplets)
+                if(EXISTS "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}")
+                    list(APPEND CMAKE_PREFIX_PATH
+                        "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}"
+                        "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}/share/gsl"
+                        "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}/lib/cmake/GSL"
+                    )
+                endif()
+            endforeach()
         endforeach()
         list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
     endif()

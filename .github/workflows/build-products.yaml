@@ -65,7 +65,7 @@ jobs:
         id: msys2
         uses: msys2/setup-msys2@v2
         with:
-          msystem: ${{ matrix.platform == 'windows-arm64' && 'CLANGARM64' || 'MINGW64' }}
+          msystem: MINGW64
           path-type: inherit
           update: true
 
@@ -80,8 +80,29 @@ jobs:
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
           set -e
-          pacman -S --noconfirm --needed mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-gcc-compat mingw-w64-clang-aarch64-eigen3 mingw-w64-clang-aarch64-gsl mingw-w64-clang-aarch64-sqlite3 mingw-w64-clang-aarch64-ninja bison
+          pacman -S --noconfirm --needed mingw-w64-x86_64-make bison
         shell: msys2 {0}
+
+      - name: Install vcpkg dependencies (Windows ARM64)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+        shell: powershell
+        run: |
+          $vcpkg = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+          if ($null -eq $vcpkg -and (Test-Path 'C:\vcpkg\vcpkg.exe')) {
+            $vcpkg = Get-Item 'C:\vcpkg\vcpkg.exe'
+          }
+          if ($null -eq $vcpkg) {
+            throw 'vcpkg.exe was not found. Windows ARM64 hosted cross-builds require vcpkg with arm64-windows dependencies.'
+          }
+
+          $vcpkgRoot = Split-Path -Parent $vcpkg.FullName
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
+          Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
+
+          & $vcpkg.FullName install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Verify CMake 4.3.1 is available (Windows)
         if: runner.os == 'Windows'
@@ -89,10 +110,6 @@ jobs:
           command -v cmake
           cmake --version
           cmake --version | grep 'cmake version 4.3.1'
-          if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
-            command -v ninja
-            ninja --version
-          fi
         shell: msys2 {0}
 
       - name: Verify CMake 4.3.1 is available (Linux/macOS)
@@ -102,18 +119,25 @@ jobs:
           cmake --version
           cmake --version | grep 'cmake version 4.3.1'
 
-      - name: Configure product build (Windows / MSYS2)
-        if: runner.os == 'Windows'
+      - name: Configure product build (Windows x86_64 / MSYS2)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
         run: |
-          if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
-            MSYS_PREFIX=/clangarm64
-            CMAKE_GENERATOR='Ninja'
-          else
-            MSYS_PREFIX=/mingw64
-            CMAKE_GENERATOR='MinGW Makefiles'
-          fi
-          cmake -S . -B build -Wno-dev -G "$CMAKE_GENERATOR" -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$MSYS_PREFIX"
+          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
         shell: msys2 {0}
+
+      - name: Configure product build (Windows ARM64 / MSVC cross-compile)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+        shell: powershell
+        run: |
+          $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
+          if (!(Test-Path $vcpkgToolchain)) {
+            throw "vcpkg toolchain file not found at $vcpkgToolchain"
+          }
+
+          cmake -S . -B build -Wno-dev -G 'Visual Studio 17 2022' -A ARM64 -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Configure product build (Linux/macOS)
         if: runner.os != 'Windows'
