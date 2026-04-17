@@ -168,6 +168,8 @@ jobs:
           $targetBin = 'mingw64\bin'
           $msysBin = Join-Path $msysRoot $targetBin
           if (Test-Path $msysBin) { echo "$msysBin" >> $env:GITHUB_PATH }
+          $usrBin = Join-Path $msysRoot 'usr\bin'
+          if (Test-Path $usrBin) { echo "$usrBin" >> $env:GITHUB_PATH }
         shell: powershell
 
       - name: Verify CMake 4.3.1 is available (Windows)

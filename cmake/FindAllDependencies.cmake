@@ -94,6 +94,20 @@ set(_bison_found FALSE)
 if(WIN32)
     # Check PATH first
     find_program(BISON_EXECUTABLE NAMES bison win_bison)
+    if(NOT BISON_EXECUTABLE)
+        set(_bison_windows_candidates
+            "C:/ProgramData/chocolatey/lib/winflexbison/tools/win_bison.exe"
+            "C:/msys64/usr/bin/bison.exe"
+            "C:/tools/msys64/usr/bin/bison.exe"
+        )
+        foreach(_bison_candidate IN LISTS _bison_windows_candidates)
+            if(EXISTS "${_bison_candidate}")
+                set(BISON_EXECUTABLE "${_bison_candidate}")
+                set(_bison_found TRUE)
+                break()
+            endif()
+        endforeach()
+    endif()
     # Also check default Chocolatey winflexbison location
     if(NOT BISON_EXECUTABLE)
         set(_bison_choco_path "C:/ProgramData/chocolatey/lib/winflexbison/tools/win_bison.exe")
