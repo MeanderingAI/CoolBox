@@ -1,6 +1,8 @@
 #ifndef COOLBOX__LIBRARIES_GO_BINDINGS_CBRIDGE_BRIDGE_H
 #define COOLBOX__LIBRARIES_GO_BINDINGS_CBRIDGE_BRIDGE_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

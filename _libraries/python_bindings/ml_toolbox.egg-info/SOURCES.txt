@@ -57,6 +57,7 @@ include/distribution/poisson_distribution.h
 include/distribution/util.h
 include/generalized_linear_model/generalized_linear_model.h
 include/generalized_linear_model/linear_regression.h
+include/graphics_misc/bindings.hpp
 include/hidden_markov_model/hidden_markov_model.h
 include/latent_sentiment_analysis/latent_sentiment_analysis.h
 include/marked_point_process/marked_point_process.h

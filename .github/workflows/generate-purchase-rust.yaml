@@ -119,6 +119,56 @@ jobs:
           cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
           cmake --build _libraries/c_bindings/build --config Release --parallel
 
+      - name: Verify native C bindings runtime artifact
+        run: |
+          case "${RUNNER_OS}" in
+            Linux)
+              candidates=(
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/libcoolbox_c_bindings.so"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/libcoolbox_c_bindings.so"
+              )
+              ;;
+            macOS)
+              candidates=(
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/libcoolbox_c_bindings.dylib"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/libcoolbox_c_bindings.dylib"
+              )
+              ;;
+            Windows)
+              candidates=(
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/coolbox_c_bindings.dll"
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/libcoolbox_c_bindings.dll"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/coolbox_c_bindings.dll"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/libcoolbox_c_bindings.dll"
+              )
+              ;;
+            *)
+              echo "Unsupported runner OS: ${RUNNER_OS}" >&2
+              exit 1
+              ;;
+          esac
+
+          found_runtime=""
+          for candidate in "${candidates[@]}"; do
+            if [ -f "${candidate}" ]; then
+              found_runtime="${candidate}"
+              break
+            fi
+          done
+
+          if [ -z "${found_runtime}" ]; then
+            echo "coolbox_c_bindings runtime artifact was not produced in expected locations." >&2
+            echo "Checked candidates:" >&2
+            printf '  %s\n' "${candidates[@]}" >&2
+            echo "Contents of ${COOLBOX_C_BINDINGS_BUILD_DIR}:" >&2
+            ls -la "${COOLBOX_C_BINDINGS_BUILD_DIR}" >&2 || true
+            echo "Contents of ${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:" >&2
+            ls -la "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}" >&2 || true
+            exit 1
+          fi
+
+          echo "Verified native runtime artifact: ${found_runtime}"
+
       - name: Build Rust bindings
         run: |
           if [ -d build/_libraries ]; then
@@ -128,6 +178,15 @@ jobs:
 
       - name: Test Rust bindings
         run: |
+          if [ -d "${COOLBOX_C_BINDINGS_BUILD_DIR}" ]; then
+            export LD_LIBRARY_PATH="${COOLBOX_C_BINDINGS_BUILD_DIR}:${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:${LD_LIBRARY_PATH:-}"
+            export DYLD_LIBRARY_PATH="${COOLBOX_C_BINDINGS_BUILD_DIR}:${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:${DYLD_LIBRARY_PATH:-}"
+            case "${RUNNER_OS}" in
+              Windows)
+                export PATH="${COOLBOX_C_BINDINGS_BUILD_DIR};${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR};${PATH}"
+                ;;
+            esac
+          fi
           cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
 
       - name: Package Rust crate
