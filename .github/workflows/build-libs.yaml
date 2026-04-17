@@ -152,7 +152,7 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
           Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
 
-          & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows
+          & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows openssl:arm64-windows
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }

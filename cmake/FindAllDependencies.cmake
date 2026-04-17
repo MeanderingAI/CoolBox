@@ -45,6 +45,10 @@ if(WIN32)
                         "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}/share/gsl"
                         "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}/lib/cmake/GSL"
                     )
+                    if((NOT DEFINED OPENSSL_ROOT_DIR OR "${OPENSSL_ROOT_DIR}" STREQUAL "")
+                        AND EXISTS "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}/include/openssl")
+                        set(OPENSSL_ROOT_DIR "${_vcpkg_root}/installed/${_coolbox_vcpkg_triplet}" CACHE PATH "Preferred OpenSSL root" FORCE)
+                    endif()
                 endif()
             endforeach()
         endforeach()
