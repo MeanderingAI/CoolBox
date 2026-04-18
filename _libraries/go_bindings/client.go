@@ -3,8 +3,8 @@ package coolboxgo
 /*
 #cgo CPPFLAGS: -I${SRCDIR}/../c_bindings/include
 #cgo windows LDFLAGS: -L${SRCDIR}/../c_bindings/build -L${SRCDIR}/../c_bindings/build/Release -lcoolbox_c_bindings
-#cgo darwin LDFLAGS: -L${SRCDIR}/../c_bindings/build -lcoolbox_c_bindings
-#cgo linux LDFLAGS: -L${SRCDIR}/../c_bindings/build -lcoolbox_c_bindings
+#cgo darwin LDFLAGS: -L${SRCDIR}/../c_bindings/build -L${SRCDIR}/../c_bindings/build/Release -lcoolbox_c_bindings
+#cgo linux LDFLAGS: -L${SRCDIR}/../c_bindings/build -L${SRCDIR}/../c_bindings/build/Release -lcoolbox_c_bindings
 #include "coolbox/coolbox_c.h"
 */
 import "C"

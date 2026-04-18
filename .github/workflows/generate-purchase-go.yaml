@@ -99,6 +99,8 @@ jobs:
       - name: Set COOLBOX_LIB_DIR for Go build
         run: |
           echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_BUILD_DIR=${GITHUB_WORKSPACE}/_libraries/c_bindings/build" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR=${GITHUB_WORKSPACE}/_libraries/c_bindings/build/Release" >> $GITHUB_ENV
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -299,10 +301,62 @@ jobs:
           cmake --build _libraries/go_bindings/cbridge/build --config Release --target coolboxbridge --parallel
         shell: msys2 {0}
 
+      - name: Verify native C bindings artifact for Go
+        run: |
+          candidates=()
+          case "${RUNNER_OS}" in
+            Linux)
+              candidates=(
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/libcoolbox_c_bindings.so"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/libcoolbox_c_bindings.so"
+              )
+              ;;
+            macOS)
+              candidates=(
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/libcoolbox_c_bindings.dylib"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/libcoolbox_c_bindings.dylib"
+              )
+              ;;
+            Windows)
+              candidates=(
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/coolbox_c_bindings.dll"
+                "${COOLBOX_C_BINDINGS_BUILD_DIR}/libcoolbox_c_bindings.dll"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/coolbox_c_bindings.dll"
+                "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}/libcoolbox_c_bindings.dll"
+              )
+              ;;
+          esac
+
+          found=""
+          for candidate in "${candidates[@]}"; do
+            if [ -f "$candidate" ]; then
+              found="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$found" ]; then
+            echo "Expected native C bindings artifact was not found for Go tests." >&2
+            echo "Contents of ${COOLBOX_C_BINDINGS_BUILD_DIR}:" >&2
+            ls -la "${COOLBOX_C_BINDINGS_BUILD_DIR}" >&2 || true
+            echo "Contents of ${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:" >&2
+            ls -la "${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}" >&2 || true
+            exit 1
+          fi
+
+          echo "Using native C bindings artifact: $found"
+
       - name: Build and test Go bindings
         run: |
           mkdir -p build/test-logs
           cd _libraries/go_bindings
+          if [ -d "${COOLBOX_C_BINDINGS_BUILD_DIR}" ]; then
+            export LD_LIBRARY_PATH="${COOLBOX_C_BINDINGS_BUILD_DIR}:${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:${LD_LIBRARY_PATH:-}"
+            export DYLD_LIBRARY_PATH="${COOLBOX_C_BINDINGS_BUILD_DIR}:${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:${DYLD_LIBRARY_PATH:-}"
+          fi
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            export PATH="${COOLBOX_C_BINDINGS_BUILD_DIR};${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR};${PATH}"
+          fi
           set -o pipefail
           go test -count=1 -v ./... | tee ../../build/test-logs/go-bindings-${{ matrix.platform }}.log
 

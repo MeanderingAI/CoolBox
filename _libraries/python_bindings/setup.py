@@ -283,6 +283,8 @@ for library_name in unresolved_libraries:
 
 unresolved_libraries = remaining_unresolved
 
+source_files = [to_setup_relative_path(path) for path in source_files]
+
 if requested_libraries:
     print(f"Requested native libraries: {requested_libraries}")
 print(f"Native library search root: {link_search_root}")

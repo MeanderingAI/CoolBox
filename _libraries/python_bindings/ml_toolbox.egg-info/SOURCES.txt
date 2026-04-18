@@ -21,6 +21,8 @@ examples/svm_example.py
 include/graphics_stub.h
 include/graphics_stub_clean.h
 include/GRAPHICS/charts/headers/graphics.h
+include/GRAPHICS/components/headers/components.hpp
+include/GRAPHICS/graphics_object.hpp
 include/bayesian_network/bayesian_network.h
 include/computer_vision/image.h
 include/computer_vision/layers.h
@@ -85,6 +87,7 @@ include/tracker/extended_kalman_filter.h
 include/tracker/kalman_filter.h
 include/tracker/sequential_monte_carlo.h
 include/tracker/unscented_kalman_filter.h
+include/MISC/wave_generator/headers/wave_generator.hpp
 ml_core/__init__.py
 ml_toolbox/__init__.py
 ml_toolbox/py.typed

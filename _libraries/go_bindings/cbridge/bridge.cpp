@@ -10,7 +10,7 @@
 // repository via textual includes. This file is compiled into a static
 // library `coolboxbridge` by the CMake target in this directory.
 
-#include "../packages/GRAPHICS/charts/headers/graphics.h"
+#include "../../packages/GRAPHICS/charts/headers/graphics.h"
 
 // -- minimal graphics wrappers used by the bridge --
 struct CoolBoxFractal { graphics::Fractal impl; CoolBoxFractal(int w, int h, int type) : impl(w, h, static_cast<graphics::FractalType>(type)) {} };
