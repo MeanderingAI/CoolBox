@@ -16,6 +16,8 @@ find_package(Python COMPONENTS Interpreter Development REQUIRED)
 include_directories(
     ${CMAKE_SOURCE_DIR}/../include
     ${EIGEN3_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
+    ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
 )
 
 # Collect all source files from the parent project

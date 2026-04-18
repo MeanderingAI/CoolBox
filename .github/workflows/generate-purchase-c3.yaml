@@ -80,7 +80,7 @@ jobs:
           gh release upload "${GITHUB_REF_NAME}" \
             release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz \
             release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip \
-            release-assets/manifest.txt \
-            release-assets/SHA256SUMS \
+            release-assets/manifest.txt#coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.manifest.txt \
+            release-assets/SHA256SUMS#coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.SHA256SUMS \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"

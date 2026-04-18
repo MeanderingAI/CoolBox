@@ -65,6 +65,8 @@ target_include_directories(coolbox_c_bindings
 target_link_libraries(coolbox_c_bindings
     PRIVATE
         metadata_management
+    PUBLIC
+        m
 )
 
 install(TARGETS coolbox_c_bindings

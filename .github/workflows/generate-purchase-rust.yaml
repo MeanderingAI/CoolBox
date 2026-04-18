@@ -176,6 +176,15 @@ jobs:
           fi
           cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
 
+
+      - name: Copy C bindings DLLs for Rust tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p target/release/deps
+          cp _libraries/c_bindings/build/*.dll target/release/deps/ || true
+          cp _libraries/c_bindings/build/Debug/*.dll target/release/deps/ || true
+          cp _libraries/c_bindings/build/Release/*.dll target/release/deps/ || true
+
       - name: Test Rust bindings
         run: |
           if [ -d "${COOLBOX_C_BINDINGS_BUILD_DIR}" ]; then
@@ -237,8 +246,8 @@ jobs:
             release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate \
             release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz \
             release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip \
-            release-assets/manifest.txt \
-            release-assets/SHA256SUMS \
+            release-assets/manifest.txt#coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.manifest.txt \
+            release-assets/SHA256SUMS#coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.SHA256SUMS \
             --clobber \
             --repo "${GITHUB_REPOSITORY}"
 

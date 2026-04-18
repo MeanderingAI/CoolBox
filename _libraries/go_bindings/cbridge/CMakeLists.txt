@@ -43,3 +43,11 @@ endif()
 
 # Ensure position-independent code for linking into Go programs
 set_target_properties(coolboxbridge PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Link math library for exp/log/pow/etc
+target_link_libraries(coolboxbridge PUBLIC m charts)
+
+# Link C++ standard library on Windows/MinGW
+if(MINGW OR WIN32)
+  target_link_libraries(coolboxbridge PUBLIC stdc++)
+endif()

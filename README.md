@@ -1,5 +1,21 @@
 # Compiling
 
+## Release Assets: Platform and Binding Labels
+
+Starting with v1.1.58, all release assets for purchase workflows (including `manifest.txt` and `SHA256SUMS`) are uploaded with unique names that include both the platform and binding type. This prevents asset name collisions and makes it clear which asset corresponds to which package and platform.
+
+**Example asset names:**
+
+- `coolbox-python-bindings-linux-x86_64-v1.1.58.manifest.txt`
+- `coolbox-r-bindings-ubuntu-x86_64-v1.1.58.SHA256SUMS`
+- `coolbox-c3-bindings-windows-x86_64-v1.1.58.manifest.txt`
+
+This applies to all supported language bindings (Python, R, Go, C, Java, JS, Rust, C3, V, etc.) and all platforms (Linux, macOS, Windows, etc.).
+
+**Why?**
+
+Previously, generic asset names caused GitHub Actions release upload failures due to name collisions. Now, each asset is clearly labeled for its binding and platform, ensuring reliable uploads and easier identification.
+
 # Tool Box
 
 The cmake generates shared objects which can be used with other projects for each of these categories of machine learning.
