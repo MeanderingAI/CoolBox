@@ -45,6 +45,8 @@ target_link_libraries(ml_core PRIVATE
 
 target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/../include
+    ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
+    ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
 )
 
 # Compiler-specific options

@@ -49,5 +49,6 @@ target_link_libraries(coolboxbridge PUBLIC m charts)
 
 # Link C++ standard library on Windows/MinGW
 if(MINGW OR WIN32)
-  target_link_libraries(coolboxbridge PUBLIC stdc++)
+  # Link both stdc++ and gcc for full C++11/14/17 support on MinGW/Windows
+  target_link_libraries(coolboxbridge PUBLIC stdc++ gcc)
 endif()

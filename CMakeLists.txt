@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.12)
-project(Models LANGUAGES C CXX)
+cmake_minimum_required(VERSION 4.3.1)
+project(CoolBoxSQL LANGUAGES C CXX)
 
 # Ensure custom Find*.cmake modules are found before dependency checks run.
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
