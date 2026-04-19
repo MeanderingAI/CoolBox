@@ -87,11 +87,26 @@ jobs:
           fi
 
 
-      - name: Clean up stale MSYS2 install
-        if: runner.os == 'Windows'
+      - name: Clean up stale MSYS2 install (all Windows)
+        if: runner.os == 'Windows' && matrix.platform != 'windows-arm64'
         run: |
           if (Test-Path 'D:\a\_temp\msys64') { Remove-Item -Recurse -Force 'D:\a\_temp\msys64' }
         shell: pwsh
+
+
+      - name: Skip MSYS2 setup if already installed (ARM64)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64' && (exists('D:\a\_temp\msys64'))
+        run: |
+          echo "MSYS2 already installed at D:\a\_temp\msys64, skipping setup."
+        shell: pwsh
+
+      - name: Install MSYS2 and MinGW for ARM64
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64' && !(exists('D:\a\_temp\msys64'))
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          update: true
 
       - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'
@@ -102,11 +117,11 @@ jobs:
           path-type: inherit
           update: true
 
-      - name: Install MinGW GSL and Bison (Windows x86_64)
+      - name: Install MinGW GSL, SQLite3, and Bison (Windows x86_64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
         run: |
           set -e
-          pacman -S --noconfirm --needed mingw-w64-x86_64-gsl bison
+          pacman -S --noconfirm --needed mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison
         shell: msys2 {0}
 
       - name: Install MSYS2 and MinGW for ARM64
