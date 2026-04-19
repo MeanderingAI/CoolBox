@@ -193,7 +193,7 @@ jobs:
           cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
         shell: msys2 {0}
 
-      - name: Configure CMake (Windows ARM64 / MSVC cross-compile)
+      - name: Configure CMake (Windows ARM64 / MinGW preferred)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         shell: powershell
         run: |
@@ -202,25 +202,28 @@ jobs:
             throw "vcpkg toolchain file not found at $vcpkgToolchain"
           }
 
-          $cmakeArgs = @(
-            '-S', '.',
-            '-B', 'build',
-            '-Wno-dev',
-            # Detect latest Visual Studio generator using script
-            '-G', (powershell -File _scripts/detect_vs_generator.ps1),
-            '-A', 'ARM64',
-            '-DBUILD_BINARIES=OFF',
-            '-DBUILD_PRODUCTS=ON',
-            '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
-            '-DBUILD_IO_SQL=ON',
-            '-DBUILD_TESTING=ON',
-            "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
-            '-DVCPKG_TARGET_TRIPLET=arm64-windows'
-          )
-
-          & cmake @cmakeArgs
+          # Try MinGW Makefiles first
+          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
           if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
+            # Fallback to MSVC if MinGW fails
+            $cmakeArgs = @(
+              '-S', '.',
+              '-B', 'build',
+              '-Wno-dev',
+              '-G', (powershell -File _scripts/detect_vs_generator.ps1),
+              '-A', 'ARM64',
+              '-DBUILD_BINARIES=OFF',
+              '-DBUILD_PRODUCTS=ON',
+              '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
+              '-DBUILD_IO_SQL=ON',
+              '-DBUILD_TESTING=ON',
+              "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
+              '-DVCPKG_TARGET_TRIPLET=arm64-windows'
+            )
+            & cmake @cmakeArgs
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
           }
 
       - name: Show CMake cache (Windows)
