@@ -95,21 +95,26 @@ jobs:
           path-type: inherit
           update: true
 
-      - name: Install MSYS2 packages (Windows x86_64)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
-        run: |
-          set -e
-          echo "Installing x86_64 packages"
-          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison make
-        shell: msys2 {0}
+      - name: Install MSYS2 and MinGW for ARM64
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          update: true
 
-      - name: Install MSYS2 packages (Windows ARM64)
+      - name: Install MinGW and make (Windows ARM64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
           set -e
-          echo "Installing x64 helper packages for ARM64 cross-build"
-          pacman -S --noconfirm --needed mingw-w64-x86_64-make bison
+          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-make make
         shell: msys2 {0}
+
+      - name: Clean CMake cache (Windows ARM64)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+        run: |
+          rm -rf build/CMakeCache.txt build/CMakeFiles
+        shell: bash
 
       - name: Install vcpkg dependencies (Windows ARM64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
