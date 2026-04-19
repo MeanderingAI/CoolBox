@@ -87,6 +87,12 @@ jobs:
           fi
 
 
+      - name: Clean up stale MSYS2 install
+        if: runner.os == 'Windows'
+        run: |
+          if (Test-Path 'D:\a\_temp\msys64') { Remove-Item -Recurse -Force 'D:\a\_temp\msys64' }
+        shell: pwsh
+
       - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'
         id: msys2
