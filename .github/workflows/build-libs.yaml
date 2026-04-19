@@ -106,7 +106,7 @@ jobs:
         if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
         run: |
           set -e
-          pacman -S --noconfirm --needed mingw-w64-x86_64-gsl mingw-w64-x86_64-bison
+          pacman -S --noconfirm --needed mingw-w64-x86_64-gsl bison
         shell: msys2 {0}
 
       - name: Install MSYS2 and MinGW for ARM64
