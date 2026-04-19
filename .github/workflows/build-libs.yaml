@@ -86,6 +86,7 @@ jobs:
             echo "No CMakeCache.txt found"
           fi
 
+
       - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'
         id: msys2
@@ -95,6 +96,13 @@ jobs:
           path-type: inherit
           update: true
 
+      - name: Install MinGW GSL and Bison (Windows x86_64)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
+        run: |
+          set -e
+          pacman -S --noconfirm --needed mingw-w64-x86_64-gsl mingw-w64-x86_64-bison
+        shell: msys2 {0}
+
       - name: Install MSYS2 and MinGW for ARM64
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         uses: msys2/setup-msys2@v2
@@ -103,6 +111,7 @@ jobs:
           path-type: inherit
           update: true
 
+
       - name: Install MinGW and make (Windows ARM64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
@@ -110,11 +119,18 @@ jobs:
           pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-make make
         shell: msys2 {0}
 
+      - name: Install Bison (Windows ARM64)
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+        shell: powershell
+        run: |
+          & _scripts/install_bison.ps1
+
       - name: Clean CMake cache (Windows ARM64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
           rm -rf build/CMakeCache.txt build/CMakeFiles
         shell: bash
+
 
       - name: Install vcpkg dependencies (Windows ARM64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
