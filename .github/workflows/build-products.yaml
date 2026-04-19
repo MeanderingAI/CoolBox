@@ -184,8 +184,8 @@ jobs:
             '-S', '.',
             '-B', 'build',
             '-Wno-dev',
-            # Detect latest Visual Studio generator
-            '-G', (cmake --help | Select-String 'Visual Studio [0-9]+ [0-9]+' -AllMatches | ForEach-Object { $_.Matches.Value } | Sort-Object { [int]($_ -replace '[^0-9]', ' ') -split ' ' | Where-Object { $_ } | Select-Object -First 1 } -Descending | Select-Object -First 1),
+            # Detect latest Visual Studio generator using script
+            '-G', (powershell -File _scripts/detect_vs_generator.ps1),
             '-A', 'ARM64',
             '-DBUILD_BINARIES=OFF',
             '-DBUILD_PRODUCTS=ON',
