@@ -65,9 +65,12 @@ target_include_directories(coolbox_c_bindings
 target_link_libraries(coolbox_c_bindings
     PRIVATE
         metadata_management
-    PUBLIC
-        m
 )
+
+# Only link math library on non-Windows platforms
+if(NOT WIN32)
+    target_link_libraries(coolbox_c_bindings PUBLIC m)
+endif()
 
 install(TARGETS coolbox_c_bindings
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

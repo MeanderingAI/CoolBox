@@ -9,7 +9,7 @@ get_filename_component(COOLBOX_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." 
 # Add a static library target that compiles bridge.cpp. The bridge.cpp
 # includes repository source files directly (textual includes) so this
 # target will produce a self-contained archive.
-add_library(coolboxbridge STATIC
+add_library(coolboxbridge SHARED
   bridge.cpp
   bridge_ml.cpp
   bridge_hmm.cpp
@@ -44,8 +44,12 @@ endif()
 # Ensure position-independent code for linking into Go programs
 set_target_properties(coolboxbridge PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# Link math library for exp/log/pow/etc
-target_link_libraries(coolboxbridge PUBLIC m charts)
+
+# Link math library for exp/log/pow/etc (not on Windows)
+if(NOT WIN32)
+  target_link_libraries(coolboxbridge PUBLIC m)
+endif()
+target_link_libraries(coolboxbridge PUBLIC charts)
 
 # Link C++ standard library on Windows/MinGW
 if(MINGW OR WIN32)

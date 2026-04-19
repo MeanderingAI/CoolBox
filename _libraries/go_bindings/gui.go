@@ -4,7 +4,7 @@ package coolboxgo
 #cgo CXXFLAGS: -std=c++17
 #cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/abi
 #cgo darwin LDFLAGS: -lc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
-#cgo linux LDFLAGS: -lstdc++ -L${SRCDIR}/cbridge/build -lcoolboxbridge
+#cgo linux LDFLAGS: -lstdc++ -lm -L${SRCDIR}/cbridge/build -lcoolboxbridge
 #include <stdlib.h>
 #include "abi/gui.h"
 */

@@ -113,10 +113,19 @@ jobs:
           cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build _libraries/c_bindings/build --config Release --parallel
 
+      - name: Detect latest Visual Studio generator (Windows)
+        if: runner.os == 'Windows'
+        id: detect_vs
+        shell: pwsh
+        run: |
+          $generators = & cmake --help | Select-String 'Visual Studio [0-9]+ [0-9]+' -AllMatches | ForEach-Object { $_.Matches.Value }
+          $latest = $generators | Sort-Object { [int]($_ -replace '[^0-9]', ' ') -split ' ' | Where-Object { $_ } | Select-Object -First 1 } -Descending | Select-Object -First 1
+          echo "::set-output name=vsgen::$latest"
+
       - name: Build native C bindings (Windows)
         if: runner.os == 'Windows'
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
+          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "${{ steps.detect_vs.outputs.vsgen }}" -A x64 -DBUILD_TESTING=ON
           cmake --build _libraries/c_bindings/build --config Release --parallel
 
       - name: Verify native C bindings runtime artifact
