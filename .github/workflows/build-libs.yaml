@@ -96,14 +96,22 @@ jobs:
 
 
 
-      - name: Install MSYS2 (Windows)
-        if: runner.os == 'Windows'
-        id: msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          path-type: inherit
-          update: true
+     # - name: Install MSYS2 (Windows)
+     #   if: runner.os == 'Windows'
+     #   id: msys2
+     #   uses: msys2/setup-msys2@v2
+     #   with:
+     #     msystem: MINGW64
+     #     path-type: inherit
+     #     update: true
+
+# - name: Install MSYS2 and MinGW for ARM64
+#   if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+#   uses: msys2/setup-msys2@v2
+#   with:
+#     msystem: MINGW64
+#     path-type: inherit
+#     update: true
 
       - name: Install MinGW GSL, SQLite3, and Bison (Windows x86_64)
         if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
@@ -227,34 +235,35 @@ jobs:
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         shell: powershell
         run: |
-          $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
-          if (!(Test-Path $vcpkgToolchain)) {
-            throw "vcpkg toolchain file not found at $vcpkgToolchain"
-          }
-
-          # Try MinGW Makefiles first
-          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
-          if ($LASTEXITCODE -ne 0) {
-            # Fallback to MSVC if MinGW fails
-            $cmakeArgs = @(
-              '-S', '.',
-              '-B', 'build',
-              '-Wno-dev',
-              '-G', (powershell -File _scripts/detect_vs_generator.ps1),
-              '-A', 'ARM64',
-              '-DBUILD_BINARIES=OFF',
-              '-DBUILD_PRODUCTS=ON',
-              '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
-              '-DBUILD_IO_SQL=ON',
-              '-DBUILD_TESTING=ON',
-              "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
-              '-DVCPKG_TARGET_TRIPLET=arm64-windows'
-            )
-            & cmake @cmakeArgs
-            if ($LASTEXITCODE -ne 0) {
-              exit $LASTEXITCODE
+            $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
+            if (!(Test-Path $vcpkgToolchain)) {
+              throw "vcpkg toolchain file not found at $vcpkgToolchain"
             }
-          }
+            # Clean build dir to avoid generator mismatch
+            Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
+            # Try MinGW Makefiles first
+            cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
+            if ($LASTEXITCODE -ne 0) {
+              # Fallback to MSVC if MinGW fails
+              $cmakeArgs = @(
+                '-S', '.',
+                '-B', 'build',
+                '-Wno-dev',
+                '-G', (powershell -File _scripts/detect_vs_generator.ps1),
+                '-A', 'ARM64',
+                '-DBUILD_BINARIES=OFF',
+                '-DBUILD_PRODUCTS=ON',
+                '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
+                '-DBUILD_IO_SQL=ON',
+                '-DBUILD_TESTING=ON',
+                "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
+                '-DVCPKG_TARGET_TRIPLET=arm64-windows'
+              )
+              & cmake @cmakeArgs
+              if ($LASTEXITCODE -ne 0) {
+                exit $LASTEXITCODE
+              }
+            }
 
       - name: Show CMake cache (Windows)
         if: runner.os == 'Windows'
