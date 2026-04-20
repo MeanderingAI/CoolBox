@@ -94,19 +94,18 @@ jobs:
         shell: pwsh
 
 
-      - name: Skip MSYS2 setup if already installed (ARM64)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64' && (exists('D:\a\_temp\msys64'))
-        run: |
-          echo "MSYS2 already installed at D:\a\_temp\msys64, skipping setup."
-        shell: pwsh
-
       - name: Install MSYS2 and MinGW for ARM64
-        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64' && !(exists('D:\a\_temp\msys64'))
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          path-type: inherit
-          update: true
+        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          if (Test-Path 'D:\a\_temp\msys64') {
+            echo "MSYS2 already installed at D:\a\_temp\msys64, skipping setup."
+            exit 0
+          }
+          echo "MSYS2 not found, running setup..."
+          # Install MSYS2
+          $ErrorActionPreference = 'Stop'
+          & msys2/setup-msys2@v2 --msystem MINGW64 --path-type inherit --update true
 
       - name: Install MSYS2 (Windows)
         if: runner.os == 'Windows'

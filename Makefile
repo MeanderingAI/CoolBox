@@ -1,3 +1,9 @@
+# Alias: pgha = preview-github-workflow-changes
+pgha: preview-github-workflow-changes
+# Preview GitHub Actions workflow changes
+preview-github-workflow-changes:
+	@echo "Previewing GitHub Actions workflow changes..."
+	@$(PYTHON) preview_github_workflow_changes.py
 # Set Python executable
 PYTHON := $(if $(wildcard .venv/bin/python),$(CURDIR)/.venv/bin/python,python3)
 

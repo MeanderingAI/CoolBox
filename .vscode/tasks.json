@@ -595,6 +595,17 @@
 			],
 			"isBackground": false,
 			"group": "test"
+		},
+		{
+			"label": "Preview GitHub Workflow Changes",
+			"type": "shell",
+			"command": "make",
+			"args": ["preview-github-workflow-changes"],
+			"group": "test",
+			"presentation": {
+				"reveal": "always"
+			},
+			"problemMatcher": []
 		}
 	]
 }
