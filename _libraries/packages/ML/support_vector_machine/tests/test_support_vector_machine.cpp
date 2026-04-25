@@ -80,7 +80,7 @@ TYST_TEST(SupportVectorMachineModelTest, LinearKernelSeparatesTrainingSamples) {
 	svm.fit(inputs, labels);
 
 	for (Eigen::Index index = 0; index < inputs.rows(); ++index) {
-		TYST_EXPECT_EQ(svm.predict(inputs.row(index)), labels(index));
+		TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix(inputs.row(index).begin(), 1, inputs.cols())), labels(index));
 	}
 }
 
@@ -90,8 +90,8 @@ TYST_TEST(SupportVectorMachineModelTest, LinearKernelClassifiesHeldOutPointsNear
 
 	svm.fit(make_separable_training_inputs(), make_separable_training_labels());
 
-	TYST_EXPECT_EQ(svm.predict(make_vector(3.0, 1.0)), 1.0);
-	TYST_EXPECT_EQ(svm.predict(make_vector(-2.5, -1.5)), -1.0);
+	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({3.0, 1.0}, 1, 2)), 1.0);
+	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({-2.5, -1.5}, 1, 2)), -1.0);
 }
 
 TYST_TEST(SupportVectorMachineModelTest, RbfKernelSeparatesSameSimpleDataset) {
@@ -102,6 +102,6 @@ TYST_TEST(SupportVectorMachineModelTest, RbfKernelSeparatesSameSimpleDataset) {
 	const Eigen::VectorXd labels = make_separable_training_labels();
 	svm.fit(inputs, labels);
 
-	TYST_EXPECT_EQ(svm.predict(make_vector(2.5, 1.5)), 1.0);
-	TYST_EXPECT_EQ(svm.predict(make_vector(-1.5, -2.5)), -1.0);
+	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({2.5, 1.5}, 1, 2)), 1.0);
+	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({-1.5, -2.5}, 1, 2)), -1.0);
 }

@@ -7,7 +7,7 @@
 #include "base_filter.h"
 
 struct Particle {
-    Eigen::Vector3d state; // [x, y, theta]
+    mytrix::Vector state; // [x, y, theta] (size 3)
     double weight;
 };
 
@@ -17,7 +17,7 @@ public:
 
     // Implements BaseFilter interface
     void predict() override;
-    void update(const Eigen::VectorXd& z) override;
+    void update(const mytrix::Vector& z) override;
 
     const std::vector<Particle>& getParticles() const;
 

@@ -1,5 +1,5 @@
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include <cmath>
 #include <unscented_kalman_filter.h>

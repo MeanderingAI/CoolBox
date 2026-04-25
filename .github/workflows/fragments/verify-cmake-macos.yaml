@@ -1,0 +1,11 @@
+# Verify CMake configuration and cache on macOS
+steps:
+  - name: Show CMake cache (macOS)
+    if: runner.os == 'macOS'
+    run: |
+      echo "=== build/CMakeCache.txt ==="
+      if [ -f build/CMakeCache.txt ]; then
+        grep -i 'BUILD_IO_SQL\|SQLite3' build/CMakeCache.txt || true
+      else
+        echo "No CMakeCache.txt found"
+      fi

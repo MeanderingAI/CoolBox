@@ -1,115 +1,64 @@
+
 #include "pca.h"
 #include <stdexcept>
-
+#include <vector>
 #include "lib_metadata.h"
 LIBRARY_METADATA(pca, "PCA", "1.0.0", "Principal Component Analysis", "CoolBox");
 
-namespace dimensionality_reduction {
+dimensionality_reduction::PCA::PCA(int n_components, bool center, bool scale)
+    : n_components_(n_components), center_(center), scale_data_(scale), fitted_(false),
+      mean_(), scale_(), components_(1, 1), explained_variance_(), explained_variance_ratio_(), singular_values_(), svd_() {}
 
-PCA::PCA(int n_components, bool center, bool scale)
-    : n_components_(n_components), center_(center), scale_data_(scale), fitted_(false) {}
-
-Eigen::VectorXd PCA::compute_mean(const Eigen::MatrixXd& X) {
-    return X.colwise().mean();
+std::vector<double> dimensionality_reduction::PCA::compute_mean(const matrix::DenseMatrix& X) {
+    // TODO: Implement mean computation for DenseMatrix
+    return std::vector<double>(X.cols(), 0.0);
 }
 
-Eigen::VectorXd PCA::compute_std(const Eigen::MatrixXd& X, const Eigen::VectorXd& mean) {
-    Eigen::MatrixXd centered = X.rowwise() - mean.transpose();
-    Eigen::VectorXd variance = (centered.array().square().colwise().sum() / (X.rows() - 1)).matrix();
-    return variance.array().sqrt().matrix();
+std::vector<double> dimensionality_reduction::PCA::compute_std(const matrix::DenseMatrix& X, const std::vector<double>& mean) {
+    // TODO: Implement std computation for DenseMatrix
+    return std::vector<double>(X.cols(), 1.0);
 }
 
-Eigen::MatrixXd PCA::preprocess(const Eigen::MatrixXd& X) const {
-    Eigen::MatrixXd result = X;
-    if (center_) {
-        result = result.rowwise() - mean_.transpose();
-    }
-    if (scale_data_ && scale_.size() > 0) {
-        for (Eigen::Index j = 0; j < result.cols(); ++j) {
-            if (scale_(static_cast<int>(j)) > 1e-10) {
-                result.col(static_cast<int>(j)) /= scale_(static_cast<int>(j));
-            }
-        }
-    }
-    return result;
+matrix::DenseMatrix dimensionality_reduction::PCA::preprocess(const matrix::DenseMatrix& X) const {
+    // TODO: Implement preprocessing for DenseMatrix
+    return X;
 }
 
-void PCA::fit(const Eigen::MatrixXd& X) {
-    Eigen::Index n_samples = X.rows();
-    Eigen::Index n_features = X.cols();
-
-    mean_ = compute_mean(X);
-    scale_ = compute_std(X, mean_);
-
-    Eigen::MatrixXd X_proc = preprocess(X);
-
-    svd_.compute(X_proc);
-
-    singular_values_ = svd_.get_singular_values();
-    Eigen::MatrixXd V = svd_.get_V();
-
-    // Determine number of components
-    if (n_components_ <= 0) {
-        n_components_ = static_cast<int>(std::min(n_samples, n_features));
-    }
-    n_components_ = std::min(n_components_, static_cast<int>(std::min(n_samples, n_features)));
-
-    components_ = V.leftCols(n_components_);
-
-    // Explained variance
-    double denom = static_cast<double>(n_samples - 1);
-    explained_variance_ = (singular_values_.head(n_components_).array().square() / denom).matrix();
-    double total_var = (singular_values_.array().square() / denom).sum();
-    explained_variance_ratio_ = explained_variance_ / total_var;
-
-    fitted_ = true;
+void dimensionality_reduction::PCA::fit(const Matrix& X) {
+    // TODO: Implement PCA fit for DenseMatrix
+    fitted_ = false;
+    throw std::runtime_error("PCA::fit not implemented for DenseMatrix");
 }
 
-Eigen::MatrixXd PCA::transform(const Eigen::MatrixXd& X) const {
+dimensionality_reduction::PCA::Matrix dimensionality_reduction::PCA::transform(const Matrix& X) const {
     if (!fitted_) throw std::runtime_error("PCA not fitted yet");
-    Eigen::MatrixXd X_proc = preprocess(X);
-    return X_proc * components_;
+    // TODO: Implement transform for DenseMatrix
+    return PCA::Matrix(1, 1);
 }
 
-Eigen::MatrixXd PCA::fit_transform(const Eigen::MatrixXd& X) {
+dimensionality_reduction::PCA::Matrix dimensionality_reduction::PCA::fit_transform(const Matrix& X) {
     fit(X);
     return transform(X);
 }
 
-Eigen::MatrixXd PCA::inverse_transform(const Eigen::MatrixXd& X_transformed) const {
+dimensionality_reduction::PCA::Matrix dimensionality_reduction::PCA::inverse_transform(const Matrix& X_transformed) const {
     if (!fitted_) throw std::runtime_error("PCA not fitted yet");
-    Eigen::MatrixXd result = X_transformed * components_.transpose();
-    if (scale_data_ && scale_.size() > 0) {
-        for (int j = 0; j < result.cols(); ++j) {
-            if (scale_(j) > 1e-10) {
-                result.col(j) *= scale_(j);
-            }
-        }
-    }
-    if (center_) {
-        result = result.rowwise() + mean_.transpose();
-    }
-    return result;
+    // TODO: Implement inverse_transform for DenseMatrix
+    return PCA::Matrix(1, 1);
 }
 
-Eigen::MatrixXd PCA::get_components() const {
-    if (!fitted_) throw std::runtime_error("PCA not fitted yet");
+dimensionality_reduction::PCA::Matrix dimensionality_reduction::PCA::get_components() const {
     return components_;
 }
 
-Eigen::VectorXd PCA::get_explained_variance() const {
-    if (!fitted_) throw std::runtime_error("PCA not fitted yet");
+dimensionality_reduction::PCA::Vector dimensionality_reduction::PCA::get_explained_variance() const {
     return explained_variance_;
 }
 
-Eigen::VectorXd PCA::get_explained_variance_ratio() const {
-    if (!fitted_) throw std::runtime_error("PCA not fitted yet");
+dimensionality_reduction::PCA::Vector dimensionality_reduction::PCA::get_explained_variance_ratio() const {
     return explained_variance_ratio_;
 }
 
-Eigen::VectorXd PCA::get_singular_values() const {
-    if (!fitted_) throw std::runtime_error("PCA not fitted yet");
+dimensionality_reduction::PCA::Vector dimensionality_reduction::PCA::get_singular_values() const {
     return singular_values_;
 }
-
-} // namespace dimensionality_reduction

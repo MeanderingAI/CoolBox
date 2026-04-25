@@ -7,7 +7,7 @@
 class RBFKernel : public Kernel {
 public:
     RBFKernel(double gamma) : gamma_(gamma) {}
-    double calculate(const Eigen::VectorXd& x, const Eigen::VectorXd& y) const override;
+    double calculate(const std::vector<double>& x, const std::vector<double>& y) const override;
 private:
     double gamma_;
 };

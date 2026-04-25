@@ -14,12 +14,12 @@ public:
     /**
      * @brief Returns the current state estimate.
      */
-    virtual const Eigen::VectorXd& state() const = 0;
+    virtual const mytrix::Vector& state() const = 0;
 
     /**
      * @brief Returns the current state covariance.
      */
-    virtual const Eigen::MatrixXd& covariance() const = 0;
+    virtual const mytrix::Matrix& covariance() const = 0;
 };
 
 #endif // BASE_KALMAN_FILTER_H

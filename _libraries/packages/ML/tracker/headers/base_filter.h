@@ -22,7 +22,7 @@ public:
      * @brief Updates the state with a new measurement.
      * @param z Measurement vector.
      */
-    virtual void update(const Eigen::VectorXd& z) = 0;
+    virtual void update(const mytrix::Vector& z) = 0;
 };
 
 #endif // BASE_FILTER_H

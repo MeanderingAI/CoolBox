@@ -1,7 +1,8 @@
 #ifndef LATENT_SENTIMENT_ANALYSIS_H
 #define LATENT_SENTIMENT_ANALYSIS_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
+// All matrix/vector types now use mytrix::Matrix, mytrix::Vector, etc.
 #include <vector>
 #include <string>
 #include <map>
@@ -36,11 +37,11 @@ public:
 	 * @param documents Vector of documents, each represented as a vector of word indices.
 	 * @param sentiments Vector of sentiment labels corresponding to each document.
 	 */
-	/**
+    /**
      * @brief Trains the model using a Document-Term Matrix (M).
-     * @param document_term_matrix The input matrix. It must be convertible to Eigen::MatrixXd.
+     * @param document_term_matrix The input matrix. It must be convertible to mytrix::Matrix.
      */
-    void train(const Eigen::MatrixXd& document_term_matrix);
+    void train(const mytrix::Matrix& document_term_matrix);
 
     /**
      * @brief Predicts the reconstructed value for a given document and term (U_i * V_j^T).
@@ -54,13 +55,13 @@ public:
      * @brief Gets the Document-Feature Matrix (U).
      * @return U matrix. Rows are documents, columns are latent features.
      */
-    const Eigen::MatrixXd& get_document_features() const { return U; }
+    const mytrix::Matrix& get_document_features() const { return U; }
 
     /**
      * @brief Gets the Term-Feature Matrix (V).
      * @return V matrix. Rows are terms, columns are latent features.
      */
-    const Eigen::MatrixXd& get_term_features() const { return V; }
+    const mytrix::Matrix& get_term_features() const { return V; }
 
 private:
     int K; // Number of latent features
@@ -72,10 +73,10 @@ private:
     int num_terms;
 
     // U: Document-Feature Matrix (D x K)
-    Eigen::MatrixXd U; 
+    mytrix::Matrix U; 
     
     // V: Term-Feature Matrix (T x K). The factor for the term side.
-    Eigen::MatrixXd V; 
+    mytrix::Matrix V;
 
     /**
      * @brief Initializes the matrices U and V using Eigen's random functions.

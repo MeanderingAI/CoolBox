@@ -15,74 +15,74 @@
  *
  * @constructor
  * ExtendedKalmanFilter(
- *     const Eigen::VectorXd& x0,   ///< Initial state vector
- *     const Eigen::MatrixXd& P0,   ///< Initial state covariance matrix
- *     const Eigen::MatrixXd& Q,    ///< Process noise covariance matrix
- *     const Eigen::MatrixXd& R     ///< Measurement noise covariance matrix
+ *     const mytrix::Vector& x0,   ///< Initial state vector
+ *     const mytrix::Matrix& P0,   ///< Initial state covariance matrix
+ *     const mytrix::Matrix& Q,    ///< Process noise covariance matrix
+ *     const mytrix::Matrix& R     ///< Measurement noise covariance matrix
  * )
  *
  * @method void predict(
- *     const std::function<Eigen::VectorXd(const Eigen::VectorXd&)>& f, ///< Nonlinear process model
- *     const std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>& F  ///< Jacobian of process model
+ *     const std::function<mytrix::Vector(const mytrix::Vector&)>& f, ///< Nonlinear process model
+ *     const std::function<mytrix::Matrix(const mytrix::Vector&)>& F  ///< Jacobian of process model
  * )
  * @brief Predicts the next state and covariance using the process model.
  *
  * @method void update(
- *     const Eigen::VectorXd& z,    ///< Measurement vector
- *     const std::function<Eigen::VectorXd(const Eigen::VectorXd&)>& h, ///< Nonlinear measurement model
- *     const std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>& H  ///< Jacobian of measurement model
+ *     const mytrix::Vector& z,    ///< Measurement vector
+ *     const std::function<mytrix::Vector(const mytrix::Vector&)>& h, ///< Nonlinear measurement model
+ *     const std::function<mytrix::Matrix(const mytrix::Vector&)>& H  ///< Jacobian of measurement model
  * )
  * @brief Updates the state and covariance using the measurement.
  *
- * @method const Eigen::VectorXd& state() const
+ * @method const mytrix::Vector& state() const
  * @brief Returns the current state estimate.
  *
- * @method const Eigen::MatrixXd& covariance() const
+ * @method const mytrix::Matrix& covariance() const
  * @brief Returns the current state covariance.
  *
  * @private
- * Eigen::VectorXd x_; ///< Current state estimate
- * Eigen::MatrixXd P_; ///< Current state covariance
- * Eigen::MatrixXd Q_; ///< Process noise covariance
- * Eigen::MatrixXd R_; ///< Measurement noise covariance
+ * mytrix::Vector x_; ///< Current state estimate
+ * mytrix::Matrix P_; ///< Current state covariance
+ * mytrix::Matrix Q_; ///< Process noise covariance
+ * mytrix::Matrix R_; ///< Measurement noise covariance
  */
 #ifndef EXTENDED_KALMAN_FILTER_H
 #define EXTENDED_KALMAN_FILTER_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include "base_kalman_filter.h"
 
 class ExtendedKalmanFilter : public BaseKalmanFilter {
 public:
     ExtendedKalmanFilter(
-        const Eigen::VectorXd& x0,
-        const Eigen::MatrixXd& P0,
-        const Eigen::MatrixXd& Q,
-        const Eigen::MatrixXd& R
+        const mytrix::Vector& x0,
+        const mytrix::Matrix& P0,
+        const mytrix::Matrix& Q,
+        const mytrix::Matrix& R
     );
     // Add setters for models
-    void setProcessModel(const std::function<Eigen::VectorXd(const Eigen::VectorXd&)>& f,
-                         const std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>& F);
+    void setProcessModel(const std::function<mytrix::Vector(const mytrix::Vector&)>& f,
+                         const std::function<mytrix::Matrix(const mytrix::Vector&)>& F);
 
-    void setMeasurementModel(const std::function<Eigen::VectorXd(const Eigen::VectorXd&)>& h,
-                             const std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>& H);
+    void setMeasurementModel(const std::function<mytrix::Vector(const mytrix::Vector&)>& h,
+                             const std::function<mytrix::Matrix(const mytrix::Vector&)>& H);
 
 
     void predict() override;
-    void update(const Eigen::VectorXd& z) override;
+    void update(const mytrix::Vector& z) override;
 
-    const Eigen::VectorXd& state() const override;
-    const Eigen::MatrixXd& covariance() const override;
+    const mytrix::Vector& state() const override;
+    const mytrix::Matrix& covariance() const override;
 
 private:
-    std::function<Eigen::VectorXd(const Eigen::VectorXd&)> f_;
-    std::function<Eigen::MatrixXd(const Eigen::VectorXd&)> F_;
-    std::function<Eigen::VectorXd(const Eigen::VectorXd&)> h_;
-    std::function<Eigen::MatrixXd(const Eigen::VectorXd&)> H_;
-    Eigen::VectorXd x_;
-    Eigen::MatrixXd P_;
-    Eigen::MatrixXd Q_;
-    Eigen::MatrixXd R_;
+    std::function<mytrix::Vector(const mytrix::Vector&)> f_;
+    std::function<mytrix::Matrix(const mytrix::Vector&)> F_;
+    std::function<mytrix::Vector(const mytrix::Vector&)> h_;
+    std::function<mytrix::Matrix(const mytrix::Vector&)> H_;
+    mytrix::Vector x_;
+    mytrix::Matrix P_;
+    mytrix::Matrix Q_;
+    mytrix::Matrix R_;
 };
 
 #endif // EXTENDED_KALMAN_FILTER_H

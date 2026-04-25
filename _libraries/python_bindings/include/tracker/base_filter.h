@@ -1,7 +1,8 @@
 #ifndef BASE_FILTER_H
 #define BASE_FILTER_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
+// All matrix/vector types now use mytrix::Matrix, mytrix::Vector, etc.
 
 /**
  * @brief Abstract base class for filter implementations.
@@ -22,7 +23,7 @@ public:
      * @brief Updates the state with a new measurement.
      * @param z Measurement vector.
      */
-    virtual void update(const Eigen::VectorXd& z) = 0;
+    virtual void update(const mytrix::Vector& z) = 0;
 };
 
 #endif // BASE_FILTER_H

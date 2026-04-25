@@ -2,7 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <random>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 #include <linear_regression.h>
 #include <generalized_linear_model.h>
 

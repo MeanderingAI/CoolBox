@@ -1,0 +1,9 @@
+# Linux dependency setup for CI builds
+# To use, add: `- uses: ./.github/workflows/fragments/deps-linux.yaml`
+
+steps:
+  - name: Install dependencies (Linux)
+    if: runner.os == 'Linux'
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y g++ make libeigen3-dev libgsl-dev libsqlite3-dev doxygen gfortran

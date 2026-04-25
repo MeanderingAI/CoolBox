@@ -12,7 +12,7 @@ SequentialMonteCarlo::SequentialMonteCarlo(int num_particles)
     particles_.resize(num_particles_);
     double uniform_weight = 1.0 / num_particles_;
     for (auto& p : particles_) {
-        p.state = Eigen::Vector3d(dist(gen), dist(gen), dist(gen));
+        p.state = mytrix::Vector{dist(gen), dist(gen), dist(gen)};
         p.weight = uniform_weight;
     }
 }
@@ -24,19 +24,23 @@ void SequentialMonteCarlo::predict() {
     
     for (auto& p : particles_) {
         // Simple random walk model
-        p.state(0) += std::cos(p.state(2)) * 0.1 + noise(gen);
-        p.state(1) += std::sin(p.state(2)) * 0.1 + noise(gen);
-        p.state(2) += noise(gen) * 0.05;
+        p.state[0] += std::cos(p.state[2]) * 0.1 + noise(gen);
+        p.state[1] += std::sin(p.state[2]) * 0.1 + noise(gen);
+        p.state[2] += noise(gen) * 0.05;
     }
 }
 
-void SequentialMonteCarlo::update(const Eigen::VectorXd& z) {
+void SequentialMonteCarlo::update(const mytrix::Vector& z) {
     // Update weights based on measurement likelihood
     double total_weight = 0.0;
     for (auto& p : particles_) {
         // Simple Gaussian likelihood
-        Eigen::VectorXd expected_z = p.state.head(z.size());
-        double dist_sq = (z - expected_z).squaredNorm();
+        mytrix::Vector expected_z(p.state.begin(), p.state.begin() + z.size());
+        double dist_sq = 0.0;
+        for (size_t i = 0; i < z.size(); ++i) {
+            double diff = z[i] - expected_z[i];
+            dist_sq += diff * diff;
+        }
         p.weight *= std::exp(-0.5 * dist_sq);
         total_weight += p.weight;
     }

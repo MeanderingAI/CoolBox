@@ -40,20 +40,20 @@
  *   - alpha_, beta_, kappa_: UKF tuning parameters.
  *
  * @note
- *   - Requires Eigen library for matrix and vector operations.
+ *   - Requires mytrix for matrix and vector operations.
  *   - Designed for extensibility and integration with arbitrary nonlinear models.
  */
 #ifndef UNSCENTED_KALMAN_FILTER_H
 #define UNSCENTED_KALMAN_FILTER_H
 
-#include "mytrix_eigen_compat.hpp"
+#include <functional>
 #include <vector>
 #include "base_kalman_filter.h"
 
 class UnscentedKalmanFilter : public BaseKalmanFilter {
 public:
-    using Vector = Eigen::VectorXd;
-    using Matrix = Eigen::MatrixXd;
+    using Vector = mytrix::Vector;
+    using Matrix = mytrix::Matrix;
 
     UnscentedKalmanFilter(int state_dim, int meas_dim);
 
@@ -65,7 +65,7 @@ public:
 
     // Unified interface overrides
     void predict() override;
-    void update(const Eigen::VectorXd& z) override;
+    void update(const Vector& z) override;
 
     const Vector& state() const override;
     const Matrix& covariance() const override;

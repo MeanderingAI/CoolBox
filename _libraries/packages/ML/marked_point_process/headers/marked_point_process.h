@@ -1,10 +1,14 @@
+
 #ifndef MARKED_POINT_PROCESS_H
 #define MARKED_POINT_PROCESS_H
 
-#include "mytrix_eigen_compat.hpp"
+#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
+
 #include <vector>
-#include <functional>
+// #include <functional>
 #include <memory>
+
+namespace ml {
 
 /**
  * @class MarkedPointProcess
@@ -19,6 +23,7 @@
  * - Social network events (time + interaction type)
  */
 class MarkedPointProcess {
+// public: (removed duplicate)
 public:
     /**
      * @brief Constructor for the marked point process model.
@@ -43,13 +48,13 @@ public:
     );
 
     /**
-     * @brief Predict the conditional intensity (rate) at a given time for each mark type.
+     * @brief Predict intensity for each mark type at a given time.
      * @param time The time point at which to evaluate the intensity.
      * @param history_times Times of previous events.
      * @param history_marks Marks of previous events.
      * @return Vector of intensities for each mark type.
      */
-    Eigen::VectorXd predict_intensity(
+    std::vector<double> predict_intensity(
         double time,
         const std::vector<double>& history_times,
         const std::vector<int>& history_marks
@@ -81,13 +86,13 @@ public:
      * @brief Get the base intensity (background rate) for each mark type.
      * @return Vector of base intensities.
      */
-    Eigen::VectorXd get_base_intensity() const;
+    std::vector<double> get_base_intensity() const;
 
     /**
      * @brief Get the excitation matrix (how marks excite each other).
      * @return Matrix where entry (i,j) is the excitation from mark i to mark j.
      */
-    Eigen::MatrixXd get_excitation_matrix() const;
+    matrix::DenseMatrix get_excitation_matrix() const;
 
     /**
      * @brief Get the decay parameter for the temporal kernel.
@@ -99,13 +104,13 @@ public:
      * @brief Set the base intensity parameters.
      * @param base_intensity Vector of base intensities for each mark type.
      */
-    void set_base_intensity(const Eigen::VectorXd& base_intensity);
+    void set_base_intensity(const std::vector<double>& base_intensity);
 
     /**
      * @brief Set the excitation matrix parameters.
      * @param excitation Matrix of excitation parameters.
      */
-    void set_excitation_matrix(const Eigen::MatrixXd& excitation);
+    void set_excitation_matrix(const matrix::DenseMatrix& excitation);
 
     /**
      * @brief Set the decay rate parameter.
@@ -119,8 +124,8 @@ private:
     int max_iterations_;
 
     // Model parameters
-    Eigen::VectorXd mu_;        // Base intensity (background rate) for each mark
-    Eigen::MatrixXd alpha_;     // Excitation matrix: alpha(i,j) = effect of mark i on mark j
+    std::vector<double> mu_;        // Base intensity (background rate) for each mark
+    matrix::DenseMatrix alpha_;     // Excitation matrix: alpha(i,j) = effect of mark i on mark j
     double beta_;               // Decay rate for the exponential kernel
 
     /**
@@ -174,11 +179,14 @@ private:
      * @param time_horizon End time of observation window.
      * @return Compensator value for each mark type.
      */
-    Eigen::VectorXd compute_compensator(
+    std::vector<double> compute_compensator(
         const std::vector<double>& event_times,
         const std::vector<int>& event_marks,
         double time_horizon
     ) const;
+
 };
+
+} // namespace ml
 
 #endif // MARKED_POINT_PROCESS_H

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mytrix_eigen_compat.hpp"
+#include "matrix_dense.h"
 #include <vector>
 #include <random>
 #include <cmath>
@@ -48,9 +49,9 @@ struct VAEEpochResult {
  */
 class VAE {
 public:
-    using MatrixD = Eigen::MatrixXd;
-    using VectorD = Eigen::VectorXd;
-    using RowVectorD = Eigen::RowVectorXd;
+    using MatrixD = matrix::DenseMatrix;
+    using VectorD = std::vector<double>;
+    using RowVectorD = std::vector<double>; // or a custom row vector type if available
 
 private:
     int input_dim_;

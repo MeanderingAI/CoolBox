@@ -32,8 +32,8 @@ This document tracks the runtime loader and malformed CMake file repairs complet
 
 ### Fixed package-level build issues
 - Repaired broken include-guard/header corruption in electronics headers such as:
-  - `_libraries/packages/ELECTRONICS/curcuitry/include/component.h`
-  - `_libraries/packages/ELECTRONICS/curcuitry/include/battery.h`
+  - `_libraries/packages/ELECTRONICS/circuitry/include/component.h`
+  - `_libraries/packages/ELECTRONICS/circuitry/include/battery.h`
 - Fixed Eigen propagation in:
   - `_libraries/packages/ML/hidden_markov_model/CMakeLists.txt`
 - Added tuple hashing support for MSVC sparse matrix code where needed.

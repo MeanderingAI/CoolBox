@@ -1,7 +1,8 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
+// All matrix/vector types now use mytrix::Matrix, mytrix::Vector, etc.
 
 class Kernel {
 public:

@@ -2,15 +2,7 @@
 include(FetchContent)
 
 # Fetch and configure Eigen
-FetchContent_Declare(
-  Eigen
-  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-  GIT_TAG 3.4.0
-  SOURCE_DIR ${CMAKE_BINARY_DIR}/eigen-src
-  BINARY_DIR ${CMAKE_BINARY_DIR}/eigen-build
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(Eigen)
+## Eigen removed: replaced by mytrix everywhere
 
 if(NOT DEFINED ENABLE_GSL)
   option(ENABLE_GSL "Enable GSL (GNU Scientific Library) support" ON)

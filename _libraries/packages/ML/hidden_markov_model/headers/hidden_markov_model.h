@@ -11,28 +11,29 @@ private:
     int num_states;
     int num_observations;
     
-    Eigen::VectorXd initial_probabilities; // pi vector
-    Eigen::MatrixXd transition_matrix;     // A matrix
-    Eigen::MatrixXd emission_matrix;       // B matrix
+    std::vector<double> initial_probabilities; // pi vector
+    matrix::DenseMatrix transition_matrix;     // A matrix
+    matrix::DenseMatrix emission_matrix;       // B matrix
 
     std::mt19937 gen;
 
     static double log_sum_exp(double log_a, double log_b);
-    Eigen::MatrixXd forward_pass(const std::vector<int>& observations) const;
-    Eigen::MatrixXd backward_pass(const std::vector<int>& observations) const;
+    static double log_sum_exp(const std::vector<double>& vals);
+    matrix::DenseMatrix forward_pass(const std::vector<int>& observations) const;
+    matrix::DenseMatrix backward_pass(const std::vector<int>& observations) const;
 public:
     // Constructor to initialize the HMM with its parameters
     HMM(int states, int observations);
     
     // Setters for the model parameters using Eigen types
-    void set_initial_probabilities(const Eigen::VectorXd& pi);
-    void set_transition_matrix(const Eigen::MatrixXd& A);
-    void set_emission_matrix(const Eigen::MatrixXd& B);
+    void set_initial_probabilities(const std::vector<double>& pi);
+    void set_transition_matrix(const matrix::DenseMatrix& A);
+    void set_emission_matrix(const matrix::DenseMatrix& B);
     
     // Getters for the model parameters
-    Eigen::VectorXd get_initial_probabilities() const;
-    Eigen::MatrixXd get_transition_matrix() const;
-    Eigen::MatrixXd get_emission_matrix() const;
+    std::vector<double> get_initial_probabilities() const;
+    matrix::DenseMatrix get_transition_matrix() const;
+    matrix::DenseMatrix get_emission_matrix() const;
     
     // Core HMM Algorithms
     

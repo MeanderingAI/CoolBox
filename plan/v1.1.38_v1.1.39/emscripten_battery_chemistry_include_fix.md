@@ -7,7 +7,7 @@
 ## Problem
 - `battery_bindings.cpp` includes `battery.h`, which includes `cell.h`.
 - `cell.h` depends on `chemistry/periodic_table.h`.
-- The `battery_js` target only added the battery and curcuitry include directories, but not the chemistry include directory.
+- The `battery_js` target only added the battery and circuitry include directories, but not the chemistry include directory.
 - As a result, the `generate_purchase_js` Emscripten build failed with:
   - `fatal error: 'chemistry/periodic_table.h' file not found`
 

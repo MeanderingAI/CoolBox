@@ -6,7 +6,7 @@
 
 class LinearKernel : public Kernel {
 public:
-    double calculate(const Eigen::VectorXd& x, const Eigen::VectorXd& y) const override;
+    double calculate(const std::vector<double>& x, const std::vector<double>& y) const override;
 };
 
 #endif // LINEAR_KERNEL_H

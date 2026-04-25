@@ -9,12 +9,12 @@ This document lists all files in the codebase where `#pragma once` was replaced 
 - ___DISABLED_binaries/abbs/__host_scanner/host_scanner.h
 - ___DISABLED_binaries/services/__rej_proxy_service/include/proxy_server.h
 - _libraries/packages/CHEMISTRY/include/chemistry/periodic_table.h
-- _libraries/packages/ELECTRONICS/curcuitry/include/wire.h
-- _libraries/packages/ELECTRONICS/curcuitry/include/resistor.h
-- _libraries/packages/ELECTRONICS/curcuitry/include/curcuitry.h
-- _libraries/packages/ELECTRONICS/curcuitry/include/component.h
-- _libraries/packages/ELECTRONICS/curcuitry/include/circuit_solver.h
-- _libraries/packages/ELECTRONICS/curcuitry/include/battery.h
+- _libraries/packages/ELECTRONICS/circuitry/include/wire.h
+- _libraries/packages/ELECTRONICS/circuitry/include/resistor.h
+- _libraries/packages/ELECTRONICS/circuitry/include/circuitry.h
+- _libraries/packages/ELECTRONICS/circuitry/include/component.h
+- _libraries/packages/ELECTRONICS/circuitry/include/circuit_solver.h
+- _libraries/packages/ELECTRONICS/circuitry/include/battery.h
 
 <!-- Add more files here as the conversion progresses -->
 

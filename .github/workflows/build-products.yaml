@@ -42,92 +42,18 @@ jobs:
         with:
           cmake-version: '4.3.1'
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++ make libeigen3-dev libgsl-dev libsqlite3-dev doxygen gfortran
 
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          for pkg in eigen gsl doxygen gcc sqlite; do
-            brew list "$pkg" &>/dev/null || brew install "$pkg"
-          done
-          sqlite_prefix="$(brew --prefix sqlite)"
-          echo "SQLITE3_ROOT=$sqlite_prefix" >> "$GITHUB_ENV"
-          echo "SQLite3_ROOT=$sqlite_prefix" >> "$GITHUB_ENV"
-          echo "PKG_CONFIG_PATH=$sqlite_prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" >> "$GITHUB_ENV"
-          echo "$sqlite_prefix/bin" >> "$GITHUB_PATH"
+      # Linux dependency setup
+      - uses: ./.github/workflows/fragments/deps-linux.yaml
 
-      - name: Install MSYS2 (Windows)
-        if: runner.os == 'Windows'
-        id: msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          path-type: inherit
-          update: true
+      # macOS dependency setup
+      - uses: ./.github/workflows/fragments/deps-macos.yaml
 
-      - name: Install MSYS2 packages (Windows x86_64)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
-        run: |
-          set -e
-          pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-eigen3 mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison make
-        shell: msys2 {0}
+      # Windows dependency setup
+      - uses: ./.github/workflows/fragments/deps-windows.yaml
 
-      - name: Install MSYS2 packages (Windows ARM64)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-        run: |
-          set -e
-          pacman -S --noconfirm --needed mingw-w64-x86_64-make bison
-        shell: msys2 {0}
-
-      - name: Install vcpkg dependencies (Windows ARM64)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-        shell: powershell
-        run: |
-          function Find-VcpkgExe {
-            $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
-            $candidates = @(
-              $(if ($null -ne $command) { $command.Source }),
-              $(if ($null -ne $command) { $command.Path }),
-              $(if ($env:VCPKG_ROOT) { Join-Path $env:VCPKG_ROOT 'vcpkg.exe' }),
-              'C:\vcpkg\vcpkg.exe',
-              $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'vcpkg\vcpkg.exe' }),
-              $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'vcpkg\vcpkg.exe' })
-            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-
-            foreach ($candidate in $candidates) {
-              if (Test-Path $candidate) {
-                return $candidate
-              }
-            }
-
-            return $null
-          }
-
-          $vcpkgExe = Find-VcpkgExe
-          if ($null -eq $vcpkgExe) {
-            & .\_scripts\install_vcpkg.ps1
-            if ($LASTEXITCODE -ne 0) {
-              exit $LASTEXITCODE
-            }
-            $vcpkgExe = Find-VcpkgExe
-          }
-
-          if ($null -eq $vcpkgExe) {
-            throw 'vcpkg.exe was not found after installation attempt. Windows ARM64 hosted cross-builds require vcpkg with arm64-windows dependencies.'
-          }
-
-          $vcpkgRoot = Split-Path -Parent $vcpkgExe
-          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
-          Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
-
-          & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows openssl:arm64-windows
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
+      # vcpkg dependencies for Windows ARM64
+      - uses: ./.github/workflows/fragments/deps-windows.yaml
 
       - name: Ensure MSYS2 tools in PATH (Windows)
         if: runner.os == 'Windows'

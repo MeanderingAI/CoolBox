@@ -14,7 +14,7 @@
 
 - `advanced_logging`
 - `battery`
-- `curcuitry`
+
 - `data_structures`
 - `gabor_patches`
 - `decision_tree`

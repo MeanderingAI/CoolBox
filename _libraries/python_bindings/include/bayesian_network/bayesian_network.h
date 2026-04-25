@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 #include <set>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
 
 /**
  * @class BayesianNetwork

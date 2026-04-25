@@ -118,7 +118,8 @@ help:
 	build_python_bindings clean_python_bindings install_python_bindings install_pybind11 \
 	document_r_bindings build_r_bindings install_r_bindings site_r_bindings \
 		build_rust_bindings test_rust_bindings build_docs_portal launch_editor \
-		worksplace_editor run_worksplace_editor file_browser run_file_browser
+		worksplace_editor run_worksplace_editor file_browser run_file_browser \
+		build_body_generator_ui run_body_generator_ui
 
 all: build_all
 
@@ -363,3 +364,11 @@ test_rust_bindings:
 # docs hub portal under .site/, and populates references and tag pages.
 build_site:
 	@bash ./_scripts/build_documentation.sh "$(CURDIR)"
+
+# Build the body_generator UI app
+build_body_generator_ui:
+	cmake --build build --target body_generator_ui
+
+# Build and launch the body_generator UI app
+run_body_generator_ui: build_body_generator_ui
+	./build/_Product/body_generator/body_generator_ui || build\\_Product\\body_generator\\body_generator_ui.exe

@@ -180,7 +180,7 @@ add_subdirectory_force(packages/GRAPHICS/full_application_window)
 add_subdirectory_force(packages/CHEMISTRY)
 
 # Electronics packages
-add_subdirectory_force(packages/ELECTRONICS/curcuitry)
+
 add_subdirectory_force(packages/ELECTRONICS/battery)
 
 # Signal processing packages

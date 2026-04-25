@@ -1,10 +1,15 @@
+#ifdef at
+#undef at
+#endif
 #include "../headers/gabor_patches.h"
 
 #include <algorithm>
 #include <numeric>
 #include <iostream>
 
+
 namespace ml {
+using matrix::DenseMatrix;
 
 // ===================================================================
 // GaborParams
@@ -30,11 +35,8 @@ std::string GaborParams<Scalar>::to_string() const {
 // ===================================================================
 
 template <typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-gabor_kernel(const GaborParams<Scalar>& params, int size, bool normalize)
+matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size, bool normalize)
 {
-    using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-
     if (size == 0) size = params.default_kernel_size();
     if (size < 1)
         throw std::invalid_argument("gabor_kernel: size must be >= 1");
@@ -46,7 +48,7 @@ gabor_kernel(const GaborParams<Scalar>& params, int size, bool normalize)
         throw std::invalid_argument("gabor_kernel: sigma must be > 0");
 
     const int half = size / 2;
-    MatrixT kernel(size, size);
+    matrix::DenseMatrix kernel(size, size);
 
     const Scalar cos_t  = std::cos(params.theta);
     const Scalar sin_t  = std::sin(params.theta);
@@ -85,17 +87,14 @@ gabor_kernel(const GaborParams<Scalar>& params, int size, bool normalize)
 // ===================================================================
 
 template <typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size, bool normalize)
+matrix::DenseMatrix gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size, bool normalize)
 {
-    using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-
     if (size == 0) size = params.default_kernel_size();
     if (size < 1 || size % 2 == 0)
         throw std::invalid_argument("gabor_kernel_imaginary: size must be odd and >= 1");
 
     const int half = size / 2;
-    MatrixT kernel(size, size);
+    matrix::DenseMatrix kernel(size, size);
 
     const Scalar cos_t  = std::cos(params.theta);
     const Scalar sin_t  = std::sin(params.theta);
@@ -134,12 +133,16 @@ gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size, bool normali
 // ===================================================================
 
 template <typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-gabor_energy(const GaborParams<Scalar>& params, int size)
+matrix::DenseMatrix gabor_energy(const GaborParams<Scalar>& params, int size)
 {
     auto real_k = gabor_kernel(params, size);
     auto imag_k = gabor_kernel_imaginary(params, size);
-    return (real_k.array().square() + imag_k.array().square()).sqrt().matrix();
+    // Elementwise sqrt(real^2 + imag^2)
+    matrix::DenseMatrix out(real_k.rows(), real_k.cols());
+    for (int i = 0; i < real_k.rows(); ++i)
+        for (int j = 0; j < real_k.cols(); ++j)
+            out(i, j) = std::sqrt(real_k(i, j) * real_k(i, j) + imag_k(i, j) * imag_k(i, j));
+    return out;
 }
 
 // ===================================================================
@@ -147,26 +150,23 @@ gabor_energy(const GaborParams<Scalar>& params, int size)
 // ===================================================================
 
 template <typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-convolve2d(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& image,
-           const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& kernel)
+matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
+           const matrix::DenseMatrix& kernel)
 {
-    using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-
-    const Eigen::Index ir = image.rows(), ic = image.cols();
-    const Eigen::Index kr = kernel.rows(), kc = kernel.cols();
-
+    int ir = image.rows(), ic = image.cols();
+    int kr = kernel.rows(), kc = kernel.cols();
     if (kr > ir || kc > ic)
         throw std::invalid_argument("convolve2d: kernel larger than image");
-
-    const Eigen::Index or_ = ir - kr + 1;
-    const Eigen::Index oc  = ic - kc + 1;
-    MatrixT out(static_cast<int>(or_), static_cast<int>(oc));
-
+    int or_ = ir - kr + 1;
+    int oc  = ic - kc + 1;
+    matrix::DenseMatrix out(or_, oc);
     for (int j = 0; j < or_; ++j) {
         for (int i = 0; i < oc; ++i) {
-            out(j, i) = (image.block(j, i, kr, kc).array() *
-                         kernel.array()).sum();
+            double sum = 0.0;
+            for (int u = 0; u < kr; ++u)
+                for (int v = 0; v < kc; ++v)
+                    sum += image(j + u, i + v) * kernel(u, v);
+            out(j, i) = sum;
         }
     }
     return out;
@@ -177,20 +177,18 @@ convolve2d(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& image,
 // ===================================================================
 
 template <typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-convolve2d_same(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& image,
-                const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& kernel)
+matrix::DenseMatrix convolve2d_same(const matrix::DenseMatrix& image,
+                const matrix::DenseMatrix& kernel)
 {
-    using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
-
-    const Eigen::Index ir = image.rows(), ic = image.cols();
-    const Eigen::Index kr = kernel.rows(), kc = kernel.cols();
-    const Eigen::Index pad_r = kr / 2, pad_c = kc / 2;
-
-    MatrixT padded = MatrixT::Zero(ir + 2 * pad_r, ic + 2 * pad_c);
-    padded.block(pad_r, pad_c, ir, ic) = image;
-
-    return convolve2d(padded, kernel);
+    int ir = image.rows(), ic = image.cols();
+    int kr = kernel.rows(), kc = kernel.cols();
+    int pad_r = kr / 2, pad_c = kc / 2;
+    matrix::DenseMatrix padded(ir + 2 * pad_r, ic + 2 * pad_c);
+    padded.setZero();
+    for (int i = 0; i < ir; ++i)
+        for (int j = 0; j < ic; ++j)
+            padded(i + pad_r, j + pad_c) = image(i, j);
+    return convolve2d<Scalar>(padded, kernel);
 }
 
 // ===================================================================
@@ -286,13 +284,18 @@ GaborFilterBank<Scalar>::apply(const MatrixT& image, bool same) const {
 }
 
 template <typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, 1>
-GaborFilterBank<Scalar>::mean_response(const MatrixT& image, bool same) const {
+matrix::DenseMatrix GaborFilterBank<Scalar>::mean_response(const MatrixT& image, bool same) const {
     auto responses = apply(image, same);
-    const Eigen::Index n_resp = static_cast<Eigen::Index>(responses.size());
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> out(static_cast<int>(n_resp));
-    for (Eigen::Index i = 0; i < n_resp; ++i) {
-        out(static_cast<int>(i)) = responses[static_cast<size_t>(i)].array().abs().mean();
+    int n_resp = static_cast<int>(responses.size());
+    matrix::DenseMatrix out(n_resp, 1);
+    for (int i = 0; i < n_resp; ++i) {
+        double sum = 0.0;
+        int count = 0;
+                std::cout << "responses[" << i << "] type: " << typeid(responses[i]).name() << std::endl;
+                for (size_t r = 0; r < responses[i].rows(); ++r)
+                    for (size_t c = 0; c < responses[i].cols(); ++c, ++count)
+                        sum += std::abs(responses[i].at(r, c));
+        out(i, 0) = (count > 0) ? sum / count : 0.0;
     }
     return out;
 }
@@ -319,8 +322,17 @@ GaborFilterBank<Scalar>::apply_energy(const MatrixT& image, bool same) const {
             imag_resp = convolve2d(image, imag_k);
         }
 
-        responses.push_back(
-            (real_resp.array().square() + imag_resp.array().square()).sqrt().matrix());
+        // Elementwise sqrt(real^2 + imag^2) for DenseMatrix
+        MatrixT energy(real_resp.rows(), real_resp.cols());
+        for (int r = 0; r < real_resp.rows(); ++r) {
+            for (int c = 0; c < real_resp.cols(); ++c) {
+                double val = std::sqrt(
+                    real_resp.at(r, c) * real_resp.at(r, c) +
+                    imag_resp.at(r, c) * imag_resp.at(r, c));
+                energy.at(r, c) = val;
+            }
+        }
+        responses.push_back(energy);
     }
     return responses;
 }
@@ -340,26 +352,10 @@ std::string GaborFilterBank<Scalar>::to_string() const {
 
 // ===================================================================
 // Explicit template instantiations
-// ===================================================================
-
+template struct GaborParams<float>;
+// Explicit template instantiations for mytrix/matrix::DenseMatrix only
 template struct GaborParams<float>;
 template struct GaborParams<double>;
-
-template Eigen::MatrixXf gabor_kernel<float>(const GaborParams<float>&, int, bool);
-template Eigen::MatrixXd gabor_kernel<double>(const GaborParams<double>&, int, bool);
-
-template Eigen::MatrixXf gabor_kernel_imaginary<float>(const GaborParams<float>&, int, bool);
-template Eigen::MatrixXd gabor_kernel_imaginary<double>(const GaborParams<double>&, int, bool);
-
-template Eigen::MatrixXf gabor_energy<float>(const GaborParams<float>&, int);
-template Eigen::MatrixXd gabor_energy<double>(const GaborParams<double>&, int);
-
-template Eigen::MatrixXf convolve2d<float>(const Eigen::MatrixXf&, const Eigen::MatrixXf&);
-template Eigen::MatrixXd convolve2d<double>(const Eigen::MatrixXd&, const Eigen::MatrixXd&);
-
-template Eigen::MatrixXf convolve2d_same<float>(const Eigen::MatrixXf&, const Eigen::MatrixXf&);
-template Eigen::MatrixXd convolve2d_same<double>(const Eigen::MatrixXd&, const Eigen::MatrixXd&);
-
 template class GaborFilterBank<float>;
 template class GaborFilterBank<double>;
 

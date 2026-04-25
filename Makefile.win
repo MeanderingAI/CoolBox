@@ -3,7 +3,7 @@
 #
 # This Makefile auto-detects the latest installed Visual Studio version for CMake.
 # You can override it by setting VS_GENERATOR, for example:
-#   set VS_GENERATOR=Visual Studio 17 2022
+#   set vs_GENERATOR=Visual Studio 17 2022
 
 POWERSHELL := powershell -NoProfile -NonInteractive
 POWERSHELL_BYPASS := powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass
@@ -26,7 +26,8 @@ WINDOWS_SIGN_CERT_INSTALL_TO_TRUSTED_PEOPLE ?= 0
 	build_libraries_security build_libraries_misc build_libraries_graphics \
 	build_libraries_electronics build_% sign_windows_artifacts download_latest_windows_sdk install_latest_windows_sdk generate_windows_signing_cert \
 	test test-% test_logged test_local_pipeline install clean completion \
-	worksplace_editor run_worksplace_editor file_browser run_file_browser
+	worksplace_editor run_worksplace_editor file_browser run_file_browser \
+	body_generator_ui run_body_generator_ui
 
 help:
 	@$(POWERSHELL) -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure                     Configure CMake"; Write-Host "  make -f Makefile.win build                         Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME                    Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries               Build the configured libraries"; Write-Host "  make -f Makefile.win sign_windows_artifacts        Sign Release .exe/.dll outputs when a cert is configured"; Write-Host "  make -f Makefile.win download_latest_windows_sdk   Download the latest Windows SDK installer or ISO"; Write-Host "  make -f Makefile.win install_latest_windows_sdk    Download and install the latest Windows SDK"; Write-Host "  make -f Makefile.win generate_windows_signing_cert Generate a self-signed Windows code-signing cert"; Write-Host "  make -f Makefile.win worksplace_editor             Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor         Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser                  Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser              Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                          Build and run CTest"; Write-Host "  make -f Makefile.win test_logged                   Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win test_local_pipeline           Run local build-libs pipelines for supported backends"; Write-Host "  make -f Makefile.win install                       Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                         Remove build/ and lib/"; Write-Host ""'
@@ -68,6 +69,12 @@ file_browser: configure
 
 run_file_browser: file_browser
 	@$(POWERSHELL) -Command '$$exe = Join-Path (Resolve-Path .) "build\_Product\file_browser\Debug\file_browser.exe"; if (-not (Test-Path $$exe)) { Write-Host "[Makefile.win] file_browser executable not found:" $$exe; exit 1 }; Write-Host "[Makefile.win] Launching" $$exe; Start-Process -FilePath $$exe'
+
+body_generator_ui: configure
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building body_generator_ui product..."; cmake --build build --target body_generator_ui --config Debug; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] body_generator_ui build complete."'
+
+run_body_generator_ui: body_generator_ui
+	@$(POWERSHELL) -Command '$$exe = Join-Path (Resolve-Path .) "build\_Product\body_generator\Debug\body_generator_ui.exe"; if (-not (Test-Path $$exe)) { Write-Host "[Makefile.win] body_generator_ui executable not found:" $$exe; exit 1 }; Write-Host "[Makefile.win] Launching" $$exe; Start-Process -FilePath $$exe'
 
 test: build_libraries
 	@$(POWERSHELL) -Command "Write-Host '[Makefile.win] Running tests...'; if (-not (Test-Path 'build/CTestTestfile.cmake')) { Write-Host '[Makefile.win] CTest was not generated. Tests were likely skipped during configure.'; exit 1 }; Push-Location build; try { ctest --output-on-failure --build-config Release } finally { Pop-Location }"

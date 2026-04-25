@@ -1,0 +1,88 @@
+name: generate_purchase_c
+
+on:
+  workflow_call:
+    inputs:
+      build_libs_run_id:
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: generate-purchase-c-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate_purchase_c:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PLATFORM: linux-x86_64
+    steps:
+      - uses: ./.github/workflows/fragments/purchase-checkout.yaml
+      - uses: ./.github/workflows/fragments/purchase-install-native-build-tooling.yaml
+      - uses: ./.github/workflows/fragments/purchase-configure-c-bindings.yaml
+      - uses: ./.github/workflows/fragments/purchase-build-c-bindings.yaml
+      - uses: ./.github/workflows/fragments/purchase-list-configured-tests.yaml
+      - uses: ./.github/workflows/fragments/purchase-package-c-bindings-tests.yaml
+
+      - name: Test C bindings
+        run: |
+          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+
+      - name: Generate C binding docs
+        run: |
+          rm -rf _libraries/c_bindings/target
+          bash _libraries/c_bindings/generate_docs.sh
+
+      - name: Stage C bindings package
+        run: |
+          rm -rf release-assets staging-c
+          mkdir -p release-assets staging-c/include staging-c/lib
+          cp -R _libraries/c_bindings/include/. staging-c/include/
+          cp -R _libraries/c_bindings/target/. staging-c/
+          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c/lib/ \;
+          tar -C staging-c -czf release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            staging-c release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip
+
+      - name: Finalize C release assets
+        uses: ./.github/actions/finalize-purchase-assets
+        with:
+          assets_dir: release-assets
+          ref_name: ${{ github.ref_name }}
+          platform: ${{ env.PLATFORM }}
+          workflow_name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          commit_sha: ${{ github.sha }}
+          run_id: ${{ github.run_id }}
+          run_attempt: ${{ github.run_attempt }}
+
+      - name: Upload C archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: c-extension-${{ env.PLATFORM }}-${{ github.ref_name }}
+          path: |
+            release-assets/coolbox-c-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.tar.gz
+            release-assets/coolbox-c-bindings-${{ env.PLATFORM }}-${{ github.ref_name }}.zip
+            release-assets/manifest.txt
+            release-assets/SHA256SUMS
+          retention-days: 14
+
+      - name: Attach C archives to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz \
+            release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip \
+            release-assets/manifest.txt#coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.manifest.txt \
+            release-assets/SHA256SUMS#coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.SHA256SUMS \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

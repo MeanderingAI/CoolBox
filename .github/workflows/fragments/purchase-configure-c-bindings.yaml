@@ -1,0 +1,5 @@
+# Configure C bindings for generate_purchase_c
+steps:
+  - name: Configure C bindings
+    run: |
+      cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON

@@ -3,7 +3,8 @@
 
 #include <vector>
 #include <iostream>
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
+// All matrix/vector types now use mytrix::Matrix, mytrix::Vector, etc.
 #include "kernel.h"
 
 class SVM {

@@ -51,8 +51,8 @@ struct SVMHandle {
     std::unique_ptr<SVM> model;
 };
 
-Eigen::MatrixXd to_eigen_matrix(const Rcpp::NumericMatrix& x) {
-    Eigen::MatrixXd out(x.nrow(), x.ncol());
+mytrix::Matrix to_mytrix_matrix(const Rcpp::NumericMatrix& x) {
+    mytrix::Matrix out(x.nrow(), x.ncol());
     for (int i = 0; i < x.nrow(); ++i) {
         for (int j = 0; j < x.ncol(); ++j) {
             out(i, j) = x(i, j);
@@ -61,37 +61,37 @@ Eigen::MatrixXd to_eigen_matrix(const Rcpp::NumericMatrix& x) {
     return out;
 }
 
-Eigen::VectorXd to_eigen_vector(const Rcpp::NumericVector& x) {
-    Eigen::VectorXd out(x.size());
+mytrix::Vector to_mytrix_vector(const Rcpp::NumericVector& x) {
+    mytrix::Vector out(x.size());
     for (int i = 0; i < x.size(); ++i) {
         out(i) = x[i];
     }
     return out;
 }
 
-Rcpp::NumericMatrix to_numeric_matrix(const Eigen::MatrixXd& x) {
+Rcpp::NumericMatrix to_numeric_matrix(const mytrix::Matrix& x) {
     Rcpp::NumericMatrix out(x.rows(), x.cols());
-    for (Eigen::Index i = 0; i < x.rows(); ++i) {
-        for (Eigen::Index j = 0; j < x.cols(); ++j) {
+    for (mytrix::Index i = 0; i < x.rows(); ++i) {
+        for (mytrix::Index j = 0; j < x.cols(); ++j) {
             out(i, j) = x(i, j);
         }
     }
     return out;
 }
 
-Rcpp::IntegerMatrix to_integer_matrix(const Eigen::MatrixXi& x, bool one_based = false) {
+Rcpp::IntegerMatrix to_integer_matrix(const mytrix::MatrixI& x, bool one_based = false) {
     Rcpp::IntegerMatrix out(x.rows(), x.cols());
-    for (Eigen::Index i = 0; i < x.rows(); ++i) {
-        for (Eigen::Index j = 0; j < x.cols(); ++j) {
+    for (mytrix::Index i = 0; i < x.rows(); ++i) {
+        for (mytrix::Index j = 0; j < x.cols(); ++j) {
             out(i, j) = static_cast<int>(x(i, j)) + (one_based ? 1 : 0);
         }
     }
     return out;
 }
 
-Rcpp::NumericVector to_numeric_vector(const Eigen::VectorXd& x) {
+Rcpp::NumericVector to_numeric_vector(const mytrix::Vector& x) {
     Rcpp::NumericVector out(x.size());
-    for (Eigen::Index i = 0; i < x.size(); ++i) {
+    for (mytrix::Index i = 0; i < x.size(); ++i) {
         out(i) = x(i);
     }
     return out;
@@ -125,8 +125,8 @@ std::vector<std::vector<int>> to_int_sequences(const Rcpp::List& sequences) {
     return out;
 }
 
-std::vector<Eigen::MatrixXd> to_matrix_list(const Rcpp::List& matrices) {
-    std::vector<Eigen::MatrixXd> out;
+std::vector<mytrix::Matrix> to_matrix_list(const Rcpp::List& matrices) {
+    std::vector<mytrix::Matrix> out;
     out.reserve(matrices.size());
     for (int i = 0; i < matrices.size(); ++i) {
         out.push_back(to_eigen_matrix(Rcpp::as<Rcpp::NumericMatrix>(matrices[i])));
@@ -303,7 +303,7 @@ extern "C" SEXP _coolboxr_predict_svm(SEXP ptrSEXP, SEXP newdataSEXP) {
     Rcpp::NumericVector predictions(newdata.nrow());
 
     for (int i = 0; i < newdata.nrow(); ++i) {
-        Eigen::VectorXd sample(newdata.ncol());
+        mytrix::Vector sample(newdata.ncol());
         for (int j = 0; j < newdata.ncol(); ++j) {
             sample(j) = newdata(i, j);
         }
@@ -851,7 +851,7 @@ extern "C" SEXP _coolboxr_knn_kneighbors(SEXP ptrSEXP, SEXP matrixSEXP) {
     BEGIN_RCPP
 
     Rcpp::XPtr<dimensionality_reduction::KNN> model(ptrSEXP);
-    std::pair<Eigen::MatrixXi, Eigen::MatrixXd> result;
+    std::pair<mytrix::MatrixI, mytrix::Matrix> result;
     if (Rf_isNull(matrixSEXP)) {
         result = model->kneighbors();
     } else {

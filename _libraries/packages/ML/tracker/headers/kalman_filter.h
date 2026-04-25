@@ -1,66 +1,37 @@
+// KalmanFilter header cleaned up for DenseMatrix/my_vector only
 #ifndef KALMAN_FILTER_H
 #define KALMAN_FILTER_H
 
-#include "mytrix_eigen_compat.hpp"
+#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
 #include "base_kalman_filter.h"
+#include <vector>
 
 class KalmanFilter : public BaseKalmanFilter {
-public:/**
-     * @brief Constructor for the Kalman Filter.
-     * @param dt Time step (e.g., in seconds).
-     * @param A State transition matrix.
-     * @param C Observation matrix.
-     * @param Q Process noise covariance matrix.
-     * @param R Measurement noise covariance matrix.
-     * @param P Initial estimate error covariance matrix.
-     */
+public:
+    using Vector = mytrix::Vector;
+    using Matrix = mytrix::Matrix;
+
     KalmanFilter(double dt,
-                 const Eigen::MatrixXd& A,
-                 const Eigen::MatrixXd& C,
-                 const Eigen::MatrixXd& Q,
-                 const Eigen::MatrixXd& R,
-                 const Eigen::MatrixXd& P);
-                 
-    /**
-     * @brief Initializes the filter with an initial state and time step.
-     * @param x0 Initial state vector.
-     */
-    void init(const Eigen::VectorXd& x0);
+                 const Matrix& A,
+                 const Matrix& C,
+                 const Matrix& Q,
+                 const Matrix& R,
+                 const Matrix& P);
 
-    /**
-     * @brief Predicts the next state.
-     */
+    void init(const Vector& x0);
     void predict() override;
+    void update(const Vector& y) override;
+    const Vector& state() const override;
+    const Matrix& covariance() const override;
 
-    /**
-     * @brief Updates the state with a new measurement.
-     * @param y Measurement vector.
-     */
-    void update(const Eigen::VectorXd& y) override;
-
-    /**
-     * @brief Returns the current state estimate.
-     */
-    const Eigen::VectorXd& state() const override;
-
-
-    /**
-     * @brief Returns the current state estimate.
-     */
-    const Eigen::MatrixXd& covariance() const override;
 private:
-    // Time step
     double dt;
-
-    // State vectors
-    Eigen::VectorXd x; // state vector
-    Eigen::MatrixXd P; // estimate error covariance
-
-    // System matrices
-    Eigen::MatrixXd A; // state transition matrix
-    Eigen::MatrixXd C; // observation matrix
-    Eigen::MatrixXd Q; // process noise covariance
-    Eigen::MatrixXd R; // measurement noise covariance
+    Vector x;
+    Matrix P;
+    Matrix A;
+    Matrix C;
+    Matrix Q;
+    Matrix R;
 };
 
 #endif // KALMAN_FILTER_H

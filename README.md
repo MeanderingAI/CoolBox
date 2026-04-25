@@ -195,7 +195,7 @@ Comprehensive suite of dimensionality reduction algorithms for feature extractio
    - Superior to t-SNE for many applications
    - Applications: visualization, cluster analysis, anomaly detection
 
-**Example (C++ with Eigen):**
+**Example (C++ with mytrix):**
 
 ```cpp
 #include "dimensionality_reduction/pca.h"
@@ -203,10 +203,10 @@ Comprehensive suite of dimensionality reduction algorithms for feature extractio
 #include "dimensionality_reduction/umap.h"
 
 // PCA for linear dimensionality reduction
-Eigen::MatrixXd X = /* your data (n_samples x n_features) */;
+mytrix::Matrix X = /* your data (n_samples x n_features) */;
 PCA pca(10, true, false);  // 10 components, center=true, scale=false
 pca.fit(X);
-Eigen::MatrixXd X_pca = pca.transform(X);
+mytrix::Matrix X_pca = pca.transform(X);
 
 // KNN for nearest neighbor queries
 KNN knn(15, "euclidean");  // k=15 neighbors
@@ -216,7 +216,7 @@ auto [indices, distances] = knn.kneighbors();
 // UMAP for non-linear manifold learning
 UMAP umap(2, 15, 0.1, "euclidean", 1.0, 200, 42);
 // n_components=2, n_neighbors=15, min_dist=0.1
-Eigen::MatrixXd X_umap = umap.fit_transform(X);
+mytrix::Matrix X_umap = umap.fit_transform(X);
 ```
 
 **Key Differences:**

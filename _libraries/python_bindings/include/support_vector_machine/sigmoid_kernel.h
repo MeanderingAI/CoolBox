@@ -2,7 +2,8 @@
 #define SIGMOID_KERNEL_H
 
 #include "kernel.h"
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
+// All matrix/vector types now use mytrix::Matrix, mytrix::Vector, etc.
 
 class SigmoidKernel : public Kernel {
 public:

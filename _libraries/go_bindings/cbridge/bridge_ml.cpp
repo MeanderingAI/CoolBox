@@ -75,33 +75,33 @@ int run_bridge_call(char** error_message, Callback&& callback) {
     }
 }
 
-Eigen::MatrixXd matrix_from_row_major(const double* flat_values, std::size_t rows, std::size_t cols) {
+mytrix::Matrix matrix_from_row_major(const double* flat_values, std::size_t rows, std::size_t cols) {
     if (flat_values == nullptr && rows * cols != 0) {
         throw std::invalid_argument("input matrix buffer is null");
     }
 
-    Eigen::MatrixXd matrix(static_cast<Eigen::Index>(rows), static_cast<Eigen::Index>(cols));
+    mytrix::Matrix matrix(static_cast<mytrix::Index>(rows), static_cast<mytrix::Index>(cols));
     for (std::size_t row = 0; row < rows; ++row) {
         for (std::size_t col = 0; col < cols; ++col) {
-            matrix(static_cast<Eigen::Index>(row), static_cast<Eigen::Index>(col)) = flat_values[row * cols + col];
+            matrix(static_cast<mytrix::Index>(row), static_cast<mytrix::Index>(col)) = flat_values[row * cols + col];
         }
     }
     return matrix;
 }
 
-Eigen::VectorXd vector_from_buffer(const double* values, std::size_t count) {
+mytrix::Vector vector_from_buffer(const double* values, std::size_t count) {
     if (values == nullptr && count != 0) {
         throw std::invalid_argument("input vector buffer is null");
     }
 
-    Eigen::VectorXd vector(static_cast<Eigen::Index>(count));
+    mytrix::Vector vector(static_cast<mytrix::Index>(count));
     for (std::size_t index = 0; index < count; ++index) {
-        vector(static_cast<Eigen::Index>(index)) = values[index];
+        vector(static_cast<mytrix::Index>(index)) = values[index];
     }
     return vector;
 }
 
-void copy_matrix_to_row_major(const Eigen::MatrixXd& matrix, double* out_values, std::size_t out_count) {
+void copy_matrix_to_row_major(const mytrix::Matrix& matrix, double* out_values, std::size_t out_count) {
     const std::size_t required = static_cast<std::size_t>(matrix.rows()) * static_cast<std::size_t>(matrix.cols());
     if (required == 0) {
         return;
@@ -113,14 +113,14 @@ void copy_matrix_to_row_major(const Eigen::MatrixXd& matrix, double* out_values,
         throw std::invalid_argument("output matrix buffer is too small");
     }
 
-    for (Eigen::Index row = 0; row < matrix.rows(); ++row) {
-        for (Eigen::Index col = 0; col < matrix.cols(); ++col) {
+    for (mytrix::Index row = 0; row < matrix.rows(); ++row) {
+        for (mytrix::Index col = 0; col < matrix.cols(); ++col) {
             out_values[static_cast<std::size_t>(row) * static_cast<std::size_t>(matrix.cols()) + static_cast<std::size_t>(col)] = matrix(row, col);
         }
     }
 }
 
-void copy_vector_to_buffer(const Eigen::VectorXd& vector, double* out_values, std::size_t out_count) {
+void copy_vector_to_buffer(const mytrix::Vector& vector, double* out_values, std::size_t out_count) {
     const std::size_t required = static_cast<std::size_t>(vector.size());
     if (required == 0) {
         return;
@@ -132,7 +132,7 @@ void copy_vector_to_buffer(const Eigen::VectorXd& vector, double* out_values, st
         throw std::invalid_argument("output vector buffer is too small");
     }
 
-    for (Eigen::Index index = 0; index < vector.size(); ++index) {
+    for (mytrix::Index index = 0; index < vector.size(); ++index) {
         out_values[static_cast<std::size_t>(index)] = vector(index);
     }
 }

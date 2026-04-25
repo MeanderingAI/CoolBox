@@ -51,7 +51,7 @@
 
 #include <vector>
 #include <iostream>
-#include "mytrix_eigen_compat.hpp"
+#include "matrix_dense.h"
 #include "kernel.h"
 
 class SVM {
@@ -59,13 +59,14 @@ public:
     SVM(const Kernel& kernel);
     ~SVM() = default;
 
-    void fit(const Eigen::MatrixXd& X, const Eigen::VectorXd& y);
-    double predict(const Eigen::VectorXd& sample) const;
+    enum class SolverType { GradientDescent, SMO };
+    void fit(const matrix::DenseMatrix& X, const matrix::DenseMatrix& y, SolverType solver = SolverType::SMO);
+    double predict(const matrix::DenseMatrix& sample) const;
 
 private:
-    Eigen::MatrixXd support_vectors_;
-    Eigen::VectorXd support_vector_labels_;
-    Eigen::VectorXd alphas_;
+    matrix::DenseMatrix support_vectors_;
+    std::vector<double> support_vector_labels_;
+    std::vector<double> alphas_;
     double bias_;
     const Kernel& kernel_;
 };

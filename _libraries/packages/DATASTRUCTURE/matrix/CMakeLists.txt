@@ -7,15 +7,7 @@ add_library(mytrix SHARED
 target_include_directories(mytrix PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_compile_features(mytrix PUBLIC cxx_std_17)
 
-if(NOT TARGET Eigen3::Eigen AND NOT TARGET eigen)
-    find_package(Eigen3 QUIET)
-endif()
-
-if(TARGET Eigen3::Eigen)
-    target_link_libraries(mytrix PUBLIC Eigen3::Eigen)
-elseif(TARGET eigen)
-    target_link_libraries(mytrix PUBLIC eigen)
-endif()
+## Eigen removed: mytrix is now standalone
 
 # Optionally link OpenCL/CUDA if available (stubbed for now)
 find_package(Threads REQUIRED)

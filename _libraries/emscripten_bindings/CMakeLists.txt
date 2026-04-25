@@ -7,7 +7,7 @@ get_filename_component(COOLBOX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE
 # Option to control MODULARIZE
 option(EMSCRIPTEN_MODULARIZE "Build with MODULARIZE=1" ON)
 
-# Fetch Eigen (needed by curcuitry/circuit_solver)
+# Fetch Eigen (needed by circuitry/circuit_solver)
 include(FetchContent)
 FetchContent_Declare(
     eigen
@@ -15,12 +15,12 @@ FetchContent_Declare(
     GIT_TAG        3.4.0
     GIT_SHALLOW    TRUE
 )
-set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(eigen)
-
-# ── advanced_logging source (compiled directly for Emscripten) ──────
-set(ADV_LOG_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/IO/advanced_logging")
+        mytrix
+        GIT_REPOSITORY https://example.com/mytrix.git
+        GIT_TAG        master
+        GIT_SHALLOW    TRUE
+    )
+    set(MYTRIX_BUILD_DOC OFF CACHE BOOL "" FORCE)
 
 add_executable(advanced_logging_js
     advanced_logging_bindings.cpp
@@ -34,7 +34,7 @@ target_include_directories(advanced_logging_js PRIVATE
 
 # Emscripten-specific flags
 if(EMSCRIPTEN)
-    set_target_properties(advanced_logging_js PROPERTIES
+        target_link_libraries(circuitry_js PRIVATE mytrix)
         OUTPUT_NAME "advanced_logging"
         SUFFIX ".js"
     )
@@ -54,32 +54,32 @@ else()
     message(WARNING "Not building with Emscripten — JS output will not be produced.")
 endif()
 
-# ── curcuitry bindings ──────────────────────────────────────────────
-set(CURCUITRY_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/ELECTRONICS/curcuitry")
+ # ── circuitry bindings ──────────────────────────────────────────────
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/curcuitry_bindings.cpp")
-    add_executable(curcuitry_js
-        curcuitry_bindings.cpp
-        ${CURCUITRY_SRC_DIR}/src/circuit.cpp
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/circuitry_bindings.cpp")
+    add_executable(circuitry_js
+        circuitry_bindings.cpp
+
     )
-    target_include_directories(curcuitry_js PRIVATE
+    target_include_directories(circuitry_js PRIVATE
         ${COOLBOX_ROOT}/_libraries/include
-        ${CURCUITRY_SRC_DIR}/include
+
     )
-    target_link_libraries(curcuitry_js PRIVATE Eigen3::Eigen)
+    target_link_libraries(circuitry_js PRIVATE Eigen3::Eigen)
     if(EMSCRIPTEN)
-        set_target_properties(curcuitry_js PROPERTIES
-            OUTPUT_NAME "curcuitry"
+        set_target_properties(circuitry_js PROPERTIES
+            OUTPUT_NAME "circuitry"
             SUFFIX ".js"
         )
         if(EMSCRIPTEN_MODULARIZE)
-            target_link_options(curcuitry_js PRIVATE
+            target_link_options(circuitry_js PRIVATE
                 "SHELL:-s MODULARIZE=1"
-                "SHELL:-s EXPORT_NAME='createCurcuitryModule'"
+                "SHELL:-s EXPORT_NAME='createCircuitryModule'"
                 "--bind"
             )
         else()
-            target_link_options(curcuitry_js PRIVATE "--bind")
+            target_link_options(circuitry_js PRIVATE "--bind")
         endif()
     endif()
 endif()
@@ -90,17 +90,17 @@ set(BATTERY_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/ELECTRONICS/battery")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
     add_executable(battery_js
         battery_bindings.cpp
-    )
+        target_link_libraries(decision_tree_js PRIVATE mytrix)
     target_include_directories(battery_js PRIVATE
         ${COOLBOX_ROOT}/_libraries/include
         ${BATTERY_SRC_DIR}/include
-        ${CURCUITRY_SRC_DIR}/include
+
         ${COOLBOX_ROOT}/_libraries/packages/CHEMISTRY/include
     )
     if(EMSCRIPTEN)
         set_target_properties(battery_js PROPERTIES
             OUTPUT_NAME "battery"
-            SUFFIX ".js"
+        target_link_libraries(hidden_markov_model_js PRIVATE mytrix)
         )
         if(EMSCRIPTEN_MODULARIZE)
             target_link_options(battery_js PRIVATE
@@ -110,7 +110,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_bindings.cpp")
             )
         else()
             target_link_options(battery_js PRIVATE "--bind")
-        endif()
+        target_link_libraries(distribution_js PRIVATE mytrix)
     endif()
 endif()
 
@@ -120,7 +120,7 @@ set(DS_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/DATASTRUCTURE")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data_structures_bindings.cpp")
     add_executable(data_structures_js
         data_structures_bindings.cpp
-        ${DS_SRC_DIR}/trees/source/binary_search_tree.cpp
+        target_link_libraries(glm_js PRIVATE mytrix)
         ${DS_SRC_DIR}/list/source/linked_list.cpp
         ${DS_SRC_DIR}/maps/source/hash_map.cpp
     )
@@ -137,7 +137,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data_structures_bindings.cpp")
             SUFFIX ".js"
         )
         if(EMSCRIPTEN_MODULARIZE)
-            target_link_options(data_structures_js PRIVATE
+        target_link_libraries(deep_learning_js PRIVATE mytrix)
                 "SHELL:-s MODULARIZE=1"
                 "SHELL:-s EXPORT_NAME='createDataStructuresModule'"
                 "--bind"
@@ -147,7 +147,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data_structures_bindings.cpp")
         endif()
     endif()
 endif()
-
+        target_link_libraries(svm_js PRIVATE mytrix)
 # ── gabor_patches bindings ──────────────────────────────────────────
 set(GP_SRC_DIR "${COOLBOX_ROOT}/_libraries/packages/ML/gabor_patches")
 
@@ -161,7 +161,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gabor_patches_bindings.cpp")
             ${COOLBOX_ROOT}/_libraries/packages/DATASTRUCTURE/matrix/headers
             ${COOLBOX_ROOT}/_libraries/include
     )
-    target_link_libraries(gabor_patches_js PRIVATE Eigen3::Eigen)
+    # Eigen removed: use mytrix only
     if(EMSCRIPTEN)
         set_target_properties(gabor_patches_js PROPERTIES
             OUTPUT_NAME "gabor_patches"

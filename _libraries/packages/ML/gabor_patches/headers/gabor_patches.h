@@ -40,6 +40,7 @@
  */
 #pragma once
 
+
 #include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include <cmath>
@@ -47,6 +48,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -87,40 +89,35 @@ struct GaborParams {
  * @param normalize If true the kernel is L2-normalised.
  */
 template <typename Scalar = double>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-gabor_kernel(const GaborParams<Scalar>& params, int size = 0,
+matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size = 0,
              bool normalize = false);
 
 /**
  * @brief Generate the imaginary (sine) part of the Gabor function.
  */
 template <typename Scalar = double>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size = 0,
+matrix::DenseMatrix gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size = 0,
                        bool normalize = false);
 
 /**
  * @brief Gabor energy: sqrt(real² + imag²) per pixel.
  */
 template <typename Scalar = double>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-gabor_energy(const GaborParams<Scalar>& params, int size = 0);
+matrix::DenseMatrix gabor_energy(const GaborParams<Scalar>& params, int size = 0);
 
 /**
  * @brief 2-D convolution with valid padding.
  */
 template <typename Scalar = double>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-convolve2d(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& image,
-           const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& kernel);
+matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
+           const matrix::DenseMatrix& kernel);
 
 /**
  * @brief 2-D convolution with zero-padding (output same size as input).
  */
 template <typename Scalar = double>
-Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-convolve2d_same(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& image,
-                const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& kernel);
+matrix::DenseMatrix convolve2d_same(const matrix::DenseMatrix& image,
+                const matrix::DenseMatrix& kernel);
 
 // ===================================================================
 // Filter bank class
@@ -132,7 +129,7 @@ convolve2d_same(const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>& ima
 template <typename Scalar = double>
 class GaborFilterBank {
 public:
-    using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+    using MatrixT = matrix::DenseMatrix;
 
     GaborFilterBank() = default;
 
@@ -151,8 +148,7 @@ public:
 
     // Apply
     std::vector<MatrixT> apply(const MatrixT& image, bool same = true) const;
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1>
-    mean_response(const MatrixT& image, bool same = true) const;
+    matrix::DenseMatrix mean_response(const MatrixT& image, bool same = true) const;
     std::vector<MatrixT> apply_energy(const MatrixT& image, bool same = true) const;
 
     // Accessors

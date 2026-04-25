@@ -589,19 +589,20 @@ plt.tight_layout()
 plt.show()
 ```
 
-### SVD / PCA (C++ / Eigen guidance)
 
-If you need to perform SVD or PCA in native code (for speed or integration with other C++ components), Eigen provides efficient SVD implementations. Below is a short C++ pattern you can reuse inside the C++ codebase before exposing results to Python:
+### SVD / PCA (C++ / mytrix guidance)
+
+If you need to perform SVD or PCA in native code (for speed or integration with other C++ components), mytrix provides efficient SVD implementations. Below is a short C++ pattern you can reuse inside the C++ codebase before exposing results to Python:
 
 ```cpp
 // Center the data matrix (rows = samples, columns = features)
-Eigen::MatrixXd Xc = X.rowwise() - X.colwise().mean().transpose();
+mytrix::Matrix Xc = X.rowwise() - X.colwise().mean().transpose();
 
 // Compute thin SVD
-Eigen::BDCSVD<Eigen::MatrixXd> svd(Xc, Eigen::ComputeThinU | Eigen::ComputeThinV);
-Eigen::MatrixXd U = svd.matrixU();
-Eigen::VectorXd S = svd.singularValues();
-Eigen::MatrixXd V = svd.matrixV();
+mytrix::SVD svd(Xc, mytrix::ComputeThinU | mytrix::ComputeThinV);
+mytrix::Matrix U = svd.matrixU();
+mytrix::Vector S = svd.singularValues();
+mytrix::Matrix V = svd.matrixV();
 
 // Project to k components: scores = Xc * V.leftCols(k)
 ```

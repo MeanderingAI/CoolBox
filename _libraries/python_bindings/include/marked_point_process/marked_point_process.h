@@ -1,7 +1,8 @@
 #ifndef MARKED_POINT_PROCESS_H
 #define MARKED_POINT_PROCESS_H
 
-#include <Eigen/Dense>
+#include "mytrix_eigen_compat.hpp"
+// All matrix/vector types now use mytrix::Matrix, mytrix::Vector, etc.
 #include <vector>
 #include <functional>
 #include <memory>

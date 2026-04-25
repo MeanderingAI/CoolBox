@@ -33,7 +33,7 @@ target_include_directories(coolboxbridge PRIVATE
   ${COOLBOX_REPO_ROOT}/_libraries/packages/ML/multi_arm_bandit/headers
   ${COOLBOX_REPO_ROOT}/_libraries/packages/DATASTRUCTURE/matrix/headers
   ${COOLBOX_REPO_ROOT}/_libraries/packages/MISC/metadata_management/headers
-  ${COOLBOX_REPO_ROOT}/build/eigen-src
+  # Eigen removed: use mytrix only
 )
 
 # Use optimized flags by default

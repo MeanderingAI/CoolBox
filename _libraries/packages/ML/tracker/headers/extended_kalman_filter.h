@@ -36,43 +36,44 @@
  * Eigen::MatrixXd Q_; ///< Process noise covariance
  * Eigen::MatrixXd R_; ///< Measurement noise covariance
  */
-#ifndef EXTENDED_KALMAN_FILTER_H
-#define EXTENDED_KALMAN_FILTER_H
+ #ifndef EXTENDED_KALMAN_FILTER_H
+ #define EXTENDED_KALMAN_FILTER_H
 
-#include "mytrix_eigen_compat.hpp"
-#include "base_kalman_filter.h"
+#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
+ #include "base_kalman_filter.h"
+ #include <vector>
+ #include <functional>
 
 class ExtendedKalmanFilter : public BaseKalmanFilter {
 public:
+    using Vector = mytrix::Vector;
+    using Matrix = mytrix::Matrix;
+
     ExtendedKalmanFilter(
-        const Eigen::VectorXd& x0,
-        const Eigen::MatrixXd& P0,
-        const Eigen::MatrixXd& Q,
-        const Eigen::MatrixXd& R
+        const Vector& x0,
+        const Matrix& P0,
+        const Matrix& Q,
+        const Matrix& R
     );
-    // Add setters for models
-    void setProcessModel(const std::function<Eigen::VectorXd(const Eigen::VectorXd&)>& f,
-                         const std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>& F);
+    void setProcessModel(const std::function<Vector(const Vector&)>& f,
+                         const std::function<Matrix(const Vector&)>& F);
 
-    void setMeasurementModel(const std::function<Eigen::VectorXd(const Eigen::VectorXd&)>& h,
-                             const std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>& H);
-
-
+    void setMeasurementModel(const std::function<Vector(const Vector&)>& h,
+                             const std::function<Matrix(const Vector&)>& H);
     void predict() override;
-    void update(const Eigen::VectorXd& z) override;
-
-    const Eigen::VectorXd& state() const override;
-    const Eigen::MatrixXd& covariance() const override;
+    void update(const Vector& z) override;
+    const Vector& state() const override;
+    const Matrix& covariance() const override;
 
 private:
-    std::function<Eigen::VectorXd(const Eigen::VectorXd&)> f_;
-    std::function<Eigen::MatrixXd(const Eigen::VectorXd&)> F_;
-    std::function<Eigen::VectorXd(const Eigen::VectorXd&)> h_;
-    std::function<Eigen::MatrixXd(const Eigen::VectorXd&)> H_;
-    Eigen::VectorXd x_;
-    Eigen::MatrixXd P_;
-    Eigen::MatrixXd Q_;
-    Eigen::MatrixXd R_;
+    Vector x_;
+    Matrix P_;
+    Matrix Q_;
+    Matrix R_;
+    std::function<Vector(const Vector&)> f_;
+    std::function<Matrix(const Vector&)> F_;
+    std::function<Vector(const Vector&)> h_;
+    std::function<Matrix(const Vector&)> H_;
 };
 
-#endif // EXTENDED_KALMAN_FILTER_H
+ #endif // EXTENDED_KALMAN_FILTER_H

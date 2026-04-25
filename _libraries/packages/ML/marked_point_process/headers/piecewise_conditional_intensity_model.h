@@ -1,7 +1,7 @@
 #ifndef PIECEWISE_CONDITIONAL_INTENSITY_MODEL_H
 #define PIECEWISE_CONDITIONAL_INTENSITY_MODEL_H
 
-#include "mytrix_eigen_compat.hpp"
+#include "../../../DATASTRUCTURE/matrix/headers/mytrix_eigen_compat.hpp"
 #include <vector>
 #include <functional>
 #include <memory>
@@ -42,7 +42,7 @@ public:
         double start_time;
         double end_time;
         IntensityType intensity_type;
-        Eigen::VectorXd parameters;  // Parameters for the intensity function
+        std::vector<double> parameters;  // Parameters for the intensity function
         
         TimeInterval(double start, double end, IntensityType type)
             : start_time(start), end_time(end), intensity_type(type) {}
@@ -101,7 +101,7 @@ public:
      */
     void fit_with_covariates(
         const std::vector<std::vector<double>>& event_times,
-        const std::vector<Eigen::MatrixXd>& covariates
+        const std::vector<matrix::DenseMatrix>& covariates
     );
 
     /**
@@ -125,7 +125,7 @@ public:
     double predict_intensity_with_covariates(
         double time,
         const std::vector<double>& history_times,
-        const Eigen::VectorXd& covariates
+        const std::vector<double>& covariates
     ) const;
 
     /**
@@ -157,21 +157,21 @@ public:
      * @param interval_index Index of the interval.
      * @return Parameter vector for that interval.
      */
-    Eigen::VectorXd get_interval_parameters(Eigen::Index interval_index) const;
+    std::vector<double> get_interval_parameters(int interval_index) const;
 
     /**
      * @brief Set parameters for a specific interval.
      * @param interval_index Index of the interval.
      * @param parameters Parameter vector to set.
      */
-    void set_interval_parameters(Eigen::Index interval_index, const Eigen::VectorXd& parameters);
+    void set_interval_parameters(int interval_index, const std::vector<double>& parameters);
 
     /**
      * @brief Get the expected number of events in each interval.
      * @param event_times Event sequences to analyze.
      * @return Vector of expected counts per interval.
      */
-    Eigen::VectorXd get_expected_counts(
+    std::vector<double> get_expected_counts(
         const std::vector<std::vector<double>>& event_times
     ) const;
 
@@ -190,38 +190,38 @@ private:
     int max_iterations_;
 
     std::vector<TimeInterval> intervals_;
-    std::map<int, Eigen::VectorXd> interval_parameters_;
+    std::map<int, std::vector<double>> interval_parameters_;
 
     // Helper methods for different intensity types
     double compute_constant_intensity(
         double time,
-        const Eigen::VectorXd& params,
+        const std::vector<double>& params,
         const std::vector<double>& history_times
     ) const;
 
     double compute_linear_intensity(
         double time,
-        const Eigen::VectorXd& params,
+        const std::vector<double>& params,
         const std::vector<double>& history_times
     ) const;
 
     double compute_exponential_intensity(
         double time,
-        const Eigen::VectorXd& params,
+        const std::vector<double>& params,
         const std::vector<double>& history_times
     ) const;
 
     double compute_hawkes_intensity(
         double time,
-        const Eigen::VectorXd& params,
+        const std::vector<double>& params,
         const std::vector<double>& history_times
     ) const;
 
     double compute_cox_intensity(
         double time,
-        const Eigen::VectorXd& params,
+        const std::vector<double>& params,
         const std::vector<double>& history_times,
-        const Eigen::VectorXd& covariates
+        const std::vector<double>& covariates
     ) const;
 
     /**
@@ -229,7 +229,7 @@ private:
      * @param time The time point.
      * @return Index of the interval, or -1 if not found.
      */
-    Eigen::Index find_interval(double time) const;
+    int find_interval(double time) const;
 
     /**
      * @brief Initialize parameters for all intervals.
@@ -244,7 +244,7 @@ private:
      * @return Compensator value.
      */
     double compute_interval_compensator(
-        Eigen::Index interval_idx,
+        int interval_idx,
         const std::vector<double>& event_times,
         const std::vector<double>& all_history
     ) const;
@@ -256,7 +256,7 @@ private:
      * @param all_history Events before this interval.
      */
     void update_interval_parameters(
-        Eigen::Index interval_idx,
+        int interval_idx,
         const std::vector<double>& event_times,
         const std::vector<double>& all_history
     );
@@ -264,8 +264,8 @@ private:
     /**
      * @brief Compute gradient for different intensity types.
      */
-    Eigen::VectorXd compute_gradient(
-        Eigen::Index interval_idx,
+    std::vector<double> compute_gradient(
+        int interval_idx,
         const std::vector<double>& event_times,
         const std::vector<double>& all_history
     ) const;
