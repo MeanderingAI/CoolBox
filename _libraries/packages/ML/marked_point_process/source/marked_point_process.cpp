@@ -1,42 +1,11 @@
-
-
-#include "marked_point_process.h"
-#include <cmath>
-#include <random>
-#include <algorithm>
-#include <numeric>
-
-namespace ml {
-
-double MarkedPointProcess::compute_intensity(double time, int mark, const std::vector<double>& history_times, const std::vector<int>& history_marks) const {
-    // TODO: Implement actual intensity computation
-    return 0.0;
-}
-
-std::vector<double> MarkedPointProcess::compute_compensator(const std::vector<double>& event_times, const std::vector<int>& event_marks, double T) const {
-    // TODO: Implement actual compensator computation
-    return std::vector<double>(num_marks_, 0.0);
-}
-
-} // namespace ml
-
-#include "marked_point_process.h"
-#include <cmath>
-#include <random>
-#include <algorithm>
-#include <numeric>
-
-using namespace matrix;
-
-ml::MarkedPointProcess::MarkedPointProcess(int num_marks, double learning_rate, int max_iterations)
-        : num_marks_(num_marks), learning_rate_(learning_rate), max_iterations_(max_iterations),
-            beta_(1.0) {
-        initialize_parameters();
+// ...existing code...
+    : num_marks_(num_marks), learning_rate_(learning_rate), max_iterations_(max_iterations), beta_(1.0) {
+    initialize_parameters();
 }
 
 void ml::MarkedPointProcess::initialize_parameters() {
     mu_ = std::vector<double>(num_marks_, 0.1);
-    alpha_ = matrix::DenseMatrix(num_marks_, num_marks_);
+    alpha_ = matrix::DenseMatrix<double>(num_marks_, num_marks_);
     for (int i = 0; i < num_marks_; ++i)
         for (int j = 0; j < num_marks_; ++j)
             alpha_.at(i, j) = 0.01;
@@ -51,7 +20,7 @@ double ml::MarkedPointProcess::kernel(double dt) const {
 void ml::MarkedPointProcess::update_parameters(
     const std::vector<std::vector<double>>& event_times,
     const std::vector<std::vector<int>>& event_marks) {
-    // NOTE: This is a stub. Implement gradient logic for std::vector/matrix::DenseMatrix as needed.
+    // NOTE: This is a stub. Implement gradient logic for std::vector/matrix::DenseMatrix<double> as needed.
 }
 
 void ml::MarkedPointProcess::fit(const std::vector<std::vector<double>>& event_times,
@@ -126,14 +95,16 @@ double ml::MarkedPointProcess::log_likelihood(const std::vector<std::vector<doub
 }
 
 std::vector<double> ml::MarkedPointProcess::get_base_intensity() const { return mu_; }
-matrix::DenseMatrix ml::MarkedPointProcess::get_excitation_matrix() const { return alpha_; }
+matrix::DenseMatrix<double> ml::MarkedPointProcess::get_excitation_matrix() const { return alpha_; }
 double ml::MarkedPointProcess::get_decay_rate() const { return beta_; }
 void ml::MarkedPointProcess::set_base_intensity(const std::vector<double>& bi) { mu_ = bi; }
-void ml::MarkedPointProcess::set_excitation_matrix(const matrix::DenseMatrix& em) { alpha_ = em; }
+void ml::MarkedPointProcess::set_excitation_matrix(const matrix::DenseMatrix<double>& em) { alpha_ = em; }
 void ml::MarkedPointProcess::set_decay_rate(double d) { beta_ = d; }
 double ml::MarkedPointProcess::kernel_integral(double t) const {
     // NOTE: This is a stub. Implement kernel integral logic as needed.
     return 0.0;
 }
+
+} // namespace ml
 
 

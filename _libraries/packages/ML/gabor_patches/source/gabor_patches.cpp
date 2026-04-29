@@ -35,7 +35,7 @@ std::string GaborParams<Scalar>::to_string() const {
 // ===================================================================
 
 template <typename Scalar>
-matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size, bool normalize)
+matrix::DenseMatrix<Scalar> gabor_kernel(const GaborParams<Scalar>& params, int size, bool normalize)
 {
     if (size == 0) size = params.default_kernel_size();
     if (size < 1)
@@ -48,7 +48,7 @@ matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size, bo
         throw std::invalid_argument("gabor_kernel: sigma must be > 0");
 
     const int half = size / 2;
-    matrix::DenseMatrix kernel(size, size);
+    matrix::DenseMatrix<Scalar> kernel(size, size);
 
     const Scalar cos_t  = std::cos(params.theta);
     const Scalar sin_t  = std::sin(params.theta);
@@ -87,14 +87,14 @@ matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size, bo
 // ===================================================================
 
 template <typename Scalar>
-matrix::DenseMatrix gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size, bool normalize)
+matrix::DenseMatrix<Scalar> gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size, bool normalize)
 {
     if (size == 0) size = params.default_kernel_size();
     if (size < 1 || size % 2 == 0)
         throw std::invalid_argument("gabor_kernel_imaginary: size must be odd and >= 1");
 
     const int half = size / 2;
-    matrix::DenseMatrix kernel(size, size);
+    matrix::DenseMatrix<Scalar> kernel(size, size);
 
     const Scalar cos_t  = std::cos(params.theta);
     const Scalar sin_t  = std::sin(params.theta);
@@ -133,12 +133,12 @@ matrix::DenseMatrix gabor_kernel_imaginary(const GaborParams<Scalar>& params, in
 // ===================================================================
 
 template <typename Scalar>
-matrix::DenseMatrix gabor_energy(const GaborParams<Scalar>& params, int size)
+matrix::DenseMatrix<Scalar> gabor_energy(const GaborParams<Scalar>& params, int size)
 {
     auto real_k = gabor_kernel(params, size);
     auto imag_k = gabor_kernel_imaginary(params, size);
     // Elementwise sqrt(real^2 + imag^2)
-    matrix::DenseMatrix out(real_k.rows(), real_k.cols());
+    matrix::DenseMatrix<Scalar> out(real_k.rows(), real_k.cols());
     for (int i = 0; i < real_k.rows(); ++i)
         for (int j = 0; j < real_k.cols(); ++j)
             out(i, j) = std::sqrt(real_k(i, j) * real_k(i, j) + imag_k(i, j) * imag_k(i, j));
@@ -150,7 +150,7 @@ matrix::DenseMatrix gabor_energy(const GaborParams<Scalar>& params, int size)
 // ===================================================================
 
 template <typename Scalar>
-matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
+matrix::DenseMatrix<Scalar> convolve2d(const matrix::DenseMatrix<Scalar>& image,
            const matrix::DenseMatrix& kernel)
 {
     int ir = image.rows(), ic = image.cols();
@@ -159,7 +159,7 @@ matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
         throw std::invalid_argument("convolve2d: kernel larger than image");
     int or_ = ir - kr + 1;
     int oc  = ic - kc + 1;
-    matrix::DenseMatrix out(or_, oc);
+    matrix::DenseMatrix<Scalar> out(or_, oc);
     for (int j = 0; j < or_; ++j) {
         for (int i = 0; i < oc; ++i) {
             double sum = 0.0;
@@ -177,13 +177,13 @@ matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
 // ===================================================================
 
 template <typename Scalar>
-matrix::DenseMatrix convolve2d_same(const matrix::DenseMatrix& image,
+matrix::DenseMatrix<Scalar> convolve2d_same(const matrix::DenseMatrix<Scalar>& image,
                 const matrix::DenseMatrix& kernel)
 {
     int ir = image.rows(), ic = image.cols();
     int kr = kernel.rows(), kc = kernel.cols();
     int pad_r = kr / 2, pad_c = kc / 2;
-    matrix::DenseMatrix padded(ir + 2 * pad_r, ic + 2 * pad_c);
+    matrix::DenseMatrix<Scalar> padded(ir + 2 * pad_r, ic + 2 * pad_c);
     padded.setZero();
     for (int i = 0; i < ir; ++i)
         for (int j = 0; j < ic; ++j)
@@ -284,17 +284,17 @@ GaborFilterBank<Scalar>::apply(const MatrixT& image, bool same) const {
 }
 
 template <typename Scalar>
-matrix::DenseMatrix GaborFilterBank<Scalar>::mean_response(const MatrixT& image, bool same) const {
+matrix::DenseMatrix<Scalar> GaborFilterBank<Scalar>::mean_response(const MatrixT& image, bool same) const {
     auto responses = apply(image, same);
     int n_resp = static_cast<int>(responses.size());
-    matrix::DenseMatrix out(n_resp, 1);
+    matrix::DenseMatrix<Scalar> out(n_resp, 1);
     for (int i = 0; i < n_resp; ++i) {
         double sum = 0.0;
         int count = 0;
-                std::cout << "responses[" << i << "] type: " << typeid(responses[i]).name() << std::endl;
-                for (size_t r = 0; r < responses[i].rows(); ++r)
-                    for (size_t c = 0; c < responses[i].cols(); ++c, ++count)
-                        sum += std::abs(responses[i].at(r, c));
+        const matrix::DenseMatrix& mat = responses[i];
+        for (size_t r = 0; r < mat.rows(); ++r)
+            for (size_t c = 0; c < mat.cols(); ++c, ++count)
+                sum += std::abs(mat.at(r, c));
         out(i, 0) = (count > 0) ? sum / count : 0.0;
     }
     return out;

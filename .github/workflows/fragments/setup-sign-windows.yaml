@@ -1,0 +1,72 @@
+# Windows signing environment setup for CI builds
+# To use, add: `- uses: ./.github/workflows/fragments/setup-sign-windows.yaml`
+
+steps:
+  - name: Prepare Windows signing environment
+    shell: powershell
+    env:
+      COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET: ${{ secrets.COOLBOX_WINDOWS_SIGN_CERT_BASE64 }}
+      COOLBOX_WINDOWS_SIGN_CERT_PASSWORD_SECRET: ${{ secrets.COOLBOX_WINDOWS_SIGN_CERT_PASSWORD }}
+      COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL_SECRET: ${{ secrets.COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL }}
+    run: |
+      $sdkSearchRoots = @(
+        "${env:ProgramFiles(x86)}\Windows Kits\10\bin",
+        "${env:ProgramFiles}\Windows Kits\10\bin"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+
+      function Find-SignTool {
+        if (-not $sdkSearchRoots) {
+          return $null
+        }
+
+        Get-ChildItem -Path $sdkSearchRoots -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
+          Sort-Object FullName -Descending |
+          Select-Object -First 1
+      }
+
+      $signtool = Find-SignTool
+      if (-not $signtool) {
+        Write-Host 'signtool.exe was not found in the preinstalled Windows SDK. Installing the latest SDK.'
+        make -f Makefile.win install_latest_windows_sdk
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+        $signtool = Find-SignTool
+      }
+
+      if (-not $signtool) {
+        throw 'signtool.exe was not found after Windows SDK preparation.'
+      }
+
+      $signtoolDirectory = Split-Path -Parent $signtool.FullName
+      Add-Content -Path $env:GITHUB_PATH -Value $signtoolDirectory
+
+      $certDirectory = Join-Path $env:RUNNER_TEMP 'coolbox-signing'
+      New-Item -ItemType Directory -Force -Path $certDirectory | Out-Null
+
+      $certPath = Join-Path $certDirectory 'coolbox-release-signing.pfx'
+      $certPassword = $env:COOLBOX_WINDOWS_SIGN_CERT_PASSWORD_SECRET
+      $timestampUrl = $env:COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL_SECRET
+      if (-not $timestampUrl) {
+        $timestampUrl = 'http://timestamp.digicert.com'
+      }
+
+      if ($env:COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET) {
+        Write-Host 'Using repository secret-backed Windows signing certificate.'
+        $certBytes = [Convert]::FromBase64String($env:COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET.Trim())
+        [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+      } else {
+        Write-Host 'No repository signing certificate secret configured. Falling back to a transient self-signed CI certificate.'
+        $certPath = Join-Path $certDirectory 'coolbox-ci-signing.pfx'
+        if (-not $certPassword) {
+          $certPassword = "CoolBox-${{ github.run_id }}-${{ github.run_attempt }}"
+        }
+        make -f Makefile.win generate_windows_signing_cert WINDOWS_SIGN_CERT_OUTPUT_DIR="$certDirectory" WINDOWS_SIGN_CERT_FILE_NAME=coolbox-ci-signing WINDOWS_SIGN_CERT_PASSWORD="$certPassword" WINDOWS_SIGN_CERT_SUBJECT="CN=CoolBox CI Signing" WINDOWS_SIGN_CERT_FRIENDLY_NAME="CoolBox CI Signing"
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+      }
+
+      Add-Content -Path $env:GITHUB_ENV -Value "COOLBOX_WINDOWS_SIGN_CERT_PATH=$certPath"
+      Add-Content -Path $env:GITHUB_ENV -Value "COOLBOX_WINDOWS_SIGN_CERT_PASSWORD=$certPassword"
+      Add-Content -Path $env:GITHUB_ENV -Value "COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL=$timestampUrl"

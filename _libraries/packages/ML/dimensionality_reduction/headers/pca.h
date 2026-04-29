@@ -11,36 +11,35 @@
 
 class PCA {
 public:
-     using Matrix = matrix::DenseMatrix;
-     using Vector = std::vector<double>;
+    using Matrix = matrix::DenseMatrix<double>;
+    using Vector = std::vector<double>;
 
-     explicit PCA(int n_components = 0, bool center = true, bool scale = false);
-     void fit(const Matrix& X);
-     Matrix transform(const Matrix& X) const;
-     Matrix fit_transform(const Matrix& X);
-     Matrix inverse_transform(const Matrix& X_transformed) const;
-     Matrix get_components() const;
-     Vector get_explained_variance() const;
-     Vector get_explained_variance_ratio() const;
-     Vector get_singular_values() const;
+    explicit PCA(int n_components = 0, bool center = true, bool scale = false);
+    void fit(const Matrix& X);
+    Matrix transform(const Matrix& X) const;
+    Matrix fit_transform(const Matrix& X);
+    Matrix inverse_transform(const Matrix& X_transformed) const;
+    Matrix get_components() const;
+    Vector get_explained_variance() const;
+    Vector get_explained_variance_ratio() const;
+    Vector get_singular_values() const;
 
- private:
-     int n_components_;
-     bool center_;
-     bool scale_data_;
-     bool fitted_;
-     Vector mean_;
-     Vector scale_;
-     Matrix components_;
-     Vector explained_variance_;
-     Vector explained_variance_ratio_;
-     Vector singular_values_;
-     SVD svd_;
-    // Helper methods for DenseMatrix
-    std::vector<double> compute_mean(const matrix::DenseMatrix& X);
-    std::vector<double> compute_std(const matrix::DenseMatrix& X, const std::vector<double>& mean);
-    matrix::DenseMatrix preprocess(const matrix::DenseMatrix& X) const;
- };
+private:
+    int n_components_;
+    bool center_;
+    bool scale_data_;
+    bool fitted_;
+    Vector mean_;
+    Vector scale_;
+    Matrix components_;
+    Vector explained_variance_;
+    Vector explained_variance_ratio_;
+    Vector singular_values_;
+    SVD svd_;
+    static std::vector<double> compute_mean(const matrix::DenseMatrix<double>& X);
+    static std::vector<double> compute_std(const matrix::DenseMatrix<double>& X, const std::vector<double>& mean);
+    static matrix::DenseMatrix<double> preprocess(const matrix::DenseMatrix<double>& X);
+};
 
  } // namespace dimensionality_reduction
 

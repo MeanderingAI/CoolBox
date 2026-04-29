@@ -6,6 +6,7 @@ set(DATA_STRUCTURES_SOURCES
 	trees/source/splay_tree.cpp
 	trees/source/heap.cpp
 	trees/source/log_structured_merge_tree.cpp
+	trees/source/maple_tree.cpp
 	list/source/linked_list.cpp
 	maps/source/hash_map.cpp
 	maps/source/concurrent_hash_map.cpp
@@ -35,7 +36,10 @@ if(BUILD_TESTING)
 		trees/tests/test_splay_tree.cpp
 		trees/tests/test_heap.cpp
 		trees/tests/test_log_structured_merge_tree.cpp
+		trees/tests/maple_tree_test.cpp
+		trees/tests/test_radix_tree.cpp
 		list/tests/test_linked_list.cpp
+		list/tests/test_folio_queue.cpp
 		maps/tests/test_hash_map.cpp
 		maps/tests/test_concurrent_hash_map.cpp
 		list/tests/test_concurrent_linked_list.cpp
@@ -55,3 +59,4 @@ endif()
 
 # Matrix library
 add_subdirectory(matrix)
+add_subdirectory(xarray)

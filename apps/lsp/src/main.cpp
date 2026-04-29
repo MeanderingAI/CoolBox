@@ -4,12 +4,12 @@
 #include <sstream>
 #include <algorithm>
 #include "lsp_server.h"
-#include "../../_libraries/packages/TOOLS/lsp_rust/headers/lsp_server_rust.h"
-#include "../../_libraries/packages/TOOLS/lsp_java/headers/lsp_server_java.h"
-#include "../../_libraries/packages/TOOLS/lsp_python/headers/lsp_server_python.h"
+#include "../../_libraries/packages/LSP/lsp_rust/headers/lsp_server_rust.h"
+#include "../../_libraries/packages/LSP/lsp_java/headers/lsp_server_java.h"
+#include "../../_libraries/packages/LSP/lsp_python/headers/lsp_server_python.h"
 // Add VHDL & MATLAB LSP handlers
-#include "../../_libraries/packages/TOOLS/lsp_vhdl/headers/lsp_server_vhdl.h"
-#include "../../_libraries/packages/TOOLS/lsp_matlab/headers/lsp_server_matlab.h"
+#include "../../_libraries/packages/LSP/lsp_vhdl/headers/lsp_server_vhdl.h"
+#include "../../_libraries/packages/LSP/lsp_matlab/headers/lsp_server_matlab.h"
 
 // Unified LSP server main. Accepts --lang=<plang|rust|java|python|vhdl|matlab> (default: plang)
 enum class Lang { PLANG, RUST, JAVA, PYTHON, VHDL, MATLAB };

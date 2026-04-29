@@ -1,0 +1,117 @@
+name: Build LSP Artifacts
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build-lsp:
+    runs-on: ${{ matrix.os }}
+    name: Build LSP (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: ubuntu-latest
+            platform: linux-arm64
+          - os: macos-latest
+            platform: macos-arm64
+          - os: macos-latest
+            platform: macos-x86_64
+          - os: windows-latest
+            platform: windows-x86_64
+          - os: windows-latest
+            platform: windows-arm64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup CMake 4.3.1
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.3.1'
+
+      # Linux dependency setup
+      - uses: ./.github/workflows/fragments/deps-linux.yaml
+
+      # macOS dependency setup
+      - uses: ./.github/workflows/fragments/deps-macos.yaml
+
+      # Windows dependency setup
+      - uses: ./.github/workflows/fragments/deps-windows.yaml
+
+      # vcpkg dependencies for Windows ARM64
+      - uses: ./.github/workflows/fragments/deps-windows.yaml
+
+      - name: Ensure MSYS2 tools in PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $msysRoot = "${{ steps.msys2.outputs.msys2-location }}"
+          if ([string]::IsNullOrWhiteSpace($msysRoot) -or !(Test-Path $msysRoot)) {
+            $msysRoot = "C:\msys64"
+          }
+          if (!(Test-Path $msysRoot)) { $msysRoot = "C:\tools\msys64" }
+
+          $pathEntries = @(
+            (Join-Path $msysRoot 'mingw64\bin'),
+            (Join-Path $msysRoot 'usr\bin')
+          )
+
+          foreach ($pathEntry in $pathEntries) {
+            if (Test-Path $pathEntry) {
+              Add-Content -Path $env:GITHUB_PATH -Value $pathEntry
+            }
+          }
+
+      - name: Package and upload LSP artifacts
+        if: always()
+        run: |
+          set -e
+          mkdir -p apps/lsp/dist || true
+          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+          cp build/apps/lsp/plvlang_lsp apps/lsp/dist/plvlang_lsp || cp build/plvlang_lsp apps/lsp/dist/plvlang_lsp || true
+          cp build/apps/lsp/plc3_lsp apps/lsp/dist/plc3_lsp || cp build/plc3_lsp apps/lsp/dist/plc3_lsp || true
+          if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
+            mkdir -p build
+            tar -czf build/pl_lsp_dist.tar.gz -C apps/lsp dist
+            ls -la build/pl_lsp_dist.tar.gz || true
+          else
+            echo "Warning: apps/lsp/dist does not exist or is empty"
+          fi
+
+      - name: Upload LSP dist archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: pl-lsp-dist-${{ matrix.platform }}-${{ github.ref_name }}
+          path: build/pl_lsp_dist.tar.gz
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload individual LSP binaries (fallback)
+        uses: actions/upload-artifact@v7
+        with:
+          name: pl-lsp-binaries-${{ matrix.platform }}-${{ github.ref_name }}
+          path: |
+            apps/lsp/dist/plang_lsp
+            apps/lsp/dist/plrust_lsp
+            apps/lsp/dist/pljava_lsp
+            apps/lsp/dist/plpython_lsp
+            apps/lsp/dist/plvlang_lsp
+            apps/lsp/dist/plc3_lsp
+          if-no-files-found: ignore
+          retention-days: 14

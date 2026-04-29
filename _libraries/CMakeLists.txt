@@ -103,15 +103,15 @@ if(BUILD_IO_SQL)
         add_subdirectory_if_exists(packages/PARSER/rust)      # plrust_parser_lib
         add_subdirectory_if_exists(packages/PARSER/vhdl)
         add_subdirectory_if_exists(packages/PARSER/matlab)
-        add_subdirectory_if_exists(packages/TOOLS/lsp)
+        add_subdirectory_if_exists(packages/LSP/lsp)
         # LSP libraries: names confirmed by CMakeLists.txt in each folder
-        add_subdirectory_if_exists(packages/TOOLS/lsp_java)      # pljava_lsp_lib
-        add_subdirectory_if_exists(packages/TOOLS/lsp_python)    # plpython_lsp_lib
-        add_subdirectory_if_exists(packages/TOOLS/lsp_rust)      # plrust_lsp_lib
-        add_subdirectory_if_exists(packages/TOOLS/lsp_vlang)     # plvlang_lsp_lib
-        add_subdirectory_if_exists(packages/TOOLS/lsp_c3)        # plc3_lsp_lib
-        add_subdirectory_if_exists(packages/TOOLS/lsp_vhdl)      # plvhdl_lsp_lib
-        add_subdirectory_if_exists(packages/TOOLS/lsp_matlab)    # plmatlab_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_java)      # pljava_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_python)    # plpython_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_rust)      # plrust_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_vlang)     # plvlang_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_c3)        # plc3_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_vhdl)      # plvhdl_lsp_lib
+        add_subdirectory_if_exists(packages/LSP/lsp_matlab)    # plmatlab_lsp_lib
         add_subdirectory_if_exists(packages/PARSER/javascript)
 else()
     message(STATUS "Skipping IO SQL package (BUILD_IO_SQL=OFF)")
@@ -124,6 +124,7 @@ add_subdirectory_if_exists(packages/IO/databases)
 add_subdirectory_if_exists(packages/IO/distributed)
 add_subdirectory_if_exists(packages/IO/file_system)
 add_subdirectory_if_exists(packages/IO/quic_transport)
+add_subdirectory_if_exists(packages/DL)
 
 # Utils/security packages needed by auth/http
 add_subdirectory_force(packages/MISC/hash)
@@ -146,7 +147,6 @@ add_subdirectory_force(packages/MISC/wave_generator)
 add_subdirectory_force(packages/ML/bayesian_network_ai)
 add_subdirectory_force(packages/ML/computer_vision)
 add_subdirectory_force(packages/ML/decision_tree)
-add_subdirectory_force(packages/ML/deep_learning)
 add_subdirectory_force(packages/ML/dimensionality_reduction)
 add_subdirectory_force(packages/ML/distribution)
 add_subdirectory_force(packages/ML/generalized_linear_model)

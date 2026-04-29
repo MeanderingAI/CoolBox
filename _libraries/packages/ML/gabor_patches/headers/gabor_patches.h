@@ -89,27 +89,27 @@ struct GaborParams {
  * @param normalize If true the kernel is L2-normalised.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size = 0,
+matrix::DenseMatrix<Scalar> gabor_kernel(const GaborParams<Scalar>& params, int size = 0,
              bool normalize = false);
 
 /**
  * @brief Generate the imaginary (sine) part of the Gabor function.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size = 0,
+matrix::DenseMatrix<Scalar> gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size = 0,
                        bool normalize = false);
 
 /**
  * @brief Gabor energy: sqrt(real² + imag²) per pixel.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix gabor_energy(const GaborParams<Scalar>& params, int size = 0);
+matrix::DenseMatrix<Scalar> gabor_energy(const GaborParams<Scalar>& params, int size = 0);
 
 /**
  * @brief 2-D convolution with valid padding.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
+matrix::DenseMatrix<Scalar> convolve2d(const matrix::DenseMatrix<Scalar>& image,
            const matrix::DenseMatrix& kernel);
 
 /**

@@ -8,7 +8,7 @@
 - Kept the LSP deliverable separate from the language-binding surface work tracked in `binding_surface_alignment.md`.
 
 ## Implementation Details
-- `_libraries/CMakeLists.txt` now includes `packages/TOOLS/lsp_vlang` and `packages/TOOLS/lsp_c3`.
+- `_libraries/CMakeLists.txt` now includes `packages/LSP/lsp_vlang` and `packages/LSP/lsp_c3`.
 - `apps/lsp/CMakeLists.txt` now builds and installs `plvlang_lsp` and `plc3_lsp` alongside the existing language servers.
 - `.github/workflows/build-libs.yaml` now stages the new binaries into `apps/lsp/dist` and uploads them with the existing LSP artifact family.
 - `.github/workflows/lsp-vlang.yaml` and `.github/workflows/lsp-c3.yaml` publish dedicated container images for the new extension binaries.

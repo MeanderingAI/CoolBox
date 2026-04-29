@@ -15,9 +15,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
+
   build:
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -48,7 +47,6 @@ jobs:
     defaults:
       run:
         shell: bash
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -59,201 +57,38 @@ jobs:
           cmake-version: '4.3.1'
 
 
-    # Linux dependency setup
-    - uses: ./.github/workflows/fragments/deps-linux.yaml
+      # Linux dependencies
+      - name: Linux dependency setup
+        if: runner.os == 'Linux'
+        uses: ./.github/workflows/fragments/deps-linux.yaml
 
-    # macOS dependency setup
-    - uses: ./.github/workflows/fragments/deps-macos.yaml
-          
-      - name: Show CMake cache (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          echo "=== build/CMakeCache.txt ==="
-          if [ -f build/CMakeCache.txt ]; then
-            grep -i 'BUILD_IO_SQL\|SQLite3' build/CMakeCache.txt || true
-          else
-            echo "No CMakeCache.txt found"
-          fi
+      # Linux signing environment
+      - name: Setup Linux signing environment
+        if: runner.os == 'Linux'
+        uses: ./.github/workflows/fragments/setup-sign-linux.yaml
 
 
+      # macOS dependencies
+      - name: macOS dependency setup
+        if: runner.os == 'macOS'
+        uses: ./.github/workflows/fragments/deps-macos.yaml
 
-    # Windows dependency setup (x86_64 and ARM64)
-    - uses: ./.github/workflows/fragments/deps-windows.yaml
-
-      - name: Clean CMake cache (Windows ARM64)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-        run: |
-          rm -rf build/CMakeCache.txt build/CMakeFiles
-        shell: bash
+      # macOS signing environment
+      - name: Setup macOS signing environment
+        if: runner.os == 'macOS'
+        uses: ./.github/workflows/fragments/setup-sign-macosx.yaml
 
 
-      # vcpkg dependencies for Windows ARM64
-      - uses: ./.github/workflows/fragments/deps-windows.yaml
-
-      - name: Ensure mingw in PATH (Windows)
+      # Windows dependencies and signing environment
+      - name: Windows dependency and signing setup
         if: runner.os == 'Windows'
-        run: |
-          $msysRoot = "${{ steps.msys2.outputs.msys2-location }}"
-          if ([string]::IsNullOrWhiteSpace($msysRoot) -or !(Test-Path $msysRoot)) {
-            $msysRoot = "C:\\msys64"
-          }
-          if (!(Test-Path $msysRoot)) { $msysRoot = "C:\\tools\\msys64" }
-          $targetBin = 'mingw64\bin'
-          $msysBin = Join-Path $msysRoot $targetBin
-          if (Test-Path $msysBin) { echo "$msysBin" >> $env:GITHUB_PATH }
-          $usrBin = Join-Path $msysRoot 'usr\bin'
-          if (Test-Path $usrBin) { echo "$usrBin" >> $env:GITHUB_PATH }
-        shell: powershell
+        uses: ./.github/workflows/fragments/deps-windows.yaml
 
-      - name: Verify CMake 4.3.1 is available (Windows)
+      # Windows signing environment
+      - name: Setup Windows signing environment
         if: runner.os == 'Windows'
-        run: |
-          command -v cmake
-          cmake --version
-          cmake --version | grep 'cmake version 4.3.1'
-        shell: msys2 {0}
+        uses: ./.github/workflows/fragments/setup-sign-windows.yaml
 
-      - name: Verify CMake 4.3.1 is available (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          command -v cmake
-          cmake --version
-          cmake --version | grep 'cmake version 4.3.1'
-
-      - name: Configure CMake (Windows x86_64 / MSYS2)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
-        run: |
-          cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
-        shell: msys2 {0}
-
-      - name: Configure CMake (Windows ARM64 / MinGW preferred)
-        if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-        shell: powershell
-        run: |
-            $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
-            if (!(Test-Path $vcpkgToolchain)) {
-              throw "vcpkg toolchain file not found at $vcpkgToolchain"
-            }
-            # Clean build dir to avoid generator mismatch
-            Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
-            # Try MinGW Makefiles first
-            cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
-            if ($LASTEXITCODE -ne 0) {
-              # Fallback to MSVC if MinGW fails
-              $cmakeArgs = @(
-                '-S', '.',
-                '-B', 'build',
-                '-Wno-dev',
-                '-G', (powershell -File _scripts/detect_vs_generator.ps1),
-                '-A', 'ARM64',
-                '-DBUILD_BINARIES=OFF',
-                '-DBUILD_PRODUCTS=ON',
-                '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
-                '-DBUILD_IO_SQL=ON',
-                '-DBUILD_TESTING=ON',
-                "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
-                '-DVCPKG_TARGET_TRIPLET=arm64-windows'
-              )
-              & cmake @cmakeArgs
-              if ($LASTEXITCODE -ne 0) {
-                exit $LASTEXITCODE
-              }
-            }
-
-      - name: Show CMake cache (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "=== build/CMakeCache.txt ==="
-          if [ -f build/CMakeCache.txt ]; then
-            grep -i 'BUILD_IO_SQL\|SQLite3' build/CMakeCache.txt || true
-          else
-            echo "No CMakeCache.txt found"
-          fi
-
-      - name: Configure CMake (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          if [ -n "$SQLITE3_ROOT" ]; then
-            CMAKE_SQLITE_ARGS="-DSQLITE3_ROOT=$SQLITE3_ROOT -DSQLite3_ROOT=$SQLITE3_ROOT -DCMAKE_PREFIX_PATH=$SQLITE3_ROOT"
-          else
-            CMAKE_SQLITE_ARGS=""
-          fi
-          if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
-            CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
-            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS $CMAKE_SQLITE_ARGS
-          else
-            cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_SQLITE_ARGS
-          fi
-
-      - name: Prepare Windows signing environment
-        if: runner.os == 'Windows'
-        shell: powershell
-        env:
-          COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET: ${{ secrets.COOLBOX_WINDOWS_SIGN_CERT_BASE64 }}
-          COOLBOX_WINDOWS_SIGN_CERT_PASSWORD_SECRET: ${{ secrets.COOLBOX_WINDOWS_SIGN_CERT_PASSWORD }}
-          COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL_SECRET: ${{ secrets.COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL }}
-        run: |
-          $sdkSearchRoots = @(
-            "${env:ProgramFiles(x86)}\Windows Kits\10\bin",
-            "${env:ProgramFiles}\Windows Kits\10\bin"
-          ) | Where-Object { $_ -and (Test-Path $_) }
-
-          function Find-SignTool {
-            if (-not $sdkSearchRoots) {
-              return $null
-            }
-
-            Get-ChildItem -Path $sdkSearchRoots -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
-              Sort-Object FullName -Descending |
-              Select-Object -First 1
-          }
-
-          $signtool = Find-SignTool
-          if (-not $signtool) {
-            Write-Host 'signtool.exe was not found in the preinstalled Windows SDK. Installing the latest SDK.'
-            make -f Makefile.win install_latest_windows_sdk
-            if ($LASTEXITCODE -ne 0) {
-              exit $LASTEXITCODE
-            }
-            $signtool = Find-SignTool
-          }
-
-          if (-not $signtool) {
-            throw 'signtool.exe was not found after Windows SDK preparation.'
-          }
-
-          $signtoolDirectory = Split-Path -Parent $signtool.FullName
-          Add-Content -Path $env:GITHUB_PATH -Value $signtoolDirectory
-
-          $certDirectory = Join-Path $env:RUNNER_TEMP 'coolbox-signing'
-          New-Item -ItemType Directory -Force -Path $certDirectory | Out-Null
-
-          $certPath = Join-Path $certDirectory 'coolbox-release-signing.pfx'
-          $certPassword = $env:COOLBOX_WINDOWS_SIGN_CERT_PASSWORD_SECRET
-          $timestampUrl = $env:COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL_SECRET
-          if (-not $timestampUrl) {
-            $timestampUrl = 'http://timestamp.digicert.com'
-          }
-
-          if ($env:COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET) {
-            Write-Host 'Using repository secret-backed Windows signing certificate.'
-            $certBytes = [Convert]::FromBase64String($env:COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET.Trim())
-            [System.IO.File]::WriteAllBytes($certPath, $certBytes)
-          } else {
-            Write-Host 'No repository signing certificate secret configured. Falling back to a transient self-signed CI certificate.'
-            $certPath = Join-Path $certDirectory 'coolbox-ci-signing.pfx'
-            if (-not $certPassword) {
-              $certPassword = "CoolBox-${{ github.run_id }}-${{ github.run_attempt }}"
-            }
-            make -f Makefile.win generate_windows_signing_cert WINDOWS_SIGN_CERT_OUTPUT_DIR="$certDirectory" WINDOWS_SIGN_CERT_FILE_NAME=coolbox-ci-signing WINDOWS_SIGN_CERT_PASSWORD="$certPassword" WINDOWS_SIGN_CERT_SUBJECT="CN=CoolBox CI Signing" WINDOWS_SIGN_CERT_FRIENDLY_NAME="CoolBox CI Signing"
-            if ($LASTEXITCODE -ne 0) {
-              exit $LASTEXITCODE
-            }
-          }
-
-          Add-Content -Path $env:GITHUB_ENV -Value "COOLBOX_WINDOWS_SIGN_CERT_PATH=$certPath"
-          Add-Content -Path $env:GITHUB_ENV -Value "COOLBOX_WINDOWS_SIGN_CERT_PASSWORD=$certPassword"
-          Add-Content -Path $env:GITHUB_ENV -Value "COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL=$timestampUrl"
 
       - name: Build all libraries
         run: |
@@ -281,46 +116,8 @@ jobs:
           path: build/Testing/
           if-no-files-found: ignore
 
-      - name: Package and upload LSP artifacts
-        if: always()
-        run: |
-          set -e
-          mkdir -p apps/lsp/dist || true
-          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
-          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
-          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
-          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
-          cp build/apps/lsp/plvlang_lsp apps/lsp/dist/plvlang_lsp || cp build/plvlang_lsp apps/lsp/dist/plvlang_lsp || true
-          cp build/apps/lsp/plc3_lsp apps/lsp/dist/plc3_lsp || cp build/plc3_lsp apps/lsp/dist/plc3_lsp || true
-          if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
-            mkdir -p build
-            tar -czf build/pl_lsp_dist.tar.gz -C apps/lsp dist
-            ls -la build/pl_lsp_dist.tar.gz || true
-          else
-            echo "Warning: apps/lsp/dist does not exist or is empty"
-          fi
 
-      - name: Upload LSP dist archive
-        uses: actions/upload-artifact@v7
-        with:
-          name: pl-lsp-dist-${{ matrix.platform }}-${{ github.ref_name }}
-          path: build/pl_lsp_dist.tar.gz
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Upload individual LSP binaries (fallback)
-        uses: actions/upload-artifact@v7
-        with:
-          name: pl-lsp-binaries-${{ matrix.platform }}-${{ github.ref_name }}
-          path: |
-            apps/lsp/dist/plang_lsp
-            apps/lsp/dist/plrust_lsp
-            apps/lsp/dist/pljava_lsp
-            apps/lsp/dist/plpython_lsp
-            apps/lsp/dist/plvlang_lsp
-            apps/lsp/dist/plc3_lsp
-          if-no-files-found: ignore
-          retention-days: 14
+      # LSP packaging and upload steps are now handled in the dedicated build-lsp workflow/job
 
       - name: Debug - list built library files
         run: |

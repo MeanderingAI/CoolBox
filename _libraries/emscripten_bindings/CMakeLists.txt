@@ -208,6 +208,7 @@ endmacro()
 
 # ── ML library source directories ──────────────────────────────────
 set(ML_ROOT "${COOLBOX_ROOT}/_libraries/packages/ML")
+set(DL_ROOT "${COOLBOX_ROOT}/_libraries/packages/DL")
 
 # ── Decision Tree ──────────────────────────────────────────────────
 add_emscripten_module(decision_tree_js createDecisionTreeModule
@@ -266,8 +267,8 @@ add_emscripten_module(multi_arm_bandit_js createMultiArmBanditModule
 # ── Deep Learning ────────────────────────────────────────────────
 add_emscripten_module(deep_learning_js createDeepLearningModule
     deep_learning_bindings.cpp
-    "${ML_ROOT}/deep_learning/source/tensor.cpp;${ML_ROOT}/deep_learning/source/layer.cpp;${ML_ROOT}/deep_learning/source/loss.cpp;${ML_ROOT}/deep_learning/source/optimizer.cpp;${ML_ROOT}/deep_learning/source/neural_network.cpp;${ML_ROOT}/deep_learning/source/templates.cpp"
-    "${ML_ROOT}/deep_learning/headers"
+    "${DL_ROOT}/deep_learning/source/tensor.cpp;${DL_ROOT}/deep_learning/source/layer.cpp;${DL_ROOT}/deep_learning/source/loss.cpp;${DL_ROOT}/deep_learning/source/optimizer.cpp;${DL_ROOT}/deep_learning/source/neural_network.cpp;${DL_ROOT}/deep_learning/source/templates.cpp"
+    "${DL_ROOT}/deep_learning/headers"
 )
 if(TARGET deep_learning_js)
     target_link_libraries(deep_learning_js PRIVATE Eigen3::Eigen)
