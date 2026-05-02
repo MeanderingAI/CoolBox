@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches-ignore:
+      - '**'
   workflow_dispatch:
     inputs:
       publish_branch:
@@ -185,44 +187,44 @@ jobs:
   generate_purchase_python:
     needs:
       - build_libs
-    uses: ./.github/workflows/generate_purchase/generate-purchase-python.yaml
+    uses: ./.github/workflows/generate-purchase-python.yaml
     secrets: inherit
 
   generate_purchase_js:
     needs:
       - build_libs
-    uses: ./.github/workflows/generate_purchase/generate-purchase-js.yaml
+    uses: ./.github/workflows/generate-purchase-js.yaml
     secrets: inherit
 
   generate_purchase_go:
     needs:
       - build_libs
-    uses: ./.github/workflows/generate_purchase/generate-purchase-go.yaml
+    uses: ./.github/workflows/generate-purchase-go.yaml
     secrets: inherit
 
   generate_purchase_c:
     needs:
       - build_libs
-    uses: ./.github/workflows/generate_purchase/generate-purchase-c.yaml
+    uses: ./.github/workflows/generate-purchase-c.yaml
     secrets: inherit
 
   generate_purchase_java:
     needs:
       - build_libs
       - generate_purchase_c
-    uses: ./.github/workflows/generate_purchase/generate-purchase-java.yaml
+    uses: ./.github/workflows/generate-purchase-java.yaml
     secrets: inherit
 
   generate_purchase_r:
     needs:
       - build_libs
-    uses: ./.github/workflows/generate_purchase/generate-purchase-r.yaml
+    uses: ./.github/workflows/generate-purchase-r.yaml
     secrets: inherit
 
   generate_purchase_rust:
     needs:
       - build_libs
-    uses: ./.github/workflows/generate_purchase/generate-purchase-rust.yaml
+    uses: ./.github/workflows/generate-purchase-rust.yaml
     secrets: inherit
 
   docs_publish:

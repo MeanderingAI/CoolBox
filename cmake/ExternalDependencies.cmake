@@ -1,3 +1,15 @@
+# --- pybind11 (for Python bindings) ---
+include(FetchContent)
+if(NOT TARGET pybind11::pybind11)
+  FetchContent_Declare(
+    pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    GIT_TAG        v2.13.6
+  )
+  # Set PYBIND11_FINDPYTHON to use modern FindPython instead of deprecated FindPythonInterp
+  set(PYBIND11_FINDPYTHON ON CACHE BOOL "Use FindPython instead of deprecated FindPythonInterp" FORCE)
+  FetchContent_MakeAvailable(pybind11)
+endif()
 # Use FetchContent to manage external dependencies
 include(FetchContent)
 

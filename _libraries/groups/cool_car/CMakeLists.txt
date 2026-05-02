@@ -1,0 +1,24 @@
+
+cmake_minimum_required(VERSION 3.16)
+
+project(COOL_CAR VERSION 1.0 LANGUAGES C CXX)
+
+
+
+add_subdirectory(DL)
+add_subdirectory(MATRIX)
+add_subdirectory(ML)
+add_subdirectory(SP)
+
+if(TARGET DL)
+	target_link_libraries(DL PUBLIC tyst_framework_main)
+endif()
+if(TARGET MATRIX)
+	target_link_libraries(MATRIX PUBLIC tyst_framework_main)
+endif()
+if(TARGET ML)
+	target_link_libraries(ML PUBLIC tyst_framework_main)
+endif()
+if(TARGET SP)
+	target_link_libraries(SP PUBLIC tyst_framework_main)
+endif()

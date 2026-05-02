@@ -37,3 +37,6 @@ _libraries/rust_bindings/Cargo.lock
 external
 .venv
 _local_build_pipeline/tmp
+go*
+error.*
+.vs

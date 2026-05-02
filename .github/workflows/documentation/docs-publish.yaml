@@ -235,7 +235,7 @@ jobs:
         id: restore-python
         run: |
           rm -rf .prebuilt/python/unpacked
-          mkdir -p .prebuilt/python/unpacked _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+          mkdir -p .prebuilt/python/unpacked _libraries/bindings/python_bindings/dist _libraries/bindings/python_bindings/build/reused
 
           shopt -s nullglob
           archives=(.prebuilt/python/*.tar.gz)
@@ -245,17 +245,17 @@ jobs:
             exit 0
           fi
 
-          rm -rf _libraries/python_bindings/dist _libraries/python_bindings/build/reused
-          mkdir -p _libraries/python_bindings/dist _libraries/python_bindings/build/reused
+          rm -rf _libraries/bindings/python_bindings/dist _libraries/bindings/python_bindings/build/reused
+          mkdir -p _libraries/bindings/python_bindings/dist _libraries/bindings/python_bindings/build/reused
 
           for archive in "${archives[@]}"; do
             tar -xzf "$archive" -C .prebuilt/python/unpacked
           done
 
-          find .prebuilt/python/unpacked -maxdepth 1 -type f \( -name '*.whl' -o -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} _libraries/python_bindings/dist/ \;
-          find .prebuilt/python/unpacked -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} _libraries/python_bindings/build/reused/ \;
+          find .prebuilt/python/unpacked -maxdepth 1 -type f \( -name '*.whl' -o -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} _libraries/bindings/python_bindings/dist/ \;
+          find .prebuilt/python/unpacked -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} _libraries/bindings/python_bindings/build/reused/ \;
 
-          if find _libraries/python_bindings/dist -maxdepth 1 -type f | grep -q . || find _libraries/python_bindings/build/reused -type f | grep -q .; then
+          if find _libraries/bindings/python_bindings/dist -maxdepth 1 -type f | grep -q . || find _libraries/bindings/python_bindings/build/reused -type f | grep -q .; then
             echo "restored=true" >> "$GITHUB_OUTPUT"
           else
             echo "restored=false" >> "$GITHUB_OUTPUT"
@@ -264,8 +264,8 @@ jobs:
       - name: Restore prebuilt C artifacts
         id: restore-c
         run: |
-          rm -rf _libraries/c_bindings/target
-          mkdir -p .prebuilt/c/unpacked _libraries/c_bindings/target
+          rm -rf _libraries/bindings/c_bindings/target
+          mkdir -p .prebuilt/c/unpacked _libraries/bindings/c_bindings/target
 
           shopt -s nullglob
           archives=(.prebuilt/c/*.tar.gz)
@@ -279,9 +279,9 @@ jobs:
             tar -xzf "$archive" -C .prebuilt/c/unpacked
           done
 
-          cp -R .prebuilt/c/unpacked/. _libraries/c_bindings/target/
+          cp -R .prebuilt/c/unpacked/. _libraries/bindings/c_bindings/target/
 
-          if find _libraries/c_bindings/target -type f | grep -q .; then
+          if find _libraries/bindings/c_bindings/target -type f | grep -q .; then
             echo "restored=true" >> "$GITHUB_OUTPUT"
           else
             echo "restored=false" >> "$GITHUB_OUTPUT"
@@ -290,8 +290,8 @@ jobs:
       - name: Restore prebuilt R artifacts
         id: restore-r
         run: |
-          rm -rf _libraries/r_bindings/coolboxr/dist
-          mkdir -p _libraries/r_bindings/coolboxr/dist
+          rm -rf _libraries/bindings/r_bindings/coolboxr/dist
+          mkdir -p _libraries/bindings/r_bindings/coolboxr/dist
 
           shopt -s nullglob
           archives=(.prebuilt/r/*.tar.gz .prebuilt/r/*.zip)
@@ -301,10 +301,10 @@ jobs:
             exit 0
           fi
 
-          cp .prebuilt/r/*.tar.gz _libraries/r_bindings/coolboxr/dist/ 2>/dev/null || true
-          cp .prebuilt/r/*.zip _libraries/r_bindings/coolboxr/dist/ 2>/dev/null || true
+          cp .prebuilt/r/*.tar.gz _libraries/bindings/r_bindings/coolboxr/dist/ 2>/dev/null || true
+          cp .prebuilt/r/*.zip _libraries/bindings/r_bindings/coolboxr/dist/ 2>/dev/null || true
 
-          if find _libraries/r_bindings/coolboxr/dist -maxdepth 1 -type f | grep -q .; then
+          if find _libraries/bindings/r_bindings/coolboxr/dist -maxdepth 1 -type f | grep -q .; then
             echo "restored=true" >> "$GITHUB_OUTPUT"
           else
             echo "restored=false" >> "$GITHUB_OUTPUT"
@@ -313,8 +313,8 @@ jobs:
       - name: Restore prebuilt Go artifacts
         id: restore-go
         run: |
-          rm -rf _libraries/go_bindings/dist
-          mkdir -p _libraries/go_bindings/dist
+          rm -rf _libraries/bindings/go_bindings/dist
+          mkdir -p _libraries/bindings/go_bindings/dist
 
           shopt -s nullglob
           archives=(.prebuilt/go/*.tar.gz .prebuilt/go/*.zip)

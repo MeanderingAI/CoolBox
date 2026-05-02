@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.3.1)
+cmake_minimum_required(VERSION 4.2.3)
 project(CoolBoxSQL LANGUAGES C CXX)
 
 # Ensure custom Find*.cmake modules are found before dependency checks run.
@@ -284,7 +284,7 @@ if(BUILD_PYTHON_BINDINGS)
     find_package(pybind11 QUIET)
     if(pybind11_FOUND)
         message(STATUS "Building Python bindings")
-        add_subdirectory(python_bindings)
+        add_subdirectory(_libraries/bindings/python_bindings)
     else()
         message(WARNING "pybind11 not found. Python bindings will not be built.")
         message(STATUS "Install pybind11 with: pip install pybind11[global]")

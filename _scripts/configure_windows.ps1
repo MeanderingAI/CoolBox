@@ -10,16 +10,19 @@ Write-Host '[Makefile.win] Running CMake configuration...'
 $generator = ''
 if ($env:VS_GENERATOR) {
     $generator = $env:VS_GENERATOR
-} elseif (Get-Command vswhere.exe -ErrorAction SilentlyContinue) {
-    $displayName = & vswhere.exe -latest -products * -requires Microsoft.Component.MSBuild -property displayName
-    if ($displayName -match '2026') {
-        $generator = 'Visual Studio 18 2026'
-    } elseif ($displayName -match '2022') {
-        $generator = 'Visual Studio 17 2022'
-    } elseif ($displayName -match '2019') {
-        $generator = 'Visual Studio 16 2019'
-    } elseif ($displayName -match '2017') {
-        $generator = 'Visual Studio 15 2017'
+} else {
+    $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswherePath) {
+        $displayName = & $vswherePath -latest -products * -requires Microsoft.Component.MSBuild -property displayName
+        if ($displayName -match '2026') {
+            $generator = 'Visual Studio 18 2026'
+        } elseif ($displayName -match '2022') {
+            $generator = 'Visual Studio 17 2022'
+        } elseif ($displayName -match '2019') {
+            $generator = 'Visual Studio 16 2019'
+        } elseif ($displayName -match '2017') {
+            $generator = 'Visual Studio 15 2017'
+        }
     }
 }
 
