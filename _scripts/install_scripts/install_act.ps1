@@ -10,7 +10,11 @@ if (Get-Command scoop -ErrorAction SilentlyContinue) {
 
 
 # If Scoop is not available, download act from GitHub Releases
-$actVersion = "v0.2.61"
+# Get latest version
+$latestRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/nektos/act/releases/latest"
+$actVersion = $latestRelease.tag_name
+Write-Host "Latest act version: $actVersion"
+
 $arch = if ([Environment]::Is64BitOperatingSystem) { "Windows_x86_64" } else { "Windows_x86_32" }
 $actUrl = "https://github.com/nektos/act/releases/download/$actVersion/act_${arch}.zip"
 $zipPath = "$env:TEMP\act.zip"

@@ -2,10 +2,9 @@ name: build_purchase_pipeline
 
 on:
   push:
-    tags:
+    branches:
       - 'v*'
-    branches-ignore:
-      - '**'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
       publish_branch:
@@ -38,28 +37,28 @@ jobs:
           echo "GITHUB_EVENT_NAME=${GITHUB_EVENT_NAME:-}"
           echo "GITHUB_REF=${GITHUB_REF:-}"
           echo "GITHUB_REF_NAME=${GITHUB_REF_NAME:-}"
-          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
-            TAG_OK=true
+          if [[ "${GITHUB_REF:-}" == refs/heads/v* ]]; then
+            BRANCH_OK=true
           else
-            TAG_OK=false
+            BRANCH_OK=false
           fi
-          echo "startsWith(github.ref, 'refs/tags/v') => ${TAG_OK}"
+          echo "startsWith(github.ref, 'refs/heads/v') => ${BRANCH_OK}"
           echo "\nPer-job quick summary (purchase generation and product builds both fan out from build_libs)"
           for job in build_libs build_products build_cpp_docs build_tutorials generate_purchase_python generate_purchase_js generate_purchase_go generate_purchase_c generate_purchase_java generate_purchase_r generate_purchase_rust; do
-            echo "- ${job}: if-condition (startsWith tag) => ${TAG_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
+            echo "- ${job}: if-condition (startsWith branch) => ${BRANCH_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
           done
           echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
 
   build_libs:
     uses: ./.github/workflows/build-libs.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
     secrets: inherit
 
   build_products:
     needs:
       - build_libs
     uses: ./.github/workflows/build-products.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
     secrets: inherit
 
   post_build_check:
@@ -169,12 +168,12 @@ jobs:
 
   build_cpp_docs:
     uses: ./.github/workflows/build-cpp-docs.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
     secrets: inherit
 
   build_tutorials:
     uses: ./.github/workflows/build-tutorials.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
     secrets: inherit
 
 
@@ -228,7 +227,7 @@ jobs:
     secrets: inherit
 
   docs_publish:
-    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) }}
+    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')) }}
     needs:
       - build_cpp_docs
       - build_tutorials
@@ -251,7 +250,7 @@ jobs:
   generate_lsp_images:
     needs:
       - build_libs
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/heads/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -373,7 +372,7 @@ jobs:
   publish_lsp_packages:
     needs:
       - generate_lsp_images
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/heads/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
