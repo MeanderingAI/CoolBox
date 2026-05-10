@@ -1,0 +1,1 @@
+Purchased from Best Buy On-line came with mouse keyboard still in box.
