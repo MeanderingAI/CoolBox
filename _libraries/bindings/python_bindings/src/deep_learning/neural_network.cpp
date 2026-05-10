@@ -1,4 +1,4 @@
-#include <neural_network.h>
+#include "DL/wrapper/include/neural_network.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm>

@@ -41,7 +41,7 @@ from .metadata_client import Client, create_default, for_endpoint
 
 try:
     # Try to import the compiled extension
-    from . import ml_core
+    from ...python_bindings import ml_core
     __all__ = ['ml_core', 'Client', 'create_default', 'for_endpoint']
 except ImportError:
     # Extension not built yet

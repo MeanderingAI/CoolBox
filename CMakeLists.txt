@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2.3)
+cmake_minimum_required(VERSION 3.20)
 project(CoolBoxSQL LANGUAGES C CXX)
 
 # Ensure custom Find*.cmake modules are found before dependency checks run.

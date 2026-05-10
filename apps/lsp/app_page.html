@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LSP Apps — Application Overview</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1f2937;
+  }
+
+  /* ── Header ───────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    color: #fff;
+    padding: 2em 2.5em 1.8em;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2em;
+  }
+  .app-icon { font-size: 3em; line-height: 1; }
+  .app-title h1 { margin: 0 0 0.15em; font-size: 1.8em; }
+  .app-title .subtitle {
+    font-size: 0.9em;
+    color: #c4b5fd;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+  }
+  .back-link {
+    margin-left: auto;
+    align-self: flex-start;
+    color: #c4b5fd;
+    text-decoration: none;
+    font-size: 0.82em;
+    border: 1px solid #c4b5fd;
+    border-radius: 5px;
+    padding: 0.3em 0.8em;
+    transition: background 0.15s;
+  }
+  .back-link:hover { background: rgba(196,181,253,0.15); }
+
+  /* ── Main ─────────────────────────────────────────── */
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2em 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+  }
+
+  /* ── Cards ────────────────────────────────────────── */
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    padding: 1.3em 1.6em;
+  }
+  .card h2 {
+    margin: 0 0 0.75em;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5em;
+  }
+  .card p { margin: 0 0 0.6em; font-size: 0.92em; line-height: 1.65; color: #374151; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* ── Tag chips ────────────────────────────────────── */
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.5em; }
+  .tag {
+    font-size: 0.72em;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: #ede9fe;
+    color: #5b21b6;
+    border: 1px solid #ddd6fe;
+  }
+  .tag.green  { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+  .tag.blue   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .tag.orange { background: #fff7ed; color: #92400e; border-color: #fed7aa; }
+  .tag.grey   { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
+
+  /* ── Target grid ──────────────────────────────────── */
+  .target-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.7em;
+  }
+  .target-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    padding: 0.7em 1em;
+    background: #fafafa;
+  }
+  .target-card:hover { border-color: #a78bfa; background: #faf5ff; }
+  .target-name {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #5b21b6;
+  }
+  .target-lang {
+    font-size: 0.7em;
+    color: #6b7280;
+    margin-top: 0.15em;
+  }
+  .target-type {
+    display: inline-block;
+    font-size: 0.68em;
+    padding: 0.1em 0.45em;
+    border-radius: 3px;
+    background: #ede9fe;
+    color: #5b21b6;
+    font-weight: 700;
+    margin-top: 0.3em;
+  }
+
+  /* ── File tree ────────────────────────────────────── */
+  .tree { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 0.82em; }
+  .tree-item { display: flex; align-items: baseline; gap: 0.5em; padding: 0.18em 0; color: #374151; }
+  .tree-item .fname { color: #5b21b6; }
+  .tree-item .fdesc { color: #9ca3af; font-size: 0.9em; }
+
+  /* ── Dep list ─────────────────────────────────────── */
+  .dep-row {
+    display: flex; align-items: center; gap: 0.6em; padding: 0.35em 0;
+    border-bottom: 1px solid #f3f4f6; font-size: 0.88em;
+  }
+  .dep-row:last-child { border-bottom: none; }
+  .dep-name { font-family: 'Cascadia Code', 'Consolas', monospace; color: #374151; font-weight: 600; flex: 1; }
+  .dep-desc { font-size: 0.88em; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-icon">🔤</div>
+  <div class="app-title">
+    <h1>LSP Applications</h1>
+    <div class="subtitle">apps/lsp</div>
+  </div>
+  <a class="back-link" href="/">← Dashboard</a>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Overview</h2>
+    <p>
+      The LSP Applications directory contains a suite of Language Server Protocol frontend
+      executables, one per supported language. Each binary wraps a language-specific
+      LSP library and exposes a standard LSP JSON-RPC interface over <code>stdio</code>
+      so that any compliant editor can provide language intelligence for that target language.
+    </p>
+    <p>
+      All frontends share the same thin entry-point pattern: initialise the corresponding
+      <code>*_lsp_lib</code> static library, hand off I/O to the LSP loop, and exit cleanly
+      on shutdown. Deployment targets: Linux, macOS, Windows.
+    </p>
+    <div class="tags">
+      <span class="tag">C++17</span>
+      <span class="tag blue">LSP / JSON-RPC</span>
+      <span class="tag green">Multi-language</span>
+      <span class="tag orange">stdio transport</span>
+      <span class="tag grey">Cross-platform</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>CMake Targets</h2>
+    <div class="target-grid">
+      <div class="target-card">
+        <div class="target-name">plang_lsp</div>
+        <div class="target-lang">PLang (proprietary language)</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">plrust_lsp</div>
+        <div class="target-lang">Rust language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">pljava_lsp</div>
+        <div class="target-lang">Java language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">plpython_lsp</div>
+        <div class="target-lang">Python language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">plvlang_lsp</div>
+        <div class="target-lang">V language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">plc3_lsp</div>
+        <div class="target-lang">C3 language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">plvhdl_lsp</div>
+        <div class="target-lang">VHDL language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+      <div class="target-card">
+        <div class="target-name">plmatlab_lsp</div>
+        <div class="target-lang">MATLAB language support</div>
+        <div class="target-type">Executable</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Source Structure</h2>
+    <div class="tree">
+      <div class="tree-item"><span class="fname">src/main_plang.cpp</span><span class="fdesc">— PLang LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_rust.cpp</span><span class="fdesc">— Rust LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_java.cpp</span><span class="fdesc">— Java LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_python.cpp</span><span class="fdesc">— Python LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_vlang.cpp</span><span class="fdesc">— V language LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_c3.cpp</span><span class="fdesc">— C3 language LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_vhdl.cpp</span><span class="fdesc">— VHDL LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">src/main_matlab.cpp</span><span class="fdesc">— MATLAB LSP entry point</span></div>
+      <div class="tree-item"><span class="fname">CMakeLists.txt</span><span class="fdesc">— multi-target build definition</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Runtime Bindings</h2>
+    <div class="tree">
+      <div class="tree-item"><span class="fname">docker/</span><span class="fdesc">— containerised LSP server images</span></div>
+      <div class="tree-item"><span class="fname">java/</span><span class="fdesc">— Java client adapter</span></div>
+      <div class="tree-item"><span class="fname">python/</span><span class="fdesc">— Python client adapter</span></div>
+      <div class="tree-item"><span class="fname">rust/</span><span class="fdesc">— Rust client adapter</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Dependencies</h2>
+    <div class="dep-row"><span class="dep-name">plang_lsp_lib</span><span class="dep-desc">— PLang LSP protocol implementation</span></div>
+    <div class="dep-row"><span class="dep-name">plrust_lsp_lib</span><span class="dep-desc">— Rust LSP protocol implementation</span></div>
+    <div class="dep-row"><span class="dep-name">pljava_lsp_lib</span><span class="dep-desc">— Java LSP protocol implementation</span></div>
+    <div class="dep-row"><span class="dep-name">plpython_lsp_lib</span><span class="dep-desc">— Python LSP protocol implementation</span></div>
+    <div class="dep-row"><span class="dep-name">plvlang_lsp_lib</span><span class="dep-desc">— V language LSP implementation</span></div>
+    <div class="dep-row"><span class="dep-name">plc3_lsp_lib</span><span class="dep-desc">— C3 language LSP implementation</span></div>
+    <div class="dep-row"><span class="dep-name">plvhdl_lsp_lib / vhdl_parser</span><span class="dep-desc">— VHDL LSP + parser</span></div>
+    <div class="dep-row"><span class="dep-name">plmatlab_lsp_lib / matlab_parser</span><span class="dep-desc">— MATLAB LSP + parser</span></div>
+  </div>
+
+</main>
+</body>
+</html>

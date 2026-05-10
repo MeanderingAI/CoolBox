@@ -1,4 +1,4 @@
-#include <umap.h>
+#include "dimensionality_reduction/umap.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>

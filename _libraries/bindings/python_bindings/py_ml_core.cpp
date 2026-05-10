@@ -4,11 +4,8 @@
 #include <pybind11/numpy.h>
 
 #include "graphics_misc/bindings.hpp"
-
-// Include all the ML headers
 #include "decision_tree/decision_tree.h"
 #include "decision_tree/random_forest.h"
-// #include "decision_tree/decision_tree_regressor.h"  // TODO: Implement this class
 #include "support_vector_machine/support_vector_machine.h"
 #include "support_vector_machine/linear_kernel.h"
 #include "support_vector_machine/rbf_kernel.h"
@@ -25,11 +22,49 @@
 #include "dimensionality_reduction/pca.h"
 #include "dimensionality_reduction/knn.h"
 #include "dimensionality_reduction/umap.h"
-#include "deep_learning/tensor.h"
-#include "deep_learning/layer.h"
-#include "deep_learning/loss.h"
-#include "deep_learning/optimizer.h"
-#include "deep_learning/neural_network.h"
+#include "tensor.h"
+#include "layer.h"
+#include "loss.h"
+#include "optimizer.h"
+#include "neural_network.h"
+#include "computer_vision/image.h"
+#include "computer_vision/transforms.h"
+#include "computer_vision/pipeline.h"
+#include "computer_vision/layers.h"
+#include "time_series/time_series.h"
+#include "time_series/arma.h"
+#include "time_series/arima.h"
+#include "nlp/text_processor.h"
+#include "nlp/embeddings.h"
+#include "rest_api/server.h"
+#include "distributed/message_passing.h"
+#include "distributed/distributed_trainer.h"
+#include "rest_api/server.h"
+
+#include "graphics_misc/bindings.hpp"
+#include "decision_tree/decision_tree.h"
+#include "decision_tree/random_forest.h"
+#include "support_vector_machine/support_vector_machine.h"
+#include "support_vector_machine/linear_kernel.h"
+#include "support_vector_machine/rbf_kernel.h"
+#include "support_vector_machine/polynomial_kernel.h"
+#include "support_vector_machine/sigmoid_kernel.h"
+#include "bayesian_network/bayesian_network.h"
+#include "hidden_markov_model/hidden_markov_model.h"
+#include "generalized_linear_model/linear_regression.h"
+#include "multi_arm_bandit/bandit_arm.h"
+#include "multi_arm_bandit/decaying_epsilon_agent.h"
+#include "tracker/kalman_filter.h"
+#include "tracker/unscented_kalman_filter.h"
+#include "dimensionality_reduction/svd.h"
+#include "dimensionality_reduction/pca.h"
+#include "dimensionality_reduction/knn.h"
+#include "dimensionality_reduction/umap.h"
+#include "DL/layers/include/tensor.h"
+#include "DL/layers/include/layer.h"
+#include "DL/loss/include/loss.h"
+#include "DL/optimizer/include/optimizer.h"
+#include "DL/wrapper/include/neural_network.h"
 #include "computer_vision/image.h"
 #include "computer_vision/transforms.h"
 #include "computer_vision/pipeline.h"
@@ -37,9 +72,9 @@
 #include "time_series/time_series.h"
 #include "nlp/text_processor.h"
 #include "nlp/embeddings.h"
+#include "rest_api/server.h"
 #include "distributed/message_passing.h"
 #include "distributed/distributed_trainer.h"
-#include "rest_api/server.h"
 
 namespace py = pybind11;
 
@@ -986,10 +1021,8 @@ PYBIND11_MODULE(ml_core, m) {
     
     // ========== Time Series Module ==========
     py::module_ ts_module = m.def_submodule("time_series", "Time Series Analysis");
-    
-    // TimeSeries class
+
     py::class_<ml::time_series::TimeSeries>(ts_module, "TimeSeries")
-        .def(py::init<>())
         .def(py::init<const std::vector<double>&, const std::vector<std::string>&>(),
              py::arg("values"), py::arg("timestamps") = std::vector<std::string>())
         .def("size", &ml::time_series::TimeSeries::size)
@@ -1002,22 +1035,16 @@ PYBIND11_MODULE(ml_core, m) {
         .def("max", &ml::time_series::TimeSeries::max)
         .def("median", &ml::time_series::TimeSeries::median)
         .def("normalize", &ml::time_series::TimeSeries::normalize)
-        .def("min_max_scale", &ml::time_series::TimeSeries::min_max_scale,
-             py::arg("min_val") = 0.0, py::arg("max_val") = 1.0)
+        .def("min_max_scale", &ml::time_series::TimeSeries::min_max_scale)
         .def("diff", &ml::time_series::TimeSeries::diff, py::arg("lag") = 1)
         .def("log_transform", &ml::time_series::TimeSeries::log_transform)
         .def("moving_average", &ml::time_series::TimeSeries::moving_average)
         .def("exponential_smoothing", &ml::time_series::TimeSeries::exponential_smoothing)
         .def("resample", &ml::time_series::TimeSeries::resample)
-        .def("create_windows", &ml::time_series::TimeSeries::create_windows,
-             py::arg("window_size"), py::arg("stride") = 1)
-        .def("create_supervised_windows", &ml::time_series::TimeSeries::create_supervised_windows,
-             py::arg("input_window"), py::arg("output_window") = 1, py::arg("stride") = 1)
+        .def("create_windows", &ml::time_series::TimeSeries::create_windows)
         .def("autocorrelation", &ml::time_series::TimeSeries::autocorrelation);
-    
-    // MultivariateTimeSeries class
+
     py::class_<ml::time_series::MultivariatTimeSeries>(ts_module, "MultivariatTimeSeries")
-        .def(py::init<>())
         .def(py::init<const std::vector<std::vector<double>>&, const std::vector<std::string>&, const std::vector<std::string>&>(),
              py::arg("data"), py::arg("feature_names") = std::vector<std::string>(),
              py::arg("timestamps") = std::vector<std::string>())
@@ -1031,42 +1058,42 @@ PYBIND11_MODULE(ml_core, m) {
         .def("stds", &ml::time_series::MultivariatTimeSeries::stds)
         .def("normalize", &ml::time_series::MultivariatTimeSeries::normalize)
         .def("min_max_scale", &ml::time_series::MultivariatTimeSeries::min_max_scale)
-        .def("create_windows", &ml::time_series::MultivariatTimeSeries::create_windows,
-             py::arg("window_size"), py::arg("stride") = 1);
-    
-    // Forecasting models
+        .def("create_windows", &ml::time_series::MultivariatTimeSeries::create_windows);
+
     py::class_<ml::time_series::MovingAverageForecaster>(ts_module, "MovingAverageForecaster")
         .def(py::init<size_t>(), py::arg("window_size"))
         .def("fit", &ml::time_series::MovingAverageForecaster::fit)
         .def("forecast", &ml::time_series::MovingAverageForecaster::forecast)
         .def("forecast_one_step", &ml::time_series::MovingAverageForecaster::forecast_one_step);
-    
+
     py::class_<ml::time_series::ExponentialSmoothingForecaster>(ts_module, "ExponentialSmoothingForecaster")
-        .def(py::init<double, double, double>(),
-             py::arg("alpha"), py::arg("beta") = 0.0, py::arg("gamma") = 0.0)
+        .def(py::init<double, double, double>(), py::arg("alpha"), py::arg("beta") = 0.0, py::arg("gamma") = 0.0)
         .def("fit", &ml::time_series::ExponentialSmoothingForecaster::fit)
         .def("forecast", &ml::time_series::ExponentialSmoothingForecaster::forecast);
-    
+
     py::class_<ml::time_series::AutoRegressiveModel>(ts_module, "AutoRegressiveModel")
         .def(py::init<size_t>(), py::arg("order"))
         .def("fit", &ml::time_series::AutoRegressiveModel::fit)
         .def("forecast", &ml::time_series::AutoRegressiveModel::forecast)
         .def("coefficients", &ml::time_series::AutoRegressiveModel::coefficients);
-    
-    // Seasonal decomposition struct
-    py::class_<ml::time_series::SeasonalDecomposition>(ts_module, "SeasonalDecomposition")
-        .def_readwrite("trend", &ml::time_series::SeasonalDecomposition::trend)
-        .def_readwrite("seasonal", &ml::time_series::SeasonalDecomposition::seasonal)
-        .def_readwrite("residual", &ml::time_series::SeasonalDecomposition::residual);
-    
-    // Utility functions
-    ts_module.def("seasonal_decompose", &ml::time_series::seasonal_decompose);
-    ts_module.def("detect_outliers_zscore", &ml::time_series::detect_outliers_zscore,
-                  py::arg("ts"), py::arg("threshold") = 3.0);
-    ts_module.def("detect_outliers_iqr", &ml::time_series::detect_outliers_iqr,
-                  py::arg("ts"), py::arg("multiplier") = 1.5);
-    ts_module.def("interpolate_missing", &ml::time_series::interpolate_missing);
-    
+
+    // ARMA
+    py::class_<ml::time_series::ARMAModel>(ts_module, "ARMAModel")
+        .def(py::init<size_t, size_t>(), py::arg("p"), py::arg("q"))
+        .def("fit", &ml::time_series::ARMAModel::fit)
+        .def("forecast", &ml::time_series::ARMAModel::forecast);
+
+    // ARIMA
+    py::class_<ml::time_series::ARIMAModel>(ts_module, "ARIMAModel")
+        .def(py::init<size_t, size_t, size_t>(), py::arg("p"), py::arg("d"), py::arg("q"))
+        .def("fit", &ml::time_series::ARIMAModel::fit)
+        .def("forecast", &ml::time_series::ARIMAModel::forecast);
+
+    ts_module.def("seasonal_decompose", &ml::time_series::seasonal_decompose, py::arg("ts"), py::arg("period"));
+    ts_module.def("detect_outliers_zscore", &ml::time_series::detect_outliers_zscore, py::arg("ts"), py::arg("threshold") = 3.0);
+    ts_module.def("detect_outliers_iqr", &ml::time_series::detect_outliers_iqr, py::arg("ts"), py::arg("multiplier") = 1.5);
+    ts_module.def("interpolate_missing", &ml::time_series::interpolate_missing, py::arg("ts"), py::arg("missing_indices"));
+
     // ========== NLP Module ==========
     py::module_ nlp_module = m.def_submodule("nlp", "Natural Language Processing");
     

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2.3)
+cmake_minimum_required(VERSION 3.20)
 project(plmatlab_lsp)
 
 add_library(plmatlab_lsp_lib

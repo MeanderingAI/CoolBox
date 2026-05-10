@@ -4,7 +4,7 @@ Example usage of the Linear Regression Python bindings
 """
 
 import numpy as np
-import ml_core
+import _libraries.bindings.python_bindings.ml_core as ml_core
 
 def test_linear_regression():
     print("Testing Linear Regression...")

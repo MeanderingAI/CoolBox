@@ -70,7 +70,7 @@ public:
 
     // Unified interface overrides
     void predict() override;
-    void update(const Eigen::VectorXd& z) override;
+    void update(const mytrix::Vector& z) override;
 
     const Vector& state() const override;
     const Matrix& covariance() const override;

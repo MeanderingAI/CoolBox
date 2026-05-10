@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2.3)
+cmake_minimum_required(VERSION 3.20)
 project(pjava)
 
 add_library(pljava_parser_lib

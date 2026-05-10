@@ -110,7 +110,7 @@ help:
 .PHONY: all help configure build build_all clean test test_local_pipeline install completion \
         build_libraries build_libraries_io build_libraries_ml \
         build_libraries_security build_libraries_misc build_libraries_electronics \
-        build_libraries_graphics \
+        build_libraries_graphics build_% show_deps_% \
         build-emscripten build_js_bindings clean_js_bindings install_js_bindings \
 		build_c_bindings \
 		install_tutorial_editor_deps \
@@ -189,6 +189,10 @@ build_libraries_graphics: configure
 build_%: configure
 	@echo "Building: $*"
 	@cd build && cmake --build . --target $* || echo "No CMake target '$*' found."
+
+# Show dependency graph for a target (parses source CMakeLists.txt, no cmake invocation)
+show_deps_%:
+	@$(PYTHON) GUI/library/show_deps.py "$*"
 
 # ── Tests ───────────────────────────────────────────────────────────
 test: configure

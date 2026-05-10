@@ -36,8 +36,8 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: ./.github/workflows/fragments/purchase-checkout.yaml
-      - uses: ./.github/workflows/fragments/purchase-compute-artifact-name.yaml
+      - uses: ./.github/workflows/fragments/purchase-checkout
+      - uses: ./.github/workflows/fragments/purchase-compute-artifact-name
 
       - name: Download built C++ libraries (from build_libs) (with run-id)
         id: download_build_with_run

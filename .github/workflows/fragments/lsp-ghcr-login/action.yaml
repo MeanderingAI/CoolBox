@@ -1,0 +1,13 @@
+# Common GHCR login step for LSP workflows
+steps:
+name: 'lsp-ghcr-login'
+description: 'Composite action for lsp-ghcr-login'
+runs:
+  using: 'composite'
+  steps:
+  - name: Log in to GitHub Container Registry
+    uses: docker/login-action@v3
+    with:
+      registry: ghcr.io
+      username: ${{ github.actor }}
+      password: ${{ secrets.GITHUB_TOKEN }}

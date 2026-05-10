@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 #include <memory>
-#include "dataformats/json/json.h"
+#include "dataformats/json/headers/json.h"
 
 namespace dataformats {
 namespace http {

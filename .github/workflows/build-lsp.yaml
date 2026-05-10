@@ -37,22 +37,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup CMake 4.3.1
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.3.1'
-
       # Linux dependency setup
-      - uses: ./.github/workflows/fragments/deps-linux.yaml
+      - uses: ./.github/workflows/fragments/deps-linux
 
       # macOS dependency setup
-      - uses: ./.github/workflows/fragments/deps-macos.yaml
+      - uses: ./.github/workflows/fragments/deps-macos
 
       # Windows dependency setup
-      - uses: ./.github/workflows/fragments/deps-windows.yaml
+      - uses: ./.github/workflows/fragments/deps-windows
 
       # vcpkg dependencies for Windows ARM64
-      - uses: ./.github/workflows/fragments/deps-windows.yaml
+      - uses: ./.github/workflows/fragments/deps-windows
 
       - name: Ensure MSYS2 tools in PATH (Windows)
         if: runner.os == 'Windows'

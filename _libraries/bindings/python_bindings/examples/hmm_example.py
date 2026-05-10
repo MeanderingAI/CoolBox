@@ -4,7 +4,7 @@ Example usage of the Hidden Markov Model Python bindings
 """
 
 import numpy as np
-import ml_core
+import _libraries.bindings.python_bindings.ml_core as ml_core
 
 def test_hmm():
     print("Testing Hidden Markov Model...")

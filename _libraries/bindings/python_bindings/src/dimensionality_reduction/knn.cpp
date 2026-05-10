@@ -1,4 +1,4 @@
-#include <knn.h>
+#include "dimensionality_reduction/knn.h"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>

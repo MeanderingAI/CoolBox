@@ -4,7 +4,7 @@ Example usage of the Decision Tree Python bindings
 """
 
 import numpy as np
-import ml_core
+import _libraries.bindings.python_bindings.ml_core as ml_core
 
 def test_decision_tree():
     print("Testing Decision Tree...")

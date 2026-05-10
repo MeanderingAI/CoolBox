@@ -1,4 +1,4 @@
-#include <text_processor.h>
+#include "nlp/text_processor.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>

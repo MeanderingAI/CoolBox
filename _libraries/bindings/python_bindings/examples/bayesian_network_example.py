@@ -4,7 +4,7 @@ Example usage of the Bayesian Network Python bindings
 """
 
 import numpy as np
-import ml_core
+import _libraries.bindings.python_bindings.ml_core as ml_core
 
 def test_bayesian_network():
     print("Testing Bayesian Network...")

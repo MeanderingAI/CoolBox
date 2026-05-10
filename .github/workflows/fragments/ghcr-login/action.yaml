@@ -1,0 +1,17 @@
+# Common GHCR login and owner normalization for all workflows
+steps:
+name: 'ghcr-login'
+description: 'Composite action for ghcr-login'
+runs:
+  using: 'composite'
+  steps:
+  - name: Log in to GitHub Container Registry
+    uses: docker/login-action@v3
+    with:
+      registry: ghcr.io
+      username: ${{ github.actor }}
+      password: ${{ secrets.GITHUB_TOKEN }}
+
+  - name: Normalize GHCR owner
+    id: ghcr-owner
+    run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"

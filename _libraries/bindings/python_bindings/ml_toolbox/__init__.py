@@ -48,12 +48,12 @@ from ..metadata_client import Client, create_default, for_endpoint
 
 # Import the C++ extension
 try:
-    from . import ml_core as _ml_core
-    from .ml_core import *
+    from ....python_bindings.ml_toolbox import ml_core as _ml_core
+    from ....python_bindings.ml_toolbox.ml_core import *
 except ImportError:
     # Try to import from the parent directory (during development)
     try:
-        import ml_core
+        import _libraries.bindings.python_bindings.ml_core as ml_core
         # Re-export all symbols
         import sys
         _module = sys.modules[__name__]

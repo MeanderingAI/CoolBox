@@ -1,0 +1,26 @@
+# Compute artifact name for generate_purchase workflows
+steps:
+name: 'purchase-compute-artifact-name'
+description: 'Composite action for purchase-compute-artifact-name'
+runs:
+  using: 'composite'
+  steps:
+  - name: Compute artifact name
+    id: compute_artifact
+    run: |
+      arch_env="${RUNNER_ARCH:-$(uname -m)}"
+      arch_lc=$(echo "$arch_env" | tr '[:upper:]' '[:lower:]')
+      if [[ "$arch_lc" == *arm* || "$arch_lc" == *aarch* ]]; then
+        ARCH=arm64
+      else
+        ARCH=x86_64
+      fi
+
+      case "${RUNNER_OS}" in
+        Linux) OSNAME=linux ;;
+        macOS) OSNAME=macos ;;
+        Windows) OSNAME=windows ;;
+        *) OSNAME=linux ;;
+      esac
+
+      echo "artifact_name=coolbox-build-${OSNAME}-${ARCH}-${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT

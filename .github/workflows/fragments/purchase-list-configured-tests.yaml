@@ -1,8 +1,0 @@
-# List configured tests for C bindings
-steps:
-  - name: List configured tests (c bindings)
-    run: |
-      echo "--- CMake help for _libraries/c_bindings/build (first 200 lines) ---"
-      cmake --build _libraries/c_bindings/build --target help 2>&1 | head -n 200 || true
-      echo "--- CTest configured tests for _libraries/c_bindings/build ---"
-      ctest --test-dir _libraries/c_bindings/build -N || true

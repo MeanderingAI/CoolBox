@@ -1,1 +1,2 @@
-// ...existing code from DATASTRUCTURE/matrix/source/matrix_utils.cpp...
+#include "matrix_utils.h"
+// Utility function implementations can be added here if needed

@@ -13,3 +13,7 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/file_browser/CMakeLists.txt")
     add_subdirectory(file_browser)
 endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/music_studio/CMakeLists.txt")
+    add_subdirectory(music_studio)
+endif()

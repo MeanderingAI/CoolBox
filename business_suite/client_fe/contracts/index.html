@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contracts · Meandering LLC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #2563eb;
+      --brand-dark: #1d4ed8;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    nav {
+      background: #0f172a;
+      display: flex; align-items: center;
+      padding: 0 1.5rem; height: 54px; gap: 1rem;
+    }
+    .nav-brand { font-weight: 800; color: #f8fafc; font-size: 0.95rem; }
+    .nav-brand span { color: #60a5fa; }
+    .nav-sep { color: #334155; }
+    .nav-title { font-size: 0.85rem; color: #94a3b8; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+    .nav-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; color: #fff; font-weight: 700;
+    }
+    .nav-user { font-size: 0.8rem; color: #94a3b8; }
+    .mock-badge {
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+      font-size: 0.65rem; font-weight: 700; padding: 0.1em 0.45em;
+      border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    .page { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.5rem; }
+
+    .page-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .page-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+    .page-sub { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .btn {
+      padding: 0.45em 1em; font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; border-radius: 7px; cursor: pointer;
+      border: 1.5px solid transparent; transition: background 0.12s;
+    }
+    .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-ghost { background: #fff; border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface); }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 1.25rem; flex-wrap: wrap;
+    }
+    .filter-input {
+      padding: 0.45em 0.75em; font-size: 0.82rem; font-family: inherit;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      background: #fff; color: var(--text); outline: none;
+      transition: border-color 0.15s;
+    }
+    .filter-input:focus { border-color: var(--brand); }
+    .filter-select {
+      padding: 0.45em 0.65em; font-size: 0.82rem; font-family: inherit;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      background: #fff; color: var(--text); cursor: pointer;
+    }
+    .filter-count { font-size: 0.78rem; color: var(--muted); margin-left: auto; }
+
+    /* ── Summary strip ── */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .sc {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.9rem 1rem;
+    }
+    .sc-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .sc-val { font-size: 1.4rem; font-weight: 900; color: var(--text); margin-top: 0.1rem; letter-spacing: -0.02em; }
+    .sc.active { border-color: #bfdbfe; background: #eff6ff; }
+    .sc.active .sc-val { color: var(--brand); }
+
+    /* ── Contract list ── */
+    .contract-list {
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .contract-card {
+      background: #fff; border: 1.5px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .contract-card:hover {
+      border-color: var(--brand);
+      box-shadow: 0 3px 14px rgba(37,99,235,0.09);
+    }
+    .contract-main {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1rem 1.1rem; flex-wrap: wrap;
+    }
+    .cc-icon {
+      font-size: 1.4rem;
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .cc-info { flex: 1; min-width: 160px; }
+    .cc-name { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+    .cc-client { font-size: 0.78rem; color: var(--muted); margin-top: 0.1rem; }
+    .cc-meta { display: flex; gap: 1.5rem; font-size: 0.78rem; flex-wrap: wrap; }
+    .cc-meta-item { display: flex; flex-direction: column; }
+    .cc-meta-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; }
+    .cc-meta-val { font-weight: 600; color: var(--text); margin-top: 0.1rem; }
+    .cc-actions { display: flex; gap: 0.4rem; margin-left: auto; flex-shrink: 0; }
+    .cc-btn {
+      padding: 0.3em 0.7em; font-size: 0.75rem; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 5px;
+      background: var(--surface); color: var(--text); cursor: pointer;
+      transition: background 0.12s; font-family: inherit;
+    }
+    .cc-btn:hover { background: #e8edf5; }
+
+    /* Progress bar */
+    .cc-progress {
+      padding: 0.5rem 1.1rem 0.75rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .progress-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: var(--muted); }
+    .progress-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+
+    /* Status badges */
+    .badge {
+      display: inline-block; padding: 0.2em 0.6em;
+      border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap;
+    }
+    .badge-active     { background: #dcfce7; color: #15803d; }
+    .badge-draft      { background: #f1f5f9; color: var(--muted); }
+    .badge-review     { background: #fef9c3; color: #854d0e; }
+    .badge-completed  { background: #dbeafe; color: #1d4ed8; }
+    .badge-terminated { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Meandering<span>LLC</span></span>
+  <span class="nav-sep">›</span>
+  <span class="nav-title">📋 Contracts <span class="mock-badge">Mock</span></span>
+  <div class="nav-right">
+    <span class="nav-user">Jane Smith</span>
+    <div class="nav-avatar">JS</div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Contracts</div>
+      <div class="page-sub">Manage client agreements and statements of work</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;">
+      <button class="btn btn-ghost">📥 Import</button>
+      <button class="btn btn-primary">＋ New Contract</button>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-strip">
+    <div class="sc active">
+      <div class="sc-label">Active</div>
+      <div class="sc-val">4</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">Total Value</div>
+      <div class="sc-val">$286k</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">Expiring in 30d</div>
+      <div class="sc-val">2</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">Pending Review</div>
+      <div class="sc-val">1</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input class="filter-input" type="search" placeholder="🔍  Search contracts…" style="min-width:220px" id="search-input" />
+    <select class="filter-select" id="status-filter">
+      <option value="">All statuses</option>
+      <option value="active">Active</option>
+      <option value="draft">Draft</option>
+      <option value="review">In Review</option>
+      <option value="completed">Completed</option>
+    </select>
+    <select class="filter-select">
+      <option>All types</option>
+      <option>Retainer</option>
+      <option>Fixed price</option>
+      <option>Time & materials</option>
+    </select>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+
+  <!-- Contracts -->
+  <div class="contract-list" id="contract-list"></div>
+</div>
+
+<script>
+  const CONTRACTS = [
+    {
+      id: 'C-2026-001',
+      name: 'CoolBox Platform Development',
+      client: 'Internal / Meandering LLC',
+      type: 'Retainer',
+      status: 'active',
+      value: '$72,000',
+      start: 'Jan 1, 2026',
+      end: 'Dec 31, 2026',
+      progress: 35,
+      icon: '⚙️',
+      iconBg: '#eff6ff',
+    },
+    {
+      id: 'C-2026-002',
+      name: 'LSP Suite — v2 Extension',
+      client: 'Acme Dev Tools Ltd.',
+      type: 'Fixed price',
+      status: 'active',
+      value: '$48,500',
+      start: 'Feb 15, 2026',
+      end: 'Jul 30, 2026',
+      progress: 52,
+      icon: '🔤',
+      iconBg: '#f0fdf4',
+    },
+    {
+      id: 'C-2026-003',
+      name: 'Signal Processing Library',
+      client: 'Prism Analytics Inc.',
+      type: 'Time & materials',
+      status: 'active',
+      value: '$95,000',
+      start: 'Mar 1, 2026',
+      end: 'Sep 30, 2026',
+      progress: 21,
+      icon: '📊',
+      iconBg: '#fefce8',
+    },
+    {
+      id: 'C-2026-004',
+      name: 'Distribution Tag Pipeline',
+      client: 'MediaFlow GmbH',
+      type: 'Fixed price',
+      status: 'review',
+      value: '$38,000',
+      start: 'May 15, 2026',
+      end: 'Oct 15, 2026',
+      progress: 0,
+      icon: '🏷️',
+      iconBg: '#fdf4ff',
+    },
+    {
+      id: 'C-2025-018',
+      name: 'Fourier Transform Engine',
+      client: 'Spectra Research',
+      type: 'Fixed price',
+      status: 'completed',
+      value: '$32,500',
+      start: 'Aug 1, 2025',
+      end: 'Dec 20, 2025',
+      progress: 100,
+      icon: '〰️',
+      iconBg: '#f0fdf4',
+    },
+  ];
+
+  const BADGE_CLASS = {
+    active:'badge-active', draft:'badge-draft',
+    review:'badge-review', completed:'badge-completed', terminated:'badge-terminated',
+  };
+  const BADGE_LABEL = {
+    active:'Active', draft:'Draft', review:'In Review',
+    completed:'Completed', terminated:'Terminated',
+  };
+  const FILL_COLOR = {
+    active:'#2563eb', review:'#d97706', completed:'#16a34a', draft:'#94a3b8',
+  };
+
+  function render(list) {
+    const el = document.getElementById('contract-list');
+    el.innerHTML = '';
+    document.getElementById('filter-count').textContent = `${list.length} contract${list.length!==1?'s':''}`;
+    if (!list.length) {
+      el.innerHTML = '<div style="text-align:center;padding:3em;color:#94a3b8;font-size:0.88em">No contracts match the current filters.</div>';
+      return;
+    }
+    list.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'contract-card';
+      card.innerHTML = `
+        <div class="contract-main">
+          <div class="cc-icon" style="background:${c.iconBg}">${c.icon}</div>
+          <div class="cc-info">
+            <div class="cc-name">${c.name}</div>
+            <div class="cc-client">${c.client} · ${c.id}</div>
+          </div>
+          <div class="cc-meta">
+            <div class="cc-meta-item">
+              <span class="cc-meta-label">Type</span>
+              <span class="cc-meta-val">${c.type}</span>
+            </div>
+            <div class="cc-meta-item">
+              <span class="cc-meta-label">Value</span>
+              <span class="cc-meta-val">${c.value}</span>
+            </div>
+            <div class="cc-meta-item">
+              <span class="cc-meta-label">Period</span>
+              <span class="cc-meta-val">${c.start} – ${c.end}</span>
+            </div>
+            <div class="cc-meta-item">
+              <span class="cc-meta-label">Status</span>
+              <span class="badge ${BADGE_CLASS[c.status]}">${BADGE_LABEL[c.status]}</span>
+            </div>
+          </div>
+          <div class="cc-actions">
+            <button class="cc-btn">👁 View</button>
+            <button class="cc-btn">✏️ Edit</button>
+          </div>
+        </div>
+        ${c.progress > 0 || c.status === 'active' || c.status === 'review' ? `
+        <div class="cc-progress">
+          <div class="progress-row">
+            <span>Delivery progress</span>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${c.progress}%;background:${FILL_COLOR[c.status]??'#94a3b8'}"></div>
+            </div>
+            <span>${c.progress}%</span>
+          </div>
+        </div>` : ''}
+      `;
+      el.appendChild(card);
+    });
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const s = document.getElementById('status-filter').value;
+    return CONTRACTS.filter(c =>
+      (!q || c.name.toLowerCase().includes(q) || c.client.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
+      (!s || c.status === s)
+    );
+  }
+
+  document.getElementById('search-input').addEventListener('input', () => render(getFiltered()));
+  document.getElementById('status-filter').addEventListener('change', () => render(getFiltered()));
+
+  render(CONTRACTS);
+</script>
+
+</body>
+</html>

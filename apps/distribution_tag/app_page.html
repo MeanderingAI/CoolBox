@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>distribution_tag · CoolBox</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    /* ── Header ── */
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    .hero-icon {
+      font-size: 3rem;
+      line-height: 1;
+    }
+    .hero h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #e6edf3;
+    }
+    .hero .sub {
+      font-size: 0.9rem;
+      color: #8b949e;
+      margin-top: 0.25rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-teal  { background: #0e4f4f; color: #3fdcbf; }
+    .badge-blue  { background: #0d2d55; color: #58a6ff; }
+    .badge-green { background: #0f3d22; color: #3fb950; }
+
+    /* ── Grid ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card p  { font-size: 0.875rem; color: #8b949e; line-height: 1.6; }
+    .card ul { list-style: none; padding: 0; }
+    .card ul li {
+      font-size: 0.8rem;
+      color: #c9d1d9;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul li:last-child { border-bottom: none; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot-teal  { background: #3fdcbf; }
+    .dot-blue  { background: #58a6ff; }
+    .dot-amber { background: #d29922; }
+
+    /* ── Executable cards ── */
+    .exe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem; }
+    .exe-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .exe-card h3 { font-size: 1rem; color: #e6edf3; margin-bottom: 0.5rem; }
+    .exe-card .desc { font-size: 0.8rem; color: #8b949e; margin-bottom: 1rem; line-height: 1.5; }
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 0.78rem;
+      color: #79c0ff;
+      line-height: 1.7;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* ── Architecture diagram ── */
+    .arch {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 0.8rem;
+      color: #8b949e;
+      line-height: 1.8;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .arch .hl  { color: #58a6ff; }
+    .arch .hl2 { color: #3fdcbf; }
+    .arch .hl3 { color: #d29922; }
+
+    /* ── Section headers ── */
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8b949e;
+      margin-bottom: 0.75rem;
+    }
+
+    @media (max-width: 600px) {
+      .exe-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-icon">🏷️</div>
+    <div>
+      <h1>distribution_tag
+        <span class="badge badge-teal" style="margin-left:0.5rem">C++17</span>
+        <span class="badge badge-blue" style="margin-left:0.25rem">DISTRIBUTED</span>
+      </h1>
+      <div class="sub">Master / Worker content-tagging pipeline · uses all six DISTRIBUTED primitives</div>
+    </div>
+  </div>
+
+  <!-- ── Executables ── -->
+  <div class="section-title">Executables</div>
+  <div class="exe-grid">
+
+    <div class="exe-card">
+      <h3>🖥️ distribution_tag_master</h3>
+      <div class="desc">
+        Coordinator node. Enqueues tagging jobs, spawns worker threads, monitors health
+        via the ServiceRegistry, and protects against faults with a shared CircuitBreaker.
+      </div>
+      <div class="code-block">./distribution_tag_master [num_workers]
+
+# default: 4 workers, 20 jobs
+./distribution_tag_master
+./distribution_tag_master 8</div>
+    </div>
+
+    <div class="exe-card">
+      <h3>⚙️ distribution_tag_worker</h3>
+      <div class="desc">
+        Standalone worker node. Seeds its own local job queue and demonstrates the
+        full worker lifecycle: register → subscribe → process → heartbeat → deregister.
+      </div>
+      <div class="code-block">./distribution_tag_worker [id [jobs]]
+
+# default: worker-standalone, 10 jobs
+./distribution_tag_worker
+./distribution_tag_worker worker-A 20</div>
+    </div>
+
+  </div>
+
+  <!-- ── Architecture ── -->
+  <div class="section-title">In-process architecture</div>
+  <div class="arch">
+<span class="hl">Master</span>
+  │
+  ├─ enqueue(Job) ──────────────────────────────► <span class="hl2">TaskQueue&lt;Job&gt;</span>
+  │                                                       │
+  ├─ publish("jobs", id) ──────────────────────► <span class="hl2">MessageBus</span>     wake workers
+  │                                                       │
+  │          ┌───────────────────────────────────────────┘
+  │          │         (dequeue_for, 400 ms timeout)
+  │          ▼
+  │   <span class="hl3">Worker thread(s)</span>
+  │     ├─ heartbeat()    ──►  <span class="hl2">ServiceRegistry</span>
+  │     ├─ cb.call(fn)    ──►  <span class="hl2">CircuitBreaker</span>     fault isolation
+  │     └─ write_lock.acquire() ► <span class="hl2">DistributedLock</span>  mutual exclusion
+  │
+  └─ expire_stale(5 s)  ──────────────────────► <span class="hl2">ServiceRegistry</span>  health monitor
+</div>
+
+  <!-- ── DISTRIBUTED primitives used ── -->
+  <div class="section-title">DISTRIBUTED library primitives</div>
+  <div class="grid">
+
+    <div class="card">
+      <h2>📬 TaskQueue&lt;Job&gt;</h2>
+      <p>Unbounded thread-safe queue. Master enqueues all jobs upfront; workers consume
+         via <code>dequeue_for(400ms)</code> — returns <code>nullopt</code> when drained,
+         signalling clean shutdown.</p>
+    </div>
+
+    <div class="card">
+      <h2>📡 MessageBus</h2>
+      <p>Each enqueued job triggers a <code>publish("jobs", id)</code>. Workers subscribe
+         before entering the consume loop, so they wake immediately rather than polling.</p>
+    </div>
+
+    <div class="card">
+      <h2>🗂️ ServiceRegistry</h2>
+      <p>Workers <code>register_service</code> on start and call <code>heartbeat</code>
+         each iteration. The master's monitor thread calls <code>expire_stale(5 s)</code>
+         to detect crashed workers and mark them unhealthy.</p>
+    </div>
+
+    <div class="card">
+      <h2>🔒 DistributedLock</h2>
+      <p>Before committing a result to the shared <code>TaskQueue&lt;JobResult&gt;</code>
+         each worker acquires the write lock with a 500 ms timeout, simulating mutual
+         exclusion over a shared result store.</p>
+    </div>
+
+    <div class="card">
+      <h2>⚡ CircuitBreaker</h2>
+      <p>Wraps each classification call. After 4 consecutive failures the circuit opens
+         and subsequent calls fast-fail. After 300 ms the circuit probes in HalfOpen;
+         2 successes restore normal operation.</p>
+    </div>
+
+    <div class="card">
+      <h2>📋 RaftNode <span class="badge badge-blue">available</span></h2>
+      <p>Leader election and log replication from <code>consensus/</code>. Not wired into
+         this demo — relevant when the master role itself needs to be replicated across
+         multiple coordinator processes for high availability.</p>
+    </div>
+
+  </div>
+
+  <!-- ── Source structure ── -->
+  <div class="section-title">Source structure</div>
+  <div class="card" style="margin-bottom:2rem">
+    <ul>
+      <li><span class="dot dot-blue"></span><strong>shared/job.h</strong> — Job and JobResult structs shared by both executables</li>
+      <li><span class="dot dot-teal"></span><strong>master/main.cpp</strong> — orchestrator: enqueues jobs, spawns workers, monitors health</li>
+      <li><span class="dot dot-teal"></span><strong>worker/main.cpp</strong> — standalone worker with full lifecycle demo</li>
+      <li><span class="dot dot-amber"></span><strong>CMakeLists.txt</strong> — builds <code>distribution_tag_master</code> + <code>distribution_tag_worker</code>, links <code>distributed</code></li>
+    </ul>
+  </div>
+
+</body>
+</html>

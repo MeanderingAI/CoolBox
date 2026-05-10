@@ -8,7 +8,7 @@ image transformations and pipelines.
 
 import sys
 sys.path.insert(0, '.')
-from ml_core import computer_vision as cv
+from _libraries.bindings.python_bindings.ml_core import computer_vision as cv
 import random
 
 def create_sample_image(height=64, width=64):

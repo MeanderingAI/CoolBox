@@ -2,6 +2,6 @@
 
 namespace dataformats {
 namespace http {
-// This file has been moved to libraries/dataformats/src
+// contents in .h files
 }
 }

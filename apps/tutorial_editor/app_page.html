@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tutorial Editor — Application Overview</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1f2937;
+  }
+
+  /* ── Header ───────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #78350f 0%, #b45309 100%);
+    color: #fff;
+    padding: 2em 2.5em 1.8em;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2em;
+  }
+  .app-icon { font-size: 3em; line-height: 1; }
+  .app-title h1 { margin: 0 0 0.15em; font-size: 1.8em; }
+  .app-title .subtitle {
+    font-size: 0.9em;
+    color: #fcd34d;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+  }
+  .back-link {
+    margin-left: auto;
+    align-self: flex-start;
+    color: #fcd34d;
+    text-decoration: none;
+    font-size: 0.82em;
+    border: 1px solid #fcd34d;
+    border-radius: 5px;
+    padding: 0.3em 0.8em;
+    transition: background 0.15s;
+  }
+  .back-link:hover { background: rgba(252,211,77,0.15); }
+
+  /* ── Main ─────────────────────────────────────────── */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2em 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+  }
+
+  /* ── Cards ────────────────────────────────────────── */
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    padding: 1.3em 1.6em;
+  }
+  .card h2 {
+    margin: 0 0 0.75em;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5em;
+  }
+  .card p { margin: 0 0 0.6em; font-size: 0.92em; line-height: 1.65; color: #374151; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* ── Tag chips ────────────────────────────────────── */
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.5em; }
+  .tag {
+    font-size: 0.72em;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: #fff7ed;
+    color: #92400e;
+    border: 1px solid #fed7aa;
+  }
+  .tag.blue   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .tag.green  { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+  .tag.purple { background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe; }
+
+  /* ── File tree ────────────────────────────────────── */
+  .tree { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 0.82em; }
+  .tree-item { display: flex; align-items: baseline; gap: 0.5em; padding: 0.18em 0; color: #374151; }
+  .tree-item .fname { color: #b45309; }
+  .tree-item .fdesc { color: #9ca3af; font-size: 0.9em; }
+
+  /* ── Command block ────────────────────────────────── */
+  .cmd-block {
+    background: #1e1e2e;
+    color: #d4d4d4;
+    border-radius: 7px;
+    padding: 0.8em 1.1em;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.85em;
+    margin-top: 0.5em;
+    overflow-x: auto;
+  }
+  .cmd-block .prompt { color: #6a9955; user-select: none; }
+  .cmd-block .cmd    { color: #ce9178; }
+
+  /* ── Feature list ─────────────────────────────────── */
+  .feat-list { list-style: none; margin: 0; padding: 0; }
+  .feat-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    padding: 0.3em 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.9em;
+    color: #374151;
+  }
+  .feat-list li:last-child { border-bottom: none; }
+  .feat-list .badge {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.82em;
+    font-weight: 700;
+    color: #b45309;
+    min-width: 10em;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-icon">📝</div>
+  <div class="app-title">
+    <h1>Tutorial Editor</h1>
+    <div class="subtitle">apps/tutorial_editor</div>
+  </div>
+  <a class="back-link" href="/">← Dashboard</a>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Overview</h2>
+    <p>
+      The Tutorial Editor is a lightweight Python/Tkinter desktop application for authoring
+      <code>.tut</code> files — the source format used by the CoolBox tutorials pipeline.
+      It provides a visual insert-action toolbar, real-time preview generation, and
+      direct save into the top-level <code>tutorials/</code> directory.
+    </p>
+    <p>
+      Tutorials authored here are consumed by <code>_scripts/build_tutorials.py</code>
+      to produce static HTML pages for the documentation site. Optional drag-and-drop
+      support is available via <code>tkinterdnd2</code> if installed.
+    </p>
+    <div class="tags">
+      <span class="tag">Python 3</span>
+      <span class="tag blue">Tkinter GUI</span>
+      <span class="tag green">Tutorial authoring</span>
+      <span class="tag purple">Static site generation</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>How to Run</h2>
+    <p>Launch from the repository root:</p>
+    <div class="cmd-block">
+      <span class="prompt"># Windows</span><br>
+      <span class="cmd">python apps\tutorial_editor\tutorial_editor.py</span><br><br>
+      <span class="prompt"># macOS / Linux</span><br>
+      <span class="cmd">python apps/tutorial_editor/tutorial_editor.py</span>
+    </div>
+    <p style="margin-top:0.8em;">
+      No build step required — the script runs directly from source.
+      Ensure the <code>.venv</code> is active so that project imports resolve correctly.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Supported Insert Actions</h2>
+    <ul class="feat-list">
+      <li><span class="badge">@title1 / @title2</span>Section and sub-section headings</li>
+      <li><span class="badge">@tags</span>Metadata tags for the tutorial index</li>
+      <li><span class="badge">@libs</span>Library references rendered as dependency cards</li>
+      <li><span class="badge">@image</span>Inline image block (file path or URL)</li>
+      <li><span class="badge">@video</span>Embedded video block</li>
+      <li><span class="badge">@link</span>Hyperlink shortcut</li>
+      <li><span class="badge">@repo</span>Repository badge linking to source</li>
+      <li><span class="badge">paragraph</span>Free-form prose block</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Source Structure</h2>
+    <div class="tree">
+      <div class="tree-item"><span class="fname">tutorial_editor.py</span><span class="fdesc">— main Tkinter application</span></div>
+      <div class="tree-item"><span class="fname">README.md</span><span class="fdesc">— usage instructions</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Dependencies</h2>
+    <p>
+      <strong>tkinter</strong> — standard Python GUI toolkit (bundled with CPython)<br>
+      <strong>tkinterdnd2</strong> — optional; enables drag-and-drop file import<br>
+      <strong>_scripts/build_tutorials.py</strong> — tutorial parsing and rendering pipeline<br>
+      <strong>tutorials/</strong> — output directory where <code>.tut</code> files are saved
+    </p>
+  </div>
+
+</main>
+</body>
+</html>

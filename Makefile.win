@@ -24,7 +24,7 @@ WINDOWS_SIGN_CERT_INSTALL_TO_TRUSTED_PEOPLE ?= 0
 
 .PHONY: help configure build build_libraries build_libraries_io build_libraries_ml \
 	build_libraries_security build_libraries_misc build_libraries_graphics \
-	build_libraries_electronics build_% sign_windows_artifacts download_latest_windows_sdk install_latest_windows_sdk generate_windows_signing_cert \
+	build_libraries_electronics build_% show_deps_% sign_windows_artifacts download_latest_windows_sdk install_latest_windows_sdk generate_windows_signing_cert \
 	test test-% test_logged test_local_pipeline install clean completion \
 	worksplace_editor run_worksplace_editor file_browser run_file_browser \
 	body_generator_ui run_body_generator_ui
@@ -87,6 +87,9 @@ test_local_pipeline:
 
 test-%: configure
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building & running test: $*"; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Push-Location build; try { ctest -R "^$*$$" --output-on-failure --build-config Release } finally { Pop-Location }'
+
+show_deps_%:
+	@$(POWERSHELL) -Command '$$p = Join-Path (Resolve-Path .).Path ".venv\Scripts\python.exe"; if (-not (Test-Path $$p)) { $$p = "python" }; & $$p GUI/library/show_deps.py "$*"'
 
 install:
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Installing DLLs to ./lib ..."; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $$_.FullName -Destination (Join-Path (Resolve-Path .).ToString() "lib") -Force; Write-Host "  Copied: " $$_.FullName }'

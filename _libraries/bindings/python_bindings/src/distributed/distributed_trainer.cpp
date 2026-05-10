@@ -1,4 +1,4 @@
-#include <distributed_trainer.h>
+#include "distributed/distributed_trainer.h"
 #include <algorithm>
 #include <numeric>
 #include <cmath>

@@ -1,0 +1,34 @@
+# Linux signing environment setup for CI builds
+# Composite action
+
+name: 'Linux Signing Setup'
+description: 'Setup signing environment for Linux builds'
+inputs:
+  signing-key-base64:
+    description: 'Base64 encoded signing key'
+    required: false
+    default: ''
+  signing-key-password:
+    description: 'Password for signing key'
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+  - name: Prepare Linux signing environment
+    shell: bash
+    env:
+      COOLBOX_SIGNING_KEY_BASE64: ${{ inputs.signing-key-base64 }}
+      COOLBOX_SIGNING_KEY_PASSWORD: ${{ inputs.signing-key-password }}
+    run: |
+      set -e
+      if [ -z "$COOLBOX_SIGNING_KEY_BASE64" ]; then
+        echo "No signing key provided. Skipping signing setup."
+        exit 0
+      fi
+      mkdir -p "$HOME/.signing"
+      echo "$COOLBOX_SIGNING_KEY_BASE64" | base64 -d > "$HOME/.signing/signing_key.p12"
+      echo "COOLBOX_SIGNING_KEY_PATH=$HOME/.signing/signing_key.p12" >> $GITHUB_ENV
+      if [ -n "$COOLBOX_SIGNING_KEY_PASSWORD" ]; then
+        echo "COOLBOX_SIGNING_KEY_PASSWORD=$COOLBOX_SIGNING_KEY_PASSWORD" >> $GITHUB_ENV
+      fi

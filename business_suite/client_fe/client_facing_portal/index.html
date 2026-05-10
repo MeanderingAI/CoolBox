@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meandering LLC · Client Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #2563eb;
+      --brand-dark: #1d4ed8;
+      --brand-pale: #eff6ff;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+      --white:      #ffffff;
+      --accent:     #0ea5e9;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: var(--brand-dark);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 58px;
+    }
+    .nav-brand {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand span { color: #93c5fd; }
+    .nav-links { display: flex; gap: 1.75rem; }
+    .nav-links a {
+      color: #bfdbfe;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: #fff; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%);
+      color: #fff;
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #bae6fd;
+      margin-bottom: 0.75rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: #bfdbfe;
+      max-width: 640px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-cta {
+      display: inline-flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-primary {
+      background: #fff;
+      color: var(--brand-dark);
+      font-weight: 700;
+      padding: 0.7rem 1.75rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.15s, transform 0.1s;
+      border: 2px solid transparent;
+    }
+    .btn-primary:hover { background: #f0f9ff; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent;
+      color: #fff;
+      font-weight: 700;
+      padding: 0.7rem 1.75rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.95rem;
+      border: 2px solid rgba(255,255,255,0.45);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+
+    /* ── Content container ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    section { padding: 4rem 2rem; }
+    section:nth-child(even) { background: var(--white); }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .section-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── About ── */
+    .about-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    .about-text p { color: var(--muted); margin-bottom: 1rem; }
+    .about-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .stat-card {
+      background: var(--brand-pale);
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--brand);
+      letter-spacing: -0.03em;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 0.25rem;
+    }
+
+    /* ── Services ── */
+    .services-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .svc-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    section:nth-child(even) .svc-card { background: var(--surface); }
+    .svc-card:hover {
+      border-color: var(--brand);
+      box-shadow: 0 4px 20px rgba(37,99,235,0.1);
+    }
+    .svc-icon { font-size: 1.75rem; margin-bottom: 0.6rem; }
+    .svc-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .svc-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.55; }
+
+    /* ── Case study ── */
+    .case-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    .case-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .case-header {
+      background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+      padding: 1.25rem;
+      color: #fff;
+    }
+    .case-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 0.25rem;
+    }
+    .case-title { font-size: 1.05rem; font-weight: 700; }
+    .case-body { padding: 1.25rem; }
+    .case-body p { font-size: 0.875rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .case-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 0.15em 0.55em;
+      border-radius: 999px;
+      background: var(--brand-pale);
+      color: var(--brand);
+      font-weight: 600;
+      margin: 0.15em;
+    }
+
+    /* ── Team ── */
+    .team-grid {
+      max-width: 800px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+    .team-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .team-avatar {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 0.75rem;
+    }
+    .team-name { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+    .team-role { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+
+    /* ── Contact ── */
+    .contact-wrap {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .contact-wrap p { color: var(--muted); margin-bottom: 1.75rem; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left; }
+    .contact-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    section:nth-child(even) .contact-item { background: var(--brand-pale); }
+    .contact-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    .contact-val { font-size: 0.9rem; color: var(--text); font-weight: 600; }
+
+    /* ── Footer ── */
+    footer {
+      background: #0f172a;
+      color: #94a3b8;
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.83rem;
+    }
+    footer strong { color: #e2e8f0; }
+
+    @media (max-width: 680px) {
+      .about-grid { grid-template-columns: 1fr; }
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ── -->
+  <nav>
+    <div class="nav-brand">Meandering<span>LLC</span></div>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#services">Services</a>
+      <a href="#work">Work</a>
+      <a href="#team">Team</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <div class="hero">
+    <div class="hero-eyebrow">Client Portal · Confidential</div>
+    <h1>Thoughtful Software,<br>Delivered Iteratively.</h1>
+    <p>Meandering LLC builds high-quality distributed systems, developer tooling, and data pipelines for clients who value craftsmanship over shortcuts.</p>
+    <div class="hero-cta">
+      <a href="#services" class="btn-primary">Explore Services</a>
+      <a href="#contact" class="btn-outline">Get in Touch</a>
+    </div>
+  </div>
+
+  <!-- ── About ── -->
+  <section id="about">
+    <div class="about-grid">
+      <div class="about-text">
+        <h2>About Meandering LLC</h2>
+        <p class="section-sub">A boutique software consultancy with a bias for correctness.</p>
+        <p>Founded on the principle that good software is worth taking the time to get right, Meandering LLC partners with teams who need deep technical expertise across C++, distributed systems, developer tooling, and data infrastructure.</p>
+        <p>We specialise in problems where correctness, performance, and maintainability matter — not just speed-to-demo. Our name is intentional: the best path is rarely the straight one.</p>
+        <p>Every engagement begins with thorough discovery. We explore the problem space before writing a single line of code, because a well-understood problem is half solved.</p>
+      </div>
+      <div class="about-stats">
+        <div class="stat-card">
+          <div class="stat-num">12+</div>
+          <div class="stat-label">Years combined experience</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Remote-first</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">C++17</div>
+          <div class="stat-label">Primary language</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">MIT</div>
+          <div class="stat-label">Open-source default</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Services ── -->
+  <section id="services">
+    <div class="container">
+      <h2>What We Build</h2>
+      <p class="section-sub">End-to-end expertise across the stack — from kernel-adjacent C++ to developer-facing GUIs.</p>
+      <div class="services-grid">
+        <div class="svc-card">
+          <div class="svc-icon">⚙️</div>
+          <div class="svc-title">Distributed Systems</div>
+          <div class="svc-desc">Task queues, consensus protocols, service registries, circuit breakers, and distributed locks. Built for correctness under real concurrent load.</div>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">🔤</div>
+          <div class="svc-title">Language Server Protocols</div>
+          <div class="svc-desc">Full LSP implementations for custom and emerging languages. Editor-agnostic, spec-compliant, and designed for language teams.</div>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">📦</div>
+          <div class="svc-title">Developer Tooling</div>
+          <div class="svc-desc">CMake build systems, CI/CD pipelines, internal dashboards, and automation that actually makes developers faster.</div>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">📊</div>
+          <div class="svc-title">Data Pipelines & ML</div>
+          <div class="svc-desc">Decision trees, dimensionality reduction, Fourier analysis, and latent semantic analysis — implemented in clean, auditable C++.</div>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">🏗️</div>
+          <div class="svc-title">Library Architecture</div>
+          <div class="svc-desc">Modular C++ library design with clean dependency graphs, comprehensive test coverage via tyst_framework, and multi-language bindings.</div>
+        </div>
+        <div class="svc-card">
+          <div class="svc-icon">📖</div>
+          <div class="svc-title">Technical Documentation</div>
+          <div class="svc-desc">Doxygen pipelines, tutorial systems, API documentation, and publication-quality write-ups for research-adjacent projects.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Work ── -->
+  <section id="work">
+    <div class="container">
+      <h2>Selected Work</h2>
+      <p class="section-sub">A sample of recent engagements (details anonymised where requested).</p>
+      <div class="case-grid">
+        <div class="case-card">
+          <div class="case-header">
+            <div class="case-label">Distributed Systems</div>
+            <div class="case-title">Content Tagging Pipeline</div>
+          </div>
+          <div class="case-body">
+            <p>Master / worker architecture handling real-time asset classification across IMAGE, DOCUMENT, VIDEO, and AUDIO types. Fault isolation via CircuitBreaker with automatic HalfOpen recovery.</p>
+            <span class="case-tag">C++17</span>
+            <span class="case-tag">TaskQueue</span>
+            <span class="case-tag">ServiceRegistry</span>
+            <span class="case-tag">CircuitBreaker</span>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-header">
+            <div class="case-label">Developer Tooling</div>
+            <div class="case-title">Multi-Language LSP Suite</div>
+          </div>
+          <div class="case-body">
+            <p>LSP implementations for 8 language targets including C3, V-lang, VHDL, MATLAB, Rust, Java, and Python. Ships with Docker, JVM, and Python runtime bindings.</p>
+            <span class="case-tag">C++</span>
+            <span class="case-tag">LSP</span>
+            <span class="case-tag">Docker</span>
+            <span class="case-tag">Multi-runtime</span>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-header">
+            <div class="case-label">Data & Signal Processing</div>
+            <div class="case-title">Fourier Transform Library</div>
+          </div>
+          <div class="case-body">
+            <p>Full FFT/IFFT/DST/IDST implementation with comprehensive numerical test suite and render hook integrations for visualisation.</p>
+            <span class="case-tag">C++17</span>
+            <span class="case-tag">Signal Processing</span>
+            <span class="case-tag">tyst_framework</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Team ── -->
+  <section id="team">
+    <div class="container" style="text-align:center">
+      <h2>The Team</h2>
+      <p class="section-sub" style="margin-bottom:2rem">Small by design. Senior by default.</p>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">🧑‍💻</div>
+          <div class="team-name">Core Engineering</div>
+          <div class="team-role">C++ · Distributed Systems · Build Systems</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">🎨</div>
+          <div class="team-name">UI / Tooling</div>
+          <div class="team-role">Dashboard · Web Components · FastAPI</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">📐</div>
+          <div class="team-name">Architecture</div>
+          <div class="team-role">Library Design · LSP · API Design</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Contact ── -->
+  <section id="contact">
+    <div class="contact-wrap">
+      <h2>Get in Touch</h2>
+      <p>We take on a small number of engagements at a time to ensure quality. If our work resonates, reach out — we're happy to discuss fit.</p>
+      <div class="contact-grid">
+        <div class="contact-item">
+          <div class="contact-label">Email</div>
+          <div class="contact-val">hello@meandering.llc</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-label">Availability</div>
+          <div class="contact-val">Q3 2026 onwards</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-label">Timezone</div>
+          <div class="contact-val">UTC±0 — UTC+8 covered</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-label">Engagement type</div>
+          <div class="contact-val">Project or retained</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer>
+    <p><strong>Meandering LLC</strong> · Client Portal · Confidential</p>
+    <p style="margin-top:0.4rem">© 2026 Meandering LLC. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

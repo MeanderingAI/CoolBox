@@ -9,6 +9,7 @@ add_subdirectory(groups/cool_car)
 add_subdirectory(groups/Generics)
 add_subdirectory(groups/sim_group)
 add_subdirectory(groups/trekker)
+add_subdirectory(groups/audio_visual_group)
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/bindings/c3_bindings/CMakeLists.txt")
 	add_subdirectory(bindings/c3_bindings)

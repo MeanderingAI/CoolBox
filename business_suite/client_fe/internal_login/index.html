@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Internal Login · Meandering LLC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #2563eb;
+      --brand-dark: #1e40af;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+      --error:      #dc2626;
+      --success:    #16a34a;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    /* ── Brand mark ── */
+    .brand {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .brand-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 0.75rem;
+    }
+    .brand-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+    .brand-name span { color: #60a5fa; }
+    .brand-sub {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 0.2rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.25rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    }
+
+    /* ── Tab switcher ── */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 1.75rem;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 0.5em;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--brand);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+
+    /* ── Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .subtitle {
+      font-size: 0.83rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 1rem; }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.6em 0.85em;
+      font-size: 0.9rem;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+      background: #fff;
+    }
+    input::placeholder { color: #b0bac9; }
+
+    /* ── Row helpers ── */
+    .row {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .row .field { flex: 1; }
+
+    /* ── Forgot link ── */
+    .forgot {
+      text-align: right;
+      font-size: 0.78rem;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+    }
+    .forgot a {
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .forgot a:hover { text-decoration: underline; }
+
+    /* ── Submit button ── */
+    .submit-btn {
+      width: 100%;
+      padding: 0.7em;
+      background: var(--brand);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+      margin-top: 0.5rem;
+    }
+    .submit-btn:hover { background: var(--brand-dark); transform: translateY(-1px); }
+    .submit-btn:active { transform: translateY(0); }
+
+    /* ── Mock toast ── */
+    .toast {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.65em 1em;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .toast.success { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; display: block; }
+    .toast.error   { background: #fee2e2; color: var(--error);   border: 1px solid #fecaca; display: block; }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── SSO button ── */
+    .sso-btn {
+      width: 100%;
+      padding: 0.65em;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5em;
+    }
+    .sso-btn:hover { background: var(--surface); }
+
+    /* ── Password strength ── */
+    .strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      margin-top: 0.4rem;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      border-radius: 2px;
+      width: 0;
+      transition: width 0.3s, background 0.3s;
+    }
+    .strength-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ── Footer note ── */
+    .card-footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .card-footer a { color: var(--brand); text-decoration: none; }
+
+    /* ── Page footer ── */
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+    footer strong { color: #94a3b8; }
+
+    /* ── Mock badge ── */
+    .mock-badge {
+      display: inline-block;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.1em 0.5em;
+      border-radius: 999px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-left: 0.4em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <div class="brand-icon">🔐</div>
+    <div class="brand-name">Meandering<span>LLC</span></div>
+    <div class="brand-sub">Internal Portal <span class="mock-badge">Mock</span></div>
+  </div>
+
+  <div class="card">
+    <!-- Tab switcher -->
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-panel="login">Sign In</button>
+      <button class="tab-btn" data-panel="signup">Create Account</button>
+    </div>
+
+    <!-- Login panel -->
+    <div class="panel active" id="panel-login">
+      <h2>Welcome back</h2>
+      <p class="subtitle">Sign in to your Meandering LLC account.</p>
+
+      <div class="field">
+        <label for="login-email">Work Email</label>
+        <input type="email" id="login-email" placeholder="you@meandering.llc" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="forgot"><a href="#">Forgot password?</a></div>
+
+      <button class="submit-btn" id="login-btn">Sign In →</button>
+
+      <div class="divider">or continue with</div>
+      <button class="sso-btn">🌐 &nbsp;Single Sign-On (SSO)</button>
+
+      <div class="toast" id="login-toast"></div>
+    </div>
+
+    <!-- Sign-up panel -->
+    <div class="panel" id="panel-signup">
+      <h2>Create account</h2>
+      <p class="subtitle">Join the Meandering LLC internal workspace.</p>
+
+      <div class="row">
+        <div class="field">
+          <label for="su-first">First name</label>
+          <input type="text" id="su-first" placeholder="Jane" autocomplete="given-name" />
+        </div>
+        <div class="field">
+          <label for="su-last">Last name</label>
+          <input type="text" id="su-last" placeholder="Smith" autocomplete="family-name" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="su-email">Work Email</label>
+        <input type="email" id="su-email" placeholder="you@meandering.llc" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label for="su-password">Password</label>
+        <input type="password" id="su-password" placeholder="Min. 12 characters" autocomplete="new-password" id="su-password" />
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div class="strength-label" id="strength-label">Choose a strong password</div>
+      </div>
+      <div class="field">
+        <label for="su-confirm">Confirm Password</label>
+        <input type="password" id="su-confirm" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+
+      <button class="submit-btn" id="signup-btn">Create Account →</button>
+      <div class="toast" id="signup-toast"></div>
+    </div>
+
+    <div class="card-footer">
+      By signing in you agree to our <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.
+    </div>
+  </div>
+
+  <footer>
+    <strong>Meandering LLC</strong> · Internal Portal · Confidential · Mock only — no data is transmitted
+  </footer>
+
+  <script>
+    // Tab switching
+    document.getElementById('tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    });
+
+    // Mock login
+    document.getElementById('login-btn').addEventListener('click', () => {
+      const email = document.getElementById('login-email').value.trim();
+      const pass  = document.getElementById('login-password').value;
+      const toast = document.getElementById('login-toast');
+      toast.className = 'toast';
+      if (!email || !pass) {
+        toast.textContent = 'Please fill in all fields.';
+        toast.classList.add('error');
+        return;
+      }
+      toast.textContent = '✓ Signed in successfully (mock — no actual authentication).';
+      toast.classList.add('success');
+    });
+
+    // Mock sign-up
+    document.getElementById('signup-btn').addEventListener('click', () => {
+      const first   = document.getElementById('su-first').value.trim();
+      const last    = document.getElementById('su-last').value.trim();
+      const email   = document.getElementById('su-email').value.trim();
+      const pass    = document.getElementById('su-password').value;
+      const confirm = document.getElementById('su-confirm').value;
+      const toast   = document.getElementById('signup-toast');
+      toast.className = 'toast';
+
+      if (!first || !last || !email || !pass || !confirm) {
+        toast.textContent = 'Please fill in all fields.'; toast.classList.add('error'); return;
+      }
+      if (pass !== confirm) {
+        toast.textContent = 'Passwords do not match.'; toast.classList.add('error'); return;
+      }
+      if (pass.length < 12) {
+        toast.textContent = 'Password must be at least 12 characters.'; toast.classList.add('error'); return;
+      }
+      toast.textContent = `✓ Account created for ${first} ${last} (mock — no data stored).`;
+      toast.classList.add('success');
+    });
+
+    // Password strength meter
+    document.getElementById('su-password').addEventListener('input', e => {
+      const v = e.target.value;
+      const fill  = document.getElementById('strength-fill');
+      const label = document.getElementById('strength-label');
+      let score = 0;
+      if (v.length >= 8)  score++;
+      if (v.length >= 12) score++;
+      if (/[A-Z]/.test(v)) score++;
+      if (/[0-9]/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+
+      const levels = [
+        { w: '0%',   bg: '#e2e8f0', txt: 'Choose a strong password' },
+        { w: '20%',  bg: '#ef4444', txt: 'Very weak' },
+        { w: '40%',  bg: '#f97316', txt: 'Weak' },
+        { w: '60%',  bg: '#eab308', txt: 'Fair' },
+        { w: '80%',  bg: '#22c55e', txt: 'Strong' },
+        { w: '100%', bg: '#15803d', txt: 'Very strong' },
+      ];
+      const lvl = v.length === 0 ? levels[0] : levels[Math.min(score, 5)];
+      fill.style.width = lvl.w;
+      fill.style.background = lvl.bg;
+      label.textContent = lvl.txt;
+    });
+  </script>
+</body>
+</html>

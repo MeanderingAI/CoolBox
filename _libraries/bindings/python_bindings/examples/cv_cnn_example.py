@@ -7,8 +7,8 @@ This example demonstrates building a simple CNN using the computer vision layers
 
 import sys
 sys.path.insert(0, '.')
-from ml_core import deep_learning as dl
-from ml_core import computer_vision as cv
+from _libraries.bindings.python_bindings.ml_core import deep_learning as dl
+from _libraries.bindings.python_bindings.ml_core import computer_vision as cv
 
 def create_simple_image_batch(batch_size=4, height=28, width=28):
     """Create a batch of simple test images"""

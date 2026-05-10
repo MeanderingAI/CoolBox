@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2.3)
+cmake_minimum_required(VERSION 3.20)
 project(pljava_lsp)
 
 add_library(pljava_lsp_lib

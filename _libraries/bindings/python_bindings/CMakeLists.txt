@@ -17,6 +17,9 @@ find_package(Python COMPONENTS Interpreter Development REQUIRED)
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/../include
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/_libraries/bindings/python_bindings/include
+    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/MATRIX/headers
     ${EIGEN3_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
@@ -34,6 +37,20 @@ list(FILTER ML_SOURCES EXCLUDE REGEX "main\\.cpp$")
 pybind11_add_module(ml_core 
     py_ml_core.cpp
     ${ML_SOURCES}
+    src/distributed/distributed_trainer.cpp
+    src/distributed/message_passing.cpp
+    src/nlp/embeddings.cpp
+    src/nlp/text_processor.cpp
+    src/dimensionality_reduction/umap.cpp
+    src/dimensionality_reduction/svd.cpp
+    src/dimensionality_reduction/pca.cpp
+    src/dimensionality_reduction/knn.cpp
+    ../../groups/cool_car/DL/layers/src/tensor.cpp
+    ../../groups/cool_car/DL/wrapper/src/templates.cpp
+    ../../groups/cool_car/DL/optimizer/src/optimizer.cpp
+    ../../groups/cool_car/DL/wrapper/src/neural_network.cpp
+    ../../groups/cool_car/DL/loss/src/loss.cpp
+    ../../groups/cool_car/DL/layers/src/layer.cpp
 )
 
 # Set properties
@@ -47,6 +64,11 @@ target_link_libraries(ml_core PRIVATE
 
 target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/../include
+    ${CMAKE_SOURCE_DIR}/_libraries/bindings/python_bindings/include
+    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/layers/include
+    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/loss/include
+    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/optimizer/include
+    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/wrapper/include
     ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
 )

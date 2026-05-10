@@ -1,5 +1,5 @@
 # CMakeLists.txt for the app_builder
-cmake_minimum_required(VERSION 4.2.3)
+cmake_minimum_required(VERSION 3.20)
 
 project(APP_BUILDER VERSION 1.0 LANGUAGES C CXX)
 
