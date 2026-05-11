@@ -1,3 +1,9 @@
 [submodule "external/quiche"]
 	path = external/quiche
 	url = https://github.com/cloudflare/quiche.git
+[submodule "_sub_repos/Bazaar"]
+	path = _sub_repos/Bazaar
+	url = https://github.com/MeanderingAI/Bazaar
+[submodule "_sub_repos/Stallholder"]
+	path = _sub_repos/Stallholder
+	url = https://github.com/MeanderingAI/Stallholder

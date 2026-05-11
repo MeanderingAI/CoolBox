@@ -40,3 +40,4 @@ _local_build_pipeline/tmp
 go*
 error.*
 .vs
+out
