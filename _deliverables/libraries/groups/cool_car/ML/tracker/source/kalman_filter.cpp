@@ -30,16 +30,9 @@ static KalmanFilter::Matrix toDense(const std::unique_ptr<matrix::MatrixBase>& p
     return *dm;
 }
 
-// Helper: matrix inverse (naive, for small matrices only)
-static KalmanFilter::Matrix inverse2x2(const KalmanFilter::Matrix& M) {
-    if (M.rows() != 2 || M.cols() != 2) throw std::runtime_error("Only 2x2 inverse implemented");
-    double a = M.at(0,0), b = M.at(0,1), c = M.at(1,0), d = M.at(1,1);
-    double det = a*d - b*c;
-    if (det == 0.0) throw std::runtime_error("Singular matrix");
-    KalmanFilter::Matrix inv(2,2);
-    inv.at(0,0) = d/det; inv.at(0,1) = -b/det;
-    inv.at(1,0) = -c/det; inv.at(1,1) = a/det;
-    return inv;
+// Helper: general matrix inverse via Eigen
+static KalmanFilter::Matrix matInverse(const KalmanFilter::Matrix& M) {
+    return KalmanFilter::Matrix(M.data.inverse());
 }
 
 void KalmanFilter::predict() {
@@ -74,7 +67,7 @@ void KalmanFilter::update(const Vector& y) {
     const matrix::DenseMatrix* S_dm = dynamic_cast<const matrix::DenseMatrix*>(S_ptr.get());
     Matrix S = *S_dm;
     // Only 2x2 inverse for demo; replace with general inverse as needed
-    Matrix Sinv = inverse2x2(S);
+    Matrix Sinv = matInverse(S);
     auto KCt_ptr = P.multiply(Ct);
     const matrix::DenseMatrix* KCt_dm = dynamic_cast<const matrix::DenseMatrix*>(KCt_ptr.get());
     Matrix KCt = *KCt_dm;

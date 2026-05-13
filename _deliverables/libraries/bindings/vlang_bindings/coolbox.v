@@ -6,6 +6,8 @@ module coolbox
 
 #flag windows -L @VMODROOT/../c_bindings/build
 #flag windows -L @VMODROOT/../c_bindings/build/Release
+#flag windows -L @VMODROOT/../../../../build/_deliverables/libraries/bindings/c_bindings/Debug
+#flag windows -L @VMODROOT/../../../../build/_deliverables/libraries/bindings/c_bindings/Release
 #flag linux -L @VMODROOT/../c_bindings/build
 #flag darwin -L @VMODROOT/../c_bindings/build
 

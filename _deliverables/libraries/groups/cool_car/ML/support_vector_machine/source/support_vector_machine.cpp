@@ -14,7 +14,7 @@ void SVM::fit(const matrix::DenseMatrix& X, const matrix::DenseMatrix& y, Solver
 
     if (solver == SolverType::GradientDescent) {
         // Linear SVM using mytrix types
-        matrix::DenseMatrix<double> w = matrix::DenseMatrix<double>::Zero(1, n_features);
+        matrix::DenseMatrix w = matrix::DenseMatrix::Zero(1, n_features);
         double b = 0.0;
         double lr = 0.01;
         double lambda = 0.01;

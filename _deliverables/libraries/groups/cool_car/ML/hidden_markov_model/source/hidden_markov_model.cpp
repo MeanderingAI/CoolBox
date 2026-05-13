@@ -38,12 +38,12 @@ void HMM::set_initial_probabilities(const std::vector<double>& pi) { initial_pro
 void HMM::set_transition_matrix(const matrix::DenseMatrix& A) { transition_matrix = A; }
 void HMM::set_emission_matrix(const matrix::DenseMatrix& B) { emission_matrix = B; }
 std::vector<double> HMM::get_initial_probabilities() const { return initial_probabilities; }
-matrix::DenseMatrix<double> HMM::get_transition_matrix() const { return transition_matrix; }
-matrix::DenseMatrix<double> HMM::get_emission_matrix() const { return emission_matrix; }
+matrix::DenseMatrix HMM::get_transition_matrix() const { return transition_matrix; }
+matrix::DenseMatrix HMM::get_emission_matrix() const { return emission_matrix; }
 
-matrix::DenseMatrix<double> HMM::forward_pass(const std::vector<int>& observations) const {
+matrix::DenseMatrix HMM::forward_pass(const std::vector<int>& observations) const {
     int T = static_cast<int>(observations.size());
-    matrix::DenseMatrix<double> alpha(num_states, T);
+    matrix::DenseMatrix alpha(num_states, T);
     // Init
     for (int s = 0; s < num_states; ++s)
         alpha.at(s, 0) = std::log(initial_probabilities[s]) + std::log(emission_matrix.at(s, observations[0]));
@@ -59,9 +59,9 @@ matrix::DenseMatrix<double> HMM::forward_pass(const std::vector<int>& observatio
     return alpha;
 }
 
-matrix::DenseMatrix<double> HMM::backward_pass(const std::vector<int>& observations) const {
+matrix::DenseMatrix HMM::backward_pass(const std::vector<int>& observations) const {
     int T = static_cast<int>(observations.size());
-    matrix::DenseMatrix<double> beta(num_states, T);
+    matrix::DenseMatrix beta(num_states, T);
     // Init
     for (int s = 0; s < num_states; ++s)
         beta.at(s, T-1) = 0.0; // log(1)
@@ -88,8 +88,8 @@ double HMM::log_likelihood(const std::vector<int>& observations) const {
 
 std::vector<int> HMM::get_most_likely_states(const std::vector<int>& observations) const {
     int T = static_cast<int>(observations.size());
-    matrix::DenseMatrix<double> delta(num_states, T);
-    matrix::DenseMatrix<double> psi(num_states, T); // store as double, cast to int
+    matrix::DenseMatrix delta(num_states, T);
+    matrix::DenseMatrix psi(num_states, T); // store as double, cast to int
     // Init
     for (int s = 0; s < num_states; ++s) {
         delta.at(s, 0) = std::log(initial_probabilities[s]) + std::log(emission_matrix.at(s, observations[0]));
@@ -143,8 +143,8 @@ void HMM::train(const std::vector<std::vector<int>>& observation_sequences, int 
     double prev_ll = -std::numeric_limits<double>::infinity();
     for (int iter = 0; iter < max_iterations; ++iter) {
         std::vector<double> new_pi(num_states, smoothing_factor);
-        matrix::DenseMatrix<double> new_A(num_states, num_states);
-        matrix::DenseMatrix<double> new_B(num_states, num_observations);
+        matrix::DenseMatrix new_A(num_states, num_states);
+        matrix::DenseMatrix new_B(num_states, num_observations);
         for (int i = 0; i < num_states; ++i) {
             for (int j = 0; j < num_states; ++j) new_A.at(i, j) = smoothing_factor;
             for (int o = 0; o < num_observations; ++o) new_B.at(i, o) = smoothing_factor;

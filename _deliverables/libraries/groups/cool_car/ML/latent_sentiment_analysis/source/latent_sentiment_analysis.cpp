@@ -20,15 +20,29 @@ void LatentSentimentAnalysis::initialize_matrices(int rows_U, int rows_V) {
 }
 
 void LatentSentimentAnalysis::sgd_step(int i, int j, double error) {
-    // NOTE: This is a stub. Implement row/col math for DenseMatrix as needed.
-    // For now, just leave as a no-op to allow compilation.
+    for (int k = 0; k < K; ++k) {
+        double u_ik = U.at(i, k);
+        double v_jk = V.at(j, k);
+        U.at(i, k) += alpha * (error * v_jk - lambda * u_ik);
+        V.at(j, k) += alpha * (error * u_ik - lambda * v_jk);
+    }
 }
 
 void LatentSentimentAnalysis::train(const matrix::DenseMatrix& document_term_matrix) {
     num_documents = document_term_matrix.rows();
     num_terms = document_term_matrix.cols();
     initialize_matrices(num_documents, num_terms);
-    // NOTE: This is a stub. Implement training logic for DenseMatrix as needed.
+    for (int iter = 0; iter < max_iter; ++iter) {
+        for (int i = 0; i < num_documents; ++i) {
+            for (int j = 0; j < num_terms; ++j) {
+                double observed = document_term_matrix.at(i, j);
+                double predicted = 0.0;
+                for (int k = 0; k < K; ++k) predicted += U.at(i, k) * V.at(j, k);
+                double error = observed - predicted;
+                sgd_step(i, j, error);
+            }
+        }
+    }
 }
 
 double LatentSentimentAnalysis::predict_score(int doc_index, int term_index) const {
@@ -36,6 +50,7 @@ double LatentSentimentAnalysis::predict_score(int doc_index, int term_index) con
         term_index < 0 || term_index >= num_terms) {
         return 0.0;
     }
-    // NOTE: This is a stub. Implement row/col math for DenseMatrix as needed.
-    return 0.0;
+    double score = 0.0;
+    for (int k = 0; k < K; ++k) score += U.at(doc_index, k) * V.at(term_index, k);
+    return score;
 }

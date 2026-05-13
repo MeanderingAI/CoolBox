@@ -1,8 +1,9 @@
 // Custom element <network-info>
-// Three sub-tabs:
-//   📊 Overview        — server / dashboard info tiles (original content)
-//   🖥️ Local Services  — distribution_tag master + worker launch/stop controls
+// Two sub-tabs:
+//   📊 Overview        — server / dashboard info tiles
 //   🌐 Network Services — ServiceRegistry-style table of what's registered at runtime
+// NB: Local service management (distribution_tag, distribution_storage, LSP) has
+//     moved to Package Builder → 🔧 Services.
 
 const STYLE = `
 :host { display: block; font-family: inherit; }
@@ -373,10 +374,8 @@ class NetworkInfo extends HTMLElement {
         subBar.className = 'sub-bar';
 
         const overviewBtn = this._makeSubBtn('📊 Overview', true);
-        const localBtn    = this._makeSubBtn('🖥️ Local Services', false);
         const netBtn      = this._makeSubBtn('🌐 Network Services', false);
         subBar.appendChild(overviewBtn);
-        subBar.appendChild(localBtn);
         subBar.appendChild(netBtn);
         shadow.appendChild(subBar);
 
@@ -386,17 +385,12 @@ class NetworkInfo extends HTMLElement {
         this._buildOverview(overviewPanel);
         shadow.appendChild(overviewPanel);
 
-        const localPanel = document.createElement('div');
-        localPanel.className = 'sub-panel';
-        shadow.appendChild(localPanel);
-
         const netPanel = document.createElement('div');
         netPanel.className = 'sub-panel';
         shadow.appendChild(netPanel);
 
         this._panels = [
             { btn: overviewBtn, panel: overviewPanel, load: null },
-            { btn: localBtn,    panel: localPanel,    load: () => this._loadLocal(localPanel) },
             { btn: netBtn,      panel: netPanel,      load: () => this._loadNet(netPanel) },
         ];
 
@@ -727,7 +721,7 @@ class NetworkInfo extends HTMLElement {
         hint.style.cssText = 'font-size:0.78em;color:#6b7280;margin-bottom:0.85em;';
         hint.innerHTML = 'Reflects the <strong>ServiceRegistry</strong> state of running '
             + '<code>distribution_tag</code> services. Launch them from '
-            + '<em>🖥️ Local Services</em> to populate this view.';
+            + '<strong>Package Builder → 🔧 Services</strong> to populate this view.';
         panel.appendChild(hint);
 
         const body = document.createElement('div');

@@ -10,6 +10,8 @@ Main Modules
 - distributed: Distributed training (data parallel, model parallel, federated)
 - decision_tree: Decision trees, random forests, boosting
 - dimensionality_reduction: PCA, SVD, UMAP, KNN
+- kmeans: K-Means clustering with K-Means++ initialisation (backed by
+          IndexedPriorityQueue + VanEmdeBoasTree from trekker::DATASTRUCTURE)
 - bayesian_network: Bayesian networks and inference
 - hidden_markov_model: Hidden Markov Models
 - generalized_linear_model: Linear/logistic regression, GLMs
@@ -26,6 +28,13 @@ Quick Start
 >>> 
 >>> # Create a neural network
 >>> model = dl.binary_classifier(input_dim=10)
+>>> 
+>>> # K-Means clustering
+>>> from ml_toolbox import kmeans
+>>> km = kmeans.KMeans(n_clusters=3, init=kmeans.InitMethod.KMEANSPP)
+>>> km.fit(X)  # X is a 2-D numpy array (n_samples × n_features)
+>>> labels = km.get_labels()
+>>> centroids = km.get_centroids()
 >>> 
 >>> # Or create an LLM
 >>> llm = dl.language_model(vocab_size=10000, context_length=512)
@@ -73,9 +82,10 @@ __all__ = [
     "create_default",
     "for_endpoint",
     "deep_learning",
-    "distributed", 
+    "distributed",
     "decision_tree",
     "dimensionality_reduction",
+    "kmeans",
     "bayesian_network",
     "hidden_markov_model",
     "generalized_linear_model",

@@ -31,7 +31,7 @@ public:
 
     std::vector<double> state() {
         const auto& s = kf_->state();
-        return std::vector<double>(s.data(), s.data() + s.size());
+        return std::vector<double>(s.begin(), s.end());
     }
 };
 

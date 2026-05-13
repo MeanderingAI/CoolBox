@@ -1,6 +1,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <Eigen/Dense>
 #include <sequential_monte_carlo.h>
 
 namespace {
@@ -9,39 +10,34 @@ constexpr double kPi = 3.14159265358979323846;
 
 SequentialMonteCarlo::SequentialMonteCarlo(int num_particles)
     : num_particles_(num_particles), particles_(num_particles) {
-    // Initialize particles with default state and uniform weights
     for (auto& p : particles_) {
-        p.state = Eigen::Vector3d::Zero();
+        p.state = mytrix::Vector(Eigen::Vector3d::Zero());
         p.weight = 1.0 / num_particles_;
     }
 }
 void SequentialMonteCarlo::predict() {
-    // Simple motion model: add Gaussian noise to each particle's state
     std::normal_distribution<double> noise_x(0.0, 0.2);
     std::normal_distribution<double> noise_y(0.0, 0.2);
     std::normal_distribution<double> noise_theta(0.0, 0.05);
 
     for (auto& p : particles_) {
-        p.state(0) += noise_x(gen_);
-        p.state(1) += noise_y(gen_);
-        p.state(2) += noise_theta(gen_);
+        p.state.data(0) += noise_x(gen_);
+        p.state.data(1) += noise_y(gen_);
+        p.state.data(2) += noise_theta(gen_);
     }
 }
 
-void SequentialMonteCarlo::update(const Eigen::VectorXd& z) {
-    // Example measurement update: assume z = [x_meas, y_meas]
-    // Simple likelihood: Gaussian on position
+void SequentialMonteCarlo::update(const mytrix::Vector& z) {
     const double sigma = 1.0;
     const double gauss_norm = 1.0 / (2.0 * kPi * sigma * sigma);
 
     for (auto& p : particles_) {
-        double dx = p.state(0) - z(0);
-        double dy = p.state(1) - z(1);
+        double dx = p.state.data(0) - z.data(0);
+        double dy = p.state.data(1) - z.data(1);
         double likelihood = gauss_norm * std::exp(-(dx*dx + dy*dy) / (2 * sigma * sigma));
         p.weight *= likelihood;
     }
 
-    // Normalize weights
     double weight_sum = std::accumulate(particles_.begin(), particles_.end(), 0.0,
         [](double sum, const Particle& p) { return sum + p.weight; });
 
@@ -50,13 +46,11 @@ void SequentialMonteCarlo::update(const Eigen::VectorXd& z) {
             p.weight /= weight_sum;
         }
     } else {
-        // Reinitialize weights if degenerate
         for (auto& p : particles_) {
             p.weight = 1.0 / num_particles_;
         }
     }
 
-    // Resample particles (systematic resampling)
     std::vector<Particle> new_particles(num_particles_);
     std::uniform_real_distribution<double> dist(0.0, 1.0 / num_particles_);
     double r = dist(gen_);

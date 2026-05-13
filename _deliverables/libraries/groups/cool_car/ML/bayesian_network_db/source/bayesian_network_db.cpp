@@ -1,4 +1,5 @@
 #include "../headers/bayesian_network.h"
+#include <map>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -70,7 +71,13 @@ std::optional<std::unordered_map<std::string, std::string>> BayesianNetworkDB::m
     auto it = tables_.find(table);
     if (it == tables_.end()) return std::nullopt;
     const auto& rows = it->second.rows;
-    std::unordered_map<std::unordered_map<std::string, std::string>, int> counts;
+    auto row_key = [](const std::unordered_map<std::string, std::string>& r) {
+        std::map<std::string, std::string> sorted(r.begin(), r.end());
+        std::string key;
+        for (const auto& [k, v] : sorted) key += k + '=' + v + ';';
+        return key;
+    };
+    std::unordered_map<std::string, int> counts;
     int max_count = 0;
     std::optional<std::unordered_map<std::string, std::string>> result;
     for (const auto& row : rows) {
@@ -83,9 +90,10 @@ std::optional<std::unordered_map<std::string, std::string>> BayesianNetworkDB::m
             }
         }
         if (match) {
-            counts[row]++;
-            if (counts[row] > max_count) {
-                max_count = counts[row];
+            auto k = row_key(row);
+            ++counts[k];
+            if (counts[k] > max_count) {
+                max_count = counts[k];
                 result = row;
             }
         }

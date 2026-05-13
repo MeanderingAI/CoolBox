@@ -68,7 +68,7 @@ void ExtendedKalmanFilter::update(const Vector& z) {
     std::unique_ptr<matrix::MatrixBase> S_ptr = HPHt.add(R_);
     Matrix S = toDense(S_ptr);
     // For now, use identity as S inverse (should implement real inverse)
-    Matrix S_inv = Matrix::Identity(S.rows());
+    Matrix S_inv = Matrix(S.data.inverse());
     std::unique_ptr<matrix::MatrixBase> PHt_ptr = P_.multiply(Ht);
     Matrix PHt = toDense(PHt_ptr);
     std::unique_ptr<matrix::MatrixBase> K_ptr = PHt.multiply(S_inv);

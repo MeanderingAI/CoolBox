@@ -22,6 +22,7 @@
 #include "dimensionality_reduction/pca.h"
 #include "dimensionality_reduction/knn.h"
 #include "dimensionality_reduction/umap.h"
+#include "kmeans/kmeans.h"
 #include "tensor.h"
 #include "layer.h"
 #include "loss.h"
@@ -1420,4 +1421,62 @@ PYBIND11_MODULE(ml_core, m) {
 
     nlp_module.def("average_embeddings", &ml::nlp::average_embeddings);
     nlp_module.def("max_pooling_embeddings", &ml::nlp::max_pooling_embeddings);
+
+    // =========================================================================
+    // K-MEANS CLUSTERING MODULE
+    // Backed by cool_car/ML/kmeans — uses data_structures::IndexedPriorityQueue
+    // (K-Means++ weighted init) and data_structures::VanEmdeBoasTree (ordered
+    // centroid-index traversal) from trekker::DATASTRUCTURE internally.
+    // =========================================================================
+    py::module_ km_module = m.def_submodule("kmeans",
+        "K-Means clustering with K-Means++ initialisation.\n\n"
+        "Internally uses IndexedPriorityQueue (trekker::DATASTRUCTURE) for\n"
+        "O(log n) weighted centroid sampling and VanEmdeBoasTree for ordered\n"
+        "traversal of the active cluster-index set.\n\n"
+        "Example::\n\n"
+        "    from ml_toolbox import kmeans\n"
+        "    km = kmeans.KMeans(n_clusters=3, init=kmeans.InitMethod.KMEANSPP)\n"
+        "    km.fit(X)\n"
+        "    labels = km.get_labels()\n"
+        "    centroids = km.get_centroids()");
+
+    using namespace ml::kmeans;
+
+    py::enum_<InitMethod>(km_module, "InitMethod")
+        .value("RANDOM",   InitMethod::RANDOM,   "Uniform random centroid selection")
+        .value("KMEANSPP", InitMethod::KMEANSPP, "Weighted distance-squared sampling (K-Means++)");
+
+    py::class_<KMeans>(km_module, "KMeans")
+        .def(py::init<int, int, InitMethod, int>(),
+             py::arg("n_clusters")   = 3,
+             py::arg("max_iter")     = 300,
+             py::arg("init")         = InitMethod::KMEANSPP,
+             py::arg("random_state") = 42,
+             "Create a KMeans instance.\n\n"
+             "Args:\n"
+             "    n_clusters:   Number of clusters (k).\n"
+             "    max_iter:     Maximum Lloyd iterations.\n"
+             "    init:         Centroid initialisation strategy.\n"
+             "    random_state: PRNG seed for reproducibility.")
+        .def("fit", &KMeans::fit,
+             "Fit to data matrix X (rows=samples, cols=features).",
+             py::arg("X"))
+        .def("predict", &KMeans::predict,
+             "Assign each row of X to the nearest centroid. Requires fit().",
+             py::arg("X"))
+        .def("fit_predict", &KMeans::fit_predict,
+             "Fit and return per-sample cluster labels in one step.",
+             py::arg("X"))
+        .def("get_centroids",       &KMeans::get_centroids,
+             "Return k×d centroid matrix.")
+        .def("get_labels",          &KMeans::get_labels,
+             "Return cluster label for each training sample.")
+        .def("get_inertia",         &KMeans::get_inertia,
+             "Return final within-cluster SSE.")
+        .def("get_inertia_history", &KMeans::get_inertia_history,
+             "Return per-iteration inertia for convergence diagnostics.")
+        .def("get_n_iter",          &KMeans::get_n_iter,
+             "Return number of iterations performed.")
+        .def("is_fitted",           &KMeans::is_fitted,
+             "Return True if fit() has been called.");
 }

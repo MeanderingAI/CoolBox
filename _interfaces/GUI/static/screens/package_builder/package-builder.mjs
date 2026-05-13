@@ -1,11 +1,13 @@
 // Custom element <package-builder>
-// Sub-views: Legacy | Modern (card + search + deps) | 🧪 Tests | 🚀 Products | �️ Apps | 📖 Docs
+// Sub-views: Legacy | Modern (card + search + deps) | 🧪 Tests | 🚀 Products | ️ Apps | 📖 Docs | 🏢 Client FE (portals + middleware) | 🧩 Extensions
 import './groups-libraries.mjs';
 import './doc-builder.mjs';
 import './product-launcher.mjs';
 import './app-launcher.mjs';
 import './client-fe-viewer.mjs';
-import './middle-wear-viewer.mjs';
+import './extension-builder.mjs';
+import './demo-viewer.mjs';
+import './service-viewer.mjs';
 import '../test-runner.mjs';
 import '../../components/editor-screen.mjs';
 import { ApplicationState } from '../../automata/applicationState.mjs';
@@ -46,6 +48,8 @@ const STYLE = `
 /* ── Panels ──────────────────────────────────────────── */
 .sub-panel { display: none; padding: 1em; }
 .sub-panel.active { display: block; }
+.sub-panel.demo-panel { padding: 0; }
+.sub-panel.demo-panel.active { display: flex; flex-direction: column; height: calc(100vh - 110px); }
 
 /* ── Search bar ──────────────────────────────────────── */
 .search-wrap {
@@ -206,14 +210,16 @@ class PackageBuilder extends HTMLElement {
         const subBar = document.createElement('div');
         subBar.className = 'sub-bar';
 
-        const legacyBtn    = this._makeSubBtn('Legacy', true);
-        const modernBtn    = this._makeSubBtn('Modern ✦', false);
-        const testsBtn     = this._makeSubBtn('🧪 Tests', false);
-        const productsBtn  = this._makeSubBtn('🚀 Products', false);
-        const appsBtn      = this._makeSubBtn('🛠️ Apps', false);
-        const docsBtn      = this._makeSubBtn('📖 Docs', false);
-        const clientFeBtn     = this._makeSubBtn('🏢 Client FE', false);
-        const middleWareBtn   = this._makeSubBtn('🔧 Middleware', false);
+        const legacyBtn      = this._makeSubBtn('Legacy', true);
+        const modernBtn      = this._makeSubBtn('Modern ✦', false);
+        const testsBtn       = this._makeSubBtn('🧪 Tests', false);
+        const productsBtn    = this._makeSubBtn('🚀 Products', false);
+        const appsBtn        = this._makeSubBtn('🛠️ Apps', false);
+        const docsBtn        = this._makeSubBtn('📖 Docs', false);
+        const clientFeBtn    = this._makeSubBtn('🏢 Client FE', false);
+        const extensionsBtn  = this._makeSubBtn('🧩 Extensions', false);
+        const demoBtn        = this._makeSubBtn('🎬 Demo', false);
+        const servicesBtn    = this._makeSubBtn('🔧 Services', false);
         subBar.appendChild(legacyBtn);
         subBar.appendChild(modernBtn);
         subBar.appendChild(testsBtn);
@@ -221,7 +227,9 @@ class PackageBuilder extends HTMLElement {
         subBar.appendChild(appsBtn);
         subBar.appendChild(docsBtn);
         subBar.appendChild(clientFeBtn);
-        subBar.appendChild(middleWareBtn);
+        subBar.appendChild(extensionsBtn);
+        subBar.appendChild(demoBtn);
+        subBar.appendChild(servicesBtn);
         shadow.appendChild(subBar);
 
         // Legacy panel
@@ -257,15 +265,25 @@ class PackageBuilder extends HTMLElement {
         docsPanel.className = 'sub-panel';
         shadow.appendChild(docsPanel);
 
-        // Client FE panel
+        // Client FE panel (portals + middleware inner sub-tabs)
         const clientFePanel = document.createElement('div');
         clientFePanel.className = 'sub-panel';
         shadow.appendChild(clientFePanel);
 
-        // Middleware panel
-        const middleWarePanel = document.createElement('div');
-        middleWarePanel.className = 'sub-panel';
-        shadow.appendChild(middleWarePanel);
+        // Extensions panel
+        const extensionsPanel = document.createElement('div');
+        extensionsPanel.className = 'sub-panel';
+        shadow.appendChild(extensionsPanel);
+
+        // Demo panel
+        const demoPanel = document.createElement('div');
+        demoPanel.className = 'sub-panel demo-panel';
+        shadow.appendChild(demoPanel);
+
+        // Services panel
+        const servicesPanel = document.createElement('div');
+        servicesPanel.className = 'sub-panel';
+        shadow.appendChild(servicesPanel);
 
         this._shadow = shadow;
         this._modernPanel = modernPanel;
@@ -275,13 +293,15 @@ class PackageBuilder extends HTMLElement {
         this._appsLoaded = false;
         this._docsLoaded = false;
         this._clientFeLoaded = false;
-        this._middleWareLoaded = false;
+        this._extensionsLoaded = false;
+        this._demoLoaded = false;
+        this._servicesLoaded = false;
         this._allGroups = [];
         this._selectedCard = null;
         this._depsPanel = null;
 
-        const allBtns   = [legacyBtn, modernBtn, testsBtn, productsBtn, appsBtn, docsBtn, clientFeBtn, middleWareBtn];
-        const allPanels = [legacyPanel, modernPanel, testsPanel, productsPanel, appsPanel, docsPanel, clientFePanel, middleWarePanel];
+        const allBtns   = [legacyBtn, modernBtn, testsBtn, productsBtn, appsBtn, docsBtn, clientFeBtn, extensionsBtn, demoBtn, servicesBtn];
+        const allPanels = [legacyPanel, modernPanel, testsPanel, productsPanel, appsPanel, docsPanel, clientFePanel, extensionsPanel, demoPanel, servicesPanel];
 
         const activate = (activeBtn, activePanel) => {
             allBtns.forEach(b => b.setAttribute('aria-selected', b === activeBtn ? 'true' : 'false'));
@@ -310,9 +330,17 @@ class PackageBuilder extends HTMLElement {
                 this._clientFeLoaded = true;
                 clientFePanel.appendChild(document.createElement('client-fe-viewer'));
             }
-            if (activePanel === middleWarePanel && !this._middleWareLoaded) {
-                this._middleWareLoaded = true;
-                middleWarePanel.appendChild(document.createElement('middle-wear-viewer'));
+            if (activePanel === extensionsPanel && !this._extensionsLoaded) {
+                this._extensionsLoaded = true;
+                extensionsPanel.appendChild(document.createElement('extension-builder'));
+            }
+            if (activePanel === demoPanel && !this._demoLoaded) {
+                this._demoLoaded = true;
+                demoPanel.appendChild(document.createElement('demo-viewer'));
+            }
+            if (activePanel === servicesPanel && !this._servicesLoaded) {
+                this._servicesLoaded = true;
+                servicesPanel.appendChild(document.createElement('service-viewer'));
             }
         };
 
@@ -323,14 +351,17 @@ class PackageBuilder extends HTMLElement {
         appsBtn.addEventListener('click',        () => activate(appsBtn, appsPanel));
         docsBtn.addEventListener('click',        () => activate(docsBtn, docsPanel));
         clientFeBtn.addEventListener('click',    () => activate(clientFeBtn, clientFePanel));
-        middleWareBtn.addEventListener('click',  () => activate(middleWareBtn, middleWarePanel));
+        extensionsBtn.addEventListener('click',  () => activate(extensionsBtn, extensionsPanel));
+        demoBtn.addEventListener('click',        () => activate(demoBtn, demoPanel));
+        servicesBtn.addEventListener('click',    () => activate(servicesBtn, servicesPanel));
 
         // Listen for cross-component subtab navigation (e.g. from Network → Build button)
         document.addEventListener('coolbox:subtab', (e) => {
             const { subtab } = e.detail || {};
-            if (subtab === 'apps')       activate(appsBtn, appsPanel);
-            if (subtab === 'client-fe')  activate(clientFeBtn, clientFePanel);
-            if (subtab === 'middleware') activate(middleWareBtn, middleWarePanel);
+            if (subtab === 'apps')        activate(appsBtn, appsPanel);
+            if (subtab === 'client-fe')   activate(clientFeBtn, clientFePanel);
+            if (subtab === 'extensions')  activate(extensionsBtn, extensionsPanel);
+            if (subtab === 'services')    activate(servicesBtn, servicesPanel);
         });
     }
 

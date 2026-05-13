@@ -1,10 +1,11 @@
 /**
  * <client-fe-viewer>
- * Package Builder sub-tab: shows portals from client_fe/, each in a card.
- * Clicking "Open Portal" loads the portal in an iframe below the card grid.
+ * Package Builder sub-tab: shows portals from client_fe/ (🌐 Portals) and
+ * middleware tools from business_suite/middle_wear/ (🔧 Middleware) as inner sub-tabs.
  * Endpoint: GET /client-fe  →  { portals: [{ folder, title, description, has_index }] }
  *           GET /client-portal/{folder}  →  serves client_fe/{folder}/index.html
  */
+import './middle-wear-viewer.mjs';
 
 const STYLE = `
 :host { display: block; font-family: inherit; }
@@ -146,6 +147,48 @@ iframe {
 }
 .empty-icon { font-size: 2.5rem; margin-bottom: 0.5em; }
 .loading { color: #94a3b8; font-size: 0.88em; padding: 1.5em 0; }
+
+/* ── Inner sub-tab bar ── */
+.inner-bar {
+    display: flex;
+    gap: 0.35em;
+    padding: 0.6em 0 0;
+    border-bottom: 1px solid #dde1ea;
+    margin-bottom: 0.75em;
+}
+.inner-btn {
+    padding: 0.28em 0.85em;
+    font-size: 0.8em;
+    font-family: inherit;
+    background: #fff;
+    border: 1px solid #c5cad8;
+    border-radius: 4px 4px 0 0;
+    border-bottom: none;
+    cursor: pointer;
+    color: #555;
+    margin-bottom: -1px;
+    transition: background 0.12s, color 0.12s;
+}
+.inner-btn:hover { background: #e8eaf0; color: #222; }
+.inner-btn[aria-selected="true"] {
+    background: #fff;
+    border-color: #2563eb;
+    color: #2563eb;
+    font-weight: 600;
+    border-bottom: 1px solid #fff;
+}
+.inner-panel { display: none; }
+.inner-panel.active { display: block; }
+
+/* ── Employee Chart section ── */
+.emp-section-label {
+    padding: 0.6em 0 0.5em;
+    font-size: 0.78em;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
 `;
 
 const FOLDER_ICONS = {
@@ -154,6 +197,9 @@ const FOLDER_ICONS = {
     timesheets:           '🕐',
     contracts:            '📋',
     clients:              '👥',
+    office_sweet:         '📂',
+    chorus:               '📖',
+    mermaid:              '✏️',
 };
 
 const FOLDER_DESCRIPTIONS = {
@@ -162,7 +208,16 @@ const FOLDER_DESCRIPTIONS = {
     timesheets:           'Weekly timesheet entry with project/task rows, daily hour inputs, and approval workflow.',
     contracts:            'Contract management — view, filter, and track client agreements and delivery progress.',
     clients:              'Client CRM — contacts, revenue, contract counts, and a slide-out detail drawer.',
+    office_sweet:         'Cloud file storage and collaboration. Share documents, spreadsheets and media with clients in a Google Drive-style workspace.',
+    chorus:               'Team knowledge base and wiki. Write structured articles, link pages together and organise content by space or tag.',
+    mermaid:              'Visual diagram drawing tool. Create flowcharts, sequence diagrams, org charts and architecture maps with an interactive canvas.',
 };
+
+/** Portals shown in the Office Tools tab. */
+const OFFICE_TOOL_FOLDERS = new Set(['office_sweet', 'chorus', 'mermaid']);
+
+/** Portals that belong exclusively to the Employee Chart tab. */
+const EMPLOYEE_PORTALS = new Set(['contracts', 'clients', 'internal_login', 'timesheets']);
 
 function iconFor(folder) {
     return FOLDER_ICONS[folder] ?? '🌐';
@@ -184,9 +239,29 @@ class ClientFeViewer extends HTMLElement {
 
         this._shadow = shadow;
         this._activeFolder = null;
-        this._cards = new Map(); // folder → card element
+        this._cards = new Map();
+        this._middlewareLoaded = false;
+        this._employeeGrid = null;
+        this._officeGrid = null;
 
-        // ── Toolbar ──
+        // ── Inner sub-tab bar ──
+        const innerBar = document.createElement('div');
+        innerBar.className = 'inner-bar';
+        const portalsBtn       = this._makeInnerBtn('🌐 Portals',        true);
+        const officeToolsBtn   = this._makeInnerBtn('🏢 Office Tools',   false);
+        const middlewareBtn    = this._makeInnerBtn('🔧 Middleware',     false);
+        const employeeChartBtn = this._makeInnerBtn('👥 Employee Chart', false);
+        innerBar.appendChild(portalsBtn);
+        innerBar.appendChild(officeToolsBtn);
+        innerBar.appendChild(middlewareBtn);
+        innerBar.appendChild(employeeChartBtn);
+        shadow.appendChild(innerBar);
+
+        // ── Portals section ──
+        const portalsSection = document.createElement('div');
+        portalsSection.className = 'inner-panel active';
+
+        // Toolbar
         const toolbar = document.createElement('div');
         toolbar.className = 'toolbar';
         const refreshBtn = document.createElement('button');
@@ -196,18 +271,74 @@ class ClientFeViewer extends HTMLElement {
         this._statusEl.className = 'status';
         toolbar.appendChild(refreshBtn);
         toolbar.appendChild(this._statusEl);
-        shadow.appendChild(toolbar);
+        portalsSection.appendChild(toolbar);
 
-        // ── Grid ──
+        // Grid
         this._grid = document.createElement('div');
         this._grid.className = 'portal-grid';
-        shadow.appendChild(this._grid);
+        portalsSection.appendChild(this._grid);
 
-        // ── Viewer ──
+        shadow.appendChild(portalsSection);
+
+        // ── Office Tools section ──
+        const officeToolsSection = document.createElement('div');
+        officeToolsSection.className = 'inner-panel';
+        const officeLabel = document.createElement('div');
+        officeLabel.className = 'emp-section-label';
+        officeLabel.textContent = 'Office & Productivity Tools';
+        officeToolsSection.appendChild(officeLabel);
+        this._officeGrid = document.createElement('div');
+        this._officeGrid.className = 'portal-grid';
+        officeToolsSection.appendChild(this._officeGrid);
+        shadow.appendChild(officeToolsSection);
+
+        // ── Middleware section ──
+        const middlewareSection = document.createElement('div');
+        middlewareSection.className = 'inner-panel';
+        shadow.appendChild(middlewareSection);
+
+        // ── Employee Chart section ──
+        const employeeChartSection = document.createElement('div');
+        employeeChartSection.className = 'inner-panel';
+        const empLabel = document.createElement('div');
+        empLabel.className = 'emp-section-label';
+        empLabel.textContent = 'Employee Portals';
+        employeeChartSection.appendChild(empLabel);
+        this._employeeGrid = document.createElement('div');
+        this._employeeGrid.className = 'portal-grid';
+        employeeChartSection.appendChild(this._employeeGrid);
+        shadow.appendChild(employeeChartSection);
+
+        // ── Viewer (appended to shadow root, shared across portal cards) ──
         this._viewerWrap = null;
 
         refreshBtn.addEventListener('click', () => this._load());
         this._load();
+
+        // Inner sub-tab switching
+        const allInner    = [portalsBtn, officeToolsBtn, middlewareBtn, employeeChartBtn];
+        const allSections = [portalsSection, officeToolsSection, middlewareSection, employeeChartSection];
+        const activateInner = (btn, section) => {
+            allInner.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+            allSections.forEach(s => s.classList.toggle('active', s === section));
+            if (section === middlewareSection && !this._middlewareLoaded) {
+                this._middlewareLoaded = true;
+                middlewareSection.appendChild(document.createElement('middle-wear-viewer'));
+            }
+            this._closeViewer();
+        };
+        portalsBtn.addEventListener('click',       () => activateInner(portalsBtn,       portalsSection));
+        officeToolsBtn.addEventListener('click',   () => activateInner(officeToolsBtn,   officeToolsSection));
+        middlewareBtn.addEventListener('click',    () => activateInner(middlewareBtn,    middlewareSection));
+        employeeChartBtn.addEventListener('click', () => activateInner(employeeChartBtn, employeeChartSection));
+    }
+
+    _makeInnerBtn(label, active) {
+        const btn = document.createElement('button');
+        btn.className = 'inner-btn';
+        btn.textContent = label;
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        return btn;
     }
 
     async _load() {
@@ -230,22 +361,47 @@ class ClientFeViewer extends HTMLElement {
             return;
         }
 
-        if (!data.portals || !data.portals.length) {
+        const publicPortals   = (data.portals || []).filter(p => !EMPLOYEE_PORTALS.has(p.folder) && !OFFICE_TOOL_FOLDERS.has(p.folder));
+        const officePortals   = (data.portals || []).filter(p =>  OFFICE_TOOL_FOLDERS.has(p.folder));
+        const employeePortals = (data.portals || []).filter(p =>  EMPLOYEE_PORTALS.has(p.folder));
+
+        if (!publicPortals.length) {
             const empty = document.createElement('div');
             empty.className = 'empty';
             empty.innerHTML = `<div class="empty-icon">🌐</div>
                                <div>No portals found in client_fe/.</div>`;
             this._grid.appendChild(empty);
             this._statusEl.textContent = '';
+        } else {
+            for (const portal of publicPortals) {
+                const card = this._makeCard(portal);
+                this._cards.set(portal.folder, card);
+                this._grid.appendChild(card);
+            }
+            this._statusEl.textContent = `${publicPortals.length} portal${publicPortals.length !== 1 ? 's' : ''}`;
+        }
+        this._populateOfficeGrid(officePortals);
+        this._populateEmployeeGrid(employeePortals);
+    }
+
+    _populateOfficeGrid(portals) {
+        if (!this._officeGrid) return;
+        this._officeGrid.innerHTML = '';
+
+        if (!portals.length) {
+            const empty = document.createElement('div');
+            empty.className = 'empty';
+            empty.innerHTML = `<div class="empty-icon">🏢</div>
+                               <div>No office tools found in client_fe/.</div>`;
+            this._officeGrid.appendChild(empty);
             return;
         }
 
-        for (const portal of data.portals) {
+        for (const portal of portals) {
             const card = this._makeCard(portal);
             this._cards.set(portal.folder, card);
-            this._grid.appendChild(card);
+            this._officeGrid.appendChild(card);
         }
-        this._statusEl.textContent = `${data.portals.length} portal${data.portals.length !== 1 ? 's' : ''}`;
     }
 
     _makeCard(portal) {
@@ -259,7 +415,7 @@ class ClientFeViewer extends HTMLElement {
             <span class="pc-icon">${iconFor(portal.folder)}</span>
             <div style="flex:1;min-width:0">
                 <div class="pc-title">${this._esc(portal.title || titleFor(portal.folder))}</div>
-                <div class="pc-folder">client_fe/${this._esc(portal.folder)}</div>
+                <div class="pc-folder">_interfaces/business_suite/client_fe/${this._esc(portal.folder)}</div>
             </div>`;
         card.appendChild(header);
 
@@ -301,6 +457,26 @@ class ClientFeViewer extends HTMLElement {
         card.appendChild(actions);
         card._openBtn = actions.querySelector('.ac-btn.open');
         return card;
+    }
+
+    _populateEmployeeGrid(portals) {
+        if (!this._employeeGrid) return;
+        this._employeeGrid.innerHTML = '';
+
+        if (!portals.length) {
+            const empty = document.createElement('div');
+            empty.className = 'empty';
+            empty.innerHTML = `<div class="empty-icon">👥</div>
+                               <div>No employee portals found in client_fe/.</div>`;
+            this._employeeGrid.appendChild(empty);
+            return;
+        }
+
+        for (const portal of portals) {
+            const card = this._makeCard(portal);
+            this._cards.set(portal.folder, card);
+            this._employeeGrid.appendChild(card);
+        }
     }
 
     _openViewer(portal) {

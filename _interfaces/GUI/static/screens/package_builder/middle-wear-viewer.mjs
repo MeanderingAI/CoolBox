@@ -259,7 +259,7 @@ class MiddleWearViewer extends HTMLElement {
         titleEl.textContent = title;
         const folderEl = document.createElement('span');
         folderEl.className = 'tc-folder';
-        folderEl.textContent = folder;
+        folderEl.textContent = `_interfaces/business_suite/middle_wear/${folder}`;
         header.append(iconEl, titleEl, folderEl);
 
         // Description

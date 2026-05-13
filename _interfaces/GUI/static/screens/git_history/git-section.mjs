@@ -8,16 +8,20 @@ import './git-merge.mjs';
 import './git-provider.mjs';
 import '../workspace-editor.mjs';
 import './plan-canvas.mjs';
+import './git-sub-repos.mjs';
+import './git-experiment-center.mjs';
 
 const SUB_TABS = [
-    { id: 'history',   label: '📋 History',   tag: 'git-history'      },
-    { id: 'diff',      label: '🔍 Diff',       tag: 'git-diff'         },
-    { id: 'stack',     label: '📦 Stack',      tag: 'git-stack'        },
-    { id: 'commit',    label: '✏️ Commit',     tag: 'git-commit'       },
-    { id: 'merge',     label: '🔀 Merge',      tag: 'git-merge'        },
-    { id: 'remotes',   label: '🌐 Remotes',    tag: 'git-provider'     },
-    { id: 'workspace', label: '✏️ Workspace',  tag: 'workspace-editor' },
-    { id: 'plans',     label: '🗺 Plans',      tag: 'plan-canvas'      },
+    { id: 'history',    label: '📋 History',          tag: 'git-history'           },
+    { id: 'diff',       label: '🔍 Diff',              tag: 'git-diff'              },
+    { id: 'stack',      label: '📦 Stack',             tag: 'git-stack'             },
+    { id: 'commit',     label: '✏️ Commit',            tag: 'git-commit'            },
+    { id: 'merge',      label: '🔀 Merge',             tag: 'git-merge'             },
+    { id: 'remotes',    label: '🌐 Remotes',           tag: 'git-provider'          },
+    { id: 'workspace',  label: '✏️ Workspace',         tag: 'workspace-editor'      },
+    { id: 'plans',      label: '🗺 Plans',             tag: 'plan-canvas'           },
+    { id: 'subrepos',   label: '📂 Sub-Repos',         tag: 'git-sub-repos'         },
+    { id: 'experiment', label: '🧪 Experiment Centre', tag: 'git-experiment-center' },
 ];
 
 const STYLE = `
@@ -76,6 +80,16 @@ const STYLE = `
     padding: 0;
     height: calc(100vh - 175px);
     overflow: hidden;
+}
+
+/* Experiment Centre: full height, no padding, dark bg */
+#sub-panel-experiment.active {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    height: calc(100vh - 175px);
+    overflow: hidden;
+    background: #1e1e2e;
 }
 `;
 

@@ -7,3 +7,6 @@
 [submodule "_sub_repos/Stallholder"]
 	path = _sub_repos/Stallholder
 	url = https://github.com/MeanderingAI/Stallholder
+[submodule "_sub_repos/SyngCoin"]
+	path = _sub_repos/SyngCoin
+	url = https://github.com/MeanderingAI/SyngCoin.git

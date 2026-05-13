@@ -1,5 +1,6 @@
 
 #include "mytrix_eigen_compat.hpp"
+#include <Eigen/Dense>
 #include <iostream>
 #include <kalman_filter.h>
 
@@ -19,32 +20,29 @@ void KalmanFilter::init(const mytrix::Vector& x0) {
 
 // Predict step
 void KalmanFilter::predict() {
-    // Predicts the next state
-    x = A * x;
-    // Predicts the next error covariance
-    P = A * P * A.transpose() + Q;
+    x = mytrix::Vector(A.data * x.data);
+    Eigen::MatrixXd At = A.data.transpose();
+    P = mytrix::Matrix(A.data * P.data * At + Q.data);
 }
 
 // Update step
 void KalmanFilter::update(const mytrix::Vector& y) {
-    // Calculates the Kalman Gain
-    mytrix::Matrix S = C * P * C.transpose() + R;
-    mytrix::Matrix K = P * C.transpose() * S.inverse();
+    Eigen::MatrixXd Ct = C.data.transpose();
+    Eigen::MatrixXd S_eig = C.data * P.data * Ct + R.data;
+    Eigen::MatrixXd K_eig = P.data * Ct * S_eig.inverse();
 
-    // Updates the state estimate
-    mytrix::Vector y_hat = C * x;
-    x = x + K * (y - y_hat);
+    Eigen::VectorXd y_hat = C.data * x.data;
+    x = mytrix::Vector(x.data + K_eig * (y.data - y_hat));
 
-    // Updates the error covariance
-    mytrix::Matrix I = mytrix::Matrix::Identity(P.rows(), P.cols());
-    P = (I - K * C) * P;
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(P.rows(), P.cols());
+    P = mytrix::Matrix((I - K_eig * C.data) * P.data);
 }
 
 // Get the current state estimate
-const Eigen::VectorXd& KalmanFilter::state() const {
+const mytrix::Vector& KalmanFilter::state() const {
     return x;
 }
 
-const Eigen::MatrixXd& KalmanFilter::covariance() const {
+const mytrix::Matrix& KalmanFilter::covariance() const {
     return P;
 }

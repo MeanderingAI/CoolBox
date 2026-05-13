@@ -67,9 +67,9 @@ private:
     int num_terms;
 
     // U: Document-Feature Matrix (D x K)
-    matrix::DenseMatrix<double> U;
+    matrix::DenseMatrix U;
     // V: Term-Feature Matrix (T x K)
-    matrix::DenseMatrix<double> V;
+    matrix::DenseMatrix V;
 
     /**
      * @brief Initializes the matrices U and V.

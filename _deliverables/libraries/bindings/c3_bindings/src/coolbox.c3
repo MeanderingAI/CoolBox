@@ -1,10 +1,10 @@
 module coolbox;
 
-extern fn ZString coolbox_c_version() @cname("coolbox_c_version");
-extern fn ZString coolbox_c_describe() @cname("coolbox_c_describe");
-extern fn usz coolbox_c_capability_count() @cname("coolbox_c_capability_count");
-extern fn ZString coolbox_c_capability_at(usz index) @cname("coolbox_c_capability_at");
-extern fn int coolbox_c_is_ready() @cname("coolbox_c_is_ready");
+extern fn ZString coolbox_c_version();
+extern fn ZString coolbox_c_describe();
+extern fn usz coolbox_c_capability_count();
+extern fn ZString coolbox_c_capability_at(usz index);
+extern fn int coolbox_c_is_ready();
 
 struct Client
 {
@@ -24,13 +24,13 @@ fn Client for_endpoint(String endpoint)
 fn String Client.version(&self)
 {
 	ZString value = coolbox_c_version();
-	return value == null ? "" : value.copy(tmem);
+	return value == null ? "" : value.str_view();
 }
 
 fn String Client.describe(&self)
 {
 	ZString value = coolbox_c_describe();
-	return value == null ? "" : value.copy(tmem);
+	return value == null ? "" : value.str_view();
 }
 
 fn bool Client.is_ready(&self)
@@ -46,7 +46,7 @@ fn usz Client.capability_count(&self)
 fn String Client.capability_at(&self, usz index)
 {
 	ZString value = coolbox_c_capability_at(index);
-	return value == null ? "" : value.copy(tmem);
+	return value == null ? "" : value.str_view();
 }
 
 fn String[] Client.capabilities(&self)

@@ -219,9 +219,9 @@ Tensor SoftmaxLayer::backward(const Tensor& gradient) {
 }
 
 // Dropout Layer Implementation
-DropoutLayer::DropoutLayer(double dropout_rate)
-    : dropout_rate_(dropout_rate), training_(true) {
-    if (dropout_rate < 0.0 || dropout_rate >= 1.0) {
+DropoutLayer::DropoutLayer(double rate)
+    : rate_(rate), training_(true) {
+    if (rate < 0.0 || rate >= 1.0) {
         throw std::invalid_argument("Dropout rate must be in [0, 1)");
     }
 }
@@ -229,7 +229,7 @@ DropoutLayer::DropoutLayer(double dropout_rate)
 Tensor DropoutLayer::forward(const Tensor& input) {
     last_input_ = input.clone();
     
-    if (!training_ || dropout_rate_ == 0.0) {
+    if (!training_ || rate_ == 0.0) {
         return input.clone();
     }
     
@@ -240,10 +240,10 @@ Tensor DropoutLayer::forward(const Tensor& input) {
     Tensor output = input.clone();
     mask_ = Tensor(input.shape());
     
-    double scale = 1.0 / (1.0 - dropout_rate_);
+    double scale = 1.0 / (1.0 - rate_);
     
     for (size_t i = 0; i < output.size(); ++i) {
-        if (dist(gen) < dropout_rate_) {
+        if (dist(gen) < rate_) {
             output.data()[i] = 0.0;
             mask_.data()[i] = 0.0;
         } else {
@@ -256,7 +256,7 @@ Tensor DropoutLayer::forward(const Tensor& input) {
 }
 
 Tensor DropoutLayer::backward(const Tensor& gradient) {
-    if (!training_ || dropout_rate_ == 0.0) {
+    if (!training_ || rate_ == 0.0) {
         return gradient.clone();
     }
     

@@ -3,6 +3,7 @@
 #include "marked_point_process.h"
 
 using namespace emscripten;
+using namespace ml;
 
 class MPPWrapper {
     MarkedPointProcess mpp_;

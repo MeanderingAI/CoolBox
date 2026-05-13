@@ -19,3 +19,7 @@ cxx = "1.0"
 
 [build-dependencies]
 cxx-build = "1.0"
+
+# Opt out of the root workspace so `cargo build` works from this directory
+# without needing the root Cargo.toml workspace members to resolve.
+[workspace]

@@ -15,10 +15,10 @@ if(TARGET components)
 	target_link_libraries(MStudio PRIVATE components)
 else()
 	target_sources(MStudio PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/../../_libraries/packages/GRAPHICS/components/source/components.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/../../_deliverables/libraries/packages/GRAPHICS/components/source/components.cpp
 	)
 	target_include_directories(MStudio PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/../../_libraries/packages/GRAPHICS/components/headers
+		${CMAKE_CURRENT_SOURCE_DIR}/../../_deliverables/libraries/packages/GRAPHICS/components/headers
 	)
 endif()
 

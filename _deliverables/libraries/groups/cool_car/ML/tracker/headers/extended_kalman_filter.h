@@ -39,7 +39,7 @@
  #ifndef EXTENDED_KALMAN_FILTER_H
  #define EXTENDED_KALMAN_FILTER_H
 
-#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
+#include "matrix_dense.h"
  #include "base_kalman_filter.h"
  #include <vector>
  #include <functional>

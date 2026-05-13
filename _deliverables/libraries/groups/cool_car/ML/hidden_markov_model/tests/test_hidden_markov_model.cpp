@@ -8,8 +8,7 @@ TEST(HiddenMarkovModel, DeterministicEmissionLogLikelihoodAndViterbi) {
 	// Construct a 2-state, 2-observation HMM where state0 always emits 0 and state1 always emits 1.
 	HMM model(2, 2);
 
-	Eigen::VectorXd pi(2);
-	pi << 1.0, 0.0; // always start in state 0
+	std::vector<double> pi = {1.0, 0.0}; // always start in state 0
 	model.set_initial_probabilities(pi);
 
 	Eigen::MatrixXd A(2,2);
@@ -35,8 +34,7 @@ TEST(HiddenMarkovModel, DeterministicEmissionLogLikelihoodAndViterbi) {
 
 TEST(HiddenMarkovModel, GettersAndSetters) {
 	HMM model(3, 2);
-	Eigen::VectorXd pi(3);
-	pi << 0.2, 0.3, 0.5;
+	std::vector<double> pi = {0.2, 0.3, 0.5};
 	model.set_initial_probabilities(pi);
 	EXPECT_EQ(model.get_initial_probabilities().size(), 3);
 

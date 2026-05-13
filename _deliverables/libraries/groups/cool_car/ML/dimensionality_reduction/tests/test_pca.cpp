@@ -14,7 +14,9 @@ TYST_TEST(PcaTest, ProjectsCollinearDataIntoOneComponent) {
 	PCA pca(1, true, false);
 	const Eigen::MatrixXd transformed = pca.fit_transform(inputs);
 	const Eigen::MatrixXd reconstructed = pca.inverse_transform(transformed);
-	const Eigen::VectorXd explained_ratio = pca.get_explained_variance_ratio();
+	const auto ratio_vec = pca.get_explained_variance_ratio();
+	const Eigen::VectorXd explained_ratio = Eigen::Map<const Eigen::VectorXd>(
+		ratio_vec.data(), static_cast<Eigen::Index>(ratio_vec.size()));
 
 	TYST_EXPECT_EQ(transformed.rows(), inputs.rows());
 	TYST_EXPECT_EQ(transformed.cols(), 1);

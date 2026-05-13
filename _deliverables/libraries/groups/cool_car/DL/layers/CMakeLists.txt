@@ -16,7 +16,7 @@ target_include_directories(test_deep_learning PRIVATE
 	../loss/include
 	../optimizer/include
 	../wrapper/include
-	${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/MATRIX/headers
+	${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers
 	${CMAKE_SOURCE_DIR}/external/eigen/eigen-3.4.0
 )
 target_link_libraries(test_deep_learning PRIVATE tyst_framework_main)

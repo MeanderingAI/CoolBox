@@ -12,10 +12,10 @@ from typing import Optional
 
 
 def _repo_root() -> str:
-    # This file lives at GUI/library/makefile_manager.py.
-    # Three levels up: library/ → GUI/ → CoolBox/ (repo root)
+    # This file lives at _interfaces/GUI/library/makefile_manager.py.
+    # Four levels up: library/ → GUI/ → _interfaces/ → CoolBox/ (repo root)
     return os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     )
 
 
@@ -121,6 +121,25 @@ def build_target(cmake_target: str, timeout: int = 300) -> dict:
 
     # Not a direct cmake target — try package-directory lookup
     pkg_targets = _targets_in_package_dir(_repo_root(), cmake_target, cmake_deps)
+
+    # Also try snake_case conversion (CTest names are PascalCase, cmake targets snake_case).
+    if not pkg_targets and not exact:
+        def _to_snake(s: str) -> str:
+            s = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', s)
+            s = re.sub(r'([a-z\d])([A-Z])', r'\1_\2', s)
+            return s.lower()
+        snake = _to_snake(cmake_target)
+        if snake != cmake_target:
+            exact = snake if snake in cmake_deps else next(
+                (k for k in cmake_deps if k.lower() == snake.lower()), None
+            )
+            if exact:
+                result = run_make(f"build_{exact}", timeout=timeout)
+                if result["success"]:
+                    result["artifacts"] = find_artifacts([exact])
+                else:
+                    result["artifacts"] = []
+                return result
 
     # Last resort: target exists as add_library/add_executable but has zero deps
     # (so it never appeared in cmake_deps).  Verify via source scan, then build directly.
@@ -528,13 +547,59 @@ def scan_tests() -> list:
 
     _SKIP_VCXPROJ = {"ALL_BUILD.vcxproj", "INSTALL.vcxproj", "RUN_TESTS.vcxproj", "ZERO_CHECK.vcxproj"}
 
-    def _find_build_target(working_dir: str) -> Optional[str]:
-        if not working_dir or not os.path.isdir(working_dir):
+    def _to_snake(s: str) -> str:
+        """Convert PascalCase / camelCase CTest name to snake_case cmake target name."""
+        s = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', s)
+        s = re.sub(r'([a-z\d])([A-Z])', r'\1_\2', s)
+        return s.lower()
+
+    def _find_build_target(working_dir: str, test_name: str = "") -> Optional[str]:
+        """Return the cmake target name (vcxproj stem) for a test's working directory.
+        When the directory contains multiple vcxproj files (library + test), prefers the one
+        that matches the test name.  Falls back to any test-named target, then first found."""
+        if not working_dir:
             return None
-        for f in os.listdir(working_dir):
-            if f.endswith(".vcxproj") and f not in _SKIP_VCXPROJ:
-                return f[:-len(".vcxproj")]
-        return None
+        # Resolve ../ segments so os.path.isdir works correctly on paths from ctest output
+        try:
+            real_dir = os.path.realpath(working_dir)
+        except Exception:
+            real_dir = working_dir
+        if not os.path.isdir(real_dir):
+            return None
+
+        vcxprojs = [
+            f[:-len(".vcxproj")]
+            for f in os.listdir(real_dir)
+            if f.endswith(".vcxproj") and f not in _SKIP_VCXPROJ
+        ]
+        if not vcxprojs:
+            return None
+        if len(vcxprojs) == 1:
+            return vcxprojs[0]
+
+        # Multiple candidates — prefer the one that matches the test name.
+        snake = _to_snake(test_name) if test_name else ""
+
+        # 1. Exact match on snake_case name
+        if snake and snake in vcxprojs:
+            return snake
+
+        # 2. Among targets whose name contains "test", prefer exact match or only candidate
+        test_targets = [t for t in vcxprojs if re.search(r'test', t, re.IGNORECASE)]
+        if len(test_targets) == 1:
+            return test_targets[0]
+
+        # 3. Among test targets, prefer the one closest to the snake name
+        if snake and test_targets:
+            # Try progressively shorter prefixes stripped of _tests/_test suffix
+            base = re.sub(r'_tests?$', '', snake)
+            for t in test_targets:
+                if t.startswith(base) or base in t:
+                    return t
+            return test_targets[0]
+
+        # 4. Fall back to first vcxproj (original behaviour)
+        return vcxprojs[0]
 
     try:
         result = subprocess.run(
@@ -543,19 +608,28 @@ def scan_tests() -> list:
         )
         current_num = None
         current_name = None
+        # The ctest -N --verbose output places "Working Directory:" BEFORE "Test #N:" on the
+        # very next line.  So when we see "Test #N:", current_workdir already holds test N's
+        # dir — not the previous test's dir.  We therefore track the dir belonging to the
+        # PREVIOUS test separately so the flush uses the right path.
         current_workdir = None
+        prev_workdir: Optional[str] = None
 
         for line in result.stdout.splitlines():
             m = re.match(r'\s+Test\s+#(\d+):\s+(.+)', line)
             if m:
+                # current_workdir is THIS test's working dir (just read on the preceding line).
+                # Flush the PREVIOUS test using prev_workdir.
                 if current_name is not None:
-                    build_tgt = _find_build_target(current_workdir) if _is_windows() else None
+                    build_tgt = _find_build_target(prev_workdir, current_name) if _is_windows() else None
                     tests.append({
                         "num": current_num,
                         "name": current_name,
-                        "working_dir": current_workdir,
+                        "working_dir": prev_workdir,
                         "build_target": build_tgt,
                     })
+                # Promote the current working dir to previous for the next flush.
+                prev_workdir = current_workdir
                 current_num = int(m.group(1))
                 current_name = m.group(2).strip()
                 current_workdir = None
@@ -565,11 +639,11 @@ def scan_tests() -> list:
                 current_workdir = wd.group(1).strip()
 
         if current_name is not None:
-            build_tgt = _find_build_target(current_workdir) if _is_windows() else None
+            build_tgt = _find_build_target(prev_workdir, current_name) if _is_windows() else None
             tests.append({
                 "num": current_num,
                 "name": current_name,
-                "working_dir": current_workdir,
+                "working_dir": prev_workdir,
                 "build_target": build_tgt,
             })
     except Exception:

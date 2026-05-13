@@ -1,0 +1,1 @@
+add syngcoin as a sub_repo.

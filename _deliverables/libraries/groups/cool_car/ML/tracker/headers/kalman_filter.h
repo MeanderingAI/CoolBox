@@ -2,7 +2,7 @@
 #ifndef KALMAN_FILTER_H
 #define KALMAN_FILTER_H
 
-#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
+#include "matrix_dense.h"
 #include "base_kalman_filter.h"
 #include <vector>
 

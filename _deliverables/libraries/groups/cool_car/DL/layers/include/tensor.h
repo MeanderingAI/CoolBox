@@ -68,7 +68,8 @@ private:
     std::vector<double> data_;
     std::vector<size_t> shape_;
     
-    size_t flat_index(const std::vector<size_t>& indices) const;
+    size_t compute_index(const std::vector<size_t>& indices) const;
+    bool is_shape_compatible(const Tensor& other) const;
 };
 
 } // namespace deep_learning

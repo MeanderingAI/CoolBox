@@ -48,7 +48,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
+#include "matrix_dense.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -89,27 +89,27 @@ struct GaborParams {
  * @param normalize If true the kernel is L2-normalised.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix<Scalar> gabor_kernel(const GaborParams<Scalar>& params, int size = 0,
+matrix::DenseMatrix gabor_kernel(const GaborParams<Scalar>& params, int size = 0,
              bool normalize = false);
 
 /**
  * @brief Generate the imaginary (sine) part of the Gabor function.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix<Scalar> gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size = 0,
+matrix::DenseMatrix gabor_kernel_imaginary(const GaborParams<Scalar>& params, int size = 0,
                        bool normalize = false);
 
 /**
  * @brief Gabor energy: sqrt(real² + imag²) per pixel.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix<Scalar> gabor_energy(const GaborParams<Scalar>& params, int size = 0);
+matrix::DenseMatrix gabor_energy(const GaborParams<Scalar>& params, int size = 0);
 
 /**
  * @brief 2-D convolution with valid padding.
  */
 template <typename Scalar = double>
-matrix::DenseMatrix<Scalar> convolve2d(const matrix::DenseMatrix<Scalar>& image,
+matrix::DenseMatrix convolve2d(const matrix::DenseMatrix& image,
            const matrix::DenseMatrix& kernel);
 
 /**

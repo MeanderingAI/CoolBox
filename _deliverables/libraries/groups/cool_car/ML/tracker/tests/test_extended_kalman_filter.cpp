@@ -14,25 +14,21 @@ TYST_TEST(ExtendedKalmanFilterTest, AppliesConfiguredModelsDuringPredictAndUpdat
 
 	ExtendedKalmanFilter filter(initial_state, P0, Q, R);
 	filter.setProcessModel(
-		[](const Eigen::VectorXd& state) {
-			Eigen::VectorXd next(1);
-			next << state(0) + 1.0;
-			return next;
+		[](const mytrix::Vector& state) -> mytrix::Vector {
+			return mytrix::Vector{state[0] + 1.0};
 		},
-		[](const Eigen::VectorXd&) {
-			Eigen::MatrixXd jacobian(1, 1);
-			jacobian << 1.0;
+		[](const mytrix::Vector&) -> mytrix::Matrix {
+			mytrix::Matrix jacobian(1, 1);
+			jacobian.at(0, 0) = 1.0;
 			return jacobian;
 		});
 	filter.setMeasurementModel(
-		[](const Eigen::VectorXd& state) {
-			Eigen::VectorXd measurement(1);
-			measurement << state(0);
-			return measurement;
+		[](const mytrix::Vector& state) -> mytrix::Vector {
+			return mytrix::Vector{state[0]};
 		},
-		[](const Eigen::VectorXd&) {
-			Eigen::MatrixXd jacobian(1, 1);
-			jacobian << 1.0;
+		[](const mytrix::Vector&) -> mytrix::Matrix {
+			mytrix::Matrix jacobian(1, 1);
+			jacobian.at(0, 0) = 1.0;
 			return jacobian;
 		});
 

@@ -43,9 +43,17 @@ class TestRunner extends HTMLElement {
             numCell.style.color = '#888';
 
             const nameCell = row.insertCell();
-            nameCell.textContent = test.name;
             nameCell.style.padding = '4px 8px';
-            nameCell.style.fontFamily = 'monospace';
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = test.name;
+            nameSpan.style.fontFamily = 'monospace';
+            nameCell.appendChild(nameSpan);
+            if (test.build_target) {
+                const targetHint = document.createElement('div');
+                targetHint.textContent = `cmake: ${test.build_target}`;
+                targetHint.style.cssText = 'font-size:0.75em;color:#aaa;font-family:monospace;margin-top:1px;';
+                nameCell.appendChild(targetHint);
+            }
 
             const actionsCell = row.insertCell();
             actionsCell.style.padding = '4px 8px';

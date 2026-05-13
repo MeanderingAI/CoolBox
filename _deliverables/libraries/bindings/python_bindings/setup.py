@@ -10,7 +10,7 @@ from setuptools import setup
 
 
 project_root = Path(__file__).resolve().parent
-repo_root = project_root.parent.parent
+repo_root = project_root.parent.parent.parent.parent  # _deliverables/libraries/bindings/python_bindings -> repo root
 include_root = project_root / "include"
 src_root = project_root / "src"
 vendor_include_root = project_root / "vendor_include"
@@ -202,6 +202,9 @@ else:
 eigen_candidates = [
     os.environ.get("EIGEN3_INCLUDE_DIR"),
     os.environ.get("EIGEN_INCLUDE_DIR"),
+    # Repo-vendored Eigen (highest priority — always present)
+    # project_root is 4 levels deep: _deliverables/libraries/bindings/python_bindings
+    str(project_root.parent.parent.parent.parent / "external" / "eigen" / "eigen-3.4.0"),
     str(project_root.parent.parent / "eigen-src"),
     str(project_root.parent.parent / "eigen-src" / "eigen3"),
     str(project_root.parent.parent / "build" / "eigen-src"),
@@ -220,9 +223,14 @@ eigen_candidates = [
 include_dirs = [
     pybind11.get_include(),
     str(include_root),
+    str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
     str(wave_generator_header.parent),
+    # cool_car group headers: mytrix_eigen_compat.hpp, DL/layers, DL/loss, DL/optimizer, DL/wrapper
+    # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
+    str(project_root.parent.parent.parent.parent / "_deliverables" / "libraries" / "groups" / "cool_car"),
+    str(project_root.parent.parent.parent.parent / "_deliverables" / "libraries" / "groups" / "cool_car" / "MATRIX" / "headers"),
     *existing_dirs(
         [
             repo_root / "build/_deps/stb-src",

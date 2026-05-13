@@ -1,18 +1,19 @@
 CXX_STD = CXX17
 PKG_CPPFLAGS = \
 	-I../../../c_bindings/include \
-	-I../../../packages/MISC/metadata_management/headers \
-	-I../../../packages/ML/generalized_linear_model/headers \
-	-I../../../packages/ML/time_series/headers \
-	-I../../../packages/ML/decision_tree/headers \
-	-I../../../packages/ML/support_vector_machine/headers \
-	-I../../../packages/ML/bayesian_network_ai/headers \
-	-I../../../packages/ML/hidden_markov_model/headers \
-	-I../../../packages/ML/multi_arm_bandit/headers \
-	-I../../../packages/ML/marked_point_process/headers \
-	-I../../../packages/ML/latent_sentiment_analysis/headers \
-	-I../../../packages/ML/dimensionality_reduction/headers \
-	-I../../../../build/eigen-src \
+	-I../../../../groups/trekker/MISC/metadata_management/headers \
+	-I../../../../groups/cool_car/MATRIX/headers \
+	-I../../../../groups/cool_car/ML/generalized_linear_model/headers \
+	-I../../../../groups/cool_car/ML/time_series/headers \
+	-I../../../../groups/cool_car/ML/decision_tree/headers \
+	-I../../../../groups/cool_car/ML/support_vector_machine/headers \
+	-I../../../../groups/cool_car/ML/bayesian_network_ai/headers \
+	-I../../../../groups/cool_car/ML/hidden_markov_model/headers \
+	-I../../../../groups/cool_car/ML/multi_arm_bandit/headers \
+	-I../../../../groups/cool_car/ML/marked_point_process/headers \
+	-I../../../../groups/cool_car/ML/latent_sentiment_analysis/headers \
+	-I../../../../groups/cool_car/ML/dimensionality_reduction/headers \
+	-I../../../../../../external/eigen/eigen-3.4.0 \
 	-I/usr/include/eigen3 \
 	-I/usr/local/include/eigen3 \
 	-I/opt/homebrew/include/eigen3 \

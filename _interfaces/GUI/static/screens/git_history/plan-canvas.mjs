@@ -256,6 +256,16 @@ const STYLE = `
 }
 .tb-btn:hover { background: #0e639c; color: #fff; }
 
+.tb-select {
+    padding: 0.3em 0.6em;
+    border: 1px solid #c5cad8;
+    border-radius: 5px;
+    background: #fff;
+    font-size: 0.8em;
+    color: #374151;
+    cursor: pointer;
+}
+
 .tb-hint {
     margin-left: auto;
     font-size: 0.75em;
@@ -412,6 +422,7 @@ class PlanCanvas extends HTMLElement {
         toolbar.className = 'toolbar';
         toolbar.innerHTML = `
             <span class="tb-label">📋 Plan Browser</span>
+            <select id="sel-version" class="tb-select"><option value="">All versions</option></select>
             <button class="tb-btn" id="btn-reset">Reset View</button>
             <button class="tb-btn" id="btn-refresh">↺ Refresh</button>
             <span class="tb-hint">Drag to pan &nbsp;·&nbsp; Wheel to zoom &nbsp;·&nbsp; Click file to open</span>
@@ -451,6 +462,7 @@ class PlanCanvas extends HTMLElement {
         shadow.appendChild(this._statusBar);
 
         // State
+        this._allBoards = [];
         this._boards  = [];
         this._hits    = [];
         this._ox      = 40;   // pan offset x
@@ -458,6 +470,7 @@ class PlanCanvas extends HTMLElement {
         this._scale   = 1.0;
         this._drag    = null; // { startX, startY, ox0, oy0 }
         this._hoverPath = null;
+        this._versionFilter = '';
 
         // Events
         this._canvas.addEventListener('mousedown', e => this._onDown(e));
@@ -470,6 +483,10 @@ class PlanCanvas extends HTMLElement {
         shadow.getElementById('btn-close').addEventListener('click', () => this._closePanel());
         shadow.getElementById('btn-reset').addEventListener('click', () => this._resetView());
         shadow.getElementById('btn-refresh').addEventListener('click', () => this._load());
+        shadow.getElementById('sel-version').addEventListener('change', e => {
+            this._versionFilter = e.target.value;
+            this._applyFilter();
+        });
 
         // ResizeObserver
         this._ro = new ResizeObserver(() => this._resize());
@@ -489,15 +506,41 @@ class PlanCanvas extends HTMLElement {
             const res = await fetch('/plans');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const tree = await res.json();
-            this._boards = layoutBoards(flattenBoards(tree));
-            this._hits   = computeHits(this._boards);
-            const total  = this._boards.reduce((n, b) => n + b.files.length, 0);
-            this._statusBar.textContent =
-                `${this._boards.length} version folder(s) · ${total} plan file(s)`;
-            this._resize();
+            this._allBoards = layoutBoards(flattenBoards(tree));
+            this._populateVersionSelect();
+            this._applyFilter();
         } catch (e) {
             this._statusBar.textContent = `Error loading plans: ${e.message}`;
         }
+    }
+
+    _populateVersionSelect() {
+        const sel = this.shadowRoot.getElementById('sel-version');
+        const current = sel.value;
+        while (sel.options.length > 1) sel.remove(1);
+        const parents = [...new Set(this._allBoards.map(b => b.parent))].sort();
+        for (const p of parents) {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            if (p === current) opt.selected = true;
+            sel.appendChild(opt);
+        }
+        // Restore or keep current filter
+        if (!parents.includes(this._versionFilter)) this._versionFilter = '';
+        sel.value = this._versionFilter;
+    }
+
+    _applyFilter() {
+        const f = this._versionFilter;
+        const filtered = f ? this._allBoards.filter(b => b.parent === f) : this._allBoards;
+        this._boards = filtered;
+        this._hits   = computeHits(this._boards);
+        const total  = this._boards.reduce((n, b) => n + b.files.length, 0);
+        this._statusBar.textContent =
+            `${this._boards.length} folder(s) · ${total} plan file(s)` +
+            (f ? ` · filtered: ${f}` : '');
+        this._resize();
     }
 
     // ── Resize ────────────────────────────────────────────────────────────────

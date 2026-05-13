@@ -20,9 +20,9 @@ examples/linear_regression_example.py
 examples/svm_example.py
 include/graphics_stub.h
 include/graphics_stub_clean.h
+include/GRAPHICS/graphics_object.hpp
 include/GRAPHICS/charts/headers/graphics.h
 include/GRAPHICS/components/headers/components.hpp
-include/GRAPHICS/graphics_object.hpp
 include/bayesian_network/bayesian_network.h
 include/computer_vision/image.h
 include/computer_vision/layers.h
@@ -38,6 +38,11 @@ include/deep_learning/neural_network.h
 include/deep_learning/optimizer.h
 include/deep_learning/templates.h
 include/deep_learning/tensor.h
+include/deep_learning/layers/avg_pool_2d_layer.h
+include/deep_learning/layers/gru_layer.h
+include/deep_learning/layers/l2_norm_layer.h
+include/deep_learning/layers/lstm_layer.h
+include/deep_learning/layers/rnn_layer.h
 include/dimensionality_reduction/knn.h
 include/dimensionality_reduction/pca.h
 include/dimensionality_reduction/svd.h
@@ -80,6 +85,8 @@ include/support_vector_machine/polynomial_kernel.h
 include/support_vector_machine/rbf_kernel.h
 include/support_vector_machine/sigmoid_kernel.h
 include/support_vector_machine/support_vector_machine.h
+include/time_series/arima.h
+include/time_series/arma.h
 include/time_series/time_series.h
 include/tracker/base_filter.h
 include/tracker/base_kalman_filter.h
@@ -87,9 +94,9 @@ include/tracker/extended_kalman_filter.h
 include/tracker/kalman_filter.h
 include/tracker/sequential_monte_carlo.h
 include/tracker/unscented_kalman_filter.h
-include/MISC/wave_generator/headers/wave_generator.hpp
 ml_core/__init__.py
 ml_toolbox/__init__.py
+ml_toolbox/ml_core.cp314-win_amd64.pyd
 ml_toolbox/py.typed
 ml_toolbox.egg-info/PKG-INFO
 ml_toolbox.egg-info/SOURCES.txt
@@ -135,6 +142,8 @@ src/support_vector_machine/polynomial_kernel.cpp
 src/support_vector_machine/rbf_kernel.cpp
 src/support_vector_machine/sigmoid_kernel.cpp
 src/support_vector_machine/support_vector_machine.cpp
+src/time_series/arima.cpp
+src/time_series/arma.cpp
 src/time_series/time_series.cpp
 src/tracker/extended_kalman_filter.cpp
 src/tracker/kalman_filter.cpp
@@ -155,6 +164,11 @@ src/deep_learning/neural_network.cpp
 src/deep_learning/optimizer.cpp
 src/deep_learning/templates.cpp
 src/deep_learning/tensor.cpp
+src/deep_learning/layers/avg_pool_2d_layer.cpp
+src/deep_learning/layers/gru_layer.cpp
+src/deep_learning/layers/l2_norm_layer.cpp
+src/deep_learning/layers/lstm_layer.cpp
+src/deep_learning/layers/rnn_layer.cpp
 src/dimensionality_reduction/knn.cpp
 src/dimensionality_reduction/pca.cpp
 src/dimensionality_reduction/svd.cpp
@@ -194,6 +208,8 @@ src/support_vector_machine/polynomial_kernel.cpp
 src/support_vector_machine/rbf_kernel.cpp
 src/support_vector_machine/sigmoid_kernel.cpp
 src/support_vector_machine/support_vector_machine.cpp
+src/time_series/arima.cpp
+src/time_series/arma.cpp
 src/time_series/time_series.cpp
 src/tracker/extended_kalman_filter.cpp
 src/tracker/kalman_filter.cpp
@@ -201,5 +217,7 @@ src/tracker/sequential_monte_carlo.cpp
 src/tracker/unscented_kalman_filter.cpp
 vendor_include/GRAPHICS/charts/headers/graphics.h
 vendor_include/MISC/wave_generator/headers/wave_generator.hpp
+vendor_src/GRAPHICS/charts/source/graphics.cpp
+vendor_src/MISC/wave_generator/source/wave_generator.cpp
 vendor_src/GRAPHICS/charts/source/graphics.cpp
 vendor_src/MISC/wave_generator/source/wave_generator.cpp

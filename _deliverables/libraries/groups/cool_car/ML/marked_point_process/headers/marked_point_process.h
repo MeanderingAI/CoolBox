@@ -2,7 +2,7 @@
 #ifndef MARKED_POINT_PROCESS_H
 #define MARKED_POINT_PROCESS_H
 
-#include "../../../DATASTRUCTURE/matrix/headers/matrix_dense.h"
+#include "matrix_dense.h"
 
 #include <vector>
 // #include <functional>
@@ -92,7 +92,7 @@ public:
      * @brief Get the excitation matrix (how marks excite each other).
      * @return Matrix where entry (i,j) is the excitation from mark i to mark j.
      */
-    matrix::DenseMatrix<double> get_excitation_matrix() const;
+    matrix::DenseMatrix get_excitation_matrix() const;
 
     /**
      * @brief Get the decay parameter for the temporal kernel.
@@ -110,7 +110,7 @@ public:
      * @brief Set the excitation matrix parameters.
      * @param excitation Matrix of excitation parameters.
      */
-    void set_excitation_matrix(const matrix::DenseMatrix<double>& excitation);
+    void set_excitation_matrix(const matrix::DenseMatrix& excitation);
 
     /**
      * @brief Set the decay rate parameter.
@@ -125,7 +125,7 @@ private:
 
     // Model parameters
     std::vector<double> mu_;        // Base intensity (background rate) for each mark
-    matrix::DenseMatrix<double> alpha_;     // Excitation matrix: alpha(i,j) = effect of mark i on mark j
+    matrix::DenseMatrix alpha_;     // Excitation matrix: alpha(i,j) = effect of mark i on mark j
     double beta_;               // Decay rate for the exponential kernel
 
     /**

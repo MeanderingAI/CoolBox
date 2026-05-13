@@ -18,8 +18,8 @@ find_package(Python COMPONENTS Interpreter Development REQUIRED)
 include_directories(
     ${CMAKE_SOURCE_DIR}/../include
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/_libraries/bindings/python_bindings/include
-    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/MATRIX/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/bindings/python_bindings/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers
     ${EIGEN3_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
@@ -64,11 +64,11 @@ target_link_libraries(ml_core PRIVATE
 
 target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/../include
-    ${CMAKE_SOURCE_DIR}/_libraries/bindings/python_bindings/include
-    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/layers/include
-    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/loss/include
-    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/optimizer/include
-    ${CMAKE_SOURCE_DIR}/_libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/bindings/python_bindings/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
     ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
 )

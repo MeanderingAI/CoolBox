@@ -12,7 +12,7 @@ option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-set(COOLBOX_PUBLIC_INCLUDE_ROOT "${CMAKE_SOURCE_DIR}/_libraries/include")
+set(COOLBOX_PUBLIC_INCLUDE_ROOT "${CMAKE_SOURCE_DIR}/_deliverables/libraries/include")
 if(EXISTS "${COOLBOX_PUBLIC_INCLUDE_ROOT}")
     set(COOLBOX_HAS_PUBLIC_INCLUDE_ROOT ON)
 else()
@@ -22,6 +22,8 @@ endif()
 # On MSVC, force a consistent dynamic MSVC runtime to avoid /MT vs /MD mismatches
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+    # /FS: force synchronous PDB writes to fix C1041 when multiple CL.EXE run in parallel
+    add_compile_options(/FS)
 endif()
 
 # Ensure std::filesystem is available on macOS
@@ -126,16 +128,16 @@ if(BUILD_BINARIES)
     endif()
 endif()
 
-add_subdirectory(_libraries)
+add_subdirectory(_deliverables/libraries)
 
 # Build apps if present (e.g., apps/lsp)
-if(EXISTS "${CMAKE_SOURCE_DIR}/apps")
-    add_subdirectory(apps)
+if(EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
+    add_subdirectory(_deliverables/apps)
 endif()
 
 option(BUILD_PRODUCTS "Build products under _Product" ON)
-if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_Product")
-    add_subdirectory(_Product)
+if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/Product")
+    add_subdirectory(_deliverables/Product)
 endif()
 
 # Option to install and export CoolBox CMake package for external consumers
@@ -170,7 +172,7 @@ if(COOLBOX_INSTALL_PACKAGE)
         endif()
 
         if(EXISTS "${target_source_dir}/headers")
-            file(RELATIVE_PATH rel_headers "${CMAKE_SOURCE_DIR}/_libraries" "${target_source_dir}/headers")
+            file(RELATIVE_PATH rel_headers "${CMAKE_SOURCE_DIR}/_deliverables/libraries" "${target_source_dir}/headers")
             list(APPEND interface_includes
                 "$<BUILD_INTERFACE:${target_source_dir}/headers>"
                 "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${rel_headers}>"
@@ -199,7 +201,7 @@ if(COOLBOX_INSTALL_PACKAGE)
         set_target_properties(${target_name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${interface_includes}")
     endfunction()
 
-    coolbox_collect_directory_targets("${CMAKE_BINARY_DIR}/_libraries" all_targets)
+    coolbox_collect_directory_targets("${CMAKE_BINARY_DIR}/_deliverables/libraries" all_targets)
     set(COOLBOX_EXPORT_TARGETS "")
     foreach(target_name IN LISTS all_targets)
         if(NOT TARGET ${target_name})
@@ -241,7 +243,7 @@ if(COOLBOX_INSTALL_PACKAGE)
             )
         endif()
 
-        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_libraries/packages/
+        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_deliverables/libraries/packages/
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/packages
             FILES_MATCHING
                 PATTERN "*.h"
@@ -284,7 +286,7 @@ if(BUILD_PYTHON_BINDINGS)
     find_package(pybind11 QUIET)
     if(pybind11_FOUND)
         message(STATUS "Building Python bindings")
-        add_subdirectory(_libraries/bindings/python_bindings)
+        add_subdirectory(_deliverables/libraries/bindings/python_bindings)
     else()
         message(WARNING "pybind11 not found. Python bindings will not be built.")
         message(STATUS "Install pybind11 with: pip install pybind11[global]")

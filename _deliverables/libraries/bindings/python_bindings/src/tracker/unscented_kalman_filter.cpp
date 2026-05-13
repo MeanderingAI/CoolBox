@@ -1,5 +1,6 @@
 
 #include "mytrix_eigen_compat.hpp"
+#include <Eigen/Dense>
 #include <vector>
 #include <cmath>
 #include <unscented_kalman_filter.h>
@@ -80,10 +81,11 @@ void UnscentedKalmanFilter::predict()
     P_ += Q_;
 }
 
-void UnscentedKalmanFilter::update(const Eigen::VectorXd& z)
+void UnscentedKalmanFilter::update(const mytrix::Vector& z_in)
 {
-    if (!h_) return; // Optionally throw or assert
-    z_ = z; // Store last measurement if needed
+    if (!h_) return;
+    Vector z = z_in.data;
+    z_ = z;
 
     // Transform sigma points through measurement function
     std::vector<Vector> meas_sigma;
@@ -121,12 +123,24 @@ void UnscentedKalmanFilter::update(const Eigen::VectorXd& z)
     P_ = P_ - K * S * K.transpose();
 }
 
-const UnscentedKalmanFilter::Vector& UnscentedKalmanFilter::state() const
+const UnscentedKalmanFilter::Vector& UnscentedKalmanFilter::state_eigen() const
 {
     return x_;
 }
 
-const UnscentedKalmanFilter::Matrix& UnscentedKalmanFilter::covariance() const
+const UnscentedKalmanFilter::Matrix& UnscentedKalmanFilter::covariance_eigen() const
 {
     return P_;
+}
+
+const mytrix::Vector& UnscentedKalmanFilter::state() const
+{
+    x_mytrix_ = mytrix::Vector(x_);
+    return x_mytrix_;
+}
+
+const mytrix::Matrix& UnscentedKalmanFilter::covariance() const
+{
+    P_mytrix_ = mytrix::Matrix(P_);
+    return P_mytrix_;
 }

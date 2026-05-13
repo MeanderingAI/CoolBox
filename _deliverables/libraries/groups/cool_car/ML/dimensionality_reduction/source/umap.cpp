@@ -37,7 +37,7 @@ std::pair<std::vector<std::vector<int>>, matrix::DenseMatrix> UMAP::compute_memb
     return {knn_indices, knn_distances};
 }
 
-matrix::DenseMatrix<double> UMAP::initialize_embedding(int n_samples) {
+matrix::DenseMatrix UMAP::initialize_embedding(int n_samples) {
     return matrix::DenseMatrix(n_samples, n_components_);
 }
 
@@ -63,12 +63,12 @@ void UMAP::fit(const matrix::DenseMatrix& X) {
     fitted_ = true;
 }
 
-matrix::DenseMatrix<double> UMAP::transform(const matrix::DenseMatrix<double>& X) const {
+matrix::DenseMatrix UMAP::transform(const matrix::DenseMatrix& X) const {
     if (!fitted_) throw std::runtime_error("UMAP not fitted yet");
     return matrix::DenseMatrix(X.rows(), n_components_);
 }
 
-matrix::DenseMatrix<double> UMAP::fit_transform(const matrix::DenseMatrix<double>& X) {
+matrix::DenseMatrix UMAP::fit_transform(const matrix::DenseMatrix& X) {
     fit(X);
     return embedding_;
 }

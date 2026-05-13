@@ -1,4 +1,4 @@
-import mimetypes
+﻿import mimetypes
 mimetypes.add_type("application/javascript", ".mjs")
 mimetypes.add_type("application/javascript", ".js")
 
@@ -8,11 +8,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "library"))
 import makefile_manager as mm
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from sqlmodel import SQLModel, Field, Session, create_engine, select
 from starlette.staticfiles import StaticFiles
 from starlette.responses import FileResponse as StarletteFileResponse
 from typing import Optional, List
+import asyncio
 import getpass
 import platform
 import subprocess
@@ -68,9 +69,9 @@ def serve_dashboard():
 
 
 def scan_groups() -> list:
-    """Dynamically scan _libraries/groups for all groups and their subpackages."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    groups_path = os.path.join(repo_root, "_libraries", "groups")
+    """Dynamically scan _deliverables/libraries/groups for all groups and their subpackages."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    groups_path = os.path.join(repo_root, "_deliverables", "libraries", "groups")
     groups = []
     if not os.path.isdir(groups_path):
         return groups
@@ -125,7 +126,7 @@ async def build_library(request: Request):
 async def download_artifact(path: str):
     """Serve a build artifact for download.
     `path` must be a repo-relative path under the build/ directory."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     # Resolve and verify the path stays inside build/
     try:
         target = os.path.realpath(os.path.join(repo_root, path))
@@ -194,7 +195,7 @@ def _scan_lib_dir(dir_path: str, repo_root: str) -> list:
     results = []
     headers_dir = os.path.join(dir_path, "headers")
     if os.path.isdir(headers_dir):
-        # Leaf library — gather header files
+        # Leaf library â€” gather header files
         headers = []
         for fname in sorted(os.listdir(headers_dir)):
             fpath = os.path.join(headers_dir, fname)
@@ -208,7 +209,7 @@ def _scan_lib_dir(dir_path: str, repo_root: str) -> list:
             "headers": headers,
         })
     else:
-        # Package directory — recurse into children
+        # Package directory â€” recurse into children
         try:
             entries = sorted(os.listdir(dir_path))
         except PermissionError:
@@ -228,9 +229,9 @@ def library_info(group: str = "", lib: str = ""):
     Response: {group, lib, libs: [{name, cmake_target, headers: [{name, path}]}]}"""
     if not re.match(r'^[\w\-]+$', group) or not re.match(r'^[\w\-]+$', lib):
         return JSONResponse({"error": "Invalid group or lib name."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base_dir = os.path.realpath(os.path.join(repo_root, "_libraries", "groups", group, lib))
-    allowed = os.path.realpath(os.path.join(repo_root, "_libraries", "groups"))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base_dir = os.path.realpath(os.path.join(repo_root, "_deliverables", "libraries", "groups", group, lib))
+    allowed = os.path.realpath(os.path.join(repo_root, "_deliverables", "libraries", "groups"))
     if not base_dir.startswith(allowed + os.sep) and base_dir != allowed:
         return JSONResponse({"error": "Access denied."}, status_code=403)
     if not os.path.isdir(base_dir):
@@ -243,12 +244,12 @@ def library_info(group: str = "", lib: str = ""):
 def library_file(path: str = ""):
     """Return the text content of a header file within _libraries/.
     'path' must be a repo-relative path (forward slashes)."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     if not path:
         return JSONResponse({"error": "path is required."}, status_code=400)
     # Normalise and security-check
     full = os.path.realpath(os.path.join(repo_root, path.replace('/', os.sep)))
-    allowed = os.path.realpath(os.path.join(repo_root, "_libraries"))
+    allowed = os.path.realpath(os.path.join(repo_root, "_deliverables", "libraries"))
     if not full.startswith(allowed + os.sep):
         return JSONResponse({"error": "Access denied."}, status_code=403)
     if not os.path.isfile(full):
@@ -262,9 +263,9 @@ def library_file(path: str = ""):
 
 
 def _scan_products() -> list:
-    """Scan _Product/ subdirectories and parse cmake exe targets from CMakeLists.txt."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    product_dir = os.path.join(repo_root, "_Product")
+    """Scan _deliverables/Product/ subdirectories and parse cmake exe targets from CMakeLists.txt."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    product_dir = os.path.join(repo_root, "_deliverables", "Product")
     products = []
     if not os.path.isdir(product_dir):
         return products
@@ -325,7 +326,7 @@ async def launch_product(request: Request):
     if not re.match(r'^[\w\-]+$', name) or not re.match(r'^[\w\-]+$', exe_name):
         return JSONResponse({"success": False, "output": "Invalid name or exe."}, status_code=400)
 
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     build_dir = os.path.join(repo_root, "build")
     exe_path = _find_product_exe(exe_name, build_dir)
     if not exe_path:
@@ -359,8 +360,8 @@ def product_page(folder: str):
     """Serve the product_page.html for a product in _Product/{folder}/."""
     if not re.match(r'^[\w\-]+$', folder):
         return JSONResponse({"error": "Invalid folder name."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base = os.path.realpath(os.path.join(repo_root, "_Product"))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(repo_root, "_deliverables", "Product"))
     page = os.path.realpath(os.path.join(base, folder, "product_page.html"))
     if not page.startswith(base + os.sep):
         return JSONResponse({"error": "Access denied."}, status_code=403)
@@ -369,12 +370,12 @@ def product_page(folder: str):
     return StarletteFileResponse(page, media_type="text/html")
 
 
-# ─── Apps endpoints ───────────────────────────────────────────────────────────
+# â”€â”€â”€ Apps endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _scan_apps() -> list:
-    """Scan apps/ subdirectories. Returns list of app descriptors."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    apps_dir = os.path.join(repo_root, "apps")
+    """Scan _deliverables/apps/ subdirectories. Returns list of app descriptors."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    apps_dir = os.path.join(repo_root, "_deliverables", "apps")
     apps = []
     if not os.path.isdir(apps_dir):
         return apps
@@ -415,7 +416,7 @@ def _scan_apps() -> list:
 
 @app.get("/apps")
 def get_apps():
-    """Return a list of apps from apps/."""
+    """Return a list of apps from _deliverables/apps/."""
     return JSONResponse({"apps": _scan_apps()})
 
 
@@ -439,7 +440,7 @@ async def launch_app(request: Request):
     exe_name = body.get("exe", "").strip()
     if not re.match(r'^[\w\-]+$', name) or not re.match(r'^[\w\-]+$', exe_name):
         return JSONResponse({"success": False, "output": "Invalid name or exe."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     build_dir = os.path.join(repo_root, "build")
     exe_path = _find_product_exe(exe_name, build_dir)
     if not exe_path:
@@ -479,8 +480,8 @@ async def run_app_script(request: Request):
         return JSONResponse({"success": False, "output": "Invalid app name."}, status_code=400)
     if not re.match(r'^[\w\-]+\.py$', script):
         return JSONResponse({"success": False, "output": "Invalid script name."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    apps_dir = os.path.join(repo_root, "apps")
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    apps_dir = os.path.join(repo_root, "_deliverables", "apps")
     script_path = os.path.realpath(os.path.join(apps_dir, name, script))
     # Path traversal guard
     if not script_path.startswith(os.path.realpath(apps_dir) + os.sep):
@@ -512,11 +513,11 @@ async def run_app_script(request: Request):
 
 @app.get("/app-page/{folder}")
 def app_page(folder: str):
-    """Serve the app_page.html for an app in apps/{folder}/."""
+    """Serve the app_page.html for an app in _deliverables/apps/{folder}/."""
     if not re.match(r'^[\w\-]+$', folder):
         return JSONResponse({"error": "Invalid folder name."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base = os.path.realpath(os.path.join(repo_root, "apps"))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(repo_root, "_deliverables", "apps"))
     page = os.path.realpath(os.path.join(base, folder, "app_page.html"))
     if not page.startswith(base + os.sep):
         return JSONResponse({"error": "Access denied."}, status_code=403)
@@ -525,11 +526,540 @@ def app_page(folder: str):
     return StarletteFileResponse(page, media_type="text/html")
 
 
+@app.get("/extensions")
+def list_extensions():
+    """List all binding packages from _deliverables/libraries/bindings/."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    bindings_dir = os.path.join(repo_root, "_deliverables", "libraries", "bindings")
+    if not os.path.isdir(bindings_dir):
+        return JSONResponse({"bindings": []})
+
+    # Map binding folder name → language label
+    _LANG_MAP = {
+        "c_bindings":          "C",
+        "c3_bindings":         "C3",
+        "emscripten_bindings": "Emscripten",
+        "go_bindings":         "Go",
+        "java_bindings":       "Java",
+        "python_bindings":     "Python",
+        "r_bindings":          "R",
+        "rust_bindings":       "Rust",
+        "vlang_bindings":      "V",
+    }
+
+    bindings = []
+    for entry in sorted(os.listdir(bindings_dir)):
+        entry_path = os.path.join(bindings_dir, entry)
+        if not os.path.isdir(entry_path) or entry.startswith(('.', '_')):
+            continue
+        has_cmake   = os.path.isfile(os.path.join(entry_path, "CMakeLists.txt"))
+        has_setup   = (os.path.isfile(os.path.join(entry_path, "setup.py")) or
+                       os.path.isfile(os.path.join(entry_path, "pyproject.toml")))
+        has_cargo   = os.path.isfile(os.path.join(entry_path, "Cargo.toml"))
+        has_go      = os.path.isfile(os.path.join(entry_path, "go.mod"))
+        has_pom     = os.path.isfile(os.path.join(entry_path, "pom.xml"))
+        has_package = os.path.isfile(os.path.join(entry_path, "package.json"))
+        has_v_mod   = (os.path.isfile(os.path.join(entry_path, "v.mod")) or
+                       bool(list(__import__("glob").glob(os.path.join(entry_path, "*.v")))))
+        has_c3      = bool(list(__import__("glob").glob(os.path.join(entry_path, "**", "*.c3"), recursive=True)))
+        has_r       = os.path.isfile(os.path.join(entry_path, "DESCRIPTION"))
+
+        # Emscripten needs its own cmake+emcc toolchain build
+        if entry == "emscripten_bindings":
+            import shutil as _shutil
+            repo_root_emcc = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            _emcc_managed = os.path.join(
+                repo_root_emcc, "_local_build_pipeline", "tmp", "installers",
+                "emsdk", "upstream", "emscripten",
+                "emcc.bat" if os.name == "nt" else "emcc"
+            )
+            build_type = "emscripten"
+            has_emcc   = bool(
+                _shutil.which("emcc") or
+                os.path.isfile(_emcc_managed) or
+                os.path.isfile(r"C:\emsdk\upstream\emscripten\emcc.bat")
+            )
+        else:
+            # Python: prefer pip over cmake even when CMakeLists.txt is present
+            build_type = (
+                "emscripten" if entry == "emscripten_bindings" else
+                "python"     if has_setup   else
+                "cmake"      if has_cmake   else
+                "cargo"      if has_cargo   else
+                "go"         if has_go      else
+                "maven"      if has_pom     else
+                "npm"        if has_package else
+                "vlang"      if has_v_mod   else
+                "c3"         if has_c3      else
+                "r"          if has_r       else
+                "unknown"
+            )
+            has_emcc = None
+
+        # Go: check if go is actually installed (including managed install dir)
+        has_go_exec = None
+        if has_go:
+            import shutil as _shutil
+            import glob as _glob
+            _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            _go_managed = os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                                       "go_install", "go", "bin",
+                                       "go.exe" if os.name == "nt" else "go")
+            has_go_exec = bool(
+                _shutil.which("go") or
+                os.path.isfile(_go_managed) or
+                any(os.path.isfile(p) for p in [
+                    r"C:\Program Files\Go\bin\go.exe",
+                    r"C:\Go\bin\go.exe",
+                ])
+            )
+
+        # Maven: check if mvn is installed (including managed install dir)
+        has_mvn_exec = None
+        has_java_exec = None
+        if has_pom:
+            import shutil as _shutil
+            import glob as _glob
+            _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            _mvn_managed = _glob.glob(
+                os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                             "maven_install", "apache-maven-*", "bin",
+                             "mvn.cmd" if os.name == "nt" else "mvn"),
+            )
+            has_mvn_exec = bool(
+                _shutil.which("mvn") or _shutil.which("mvn.cmd") or
+                _mvn_managed or
+                any(os.path.isfile(p) for p in [
+                    r"C:\Program Files\Maven\bin\mvn.cmd",
+                    r"C:\tools\maven\bin\mvn.cmd",
+                    r"C:\mvn\bin\mvn.cmd",
+                ])
+            )
+            # Java (JDK) is required by Maven
+            _java_exe = "java.exe" if os.name == "nt" else "java"
+            _jdk_managed = _glob.glob(
+                os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                             "jdk_install", "jdk-*", "bin", _java_exe),
+            )
+            _jdk_system = []
+            if os.name == "nt":
+                import glob as _g
+                for _pat in [
+                    r"C:\Program Files\Java\jdk-*\bin\java.exe",
+                    r"C:\Program Files\Eclipse Adoptium\jdk-*\bin\java.exe",
+                    r"C:\Program Files\Microsoft\jdk-*\bin\java.exe",
+                ]:
+                    _jdk_system.extend(_g.glob(_pat))
+            has_java_exec = bool(
+                _shutil.which("java") or _jdk_managed or _jdk_system or
+                os.environ.get("JAVA_HOME")
+            )
+
+        # V compiler: check if v is installed (including managed install dir)
+        has_v_exec = None
+        if has_v_mod:
+            import shutil as _shutil
+            import glob as _glob
+            _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            _v_exe = "v.exe" if os.name == "nt" else "v"
+            _v_managed = _glob.glob(
+                os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                             "vlang_install", "**", _v_exe), recursive=True)
+            has_v_exec = bool(
+                _shutil.which("v") or
+                any(os.path.isfile(p) for p in [
+                    r"C:\V\v.exe",
+                    r"C:\tools\vlang\v.exe",
+                ]) or
+                _v_managed
+            )
+
+        # C3 compiler: check if c3c is installed (including managed install dir)
+        has_c3c_exec = None
+        if has_c3:
+            import shutil as _shutil
+            import glob as _glob
+            _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            _c3c_exe = "c3c.exe" if os.name == "nt" else "c3c"
+            _c3c_managed = _glob.glob(
+                os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                             "c3c_install", "**", _c3c_exe), recursive=True)
+            has_c3c_exec = bool(
+                _shutil.which("c3c") or
+                any(os.path.isfile(p) for p in [
+                    r"C:\c3\c3c.exe",
+                    r"C:\tools\c3\c3c.exe",
+                ]) or
+                _c3c_managed
+            )
+
+        # R: check if R/Rscript is installed
+        has_r_exec = None
+        has_rtools = None
+        if has_r:
+            import shutil as _shutil
+            has_r_exec = bool(
+                _shutil.which("Rscript") or _shutil.which("R") or
+                any(os.path.isfile(p) for p in [
+                    r"C:\Program Files\R\R-4.6.0\bin\Rscript.exe",
+                    r"C:\Program Files\R\R-4.5.0\bin\Rscript.exe",
+                    r"C:\Program Files\R\R-4.4.0\bin\Rscript.exe",
+                    r"C:\Program Files\R\R-4.3.0\bin\Rscript.exe",
+                    r"C:\Program Files\R\R-4.2.0\bin\Rscript.exe",
+                ])
+            )
+            # On Windows, R packages with C++ code also need Rtools (gcc)
+            if os.name == "nt":
+                has_rtools = any(os.path.isfile(p) for p in [
+                    r"C:\rtools45\x86_64-w64-mingw32.static.posix\bin\gcc.exe",
+                    r"C:\rtools44\x86_64-w64-mingw32.static.posix\bin\gcc.exe",
+                    r"C:\rtools43\x86_64-w64-mingw32.static.posix\bin\gcc.exe",
+                    r"C:\rtools42\mingw64\bin\gcc.exe",
+                    os.path.expanduser(r"~\rtools45\x86_64-w64-mingw32.static.posix\bin\gcc.exe"),
+                ])
+            else:
+                has_rtools = True  # Linux/macOS use system gcc
+        # Parse CMakeLists.txt to find the real primary cmake target name
+        cmake_target = None
+        if has_cmake:
+            try:
+                with open(os.path.join(entry_path, "CMakeLists.txt"), encoding="utf-8", errors="replace") as f:
+                    cml = f.read()
+                import re as _re
+                m = _re.search(r'add_library\s*\(\s*([\w]+)\s+(?!ALIAS)', cml, _re.IGNORECASE)
+                if not m:
+                    m = _re.search(r'add_executable\s*\(\s*([\w]+)', cml, _re.IGNORECASE)
+                if not m:
+                    m = _re.search(r'pybind11_add_module\s*\(\s*([\w]+)', cml, _re.IGNORECASE)
+                if m:
+                    cmake_target = m.group(1)
+            except Exception:
+                pass
+        bindings.append({
+            "name":         entry,
+            "lang":         _LANG_MAP.get(entry, entry.replace("_bindings", "").title()),
+            "build_type":   build_type,
+            "cmake_target": cmake_target,
+            "has_cmake":    has_cmake,
+            "has_cargo":    has_cargo,
+            "has_go":       has_go,
+            "has_pom":      has_pom,
+            "has_setup":    has_setup,
+            "has_emcc":     has_emcc,
+            "has_go_exec":  has_go_exec,
+            "has_mvn_exec": has_mvn_exec,
+            "has_java_exec": has_java_exec,
+            "has_v_exec":   has_v_exec,
+            "has_c3c_exec": has_c3c_exec,
+            "has_r_exec":   has_r_exec,
+            "has_rtools":   has_rtools,
+        })
+    return JSONResponse({"bindings": bindings})
+
+
+@app.get("/extensions/tools")
+def list_tools():
+    """Return install-status for every toolchain supported by master_installer.py."""
+    import shutil as _shutil
+    import glob as _glob
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    _tmp = os.path.join(repo_root, "_local_build_pipeline", "tmp", "installers")
+    _ext = ".exe" if os.name == "nt" else ""
+    _bat = ".bat" if os.name == "nt" else ""
+
+    def _managed(*rel):
+        """Return a path inside the managed installers dir."""
+        return os.path.join(_tmp, *rel)
+
+    def _glob_managed(*pattern):
+        """Return True if any file matching glob exists inside managed installers dir."""
+        return bool(_glob.glob(os.path.join(_tmp, *pattern), recursive=True))
+
+    # Managed Go path is deterministic
+    _go_managed = _managed("go_install", "go", "bin", f"go{_ext}")
+    # Managed Maven: version varies, glob for mvn.cmd / mvn
+    _mvn_pattern = ("maven_install", "apache-maven-*", "bin", f"mvn{_bat or _ext}")
+    # Managed jdk: version dir varies, glob for java.exe
+    _jdk_pattern = ("jdk_install", "jdk-*", "bin", f"java{_ext}")
+    # Managed c3c: extracted dir varies, recurse
+    _c3c_pattern = ("c3c_install", "**", f"c3c{_ext}")
+    # Managed vlang: extracted dir varies, recurse
+    _v_pattern = ("vlang_install", "**", f"v{_ext}")
+    # Managed emsdk
+    _emsdk_managed = _managed("emsdk")
+    _emcc_managed = _managed("emsdk", "upstream", "emscripten", f"emcc{_bat}")
+
+    TOOLS = {
+        "go":    {"label": "Go compiler",       "check": ["go"],
+                  "extra": [_go_managed,
+                             r"C:\Program Files\Go\bin\go.exe", r"C:\Go\bin\go.exe"]},
+        "maven": {"label": "Apache Maven",      "check": ["mvn", "mvn.cmd"],
+                  "extra": [r"C:\Program Files\Maven\bin\mvn.cmd", r"C:\tools\maven\bin\mvn.cmd"],
+                  "glob":  _mvn_pattern},
+        "jdk":   {"label": "JDK 21 (Temurin)",  "check": ["java"],
+                  "extra": [r"C:\Program Files\Java\bin\java.exe",
+                             r"C:\Program Files\Eclipse Adoptium\bin\java.exe"],
+                  "glob":  _jdk_pattern},
+        "c3c":   {"label": "C3 compiler",       "check": ["c3c"],
+                  "extra": [r"C:\c3\c3c.exe", r"C:\tools\c3\c3c.exe"],
+                  "glob":  _c3c_pattern},
+        "vlang": {"label": "V compiler",        "check": ["v"],
+                  "extra": [r"C:\V\v.exe", r"C:\tools\vlang\v.exe"],
+                  "glob":  _v_pattern},
+        "r":     {"label": "R / Rscript",       "check": ["Rscript", "R"],
+                  "extra": [r"C:\Program Files\R\R-4.6.0\bin\Rscript.exe",
+                             r"C:\Program Files\R\R-4.5.0\bin\Rscript.exe",
+                             r"C:\Program Files\R\R-4.4.0\bin\Rscript.exe",
+                             r"C:\Program Files\R\R-4.3.0\bin\Rscript.exe"]},
+        "rtools": {"label": "Rtools (gcc for R)", "check": [],
+                   "extra": [
+                       r"C:\rtools45\x86_64-w64-mingw32.static.posix\bin\gcc.exe",
+                       r"C:\rtools44\x86_64-w64-mingw32.static.posix\bin\gcc.exe",
+                       r"C:\rtools43\x86_64-w64-mingw32.static.posix\bin\gcc.exe",
+                       r"C:\rtools42\mingw64\bin\gcc.exe",
+                       os.path.expanduser(r"~\rtools45\x86_64-w64-mingw32.static.posix\bin\gcc.exe"),
+                   ]},
+        "emsdk": {"label": "Emscripten (emcc)", "check": ["emcc"],
+                  "extra": [_emcc_managed,
+                             r"C:\emsdk\upstream\emscripten\emcc.bat"]},
+    }
+    result = []
+    for key, meta in TOOLS.items():
+        installed = (
+            any(_shutil.which(n) for n in meta["check"]) or
+            any(os.path.isfile(p) for p in meta.get("extra", [])) or
+            ("glob" in meta and _glob_managed(*meta["glob"]))
+        )
+        result.append({"tool": key, "label": meta["label"], "installed": installed})
+    return JSONResponse({"tools": result})
+
+
+@app.post("/extensions/install")
+async def install_tool(request: Request):
+    """Stream master_installer.py output for the requested tool.
+    Body: { tool: str }  e.g. "go" | "maven" | "c3c" | "vlang" | "r" | "all"
+    Response: text/plain stream, last line is __EXIT_CODE__:<n>
+    """
+    body = await request.json()
+    tool = body.get("tool", "").strip()
+    VALID_TOOLS = {"go", "maven", "jdk", "c3c", "vlang", "r", "rtools", "emsdk", "all"}
+    if tool not in VALID_TOOLS:
+        return JSONResponse({"success": False, "output": f"Unknown tool: {tool}"}, status_code=400)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    script = os.path.join(repo_root, "_scripts", "install_scripts", "master_installer.py")
+    if not os.path.isfile(script):
+        return JSONResponse({"success": False, "output": "master_installer.py not found."}, status_code=500)
+
+    cmd = [sys.executable, "-u", script, tool if tool != "all" else "--all"]
+
+    async def _stream():
+        loop = asyncio.get_event_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def _run_proc():
+            try:
+                proc = subprocess.Popen(
+                    cmd, cwd=repo_root,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, encoding="utf-8", errors="replace",
+                )
+                for line in proc.stdout:
+                    loop.call_soon_threadsafe(queue.put_nowait, line)
+                proc.wait()
+                loop.call_soon_threadsafe(
+                    queue.put_nowait, f"\n__EXIT_CODE__:{proc.returncode}\n"
+                )
+            except Exception as exc:
+                loop.call_soon_threadsafe(
+                    queue.put_nowait, f"\nERROR: {exc}\n__EXIT_CODE__:1\n"
+                )
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+        loop.run_in_executor(None, _run_proc)
+
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield item
+
+    return StreamingResponse(_stream(), media_type="text/plain")
+
+
+@app.post("/extensions/build")
+async def build_extension(request: Request):
+    """Stream _scripts/build_scripts/build_extensions.py output for the given binding.
+    Body: { binding: str }  -- binding folder name, e.g. "python_bindings"
+          { binding: "" }   -- empty string means build all
+    Response: text/plain stream, last line is __EXIT_CODE__:<n>
+    """
+    body = await request.json()
+    binding = body.get("binding", "").strip()
+    if binding and not re.match(r'^[\w\-]+$', binding):
+        return JSONResponse({"success": False, "output": "Invalid binding name."}, status_code=400)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    script = os.path.join(repo_root, "_scripts", "build_scripts", "build_extensions.py")
+    if not os.path.isfile(script):
+        return JSONResponse({"success": False, "output": "build_extensions.py not found."}, status_code=500)
+
+    cmd = [sys.executable, "-u", script]
+    if binding:
+        cmd.append(binding)
+
+    async def _stream():
+        # asyncio.create_subprocess_exec requires ProactorEventLoop on Windows,
+        # which uvicorn doesn't use. Run the blocking Popen in a thread pool and
+        # forward lines via an asyncio.Queue with call_soon_threadsafe.
+        loop = asyncio.get_event_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def _run_proc():
+            try:
+                proc = subprocess.Popen(
+                    cmd, cwd=repo_root,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, encoding='utf-8', errors='replace',
+                )
+                for line in proc.stdout:
+                    loop.call_soon_threadsafe(queue.put_nowait, line)
+                proc.wait()
+                loop.call_soon_threadsafe(
+                    queue.put_nowait, f"\n__EXIT_CODE__:{proc.returncode}\n"
+                )
+            except Exception as exc:
+                loop.call_soon_threadsafe(
+                    queue.put_nowait, f"\nERROR: {exc}\n__EXIT_CODE__:1\n"
+                )
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)  # sentinel
+
+        loop.run_in_executor(None, _run_proc)
+
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield item
+
+    return StreamingResponse(_stream(), media_type="text/plain")
+
+
+@app.get("/extensions/artifacts")
+def list_extension_artifacts(binding: str):
+    """Return downloadable artifacts produced by a binding build.
+    Scans the cmake Debug output dir and the binding's own target/ dir.
+    Query param: binding=<folder_name>  e.g. c_bindings
+    """
+    if not re.match(r'^[\w\-]+$', binding):
+        return JSONResponse({"error": "Invalid binding name."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    ARTIFACT_EXTS = {".dll", ".so", ".dylib", ".wasm", ".js", ".a", ".lib",
+                     ".jar", ".pyd", ".exe", ".rlib"}
+
+    artifacts = []
+    seen: set = set()
+
+    def _scan(directory: str):
+        if not os.path.isdir(directory):
+            return
+        for fname in sorted(os.listdir(directory)):
+            _, ext = os.path.splitext(fname)
+            if ext.lower() in ARTIFACT_EXTS and fname not in seen:
+                fpath = os.path.join(directory, fname)
+                if os.path.isfile(fpath):
+                    seen.add(fname)
+                    artifacts.append({
+                        "name": fname,
+                        "size": os.path.getsize(fpath),
+                        "url":  f"/extensions/download?binding={binding}&file={fname}",
+                    })
+
+    # cmake builds land in build/_deliverables/libraries/bindings/<name>/Debug/
+    _scan(os.path.join(repo_root, "build", "_deliverables", "libraries", "bindings", binding, "Debug"))
+    # cargo builds output into target/debug/
+    _scan(os.path.join(repo_root, "_deliverables", "libraries", "bindings", binding, "target", "debug"))
+    _scan(os.path.join(repo_root, "_deliverables", "libraries", "bindings", binding, "target"))
+    # Python pip installs place .pyd files in the binding root and its immediate subdirs
+    binding_root = os.path.join(repo_root, "_deliverables", "libraries", "bindings", binding)
+    _scan(binding_root)
+    if os.path.isdir(binding_root):
+        for entry in sorted(os.listdir(binding_root)):
+            sub = os.path.join(binding_root, entry)
+            if os.path.isdir(sub):
+                _scan(sub)
+
+    return JSONResponse({"binding": binding, "artifacts": artifacts})
+
+
+@app.get("/extensions/download")
+def download_extension_artifact(binding: str, file: str):
+    """Serve a build artifact file for download."""
+    if not re.match(r'^[\w\-]+$', binding) or not re.match(r'^[\w\-\.]+$', file):
+        return JSONResponse({"error": "Invalid parameters."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    ARTIFACT_EXTS = {".dll", ".so", ".dylib", ".wasm", ".js", ".a", ".lib",
+                     ".jar", ".pyd", ".exe", ".rlib"}
+    _, ext = os.path.splitext(file)
+    if ext.lower() not in ARTIFACT_EXTS:
+        return JSONResponse({"error": "File type not allowed."}, status_code=403)
+
+    # Build search dirs: same set as list_extension_artifacts
+    binding_root = os.path.join(repo_root, "_deliverables", "libraries", "bindings", binding)
+    search_dirs = [
+        os.path.join(repo_root, "build", "_deliverables", "libraries", "bindings", binding, "Debug"),
+        os.path.join(binding_root, "target", "debug"),
+        os.path.join(binding_root, "target"),
+        binding_root,
+    ]
+    # Add one level of subdirectories under binding root (e.g. ml_toolbox/ for Python)
+    if os.path.isdir(binding_root):
+        for entry in sorted(os.listdir(binding_root)):
+            sub = os.path.join(binding_root, entry)
+            if os.path.isdir(sub):
+                search_dirs.append(sub)
+
+    for directory in search_dirs:
+        if not os.path.isdir(directory):
+            continue
+        base_real = os.path.realpath(directory)
+        candidate = os.path.realpath(os.path.join(directory, file))
+        if candidate.startswith(base_real + os.sep) and os.path.isfile(candidate):
+            return StarletteFileResponse(
+                candidate,
+                filename=file,
+                media_type="application/octet-stream",
+            )
+
+    return JSONResponse({"error": "Artifact not found."}, status_code=404)
+
+
+@app.get("/extensions/docs")
+def get_extension_docs(binding: str):
+    """Return README.md content for a binding if available."""
+    if not re.match(r'^[\w\-]+$', binding):
+        return JSONResponse({"error": "Invalid binding name."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    binding_dir = os.path.join(repo_root, "_deliverables", "libraries", "bindings", binding)
+    if not os.path.isdir(binding_dir):
+        return JSONResponse({"content": "", "filename": None})
+    for doc_name in ("README.md", "README.txt", "DOCS.md"):
+        doc_path = os.path.join(binding_dir, doc_name)
+        if os.path.isfile(doc_path):
+            with open(doc_path, "r", encoding="utf-8") as f:
+                return JSONResponse({"content": f.read(), "filename": doc_name})
+    return JSONResponse({"content": "", "filename": None})
+
+
 @app.get("/client-fe")
 def list_client_fe():
-    """List all client portals inside client_fe/ at the repo root."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    client_fe_dir = os.path.join(repo_root, "business_suite", "client_fe")
+    """List all client portals inside _interfaces/business_suite/client_fe/."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    client_fe_dir = os.path.join(repo_root, "_interfaces", "business_suite", "client_fe")
     if not os.path.isdir(client_fe_dir):
         return JSONResponse({"portals": []})
     portals = []
@@ -560,12 +1090,12 @@ def list_client_fe():
     return JSONResponse({"portals": portals})
 
 
-# ─── Plans endpoints ──────────────────────────────────────────────────────────
+# â”€â”€â”€ Plans endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _scan_plans() -> dict:
     """Recursively scan plan/ and return a JSON tree of folders and .md files."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    plan_dir = os.path.join(repo_root, "plan")
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    plan_dir = os.path.join(repo_root, "_internal_documents", "plan")
 
     def walk(path: str, rel: str) -> dict:
         node = {"name": os.path.basename(path), "path": rel, "type": "dir", "children": []}
@@ -585,8 +1115,8 @@ def _scan_plans() -> dict:
         return node
 
     if not os.path.isdir(plan_dir):
-        return {"name": "plan", "path": "plan", "type": "dir", "children": []}
-    return walk(plan_dir, "plan")
+        return {"name": "plan", "path": "_internal_documents/plan", "type": "dir", "children": []}
+    return walk(plan_dir, "_internal_documents/plan")
 
 
 @app.get("/plans")
@@ -601,9 +1131,9 @@ def get_plan_content(path: str = ""):
     'path' must be a repo-relative forward-slash path."""
     if not path:
         return JSONResponse({"error": "path is required."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     full = os.path.realpath(os.path.join(repo_root, path.replace('/', os.sep)))
-    allowed = os.path.realpath(os.path.join(repo_root, "plan"))
+    allowed = os.path.realpath(os.path.join(repo_root, "_internal_documents", "plan"))
     if not full.startswith(allowed + os.sep):
         return JSONResponse({"error": "Access denied."}, status_code=403)
     if not os.path.isfile(full):
@@ -618,11 +1148,11 @@ def get_plan_content(path: str = ""):
 
 @app.get("/client-portal/{folder}")
 def serve_client_portal(folder: str):
-    """Serve business_suite/client_fe/{folder}/index.html."""
+    """Serve _interfaces/business_suite/client_fe/{folder}/index.html."""
     if not re.match(r'^[\w\-]+$', folder):
         return JSONResponse({"error": "Invalid folder name."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base = os.path.realpath(os.path.join(repo_root, "business_suite", "client_fe"))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(repo_root, "_interfaces", "business_suite", "client_fe"))
     page = os.path.realpath(os.path.join(base, folder, "index.html"))
     if not page.startswith(base + os.sep):
         return JSONResponse({"error": "Access denied."}, status_code=403)
@@ -633,9 +1163,9 @@ def serve_client_portal(folder: str):
 
 @app.get("/middle-wear")
 def list_middle_wear():
-    """List all middleware tools inside business_suite/middle_wear/."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    mw_dir = os.path.join(repo_root, "business_suite", "middle_wear")
+    """List all middleware tools inside _interfaces/business_suite/middle_wear/."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    mw_dir = os.path.join(repo_root, "_interfaces", "business_suite", "middle_wear")
     if not os.path.isdir(mw_dir):
         return JSONResponse({"tools": []})
     tools = []
@@ -656,7 +1186,7 @@ def serve_middle_portal(folder: str):
     """Serve business_suite/middle_wear/{folder}/index.html."""
     if not re.match(r'^[\w\-]+$', folder):
         return JSONResponse({"error": "Invalid folder name."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     base = os.path.realpath(os.path.join(repo_root, "business_suite", "middle_wear"))
     page = os.path.realpath(os.path.join(base, folder, "index.html"))
     if not page.startswith(base + os.sep):
@@ -666,10 +1196,149 @@ def serve_middle_portal(folder: str):
     return StarletteFileResponse(page, media_type="text/html")
 
 
+@app.get("/demos")
+def list_demos():
+    """List all demo workspaces inside _internal_workspace/demo_workspaces/."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    demos_dir = os.path.join(repo_root, "_internal_workspace", "demo_workspaces")
+    if not os.path.isdir(demos_dir):
+        return JSONResponse({"demos": []})
+    demos = []
+    for entry in sorted(os.listdir(demos_dir)):
+        demo_path = os.path.join(demos_dir, entry)
+        if not os.path.isdir(demo_path):
+            continue
+        has_index = os.path.isfile(os.path.join(demo_path, "index.html"))
+        meta_path = os.path.join(demo_path, "demo.json")
+        title = entry.replace("_", " ").title()
+        description = None
+        icon = "🗂"
+        if os.path.isfile(meta_path):
+            try:
+                import json as _json
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = _json.load(f)
+                title = meta.get("title", title)
+                description = meta.get("description", description)
+                icon = meta.get("icon", icon)
+                libraries = meta.get("libraries", [])
+            except Exception:
+                pass
+        demos.append({
+            "folder":      entry,
+            "title":       title,
+            "description": description,
+            "icon":        icon,
+            "has_index":   has_index,
+            "libraries":   libraries,
+        })
+    return JSONResponse({"demos": demos})
+
+
+@app.post("/demos/new")
+async def create_demo(request: Request):
+    """Create a new blank demo workspace folder.
+    Body: { name: str }  — used as the folder name (sanitised)."""
+    import uuid as _uuid_mod
+    import json as _json
+    body = await request.json()
+    raw_name = str(body.get("name", "")).strip()
+    if not raw_name:
+        return JSONResponse({"error": "name is required."}, status_code=400)
+    folder = re.sub(r'[^\w]+', '_', raw_name).strip('_').lower()
+    if not folder:
+        return JSONResponse({"error": "Invalid name."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    demos_dir = os.path.join(repo_root, "_internal_workspace", "demo_workspaces")
+    target = os.path.realpath(os.path.join(demos_dir, folder))
+    if not target.startswith(os.path.realpath(demos_dir) + os.sep):
+        return JSONResponse({"error": "Invalid folder name."}, status_code=400)
+    if os.path.exists(target):
+        return JSONResponse({"error": "A demo with that name already exists."}, status_code=409)
+    os.makedirs(target, exist_ok=True)
+    with open(os.path.join(target, "demo.json"), "w", encoding="utf-8") as f:
+        _json.dump({"title": raw_name, "description": "", "icon": "🗂"}, f, indent=2)
+    with open(os.path.join(target, "index.html"), "w", encoding="utf-8") as f:
+        f.write(f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{raw_name}</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; display: flex; align-items: center;
+            justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #64748b; }}
+    h1 {{ font-size: 1.4rem; font-weight: 700; }}
+  </style>
+</head>
+<body><h1>✏️ {raw_name}</h1></body>
+</html>
+""")
+    return JSONResponse({"success": True, "folder": folder})
+
+
+@app.get("/demo/{folder}/source")
+def serve_demo_source(folder: str):
+    """Return the raw source of demo_workspaces/{folder}/index.html as plain text."""
+    if not re.match(r'^[\w\-]+$', folder):
+        return JSONResponse({"error": "Invalid folder name."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(repo_root, "_internal_workspace", "demo_workspaces"))
+    page = os.path.realpath(os.path.join(base, folder, "index.html"))
+    if not page.startswith(base + os.sep):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    if not os.path.isfile(page):
+        return JSONResponse({"error": "index.html not found."}, status_code=404)
+    with open(page, "r", encoding="utf-8") as f:
+        content = f.read()
+    from starlette.responses import PlainTextResponse
+    return PlainTextResponse(content, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/demo/{folder}")
+def serve_demo(folder: str):
+    """Serve _internal_workspace/demo_workspaces/{folder}/index.html."""
+    if not re.match(r'^[\w\-]+$', folder):
+        return JSONResponse({"error": "Invalid folder name."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(repo_root, "_internal_workspace", "demo_workspaces"))
+    page = os.path.realpath(os.path.join(base, folder, "index.html"))
+    if not page.startswith(base + os.sep):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    if not os.path.isfile(page):
+        return JSONResponse({"error": "index.html not found for this demo."}, status_code=404)
+    return StarletteFileResponse(page, media_type="text/html")
+
+
+@app.get("/file-content")
+def serve_file_content(path: str = ""):
+    """Return a repository source file as plain text for the demo library viewer.
+    path must be relative to the repo root and must resolve within an allowed sub-directory."""
+    if not path:
+        return JSONResponse({"error": "path is required."}, status_code=400)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    ALLOWED = ("_deliverables/", "_interfaces/", "_sub_repos/")
+    norm = path.replace("\\", "/").lstrip("/")
+    if not any(norm.startswith(p) for p in ALLOWED):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    resolved = os.path.realpath(os.path.join(repo_root, norm))
+    if not resolved.startswith(os.path.realpath(repo_root) + os.sep):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    if not os.path.isfile(resolved):
+        return JSONResponse({"error": "File not found."}, status_code=404)
+    try:
+        with open(resolved, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    from starlette.responses import PlainTextResponse
+    return PlainTextResponse(content, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/git/log")
 def git_log(n: int = 60, branch: str = ""):
     """Return the last `n` git commits as structured JSON.
     Optional `branch` param filters to a specific branch."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     # Validate inputs
     if not (1 <= n <= 500):
         n = 60
@@ -729,7 +1398,7 @@ def git_diff(ref: str = ""):
     """Return a unified diff.
     If `ref` is a valid SHA, shows that commit via `git show`.
     Otherwise shows working tree vs HEAD via `git diff HEAD`."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     if ref and re.match(r'^[0-9a-fA-F]{4,40}$', ref):
         cmd = ["git", "show", ref, "--no-color", "--patch"]
         label = ref
@@ -737,18 +1406,23 @@ def git_diff(ref: str = ""):
         cmd = ["git", "diff", "HEAD", "--no-color"]
         label = "working tree vs HEAD"
     try:
-        diff = subprocess.check_output(cmd, cwd=repo_root, text=True, stderr=subprocess.DEVNULL)
+        diff = subprocess.check_output(
+            cmd, cwd=repo_root, stderr=subprocess.DEVNULL,
+            encoding='utf-8', errors='replace',
+        )
     except subprocess.CalledProcessError as e:
         diff = e.output or ""
     except FileNotFoundError:
         return JSONResponse({"success": False, "diff": "", "ref": label, "error": "git not found"})
+    except Exception as e:
+        return JSONResponse({"success": False, "diff": "", "ref": label, "error": str(e)})
     return JSONResponse({"success": True, "diff": diff, "ref": label})
 
 
 @app.get("/git/stash")
 def git_stash_list():
     """Return the git stash list as structured entries."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         raw = subprocess.check_output(
             ["git", "stash", "list", "--format=%gd\x1f%s\x1f%ci"],
@@ -772,7 +1446,7 @@ def git_stash_show(index: int):
     """Return the unified diff for stash@{index}."""
     if not (0 <= index <= 99):
         return JSONResponse({"success": False, "diff": "", "error": "Invalid stash index"}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         diff = subprocess.check_output(
             ["git", "stash", "show", "-p", "--no-color", f"stash@{{{index}}}"],
@@ -788,7 +1462,7 @@ def git_stash_show(index: int):
 @app.get("/git/remotes")
 def git_remotes():
     """Return all configured git remotes with their fetch and push URLs."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         raw = subprocess.check_output(
             ["git", "remote", "-v"],
@@ -813,7 +1487,7 @@ def git_remotes():
 @app.get("/git/branches")
 def git_branches_all():
     """Return local and remote branches plus the current branch."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         local_raw = subprocess.check_output(
             ["git", "branch", "--format=%(refname:short)"],
@@ -845,7 +1519,7 @@ async def git_checkout(request: Request):
     branch = body.get("branch", "").strip()
     if not branch or not re.match(r'^[\w\.\-/]+$', branch):
         return JSONResponse({"success": False, "error": "Invalid branch name"}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         out = subprocess.check_output(
             ["git", "checkout", branch],
@@ -867,7 +1541,7 @@ async def git_commit(request: Request):
         return JSONResponse({"success": False, "error": "Commit message is required"}, status_code=400)
     # Sanitise: no shell injection possible since we pass args as a list, but
     # still reject unusually short/empty messages caught above.
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         subprocess.check_output(
             ["git", "add", "-A"],
@@ -894,7 +1568,7 @@ async def git_merge(request: Request):
         return JSONResponse({"success": False, "error": "Invalid branch name"}, status_code=400)
     if strategy not in ("no-ff", "ff", "squash"):
         return JSONResponse({"success": False, "error": "Invalid strategy"}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     flag = {"no-ff": "--no-ff", "ff": "--ff-only", "squash": "--squash"}[strategy]
     try:
         current = subprocess.check_output(
@@ -912,29 +1586,206 @@ async def git_merge(request: Request):
         return JSONResponse({"success": False, "error": "git not found"}, status_code=500)
 
 
-# ── Network / local-service discovery ────────────────────────────────────────
+@app.get("/git/sub-repos")
+async def git_sub_repos():
+    """Return status of each repo inside _sub_repos/."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sub_repos_dir = os.path.join(repo_root, "_sub_repos")
+    results = []
+    if not os.path.isdir(sub_repos_dir):
+        return JSONResponse({"success": True, "repos": []})
+    for name in sorted(os.listdir(sub_repos_dir)):
+        path = os.path.join(sub_repos_dir, name)
+        if not os.path.exists(os.path.join(path, ".git")):
+            continue
+        entry = {"name": name, "path": os.path.join("_sub_repos", name)}
+        try:
+            entry["branch"] = subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=path, text=True, stderr=subprocess.DEVNULL,
+            ).strip()
+            log = subprocess.check_output(
+                ["git", "log", "-1", "--format=%H%x00%s%x00%an%x00%ai"],
+                cwd=path, text=True, stderr=subprocess.DEVNULL,
+            ).strip()
+            if log:
+                sha, subject, author, date = log.split("\x00", 3)
+                entry["sha"] = sha[:8]
+                entry["subject"] = subject
+                entry["author"] = author
+                entry["date"] = date.strip()
+            else:
+                entry["sha"] = entry["subject"] = entry["author"] = entry["date"] = ""
+            status_out = subprocess.check_output(
+                ["git", "status", "--porcelain"],
+                cwd=path, text=True, stderr=subprocess.DEVNULL,
+            )
+            lines_out = [l for l in status_out.splitlines() if l.strip()]
+            entry["dirty"] = len(lines_out) > 0
+            entry["changed_files"] = len(lines_out)
+            remotes_out = subprocess.check_output(
+                ["git", "remote", "-v"],
+                cwd=path, text=True, stderr=subprocess.DEVNULL,
+            )
+            remote_urls = {}
+            for rline in remotes_out.splitlines():
+                parts = rline.split()
+                if len(parts) >= 2 and parts[0] not in remote_urls:
+                    remote_urls[parts[0]] = parts[1]
+            entry["remotes"] = remote_urls
+        except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
+            entry.setdefault("branch", "unknown")
+            entry.setdefault("sha", "")
+            entry.setdefault("subject", "")
+            entry.setdefault("author", "")
+            entry.setdefault("date", "")
+            entry.setdefault("dirty", False)
+            entry.setdefault("changed_files", 0)
+            entry.setdefault("remotes", {})
+        results.append(entry)
+    return JSONResponse({"success": True, "repos": results})
+
+
+@app.post("/experiment/new-workspace")
+async def experiment_new_workspace():
+    """Create a fresh UUID-named folder inside _internal_workspace/temporary_workspaces/.
+    Returns { success, path, uuid } where `path` is repo-relative."""
+    import uuid as _uuid_mod
+    repo_root = _ws_repo_root()
+    base_dir = os.path.join(repo_root, "_internal_workspace", "temporary_workspaces")
+    os.makedirs(base_dir, exist_ok=True)
+    folder_uuid = str(_uuid_mod.uuid4())
+    os.makedirs(os.path.join(base_dir, folder_uuid), exist_ok=True)
+    rel = "_internal_workspace/temporary_workspaces/" + folder_uuid
+    return JSONResponse({"success": True, "path": rel, "uuid": folder_uuid})
+
+# â”€â”€ Network / local-service discovery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import threading as _threading
 
 _service_pids: dict = {}
 _service_pids_lock = _threading.Lock()
 
-# Services provided by the distribution_tag app (master + worker executables).
+# Known locally-managed services, grouped for the Services tab in Package Builder.
 _KNOWN_LOCAL_SERVICES = [
+    # ── Distribution Storage ────────────────────────────────────────────
     {
-        "id":          "distribution_tag_master",
-        "label":       "Distribution Tag · Master",
-        "exe":         "distribution_tag_master",
-        "description": "Orchestrator — enqueues tagging jobs, monitors worker "
-                       "health via ServiceRegistry, applies CircuitBreaker fault isolation.",
+        "id":           "distribution_storage_node",
+        "group":        "Distribution Storage",
+        "label":        "Storage · Node",
+        "exe":          "distribution_storage_node",
+        "description":  "Block-store node — stores and serves file chunks, participates "
+                        "in replication, and registers with the metadata server.",
         "default_args": [],
     },
     {
-        "id":          "distribution_tag_worker",
-        "label":       "Distribution Tag · Worker",
-        "exe":         "distribution_tag_worker",
-        "description": "Worker — registers with ServiceRegistry, consumes jobs "
-                       "from TaskQueue, acquires DistributedLock per result write.",
+        "id":           "distribution_storage_meta",
+        "group":        "Distribution Storage",
+        "label":        "Storage · Metadata",
+        "exe":          "distribution_storage_meta",
+        "description":  "Metadata server — tracks chunk locations, manages namespace, "
+                        "coordinates replication across storage nodes.",
+        "default_args": [],
+    },
+    {
+        "id":           "distribution_storage_shell",
+        "group":        "Distribution Storage",
+        "label":        "Storage · DFS Shell",
+        "exe":          "distribution_storage_shell",
+        "description":  "Interactive DFS shell — browse, read, write and manage "
+                        "files in the distributed storage cluster.",
+        "default_args": [],
+    },
+    # ── Distribution Tag ────────────────────────────────────────────
+    {
+        "id":           "distribution_tag_master",
+        "group":        "Distribution Tag",
+        "label":        "Distribution Tag · Master",
+        "exe":          "distribution_tag_master",
+        "description":  "Orchestrator — enqueues tagging jobs, monitors worker "
+                        "health via ServiceRegistry, applies CircuitBreaker fault isolation.",
+        "default_args": [],
+    },
+    {
+        "id":           "distribution_tag_worker",
+        "group":        "Distribution Tag",
+        "label":        "Distribution Tag · Worker",
+        "exe":          "distribution_tag_worker",
+        "description":  "Worker — registers with ServiceRegistry, consumes jobs "
+                        "from TaskQueue, acquires DistributedLock per result write.",
         "default_args": ["worker-standalone"],
+    },
+    # ── Language Servers (LSP) ────────────────────────────────────────
+    {
+        "id":           "plang_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · PLang",
+        "exe":          "plang_lsp",
+        "description":  "Language server for PLang — hover, completion, diagnostics "
+                        "and go-to-definition via the LSP protocol.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "plrust_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · Rust",
+        "exe":          "plrust_lsp",
+        "description":  "Language server for Rust — LSP front-end wrapping the "
+                        "plrust_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "pljava_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · Java",
+        "exe":          "pljava_lsp",
+        "description":  "Language server for Java — LSP front-end wrapping the "
+                        "pljava_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "plpython_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · Python",
+        "exe":          "plpython_lsp",
+        "description":  "Language server for Python — LSP front-end wrapping the "
+                        "plpython_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "plvlang_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · Vlang",
+        "exe":          "plvlang_lsp",
+        "description":  "Language server for Vlang — LSP front-end wrapping the "
+                        "plvlang_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "plc3_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · C3",
+        "exe":          "plc3_lsp",
+        "description":  "Language server for C3 — LSP front-end wrapping the "
+                        "plc3_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "plvhdl_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · VHDL",
+        "exe":          "plvhdl_lsp",
+        "description":  "Language server for VHDL — LSP front-end wrapping the "
+                        "plvhdl_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
+    },
+    {
+        "id":           "plmatlab_lsp",
+        "group":        "Language Servers (LSP)",
+        "label":        "LSP · MATLAB",
+        "exe":          "plmatlab_lsp",
+        "description":  "Language server for MATLAB — LSP front-end wrapping the "
+                        "plmatlab_lsp_lib analysis backend.",
+        "default_args": ["--stdio"],
     },
 ]
 
@@ -951,7 +1802,7 @@ def _pid_alive(pid: int) -> bool:
 @app.get("/network/local-services")
 def network_local_services():
     """Return known local services with their current running status."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     build_dir = os.path.join(repo_root, "build")
     result = []
     with _service_pids_lock:
@@ -964,6 +1815,7 @@ def network_local_services():
                 pid = None
             result.append({
                 "id":          svc["id"],
+                "group":       svc.get("group", ""),
                 "label":       svc["label"],
                 "exe":         svc["exe"],
                 "description": svc["description"],
@@ -982,7 +1834,7 @@ async def network_launch_service(request: Request):
     svc = next((s for s in _KNOWN_LOCAL_SERVICES if s["id"] == svc_id), None)
     if svc is None:
         return JSONResponse({"success": False, "error": "Unknown service id."}, status_code=400)
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     build_dir = os.path.join(repo_root, "build")
     exe_path = _find_product_exe(svc["exe"], build_dir)
     if not exe_path:
@@ -1041,7 +1893,7 @@ async def network_stop_service(request: Request):
 
 @app.get("/network/network-services")
 def network_services():
-    """Return simulated ServiceRegistry entries — what distribution_tag registers at runtime.
+    """Return simulated ServiceRegistry entries â€” what distribution_tag registers at runtime.
     Health reflects whether the matching process is tracked as running in this session."""
     with _service_pids_lock:
         master_alive = bool(
@@ -1086,7 +1938,7 @@ def list_active_ports():
         return JSONResponse({
             "ports":  [],
             "source": "unavailable",
-            "error":  "psutil not installed — run: pip install psutil",
+            "error":  "psutil not installed â€” run: pip install psutil",
         })
     try:
         conns = psutil.net_connections(kind='inet')
@@ -1130,10 +1982,10 @@ def list_active_ports():
     return JSONResponse({"ports": result, "source": "psutil"})
 
 
-# ── Workspace file editor endpoints ───────────────────────────────────────────
+# â”€â”€ Workspace file editor endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _ws_repo_root() -> str:
-    return os.path.realpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.realpath(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 def _ws_resolve(rel_path: str):
     """Resolve a workspace-relative path safely. Returns (abs_path, error_response)."""
@@ -1278,7 +2130,7 @@ async def workspace_write(request: Request):
 
 
 def _docs_html_dir() -> str:
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return os.path.join(repo_root, "gen_docs", "html")
 
 
@@ -1303,7 +2155,7 @@ async def docs_build():
     If doxygen is not on PATH, automatically runs the OS-appropriate install
     script via _scripts/script_library_runner.py, then retries.
     Returns {success, output, returncode}."""
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     doxyfile = os.path.join(repo_root, "Doxyfile")
     if not os.path.isfile(doxyfile):
         return JSONResponse({"success": False, "output": "Doxyfile not found in repo root."})
@@ -1321,10 +2173,10 @@ async def docs_build():
     try:
         result = _run_doxygen()
     except FileNotFoundError:
-        # doxygen not on PATH — try the OS-appropriate install script
+        # doxygen not on PATH â€” try the OS-appropriate install script
         runner = os.path.join(repo_root, "_scripts", "script_library_runner.py")
         install_cmd = [sys.executable, runner, "--tool", "doxygen"]
-        install_output = f"doxygen not found — running: {' '.join(install_cmd)}\n\n"
+        install_output = f"doxygen not found â€” running: {' '.join(install_cmd)}\n\n"
         try:
             ir = subprocess.run(
                 install_cmd,

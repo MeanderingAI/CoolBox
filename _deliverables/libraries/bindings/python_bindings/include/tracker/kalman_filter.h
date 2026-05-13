@@ -53,14 +53,14 @@ private:
     double dt;
 
     // State vectors
-    Eigen::VectorXd x; // state vector
-    Eigen::MatrixXd P; // estimate error covariance
+    mytrix::Vector x; // state vector
+    mytrix::Matrix P; // estimate error covariance
 
     // System matrices
-    Eigen::MatrixXd A; // state transition matrix
-    Eigen::MatrixXd C; // observation matrix
-    Eigen::MatrixXd Q; // process noise covariance
-    Eigen::MatrixXd R; // measurement noise covariance
+    mytrix::Matrix A; // state transition matrix
+    mytrix::Matrix C; // observation matrix
+    mytrix::Matrix Q; // process noise covariance
+    mytrix::Matrix R; // measurement noise covariance
 };
 
 #endif // KALMAN_FILTER_H

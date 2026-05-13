@@ -126,35 +126,57 @@ function _esc(s) {
 }
 
 function _parseDiff(raw) {
-    // Split into file sections and line-annotated rows
+    // Split into file sections and line-annotated rows.
+    // Each file block in a unified diff looks like:
+    //   diff --git a/foo/bar.cpp b/foo/bar.cpp
+    //   index abc..def 100644          ← metadata — skip
+    //   --- a/foo/bar.cpp              ← metadata — skip
+    //   +++ b/foo/bar.cpp              ← metadata — skip
+    //   @@ -1,4 +1,5 @@               ← hunk header
+    //    context line
+    //   -removed line
+    //   +added line
     const sections = [];
     let current = null;
     let lineNum = 0;
+    let inFileHeader = false; // true between "diff --git" and the first "@@"
 
     for (const line of raw.split('\n')) {
-        if (line.startsWith('diff --git') || line.startsWith('--- ') && current === null) {
-            // New file section heading
-            if (line.startsWith('diff --git')) {
-                current = { header: line.replace('diff --git ', ''), lines: [] };
-                sections.push(current);
-                lineNum = 0;
+        // Start of a new file section
+        if (line.startsWith('diff --git ')) {
+            const m = line.match(/^diff --git a\/(.+) b\/.+$/);
+            current = { header: m ? m[1] : line.slice('diff --git '.length), lines: [] };
+            sections.push(current);
+            lineNum = 0;
+            inFileHeader = true;
+            continue;
+        }
+
+        if (!current) continue;
+
+        // Skip all metadata lines between "diff --git" and the first "@@"
+        // (index, old mode, new mode, similarity index, ---, +++)
+        if (inFileHeader) {
+            if (line.startsWith('@@')) {
+                inFileHeader = false;
+                // fall through to hunk handling below
+            } else {
+                continue;
             }
-        } else if (line.startsWith('+++ ') || line.startsWith('--- ')) {
-            // part of the file header, attach to current section header
-            if (current) current.header = line.replace(/^[+-]{3} /, '');
-        } else if (line.startsWith('@@')) {
-            // Hunk header — extract starting line number
+        }
+
+        if (line.startsWith('@@')) {
             const m = line.match(/@@ -\d+(?:,\d+)? \+(\d+)/);
             lineNum = m ? parseInt(m[1], 10) - 1 : lineNum;
-            if (current) current.lines.push({ type: 'hunk', ln: '', text: line });
+            current.lines.push({ type: 'hunk', ln: '', text: line });
         } else if (line.startsWith('+')) {
             lineNum++;
-            if (current) current.lines.push({ type: 'add', ln: lineNum, text: line.slice(1) });
+            current.lines.push({ type: 'add', ln: lineNum, text: line.slice(1) });
         } else if (line.startsWith('-')) {
-            if (current) current.lines.push({ type: 'remove', ln: '', text: line.slice(1) });
+            current.lines.push({ type: 'remove', ln: '', text: line.slice(1) });
         } else {
             lineNum++;
-            if (current) current.lines.push({ type: 'ctx', ln: lineNum, text: line.slice(1) });
+            current.lines.push({ type: 'ctx', ln: lineNum, text: line.slice(1) });
         }
     }
     return sections;

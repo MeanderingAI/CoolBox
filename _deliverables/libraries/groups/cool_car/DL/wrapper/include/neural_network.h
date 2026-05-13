@@ -63,17 +63,22 @@ namespace deep_learning {
 
 class NeuralNetwork {
 public:
-    NeuralNetwork() = default;
+    NeuralNetwork();
 
     void add_layer(std::shared_ptr<Layer> layer);
     void set_loss(std::shared_ptr<Loss> loss);
     void set_optimizer(std::shared_ptr<Optimizer> optimizer);
 
     Tensor forward(const Tensor& input);
-    void backward(const Tensor& target);
     void train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
-               int epochs = 10, int batch_size = 32, bool verbose = false);
+               size_t epochs = 10, size_t batch_size = 32, bool verbose = false);
     Tensor predict(const Tensor& input);
+
+    double train_step(const Tensor& input, const Tensor& target);
+    double evaluate(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets);
+
+    void set_training(bool training);
+    void summary() const;
 
     double get_last_loss() const { return last_loss_; }
     size_t num_layers() const { return layers_.size(); }
@@ -83,6 +88,10 @@ private:
     std::shared_ptr<Loss> loss_;
     std::shared_ptr<Optimizer> optimizer_;
     double last_loss_ = 0.0;
+    bool training_ = true;
+
+    void backward(const Tensor& loss_gradient);
+    void update_parameters();
 };
 
 } // namespace deep_learning

@@ -52,13 +52,14 @@
 #define UNSCENTED_KALMAN_FILTER_H
 
 #include "mytrix_eigen_compat.hpp"
+#include <Eigen/Dense>
 #include <vector>
 #include "base_kalman_filter.h"
 
 class UnscentedKalmanFilter : public BaseKalmanFilter {
 public:
-    using Vector = mytrix::Vector;
-    using Matrix = mytrix::Matrix;
+    using Vector = Eigen::VectorXd;
+    using Matrix = Eigen::MatrixXd;
 
     UnscentedKalmanFilter(int state_dim, int meas_dim);
 
@@ -72,8 +73,10 @@ public:
     void predict() override;
     void update(const mytrix::Vector& z) override;
 
-    const Vector& state() const override;
-    const Matrix& covariance() const override;
+    const mytrix::Vector& state() const override;
+    const mytrix::Matrix& covariance() const override;
+    const Vector& state_eigen() const;
+    const Matrix& covariance_eigen() const;
 
 private:
     void generateSigmaPoints();
@@ -84,6 +87,9 @@ private:
     double lambda_;
     Vector x_; // State estimate
     Matrix P_; // State covariance
+
+    mutable mytrix::Vector x_mytrix_;
+    mutable mytrix::Matrix P_mytrix_;
 
     std::vector<Vector> sigma_points_;
     Vector weights_mean_;

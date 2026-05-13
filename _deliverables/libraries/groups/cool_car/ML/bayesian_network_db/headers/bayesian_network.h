@@ -6,7 +6,7 @@
 #include <optional>
 #include <memory>
 // Matrix support
-#include "../../../packages/DATASTRUCTURE/matrix/headers/matrix_dense.h"
+#include "matrix_dense.h"
 
 namespace bayesian_db {
 

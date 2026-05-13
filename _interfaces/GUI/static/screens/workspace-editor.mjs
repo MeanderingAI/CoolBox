@@ -353,6 +353,7 @@ class WorkspaceEditor extends HTMLElement {
     connectedCallback() {
         if (this._built) return;
         this._built = true;
+        this._rootPath = this.getAttribute('root') || '';  // optional starting path
         this._currentPath = null;      // repo-relative path of open file
         this._originalContent = null;  // last-saved/loaded content
         this._dirCache = new Map();    // path → entries[]
@@ -365,7 +366,7 @@ class WorkspaceEditor extends HTMLElement {
         shadow.appendChild(style);
 
         this._buildShell(shadow);
-        this._loadTree('');
+        this._loadTree(this._rootPath);
     }
 
     // ── Shell layout ─────────────────────────────────────────────────────────

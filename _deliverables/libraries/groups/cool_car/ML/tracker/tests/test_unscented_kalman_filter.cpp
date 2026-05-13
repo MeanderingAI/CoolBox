@@ -17,17 +17,13 @@ TYST_TEST(UnscentedKalmanFilterTest, HandlesSimpleLinearModels) {
 	measurement_noise << 0.1;
 	filter.initialize(initial_state, initial_covariance);
 	filter.setProcessModel(
-		[](const Eigen::VectorXd& state) {
-			Eigen::VectorXd next(1);
-			next << state(0) + 1.0;
-			return next;
+		[](const mytrix::Vector& state) -> mytrix::Vector {
+			return mytrix::Vector{state[0] + 1.0};
 		},
 		process_noise);
 	filter.setMeasurementModel(
-		[](const Eigen::VectorXd& state) {
-			Eigen::VectorXd measurement(1);
-			measurement << state(0);
-			return measurement;
+		[](const mytrix::Vector& state) -> mytrix::Vector {
+			return mytrix::Vector{state[0]};
 		},
 		measurement_noise);
 

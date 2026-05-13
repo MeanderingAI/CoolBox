@@ -13,6 +13,7 @@ set(DATA_STRUCTURES_SOURCES
 	list/source/concurrent_linked_list.cpp
 	filters/source/bloom_filter.cpp
 	filters/source/egh_filter.cpp
+	trees/source/van_emde_boas.cpp
 )
 
 add_library(data_structures ${DATA_STRUCTURES_SOURCES})
@@ -44,8 +45,8 @@ if(BUILD_TESTING)
 		maps/tests/test_concurrent_hash_map.cpp
 		list/tests/test_concurrent_linked_list.cpp
 		filters/tests/test_bloom_filter.cpp
-		filters/tests/test_egh_filter.cpp
-	)
+		filters/tests/test_egh_filter.cpp	trees/tests/test_van_emde_boas.cpp
+	list/tests/test_priority_queue.cpp	)
 	target_link_libraries(data_structures_tests PRIVATE data_structures tyst_framework_main Threads::Threads thread_pool_utils)
 	target_include_directories(data_structures_tests PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/headers

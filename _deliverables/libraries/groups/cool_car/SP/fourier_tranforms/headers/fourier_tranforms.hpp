@@ -13,8 +13,8 @@ namespace fourier_tranforms {
 using Complex = std::complex<double>;
 
 struct ComplexMatrix {
-    matrix::DenseMatrix<double> real;
-    matrix::DenseMatrix<double> imag;
+    matrix::DenseMatrix real;
+    matrix::DenseMatrix imag;
 
     ComplexMatrix(std::size_t rows, std::size_t cols);
     explicit ComplexMatrix(const std::vector<std::vector<Complex>>& values);
