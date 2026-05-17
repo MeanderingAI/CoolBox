@@ -96,6 +96,19 @@ COOLBOX_C_API const char *coolbox_c_client_capability_at(const CoolBoxClient *cl
  */
 COOLBOX_C_API int coolbox_c_client_is_ready(const CoolBoxClient *client);
 
+/**
+ * UUID generation APIs backed by trekker/MISC/uuid_generation.
+ * Returned string pointers are valid until the next UUID call on the same thread.
+ */
+COOLBOX_C_API const char *coolbox_c_uuid_v1(void);
+COOLBOX_C_API const char *coolbox_c_uuid_v2(unsigned int local_identifier, unsigned int local_domain);
+COOLBOX_C_API const char *coolbox_c_uuid_v3(const char *namespace_uuid, const char *name);
+COOLBOX_C_API const char *coolbox_c_uuid_v4(void);
+COOLBOX_C_API const char *coolbox_c_uuid_v5(const char *namespace_uuid, const char *name);
+COOLBOX_C_API const char *coolbox_c_uuid_v6(void);
+COOLBOX_C_API const char *coolbox_c_uuid_v8(const char *custom_entropy_hex);
+COOLBOX_C_API const char *coolbox_c_guid(void);
+
 #ifdef __cplusplus
 }
 #endif

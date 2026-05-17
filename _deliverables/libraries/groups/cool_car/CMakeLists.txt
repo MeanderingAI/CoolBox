@@ -7,6 +7,7 @@ project(COOL_CAR VERSION 1.0 LANGUAGES C CXX)
 
 add_subdirectory(DL)
 add_subdirectory(DM)
+add_subdirectory(FINANCE)
 add_subdirectory(MATRIX)
 add_subdirectory(ML)
 add_subdirectory(SP)

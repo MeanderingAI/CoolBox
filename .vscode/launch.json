@@ -4,6 +4,22 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
         "configurations": [
+                {
+                    "name": "Launch GUI from _interfaces",
+                    "type": "cppvsdbg",
+                    "request": "launch",
+                    "program": "powershell",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        "${workspaceFolder}/_interfaces/GUI/launch_gui.ps1"
+                    ],
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "console": "integratedTerminal",
+                    "preLaunchTask": "launch-gui-from-interfaces"
+                },
             
 
             {
@@ -31,6 +47,133 @@
                 "args": ["pgha"],
                 "cwd": "${workspaceFolder}",
                 "console": "integratedTerminal"
+            },
+            {
+                "name": "Run secret_gen_cli (v7 x 10)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\secret_gen_cli\\Debug\\secret_gen_cli.exe",
+                "args": [
+                    "--version",
+                    "v7",
+                    "--batch",
+                    "10"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-secret-gen-cli-debug"
+            },
+            {
+                "name": "Run secret_gen_cli (Prompt Args)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\secret_gen_cli\\Debug\\secret_gen_cli.exe",
+                "args": [
+                    "--version",
+                    "${input:secretGenUuidVersion}",
+                    "--batch",
+                    "${input:secretGenBatchSize}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-secret-gen-cli-debug"
+            },
+            {
+                "name": "Run cad_builder (--launch-gui)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\cad_builder\\Debug\\cad_builder.exe",
+                "args": [
+                    "--launch-gui"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-cad-builder-debug"
+            },
+            {
+                "name": "Run cad_builder (Prompt Input/Output)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\cad_builder\\Debug\\cad_builder.exe",
+                "args": [
+                    "--input",
+                    "${input:cadBuilderInputPath}",
+                    "--output",
+                    "${input:cadBuilderOutputPath}",
+                    "${input:cadBuilderWindowFlag}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-cad-builder-debug"
+            },
+            {
+                "name": "Run screen_builder (Default XML)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\screen_builder\\Debug\\screen_builder.exe",
+                "args": [
+                    "--xml",
+                    "_deliverables/apps/screen_builder/app_layout.xml"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-screen-builder-debug"
+            },
+            {
+                "name": "Run screen_builder (Prompt XML)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\screen_builder\\Debug\\screen_builder.exe",
+                "args": [
+                    "--xml",
+                    "${input:screenBuilderXmlPath}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-screen-builder-debug"
+            }
+        ],
+        "inputs": [
+            {
+                "id": "secretGenUuidVersion",
+                "type": "promptString",
+                "description": "UUID version (1,2,3,4,5,6,7,8,v1..v8,guid)",
+                "default": "v7"
+            },
+            {
+                "id": "secretGenBatchSize",
+                "type": "promptString",
+                "description": "Batch size",
+                "default": "10"
+            },
+            {
+                "id": "cadBuilderInputPath",
+                "type": "promptString",
+                "description": "CAD input file path (.dwg/.step/.stl/.sldprt/etc.)",
+                "default": "${workspaceFolder}\\sample.step"
+            },
+            {
+                "id": "cadBuilderOutputPath",
+                "type": "promptString",
+                "description": "Output .hk_cad file path",
+                "default": "${workspaceFolder}\\sample.hk_cad"
+            },
+            {
+                "id": "cadBuilderWindowFlag",
+                "type": "pickString",
+                "description": "Optional startup GUI flag",
+                "options": [
+                    "",
+                    "--window",
+                    "--launch-gui"
+                ],
+                "default": ""
+            },
+            {
+                "id": "screenBuilderXmlPath",
+                "type": "promptString",
+                "description": "XML file path for screen_builder",
+                "default": "_deliverables/apps/screen_builder/app_layout.xml"
             }
         ]
 }

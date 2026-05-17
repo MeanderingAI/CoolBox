@@ -427,6 +427,83 @@ void Canvas::draw_circle(int cx, int cy, int radius, Color c, bool filled) {
     }
 }
 
+void Canvas::draw_arc(int cx, int cy, int radius,
+                      double start_angle_deg, double end_angle_deg,
+                      Color c, int thickness) {
+    if (radius <= 0 || thickness <= 0) return;
+
+    auto norm_deg = [](double deg) {
+        double out = std::fmod(deg, 360.0);
+        if (out < 0.0) out += 360.0;
+        return out;
+    };
+
+    double start = norm_deg(start_angle_deg);
+    double end = norm_deg(end_angle_deg);
+    if (end < start || (std::abs(end - start) < 1e-9 && std::abs(end_angle_deg - start_angle_deg) > 1e-9)) {
+        end += 360.0;
+    }
+
+    const double span = end - start;
+    const int segments = std::max(12, static_cast<int>(std::ceil((span / 360.0) * radius * 8.0)));
+    const double delta = span / static_cast<double>(segments);
+
+    int prev_x = 0;
+    int prev_y = 0;
+    bool has_prev = false;
+    for (int i = 0; i <= segments; ++i) {
+        const double deg = start + delta * static_cast<double>(i);
+        const double rad = deg * 3.14159265358979323846 / 180.0;
+        const int px = cx + static_cast<int>(std::lround(std::cos(rad) * radius));
+        const int py = cy + static_cast<int>(std::lround(std::sin(rad) * radius));
+        if (has_prev) {
+            draw_line(prev_x, prev_y, px, py, c, thickness);
+        }
+        prev_x = px;
+        prev_y = py;
+        has_prev = true;
+    }
+}
+
+void Canvas::draw_rounded_rect(int x, int y, int w, int h, int radius, Color c, bool filled) {
+    if (w <= 0 || h <= 0) return;
+    const int max_radius = std::max(0, std::min(w, h) / 2);
+    radius = std::max(0, std::min(radius, max_radius));
+
+    if (radius == 0) {
+        draw_rect(x, y, w, h, c, filled);
+        return;
+    }
+
+    if (filled) {
+        draw_rect(x + radius, y, w - 2 * radius, h, c, true);
+        draw_rect(x, y + radius, radius, h - 2 * radius, c, true);
+        draw_rect(x + w - radius, y + radius, radius, h - 2 * radius, c, true);
+
+        const int r2 = radius * radius;
+        for (int dy = -radius; dy <= radius; ++dy) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                if (dx * dx + dy * dy > r2) continue;
+                set_pixel(x + radius + dx, y + radius + dy, c);
+                set_pixel(x + w - radius - 1 + dx, y + radius + dy, c);
+                set_pixel(x + radius + dx, y + h - radius - 1 + dy, c);
+                set_pixel(x + w - radius - 1 + dx, y + h - radius - 1 + dy, c);
+            }
+        }
+        return;
+    }
+
+    draw_line(x + radius, y, x + w - radius - 1, y, c);
+    draw_line(x + radius, y + h - 1, x + w - radius - 1, y + h - 1, c);
+    draw_line(x, y + radius, x, y + h - radius - 1, c);
+    draw_line(x + w - 1, y + radius, x + w - 1, y + h - radius - 1, c);
+
+    draw_arc(x + radius, y + radius, radius, 180.0, 270.0, c);
+    draw_arc(x + w - radius - 1, y + radius, radius, 270.0, 360.0, c);
+    draw_arc(x + w - radius - 1, y + h - radius - 1, radius, 0.0, 90.0, c);
+    draw_arc(x + radius, y + h - radius - 1, radius, 90.0, 180.0, c);
+}
+
 // Scanline polygon fill + outline. Supports Solid, VerticalGradient and Hatch styles.
 void Canvas::draw_polygon(const std::vector<std::pair<int,int>>& pts,
                           Color outline,

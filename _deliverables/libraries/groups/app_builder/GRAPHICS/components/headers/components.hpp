@@ -11,6 +11,9 @@
 namespace graphics {
 namespace components {
 
+class ComponentHolder;
+struct TabbedViewModel;
+
 enum class ComponentType {
     Button,
     TextView,
@@ -27,6 +30,27 @@ enum class ComponentType {
     ,FileTree
     ,RadioSelector
     ,CheckboxGroup
+    ,ColorPicker
+    ,TabbedView
+};
+struct ColorPickerModel : public ::graphics::GraphicsObject {
+    unsigned char r = 0;
+    unsigned char g = 0;
+    unsigned char b = 0;
+
+    ColorPickerModel() = default;
+    ColorPickerModel(unsigned char red, unsigned char green, unsigned char blue)
+        : r(red), g(green), b(blue) {}
+
+    ColorPickerModel& set_rgb(unsigned char red, unsigned char green, unsigned char blue) {
+        r = red;
+        g = green;
+        b = blue;
+        return *this;
+    }
+
+    std::string graphics_object_kind() const override { return "colorPickerModel"; }
+    std::string graphics_object_name() const override { return "colorPicker"; }
 };
 struct ToolbarModel : public ::graphics::GraphicsObject {
     std::vector<std::string> actions;
@@ -136,8 +160,16 @@ enum class LayoutType {
     Grid
 };
 
+enum class BorderStyle {
+    None,
+    Solid,
+    Dashed,
+    Double
+};
+
 std::string component_type_name(ComponentType type);
 std::string layout_type_name(LayoutType type);
+std::string border_style_name(BorderStyle style);
 
 struct MenuItem : public ::graphics::GraphicsObject {
     std::string label;
@@ -190,20 +222,34 @@ struct MenuBarModel : public ::graphics::GraphicsObject {
     }
 };
 
-class ComponentHolder;
-
 class Component : public ::graphics::GraphicsObject {
 public:
     static Component button(std::string label,
                             bool enabled = true,
                             bool pressed = false,
-                            std::size_t width = 0);
+                            std::size_t width = 0,
+                            bool round_top_left = false,
+                            bool round_top_right = false,
+                            bool round_bottom_right = false,
+                            bool round_bottom_left = false);
     static Component text_view(std::string text,
-                               std::size_t width = 32);
+                               std::size_t width = 32,
+                               bool wrap_text = true,
+                               BorderStyle border_style = BorderStyle::None,
+                               std::size_t border_thickness = 0,
+                               bool show_line_numbers = false);
     static Component editable_text_view(std::string text,
                                         std::size_t cursor_position = 0,
                                         bool focused = true,
-                                        std::size_t width = 32);
+                                        std::size_t width = 32,
+                                        bool wrap_text = false,
+                                        BorderStyle border_style = BorderStyle::None,
+                                        std::size_t border_thickness = 0,
+                                        bool show_line_numbers = false,
+                                        bool resizable = false,
+                                        std::size_t max_height = 1,
+                                        std::size_t font_size = 14,
+                                        std::vector<std::string> autocomplete_suggestions = {});
     static Component radio_button(std::string label,
                                   bool selected = false,
                                   bool enabled = true);
@@ -223,6 +269,8 @@ public:
     static Component file_tree(const FileTreeModel& file_tree);
     static Component radio_selector(const RadioSelectorModel& radio_selector);
     static Component checkbox_group(const CheckboxGroupModel& checkbox_group);
+    static Component color_picker(const ColorPickerModel& color_picker);
+    static Component tabbed_view(const TabbedViewModel& tabbed_view);
 
     // Accessors for associated models (defined in source file)
     const ToolbarModel* toolbar_model() const;
@@ -232,6 +280,8 @@ public:
     const FileTreeModel* file_tree_model() const;
     const RadioSelectorModel* radio_selector_model() const;
     const CheckboxGroupModel* checkbox_group_model() const;
+    const ColorPickerModel* color_picker_model() const;
+    const TabbedViewModel* tabbed_view_model() const;
 
     ComponentType type() const { return type_; }
     const std::string& label() const { return label_; }
@@ -242,6 +292,18 @@ public:
     bool pressed() const { return pressed_; }
     bool focused() const { return focused_; }
     std::size_t width() const { return width_; }
+    bool round_top_left() const { return round_top_left_; }
+    bool round_top_right() const { return round_top_right_; }
+    bool round_bottom_right() const { return round_bottom_right_; }
+    bool round_bottom_left() const { return round_bottom_left_; }
+    bool wrap_text() const { return wrap_text_; }
+    BorderStyle border_style() const { return border_style_; }
+    std::size_t border_thickness() const { return border_thickness_; }
+    bool show_line_numbers() const { return show_line_numbers_; }
+    bool resizable() const { return resizable_; }
+    std::size_t max_height() const { return max_height_; }
+    std::size_t font_size() const { return font_size_; }
+    const std::vector<std::string>& autocomplete_suggestions() const { return autocomplete_suggestions_; }
     std::size_t cursor_position() const { return cursor_position_; }
     const ComponentHolder* layout_group() const { return layout_group_.get(); }
     const MenuBarModel* menu_bar_model() const { return menu_bar_model_.get(); }
@@ -270,6 +332,18 @@ private:
     bool pressed_ = false;
     bool focused_ = false;
     std::size_t width_ = 0;
+    bool round_top_left_ = false;
+    bool round_top_right_ = false;
+    bool round_bottom_right_ = false;
+    bool round_bottom_left_ = false;
+    bool wrap_text_ = false;
+    BorderStyle border_style_ = BorderStyle::None;
+    std::size_t border_thickness_ = 0;
+    bool show_line_numbers_ = false;
+    bool resizable_ = false;
+    std::size_t max_height_ = 1;
+    std::size_t font_size_ = 14;
+    std::vector<std::string> autocomplete_suggestions_;
     std::size_t cursor_position_ = 0;
     std::shared_ptr<ComponentHolder> layout_group_;
     std::shared_ptr<MenuBarModel> menu_bar_model_;
@@ -281,6 +355,8 @@ private:
     std::shared_ptr<FileTreeModel> file_tree_model_;
     std::shared_ptr<RadioSelectorModel> radio_selector_model_;
     std::shared_ptr<CheckboxGroupModel> checkbox_group_model_;
+    std::shared_ptr<ColorPickerModel> color_picker_model_;
+    std::shared_ptr<TabbedViewModel> tabbed_view_model_;
 };
 
 class ComponentHolder : public ::graphics::GraphicsObject {
@@ -313,6 +389,35 @@ private:
     std::size_t columns_ = 1;
     std::size_t horizontal_spacing_ = 1;
     std::size_t vertical_spacing_ = 1;
+};
+
+struct TabbedViewModel : public ::graphics::GraphicsObject {
+    struct Tab {
+        std::string title;
+        ComponentHolder subview;
+    };
+
+    std::vector<Tab> tabs;
+    std::size_t selected = 0;
+
+    TabbedViewModel() = default;
+    explicit TabbedViewModel(std::vector<Tab> tabs, std::size_t selected = 0)
+        : tabs(std::move(tabs)), selected(selected) {}
+
+    TabbedViewModel& add_tab(std::string title, const ComponentHolder& subview) {
+        tabs.push_back(Tab{std::move(title), subview});
+        return *this;
+    }
+
+    TabbedViewModel& set_selected(std::size_t value) {
+        selected = value;
+        return *this;
+    }
+
+    std::string graphics_object_kind() const override { return "tabbedViewModel"; }
+    std::string graphics_object_name() const override {
+        return tabs.empty() ? std::string("tabbedView") : tabs[std::min(selected, tabs.size() - 1U)].title;
+    }
 };
 
 } // namespace components

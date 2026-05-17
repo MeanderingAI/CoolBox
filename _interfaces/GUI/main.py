@@ -33,6 +33,24 @@ app = FastAPI()
 app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 
 
+def _repo_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+class NoCacheRepoStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+
+gif_third_party_dir = os.path.join(_repo_root(), "__init__", "third_party", "js_libs", "gif")
+if os.path.isdir(gif_third_party_dir):
+    app.mount("/third_party/js_libs/gif", NoCacheRepoStaticFiles(directory=gif_third_party_dir), name="gif-third-party")
+
+
 class Item(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -1183,17 +1201,171 @@ def list_middle_wear():
 
 @app.get("/middle-portal/{folder}")
 def serve_middle_portal(folder: str):
-    """Serve business_suite/middle_wear/{folder}/index.html."""
+    """Serve _interfaces/business_suite/middle_wear/{folder}/index.html."""
     if not re.match(r'^[\w\-]+$', folder):
         return JSONResponse({"error": "Invalid folder name."}, status_code=400)
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    base = os.path.realpath(os.path.join(repo_root, "business_suite", "middle_wear"))
+    base = os.path.realpath(os.path.join(repo_root, "_interfaces", "business_suite", "middle_wear"))
     page = os.path.realpath(os.path.join(base, folder, "index.html"))
     if not page.startswith(base + os.sep):
         return JSONResponse({"error": "Access denied."}, status_code=403)
     if not os.path.isfile(page):
         return JSONResponse({"error": "index.html not found for this tool."}, status_code=404)
     return StarletteFileResponse(page, media_type="text/html")
+
+
+@app.get("/middle-portal-assets/uuid_generation/{asset_name}")
+def serve_uuid_generation_asset(asset_name: str):
+    """Serve built Emscripten UUID assets (uuid_generation.js/.wasm)."""
+    if not re.match(r'^[\w\-.]+$', asset_name):
+        return JSONResponse({"error": "Invalid asset name."}, status_code=400)
+    if not asset_name.startswith("uuid_generation."):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(
+        repo_root,
+        "build",
+        "_deliverables",
+        "libraries",
+        "bindings",
+        "emscripten_bindings",
+    ))
+    asset = os.path.realpath(os.path.join(base, asset_name))
+
+    if not asset.startswith(base + os.sep):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    if not os.path.isfile(asset):
+        return JSONResponse({"error": f"{asset_name} not found. Build target uuid_generation_js first."}, status_code=404)
+
+    return StarletteFileResponse(asset)
+
+
+@app.post("/middle-portal-assets/uuid_generation/build")
+def build_uuid_generation_assets():
+    """Build uuid_generation Emscripten assets and report generated file status."""
+    result = mm.build_target("uuid_generation_js", timeout=1200)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    js_path = os.path.realpath(os.path.join(
+        repo_root,
+        "build",
+        "_deliverables",
+        "libraries",
+        "bindings",
+        "emscripten_bindings",
+        "uuid_generation.js",
+    ))
+    wasm_path = os.path.realpath(os.path.join(
+        repo_root,
+        "build",
+        "_deliverables",
+        "libraries",
+        "bindings",
+        "emscripten_bindings",
+        "uuid_generation.wasm",
+    ))
+
+    js_exists = os.path.isfile(js_path)
+    wasm_exists = os.path.isfile(wasm_path)
+
+    return JSONResponse({
+        "success": bool(result.get("success")) and js_exists,
+        "build_success": bool(result.get("success")),
+        "output": result.get("output", ""),
+        "returncode": result.get("returncode", -1),
+        "js_exists": js_exists,
+        "wasm_exists": wasm_exists,
+        "js_path": os.path.relpath(js_path, repo_root).replace("\\", "/"),
+        "wasm_path": os.path.relpath(wasm_path, repo_root).replace("\\", "/"),
+    })
+
+
+@app.get("/demo-assets/fourier_fft_demo/module/{asset_name}")
+def serve_fourier_demo_module_asset(asset_name: str):
+    """Serve built Emscripten Fourier assets for the Fourier FFT demo."""
+    if not re.match(r'^[\w\-.]+$', asset_name):
+        return JSONResponse({"error": "Invalid asset name."}, status_code=400)
+    if asset_name not in {"fourier_tranforms.js", "fourier_tranforms.wasm"}:
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(
+        repo_root,
+        "build",
+        "_deliverables",
+        "libraries",
+        "bindings",
+        "emscripten_bindings",
+    ))
+    asset = os.path.realpath(os.path.join(base, asset_name))
+
+    if not asset.startswith(base + os.sep):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    if not os.path.isfile(asset):
+        return JSONResponse({"error": f"{asset_name} not found. Build target fourier_tranforms_js first."}, status_code=404)
+
+    return StarletteFileResponse(asset)
+
+
+@app.post("/demo-assets/fourier_fft_demo/module/build")
+def build_fourier_demo_module_assets():
+    """Build Fourier transform Emscripten assets for the Fourier FFT demo."""
+    result = mm.build_target("fourier_tranforms_js", timeout=1200)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    js_path = os.path.realpath(os.path.join(
+        repo_root,
+        "build",
+        "_deliverables",
+        "libraries",
+        "bindings",
+        "emscripten_bindings",
+        "fourier_tranforms.js",
+    ))
+    wasm_path = os.path.realpath(os.path.join(
+        repo_root,
+        "build",
+        "_deliverables",
+        "libraries",
+        "bindings",
+        "emscripten_bindings",
+        "fourier_tranforms.wasm",
+    ))
+
+    js_exists = os.path.isfile(js_path)
+    wasm_exists = os.path.isfile(wasm_path)
+
+    return JSONResponse({
+        "success": bool(result.get("success")) and js_exists,
+        "build_success": bool(result.get("success")),
+        "output": result.get("output", ""),
+        "returncode": result.get("returncode", -1),
+        "js_exists": js_exists,
+        "wasm_exists": wasm_exists,
+        "js_path": os.path.relpath(js_path, repo_root).replace("\\", "/"),
+        "wasm_path": os.path.relpath(wasm_path, repo_root).replace("\\", "/"),
+    })
+
+
+@app.get("/demo-assets/{folder}/{asset_path:path}")
+def serve_demo_asset(folder: str, asset_path: str):
+    """Serve assets stored inside _internal_workspace/demo_workspaces/{folder}/."""
+    if not re.match(r'^[\w\-]+$', folder):
+        return JSONResponse({"error": "Invalid folder name."}, status_code=400)
+    if not asset_path:
+        return JSONResponse({"error": "asset_path is required."}, status_code=400)
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    base = os.path.realpath(os.path.join(repo_root, "_internal_workspace", "demo_workspaces", folder))
+    asset = os.path.realpath(os.path.join(base, asset_path))
+
+    if not asset.startswith(base + os.sep):
+        return JSONResponse({"error": "Access denied."}, status_code=403)
+    if not os.path.isfile(asset):
+        return JSONResponse({"error": "Asset not found."}, status_code=404)
+
+    return StarletteFileResponse(asset)
 
 
 @app.get("/demos")
@@ -1213,6 +1385,7 @@ def list_demos():
         title = entry.replace("_", " ").title()
         description = None
         icon = "🗂"
+        libraries = []
         if os.path.isfile(meta_path):
             try:
                 import json as _json

@@ -65,6 +65,14 @@ extern SEXP _coolboxr_metadata_describe(void);
 extern SEXP _coolboxr_metadata_capability_count(void);
 extern SEXP _coolboxr_metadata_capability_at(SEXP);
 extern SEXP _coolboxr_metadata_is_ready(void);
+extern SEXP _coolboxr_uuid_v1(void);
+extern SEXP _coolboxr_uuid_v2(SEXP, SEXP);
+extern SEXP _coolboxr_uuid_v3(SEXP, SEXP);
+extern SEXP _coolboxr_uuid_v4(void);
+extern SEXP _coolboxr_uuid_v5(SEXP, SEXP);
+extern SEXP _coolboxr_uuid_v6(void);
+extern SEXP _coolboxr_uuid_v8(SEXP);
+extern SEXP _coolboxr_guid(void);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_coolboxr_fit_linear_regression", (DL_FUNC) &_coolboxr_fit_linear_regression, 5},
@@ -130,6 +138,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_coolboxr_metadata_capability_count", (DL_FUNC) &_coolboxr_metadata_capability_count, 0},
     {"_coolboxr_metadata_capability_at", (DL_FUNC) &_coolboxr_metadata_capability_at, 1},
     {"_coolboxr_metadata_is_ready", (DL_FUNC) &_coolboxr_metadata_is_ready, 0},
+    {"_coolboxr_uuid_v1", (DL_FUNC) &_coolboxr_uuid_v1, 0},
+    {"_coolboxr_uuid_v2", (DL_FUNC) &_coolboxr_uuid_v2, 2},
+    {"_coolboxr_uuid_v3", (DL_FUNC) &_coolboxr_uuid_v3, 2},
+    {"_coolboxr_uuid_v4", (DL_FUNC) &_coolboxr_uuid_v4, 0},
+    {"_coolboxr_uuid_v5", (DL_FUNC) &_coolboxr_uuid_v5, 2},
+    {"_coolboxr_uuid_v6", (DL_FUNC) &_coolboxr_uuid_v6, 0},
+    {"_coolboxr_uuid_v8", (DL_FUNC) &_coolboxr_uuid_v8, 1},
+    {"_coolboxr_guid", (DL_FUNC) &_coolboxr_guid, 0},
     {NULL, NULL, 0}
 };
 

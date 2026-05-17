@@ -1,0 +1,17 @@
+{
+  "title": "K-Means Clustering",
+  "description": "Interactive animated k-means clustering with real-time inertia charting.",
+  "icon": "🤖",
+  "libraries": [
+    {
+      "label": "Binary Heap & Indexed Priority Queue",
+      "path": "_deliverables/libraries/groups/trekker/DATASTRUCTURE/list/headers/priority_queue.h",
+      "description": "Used in K-Means++ initialisation to sample the next centroid with probability proportional to squared distance. The IndexedPriorityQueue enables O(log n) priority updates when distances change across iterations."
+    },
+    {
+      "label": "Van Emde Boas Tree",
+      "path": "_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/headers/van_emde_boas.h",
+      "description": "O(log log U) integer set with successor/predecessor queries. In quantised feature spaces, vEB trees provide fast discrete cluster-index lookup and ordered traversal over the active centroid set."
+    }
+  ]
+}

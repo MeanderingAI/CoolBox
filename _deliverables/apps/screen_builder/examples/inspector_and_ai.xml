@@ -1,0 +1,21 @@
+<screen title="Example - Inspector + AI" width="1200" height="720" platform="windows">
+  <vertical>
+    <layout label="Workbench">
+      <menu_bar>
+        <menu title="View">
+          <item label="Inspector Dialog" />
+          <item label="AI Chat Dialog" />
+          <item label="Toolbox Selector" />
+        </menu>
+      </menu_bar>
+      <toolbar actions="Inspect,Prompt,Apply,Refresh" />
+    </layout>
+    <layout label="Inspector Dialog">
+      <text text="Selection metadata appears here." width="56" />
+      <text text="Camera and count stats shown below." width="56" />
+    </layout>
+    <layout label="AI Chat Dialog">
+      <text text="Command interpretation feed appears here." width="56" />
+    </layout>
+  </vertical>
+</screen>

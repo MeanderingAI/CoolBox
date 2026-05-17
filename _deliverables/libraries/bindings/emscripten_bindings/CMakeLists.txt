@@ -257,6 +257,19 @@ add_emscripten_module(time_series_js createTimeSeriesModule
     "${ML_ROOT}/time_series/headers"
 )
 
+# ── Fourier Transforms ────────────────────────────────────────────
+set(FOURIER_TRANFORMS_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/cool_car/SP/fourier_tranforms")
+
+add_emscripten_module(fourier_tranforms_js createFourierTransformsModule
+    fourier_tranforms_bindings.cpp
+    "${FOURIER_TRANFORMS_SRC_DIR}/source/fourier_tranforms.cpp"
+    "${FOURIER_TRANFORMS_SRC_DIR}/headers"
+)
+
+if(TARGET fourier_tranforms_js)
+    set_target_properties(fourier_tranforms_js PROPERTIES OUTPUT_NAME "fourier_tranforms")
+endif()
+
 # ── Wave Generator ───────────────────────────────────────────────
 set(WAVE_GEN_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/trekker/MISC/wave_generator")
 
@@ -264,6 +277,15 @@ add_emscripten_module(wave_generator_js createWaveGeneratorModule
     wave_generator_bindings.cpp
     "${WAVE_GEN_SRC_DIR}/source/wave_generator.cpp"
     "${WAVE_GEN_SRC_DIR}/headers"
+)
+
+# ── UUID Generation ───────────────────────────────────────────────
+set(UUID_GEN_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/trekker/MISC/uuid_generation")
+
+add_emscripten_module(uuid_generation_js createUuidGenerationModule
+    uuid_generation_bindings.cpp
+    "${UUID_GEN_SRC_DIR}/source/uuid_generation.cpp"
+    "${UUID_GEN_SRC_DIR}/headers"
 )
 
 # ── Audio Processing ─────────────────────────────────────────────

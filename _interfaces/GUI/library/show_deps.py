@@ -6,7 +6,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(__file__))
-import makefile_manager as mm
+import interfaces.GUI.library.makefile_manager as mm
 
 
 def main():

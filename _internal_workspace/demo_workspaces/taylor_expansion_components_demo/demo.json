@@ -1,0 +1,6 @@
+{
+  "title": "Taylor Expansion Components",
+  "description": "Interactive Taylor series convergence demo with a slider for the number of components shown in the partial sum",
+  "icon": "∑",
+  "libraries": []
+}

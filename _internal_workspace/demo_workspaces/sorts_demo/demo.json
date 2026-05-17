@@ -1,0 +1,9 @@
+{
+  "title": "Sorting Algorithms",
+  "description": "Step-by-step visual demo of 9 sorting algorithms from trekker::algorithm::sorts — run all at once and compare operation counts.",
+  "icon": "🔢",
+  "libraries": [
+    "trekker::algorithm::sorts",
+    "graphics-chart.mjs"
+  ]
+}

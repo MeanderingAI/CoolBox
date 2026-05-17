@@ -606,6 +606,73 @@
 				"reveal": "always"
 			},
 			"problemMatcher": []
+		},
+		{
+			"label": "build-secret-gen-cli-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"secret_gen_cli"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build-cad-builder-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"cad_builder"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build-screen-builder-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"screen_builder"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
 		}
 	]
+	,
+		{
+			"label": "launch-gui-from-interfaces",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}/_interfaces/GUI/launch_gui.ps1"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/_interfaces/GUI"
+			},
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "run"
+		}
 }

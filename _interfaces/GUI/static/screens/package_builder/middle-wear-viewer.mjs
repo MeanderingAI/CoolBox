@@ -97,6 +97,12 @@ const STYLE = `
     color: #475569;
 }
 .ac-btn.ext:hover { background: #f1f5f9; }
+.ac-btn.build {
+    background: #ecfdf5;
+    border-color: #86efac;
+    color: #166534;
+}
+.ac-btn.build:hover { background: #dcfce7; }
 
 /* ── Iframe viewer ── */
 .viewer-wrap {
@@ -152,12 +158,14 @@ const FOLDER_ICONS = {
     database_management: '🗄️',
     nginx_setup:         '🌐',
     distributed_setup:   '⚙️',
+    uuid_generator:      '🧬',
 };
 
 const FOLDER_DESCRIPTIONS = {
     database_management: 'Database connection manager — configure PostgreSQL, SQLite, Redis and run queries.',
     nginx_setup:         'Nginx virtual host configurator — server blocks, upstreams, SSL/TLS, headers and logs.',
     distributed_setup:   'Distributed systems host setup — launch and monitor distribution_tag master & workers.',
+    uuid_generator:      'UUID extension tool — generates UUIDs via uuid_generation Emscripten assets.',
 };
 
 function iconFor(folder) {
@@ -284,6 +292,37 @@ class MiddleWearViewer extends HTMLElement {
         extBtn.target = '_blank';
         extBtn.rel = 'noopener noreferrer';
         if (!has_index) { extBtn.style.opacity = '0.4'; extBtn.style.pointerEvents = 'none'; }
+
+        if (folder === 'uuid_generator') {
+            const buildBtn = document.createElement('button');
+            buildBtn.className = 'ac-btn build';
+            buildBtn.textContent = '⚒ Generate Assets';
+            buildBtn.addEventListener('click', async () => {
+                const prev = buildBtn.textContent;
+                buildBtn.disabled = true;
+                buildBtn.textContent = 'Building...';
+                this._statusEl.textContent = 'Building uuid_generation assets...';
+                try {
+                    const res = await fetch('/middle-portal-assets/uuid_generation/build', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                        const reason = (data && data.output) ? String(data.output).split('\n').slice(-3).join(' | ') : `HTTP ${res.status}`;
+                        this._statusEl.textContent = `UUID assets build failed: ${reason}`;
+                        return;
+                    }
+                    this._statusEl.textContent = `UUID assets ready (${data.js_exists ? 'js' : 'no js'}, ${data.wasm_exists ? 'wasm' : 'no wasm'})`;
+                } catch (err) {
+                    this._statusEl.textContent = `UUID assets build failed: ${err.message}`;
+                } finally {
+                    buildBtn.disabled = false;
+                    buildBtn.textContent = prev;
+                }
+            });
+            actions.appendChild(buildBtn);
+        }
 
         actions.append(openBtn, extBtn);
         card.append(header, descEl, actions);

@@ -89,6 +89,32 @@ TEST(CanvasDrawTest, DrawCircleFilled) {
     EXPECT_EQ(c.get_pixel(0, 0), Colors::White);
 }
 
+TEST(CanvasDrawTest, DrawArcOutline) {
+    Canvas c(40, 40, Colors::White);
+    c.draw_arc(20, 20, 10, 0.0, 90.0, Colors::Red);
+
+    EXPECT_EQ(c.get_pixel(30, 20), Colors::Red);
+    EXPECT_EQ(c.get_pixel(20, 30), Colors::Red);
+    EXPECT_EQ(c.get_pixel(10, 20), Colors::White);
+}
+
+TEST(CanvasDrawTest, DrawRoundedRectOutline) {
+    Canvas c(40, 40, Colors::White);
+    c.draw_rounded_rect(5, 5, 20, 16, 4, Colors::Black, false);
+
+    EXPECT_EQ(c.get_pixel(9, 5), Colors::Black);
+    EXPECT_EQ(c.get_pixel(5, 9), Colors::Black);
+    EXPECT_EQ(c.get_pixel(5, 5), Colors::White);
+}
+
+TEST(CanvasDrawTest, DrawRoundedRectFilled) {
+    Canvas c(40, 40, Colors::White);
+    c.draw_rounded_rect(6, 6, 24, 18, 5, Colors::Green, true);
+
+    EXPECT_EQ(c.get_pixel(18, 15), Colors::Green);
+    EXPECT_EQ(c.get_pixel(6, 6), Colors::White);
+}
+
 TEST(CanvasDrawTest, DrawText) {
     Canvas c(100, 20, Colors::White);
     c.draw_text(2, 2, "AB", Colors::Black);

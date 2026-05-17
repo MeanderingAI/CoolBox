@@ -15,7 +15,7 @@ std::string pad_right(const std::string& value, std::size_t width) {
     return value + std::string(width - value.size(), ' ');
 }
 
-std::vector<std::string> wrap_text(const std::string& text, std::size_t width) {
+std::vector<std::string> wrap_text_lines(const std::string& text, std::size_t width) {
     const std::size_t safe_width = std::max<std::size_t>(width, 8);
     std::istringstream words(text);
     std::vector<std::string> lines;
@@ -148,6 +148,60 @@ std::vector<std::string> render_dropdown_lines(const MenuModel& menu, std::size_
     return lines;
 }
 
+struct BorderGlyphs {
+    char corner = '+';
+    char horizontal = '-';
+    char vertical = '|';
+};
+
+BorderGlyphs border_glyphs(BorderStyle style) {
+    switch (style) {
+        case BorderStyle::Solid: return {'+', '-', '|'};
+        case BorderStyle::Dashed: return {'+', '~', ':'};
+        case BorderStyle::Double: return {'#', '=', '#'};
+        case BorderStyle::None: break;
+    }
+    return {' ', ' ', ' '};
+}
+
+std::vector<std::string> add_line_numbers(const std::vector<std::string>& lines) {
+    std::vector<std::string> out;
+    out.reserve(lines.size());
+    const std::size_t digits = std::to_string(std::max<std::size_t>(1, lines.size())).size();
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        out.push_back(pad_right(std::to_string(i + 1), digits) + ": " + lines[i]);
+    }
+    return out;
+}
+
+std::vector<std::string> add_border(const std::vector<std::string>& lines,
+                                    BorderStyle style,
+                                    std::size_t thickness) {
+    if (style == BorderStyle::None || thickness == 0 || lines.empty()) {
+        return lines;
+    }
+
+    const auto glyphs = border_glyphs(style);
+    const std::size_t content_width = max_line_width(lines);
+    const std::string side(thickness, glyphs.vertical);
+    const std::size_t full_width = thickness + 1 + content_width + 1 + thickness;
+    const std::string cap(1, glyphs.corner);
+    const std::string horizontal = cap + std::string(full_width - 2, glyphs.horizontal) + cap;
+
+    std::vector<std::string> out;
+    out.reserve(lines.size() + thickness * 2);
+    for (std::size_t i = 0; i < thickness; ++i) {
+        out.push_back(horizontal);
+    }
+    for (const auto& line : lines) {
+        out.push_back(side + " " + pad_right(line, content_width) + " " + side);
+    }
+    for (std::size_t i = 0; i < thickness; ++i) {
+        out.push_back(horizontal);
+    }
+    return out;
+}
+
 } // namespace
 
 std::string component_type_name(ComponentType type) {
@@ -167,6 +221,8 @@ std::string component_type_name(ComponentType type) {
         case ComponentType::FileTree: return "fileTree";
         case ComponentType::RadioSelector: return "radioSelector";
         case ComponentType::CheckboxGroup: return "checkboxGroup";
+        case ComponentType::ColorPicker: return "colorPicker";
+        case ComponentType::TabbedView: return "tabbedView";
     }
     return "unknown";
 }
@@ -220,6 +276,20 @@ Component Component::checkbox_group(const CheckboxGroupModel& checkbox_group) {
     c.checkbox_group_model_ = std::make_shared<CheckboxGroupModel>(checkbox_group);
     return c;
 }
+
+Component Component::color_picker(const ColorPickerModel& color_picker) {
+    Component c;
+    c.type_ = ComponentType::ColorPicker;
+    c.color_picker_model_ = std::make_shared<ColorPickerModel>(color_picker);
+    return c;
+}
+
+Component Component::tabbed_view(const TabbedViewModel& tabbed_view) {
+    Component c;
+    c.type_ = ComponentType::TabbedView;
+    c.tabbed_view_model_ = std::make_shared<TabbedViewModel>(tabbed_view);
+    return c;
+}
 std::string layout_type_name(LayoutType type) {
     switch (type) {
         case LayoutType::Vertical: return "vertical";
@@ -227,6 +297,16 @@ std::string layout_type_name(LayoutType type) {
         case LayoutType::Grid: return "grid";
     }
     return "vertical";
+}
+
+std::string border_style_name(BorderStyle style) {
+    switch (style) {
+        case BorderStyle::None: return "none";
+        case BorderStyle::Solid: return "solid";
+        case BorderStyle::Dashed: return "dashed";
+        case BorderStyle::Double: return "double";
+    }
+    return "none";
 }
 
 MenuItem MenuItem::action(std::string label, std::string shortcut, bool enabled, bool checked, bool has_submenu) {
@@ -271,31 +351,70 @@ MenuBarModel& MenuBarModel::set_spacing(std::size_t spacing_value) {
     return *this;
 }
 
-Component Component::button(std::string label, bool enabled, bool pressed, std::size_t width) {
+Component Component::button(std::string label,
+                            bool enabled,
+                            bool pressed,
+                            std::size_t width,
+                            bool round_top_left,
+                            bool round_top_right,
+                            bool round_bottom_right,
+                            bool round_bottom_left) {
     Component component;
     component.type_ = ComponentType::Button;
     component.label_ = std::move(label);
     component.enabled_ = enabled;
     component.pressed_ = pressed;
     component.width_ = width;
+    component.round_top_left_ = round_top_left;
+    component.round_top_right_ = round_top_right;
+    component.round_bottom_right_ = round_bottom_right;
+    component.round_bottom_left_ = round_bottom_left;
     return component;
 }
 
-Component Component::text_view(std::string text, std::size_t width) {
+Component Component::text_view(std::string text,
+                               std::size_t width,
+                               bool wrap_text,
+                               BorderStyle border_style,
+                               std::size_t border_thickness,
+                               bool show_line_numbers) {
     Component component;
     component.type_ = ComponentType::TextView;
     component.text_ = std::move(text);
     component.width_ = width;
+    component.wrap_text_ = wrap_text;
+    component.border_style_ = border_style;
+    component.border_thickness_ = border_thickness;
+    component.show_line_numbers_ = show_line_numbers;
     return component;
 }
 
-Component Component::editable_text_view(std::string text, std::size_t cursor_position, bool focused, std::size_t width) {
+Component Component::editable_text_view(std::string text,
+                                        std::size_t cursor_position,
+                                        bool focused,
+                                        std::size_t width,
+                                        bool wrap_text,
+                                        BorderStyle border_style,
+                                        std::size_t border_thickness,
+                                        bool show_line_numbers,
+                                        bool resizable,
+                                        std::size_t max_height,
+                                        std::size_t font_size,
+                                        std::vector<std::string> autocomplete_suggestions) {
     Component component;
     component.type_ = ComponentType::EditableTextView;
     component.text_ = std::move(text);
     component.cursor_position_ = cursor_position;
     component.focused_ = focused;
     component.width_ = width;
+    component.wrap_text_ = wrap_text;
+    component.border_style_ = border_style;
+    component.border_thickness_ = border_thickness;
+    component.show_line_numbers_ = show_line_numbers;
+    component.resizable_ = resizable;
+    component.max_height_ = std::max<std::size_t>(1, max_height);
+    component.font_size_ = std::max<std::size_t>(8, font_size);
+    component.autocomplete_suggestions_ = std::move(autocomplete_suggestions);
     return component;
 }
 
@@ -347,12 +466,33 @@ const PropertyInspectorModel* Component::property_inspector_model() const { retu
 const FileTreeModel* Component::file_tree_model() const { return file_tree_model_.get(); }
 const RadioSelectorModel* Component::radio_selector_model() const { return radio_selector_model_.get(); }
 const CheckboxGroupModel* Component::checkbox_group_model() const { return checkbox_group_model_.get(); }
+const ColorPickerModel* Component::color_picker_model() const { return color_picker_model_.get(); }
+const TabbedViewModel* Component::tabbed_view_model() const { return tabbed_view_model_.get(); }
 
 std::vector<std::string> Component::render() const {
     switch (type_) {
         case ComponentType::Button: {
             const std::size_t inner_width = std::max<std::size_t>(width_ > 2 ? width_ - 2 : 0, label_.size() + 2);
             const std::string padded = pad_right(" " + label_ + " ", inner_width);
+            const bool rounded = round_top_left_ || round_top_right_ || round_bottom_right_ || round_bottom_left_;
+            if (rounded) {
+                const char left = round_top_left_ && round_bottom_left_
+                    ? '('
+                    : (round_top_left_ ? '/' : (round_bottom_left_ ? '\\' : '['));
+                const char right = round_top_right_ && round_bottom_right_
+                    ? ')'
+                    : (round_top_right_ ? '\\' : (round_bottom_right_ ? '/' : ']'));
+                std::string line;
+                line.push_back(left);
+                line += padded;
+                line.push_back(right);
+                if (!enabled_) {
+                    line += " [disabled]";
+                } else if (pressed_) {
+                    line += " [pressed]";
+                }
+                return {line};
+            }
             if (!enabled_) {
                 return {"(" + padded + ")"};
             }
@@ -361,17 +501,80 @@ std::vector<std::string> Component::render() const {
             }
             return {"[" + padded + "]"};
         }
-        case ComponentType::TextView:
-            return wrap_text(text_, width_ == 0 ? 32 : width_);
+        case ComponentType::TextView: {
+            std::vector<std::string> lines;
+            if (wrap_text_) {
+                lines = wrap_text_lines(text_, width_ == 0 ? 32 : width_);
+            } else {
+                lines = {pad_right(text_, width_ == 0 ? 32 : width_)};
+            }
+            if (show_line_numbers_) {
+                lines = add_line_numbers(lines);
+            }
+            return add_border(lines, border_style_, border_thickness_);
+        }
         case ComponentType::EditableTextView: {
             const std::size_t safe_width = std::max<std::size_t>(width_ == 0 ? 24 : width_, 8);
+            const std::size_t effective_width = std::max<std::size_t>(8, (safe_width * 14U) / std::max<std::size_t>(font_size_, 8));
             std::string editable = text_;
             const std::size_t cursor = std::min(cursor_position_, editable.size());
             if (focused_) {
                 editable.insert(cursor, "|");
             }
-            editable = pad_right(editable, safe_width);
-            return {"{" + editable + "}"};
+            if (wrap_text_) {
+                const auto lines = wrap_text_lines(editable, effective_width);
+                std::vector<std::string> wrapped;
+                const std::size_t line_limit = std::min<std::size_t>(lines.size(), max_height_);
+                wrapped.reserve(line_limit + 2U);
+                for (std::size_t i = 0; i < line_limit; ++i) {
+                    const auto& line = lines[i];
+                    wrapped.push_back("{" + line + "}");
+                }
+                if (resizable_) {
+                    wrapped.push_back("[resizable max-height=" + std::to_string(max_height_) + " font-size=" + std::to_string(font_size_) + "]");
+                }
+                if (!autocomplete_suggestions_.empty()) {
+                    std::string suggestions = "suggestions: ";
+                    for (std::size_t i = 0; i < autocomplete_suggestions_.size(); ++i) {
+                        if (i != 0) {
+                            suggestions += ", ";
+                        }
+                        suggestions += autocomplete_suggestions_[i];
+                        if (i >= 4) {
+                            suggestions += " ...";
+                            break;
+                        }
+                    }
+                    wrapped.push_back(suggestions);
+                }
+                if (show_line_numbers_) {
+                    wrapped = add_line_numbers(wrapped);
+                }
+                return add_border(wrapped, border_style_, border_thickness_);
+            }
+            editable = pad_right(editable, effective_width);
+            std::vector<std::string> result = {"{" + editable + "}"};
+            if (resizable_) {
+                result.push_back("[resizable max-height=" + std::to_string(max_height_) + " font-size=" + std::to_string(font_size_) + "]");
+            }
+            if (!autocomplete_suggestions_.empty()) {
+                std::string suggestions = "suggestions: ";
+                for (std::size_t i = 0; i < autocomplete_suggestions_.size(); ++i) {
+                    if (i != 0) {
+                        suggestions += ", ";
+                    }
+                    suggestions += autocomplete_suggestions_[i];
+                    if (i >= 4) {
+                        suggestions += " ...";
+                        break;
+                    }
+                }
+                result.push_back(suggestions);
+            }
+            if (show_line_numbers_) {
+                result = add_line_numbers(result);
+            }
+            return add_border(result, border_style_, border_thickness_);
         }
         case ComponentType::RadioButton:
             return {(selected_ ? "(o) " : "( ) ") + label_ + (enabled_ ? "" : " [disabled]")};
@@ -468,6 +671,36 @@ std::vector<std::string> Component::render() const {
             for (std::size_t i = 0; i < checkbox_group_model_->options.size(); ++i) {
                 std::string prefix = (i < checkbox_group_model_->checked.size() && checkbox_group_model_->checked[i]) ? "[x] " : "[ ] ";
                 lines.push_back(prefix + checkbox_group_model_->options[i]);
+            }
+            return lines;
+        }
+        case ComponentType::ColorPicker: {
+            if (!color_picker_model_) return {"<no color picker>"};
+            std::ostringstream out;
+            out << "ColorPicker rgb(" << static_cast<int>(color_picker_model_->r)
+                << ", " << static_cast<int>(color_picker_model_->g)
+                << ", " << static_cast<int>(color_picker_model_->b) << ")";
+            return {out.str()};
+        }
+        case ComponentType::TabbedView: {
+            if (!tabbed_view_model_ || tabbed_view_model_->tabs.empty()) {
+                return {"<no tabs>"};
+            }
+            const std::size_t selected_index = std::min<std::size_t>(tabbed_view_model_->selected, tabbed_view_model_->tabs.size() - 1U);
+            std::string tabs_line = "Tabs: ";
+            for (std::size_t i = 0; i < tabbed_view_model_->tabs.size(); ++i) {
+                if (i != 0) {
+                    tabs_line += " | ";
+                }
+                tabs_line += (i == selected_index ? "[*" : "[");
+                tabs_line += tabbed_view_model_->tabs[i].title;
+                tabs_line += "]";
+            }
+            std::vector<std::string> lines;
+            lines.push_back(tabs_line);
+            const auto selected_view_lines = tabbed_view_model_->tabs[selected_index].subview.render();
+            for (const auto& line : selected_view_lines) {
+                lines.push_back("  " + line);
             }
             return lines;
         }

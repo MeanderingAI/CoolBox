@@ -69,6 +69,38 @@ public final class CoolBoxClient {
         return NATIVE.coolbox_c_is_ready() != 0;
     }
 
+    public String uuidV1() {
+        return NATIVE.coolbox_c_uuid_v1();
+    }
+
+    public String uuidV2(long localIdentifier, int localDomain) {
+        return NATIVE.coolbox_c_uuid_v2((int) localIdentifier, localDomain);
+    }
+
+    public String uuidV3(String namespaceUuid, String name) {
+        return NATIVE.coolbox_c_uuid_v3(namespaceUuid, name);
+    }
+
+    public String uuidV4() {
+        return NATIVE.coolbox_c_uuid_v4();
+    }
+
+    public String uuidV5(String namespaceUuid, String name) {
+        return NATIVE.coolbox_c_uuid_v5(namespaceUuid, name);
+    }
+
+    public String uuidV6() {
+        return NATIVE.coolbox_c_uuid_v6();
+    }
+
+    public String uuidV8(String customEntropyHex) {
+        return NATIVE.coolbox_c_uuid_v8(customEntropyHex);
+    }
+
+    public String guid() {
+        return NATIVE.coolbox_c_guid();
+    }
+
     private static CoolBoxNative loadNativeBindings() {
         for (Path directory : nativeSearchDirectories()) {
             NativeLibrary.addSearchPath("coolbox_c_bindings", directory.toString());
@@ -117,5 +149,13 @@ public final class CoolBoxClient {
         int coolbox_c_capability_count();
         String coolbox_c_capability_at(int index);
         int coolbox_c_is_ready();
+        String coolbox_c_uuid_v1();
+        String coolbox_c_uuid_v2(int localIdentifier, int localDomain);
+        String coolbox_c_uuid_v3(String namespaceUuid, String name);
+        String coolbox_c_uuid_v4();
+        String coolbox_c_uuid_v5(String namespaceUuid, String name);
+        String coolbox_c_uuid_v6();
+        String coolbox_c_uuid_v8(String customEntropyHex);
+        String coolbox_c_guid();
     }
 }

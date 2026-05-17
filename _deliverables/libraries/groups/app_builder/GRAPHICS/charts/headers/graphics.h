@@ -130,6 +130,11 @@ public:
     void draw_line(int x0, int y0, int x1, int y1, Color c, int thickness = 1);
     void draw_rect(int x, int y, int w, int h, Color c, bool filled = false);
     void draw_circle(int cx, int cy, int radius, Color c, bool filled = false);
+    void draw_arc(int cx, int cy, int radius,
+                  double start_angle_deg, double end_angle_deg,
+                  Color c, int thickness = 1);
+    void draw_rounded_rect(int x, int y, int w, int h, int radius,
+                           Color c, bool filled = false);
 
     // Polygon / plane drawing
     enum class FillStyle { Solid, VerticalGradient, Hatch };

@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sorting Algorithms · Visual Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3348;
+      --text:#e2e8f0; --muted:#64748b; --brand:#3b82f6; --brand2:#10b981;
+      --brand3:#f59e0b; --brand-pale:#1e3a5f; --code-bg:#161b2e;
+      --danger:#ef4444; --warn:#f59e0b;
+      --col-default:#3b82f6;
+      --col-compare:#f59e0b;
+      --col-swap:#ef4444;
+      --col-sorted:#10b981;
+      --col-pivot:#a855f7;
+      --col-active:#06b6d4;
+    }
+    body { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+    .topbar { background:var(--surface); border-bottom:1px solid var(--border); padding:0 1.2rem; display:flex; align-items:center; gap:.75rem; height:44px; flex-shrink:0; }
+    .tb-icon { font-size:1.2rem; }
+    .tb-title { font-size:.92rem; font-weight:800; letter-spacing:-.02em; }
+    .tb-sub { font-size:.7rem; color:var(--muted); }
+    .tb-badge { margin-left:auto; background:#2d1a5f; color:#a855f7; border:1px solid #a855f7; border-radius:999px; font-size:.62rem; font-weight:700; padding:.12em .6em; letter-spacing:.07em; }
+    .main { flex:1; overflow-y:auto; padding:1.2rem 1.4rem; display:flex; flex-direction:column; gap:1.2rem; }
+
+    /* ─── Controls ─────────────────────────────────────────────────────── */
+    .controls-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .controls-hdr { display:flex; align-items:center; gap:.6rem; padding:.55rem 1rem; background:var(--surface2); border-bottom:1px solid var(--border); font-size:.82rem; font-weight:700; }
+    .controls-body { display:flex; flex-wrap:wrap; align-items:center; gap:.8rem 1.2rem; padding:.75rem 1rem; }
+    .ctrl-group { display:flex; align-items:center; gap:.4rem; }
+    .ctrl-group label { font-size:.72rem; color:var(--muted); white-space:nowrap; }
+    select,input[type=range],input[type=number] { background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:.74rem; }
+    select { padding:.28em .5em; cursor:pointer; }
+    input[type=number] { padding:.25em .4em; width:56px; }
+    input[type=range] { -webkit-appearance:none; height:4px; border:none; accent-color:var(--brand); cursor:pointer; width:100px; }
+    .num-lbl { font-size:.72rem; color:var(--text); min-width:1.8em; text-align:right; }
+    .btn { padding:.32em .9em; font-size:.76em; font-family:inherit; font-weight:700; border:none; border-radius:6px; cursor:pointer; transition:background .12s; white-space:nowrap; }
+    .btn-primary { background:var(--brand); color:#fff; }
+    .btn-primary:hover { background:#2563eb; }
+    .btn-success { background:#059669; color:#fff; }
+    .btn-success:hover { background:#047857; }
+    .btn-warn { background:#d97706; color:#fff; }
+    .btn-warn:hover { background:#b45309; }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .btn-danger:hover { background:#b91c1c; }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+    .sep { width:1px; height:24px; background:var(--border); }
+    .speed-group { display:flex; align-items:center; gap:.4rem; }
+    .speed-group label { font-size:.72rem; color:var(--muted); }
+    .algo-pills { display:flex; flex-wrap:wrap; gap:.4rem; padding:.65rem 1rem; border-bottom:1px solid var(--border); }
+    .pill { font-size:.7rem; font-weight:700; padding:.22em .7em; border-radius:999px; border:1px solid var(--border); color:var(--muted); cursor:pointer; user-select:none; transition:all .12s; }
+    .pill.on { border-color:var(--brand); color:var(--brand); background:var(--brand-pale); }
+    .all-pill { border-color:#a855f7; }
+    .all-pill.on { border-color:#a855f7; color:#a855f7; background:#2d1a5f; }
+    .status-bar { display:flex; align-items:center; gap:1rem; padding:.4rem 1rem; border-top:1px solid var(--border); background:var(--surface2); font-size:.7rem; color:var(--muted); flex-wrap:wrap; }
+    .stat-item strong { color:var(--text); }
+
+    /* ─── Legend ───────────────────────────────────────────────────────── */
+    .legend { display:flex; flex-wrap:wrap; gap:.55rem .9rem; padding:.5rem 1rem; border-bottom:1px solid var(--border); }
+    .legend-item { display:flex; align-items:center; gap:.35rem; font-size:.68rem; color:var(--muted); }
+    .legend-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+    /* ─── Algorithm grids ──────────────────────────────────────────────── */
+    .algos-section { display:grid; gap:1rem; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); }
+    .algo-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+    .algo-card-hdr { display:flex; align-items:center; gap:.5rem; padding:.5rem .85rem; background:var(--surface2); border-bottom:1px solid var(--border); }
+    .algo-card-name { font-size:.82rem; font-weight:800; flex:1; }
+    .algo-tag { font-size:.58rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:.12em .42em; border-radius:4px; }
+    .tag-stable   { background:#1a3328; color:var(--brand2); }
+    .tag-unstable { background:#3b1a1a; color:#f87171; }
+    .algo-card-stats { font-size:.65rem; color:var(--muted); padding:.35rem .85rem; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; gap:.8rem; }
+    .algo-card-body { padding:.6rem .75rem .75rem; flex:1; display:flex; flex-direction:column; gap:.4rem; }
+    .step-counter { font-size:.65rem; color:var(--muted); text-align:right; }
+    /* bar chart canvas */
+    .sort-canvas { display:block; width:100%; border-radius:6px; background:#0f1117; border:1px solid var(--border); }
+    .algo-step-info { font-size:.68rem; color:#94a3b8; min-height:1.4em; }
+
+    /* ─── Comparison chart ─────────────────────────────────────────────── */
+    .compare-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .compare-hdr { display:flex; align-items:center; gap:.6rem; padding:.55rem 1rem; background:var(--surface2); border-bottom:1px solid var(--border); font-size:.82rem; font-weight:700; }
+    .compare-body { padding:1rem; }
+    .compare-body canvas { border-radius:8px; background:#fff; display:block; max-width:100%; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <span class="tb-icon">🔢</span>
+  <div><div class="tb-title">Sorting Algorithms</div><div class="tb-sub">trekker::algorithm::sorts · step-by-step visual demo</div></div>
+  <span class="tb-badge">ALGO DEMO</span>
+</div>
+<div class="main">
+
+  <!-- Controls -->
+  <div class="controls-panel">
+    <div class="controls-hdr">⚙️ Configuration</div>
+
+    <!-- Algorithm pills -->
+    <div class="algo-pills" id="algoPills">
+      <span class="pill all-pill on" data-algo="all">All</span>
+      <span class="pill on" data-algo="bubble">Bubble</span>
+      <span class="pill on" data-algo="insertion">Insertion</span>
+      <span class="pill on" data-algo="selection">Selection</span>
+      <span class="pill on" data-algo="shell">Shell</span>
+      <span class="pill on" data-algo="merge">Merge</span>
+      <span class="pill on" data-algo="quick">Quick</span>
+      <span class="pill on" data-algo="heap">Heap</span>
+      <span class="pill on" data-algo="intro">Intro</span>
+      <span class="pill on" data-algo="tim">Tim</span>
+    </div>
+
+    <div class="controls-body">
+      <div class="ctrl-group">
+        <label>Array size</label>
+        <input type="range" id="sizeSlider" min="8" max="64" step="1" value="32" />
+        <span class="num-lbl" id="sizeLbl">32</span>
+      </div>
+      <div class="ctrl-group">
+        <label>Input type</label>
+        <select id="inputType">
+          <option value="random">Random</option>
+          <option value="sorted">Nearly sorted</option>
+          <option value="reversed">Reversed</option>
+          <option value="few_unique">Few unique values</option>
+          <option value="mountain">Mountain</option>
+        </select>
+      </div>
+      <div class="sep"></div>
+      <div class="ctrl-group speed-group">
+        <label>Speed</label>
+        <input type="range" id="speedSlider" min="1" max="10" step="1" value="5" />
+        <span class="num-lbl" id="speedLbl">5</span>
+      </div>
+      <div class="sep"></div>
+      <button class="btn btn-primary" id="btnGenerate">⬡ Generate</button>
+      <button class="btn btn-success" id="btnPlay" disabled>▶ Play</button>
+      <button class="btn btn-warn"    id="btnStep"  disabled>⏭ Step</button>
+      <button class="btn btn-danger"  id="btnReset" disabled>↺ Reset</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--col-default)"></div> Unsorted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--col-compare)"></div> Comparing</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--col-swap)"></div> Swapping / Writing</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--col-pivot)"></div> Pivot</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--col-active)"></div> Active subrange</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--col-sorted)"></div> Sorted</div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar" id="statusBar">
+      <span>Ready — press <strong>Generate</strong> to begin</span>
+    </div>
+  </div>
+
+  <!-- Algorithm cards grid -->
+  <div class="algos-section" id="algosSection"></div>
+
+  <!-- Comparison chart (ops count) -->
+  <div class="compare-panel" id="comparePanel" style="display:none">
+    <div class="compare-hdr">📊 Comparison — operations count</div>
+    <div class="compare-body">
+      <canvas id="compareCanvas"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { Graph, GraphType, Colors, DataSeries } from '/static/extensions/graphics-chart.mjs';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sorting algorithm step generators
+// Each yields step descriptors: { arr, highlights: [{idx, role}], info }
+// roles: 'compare' | 'swap' | 'pivot' | 'sorted' | 'active' | 'write'
+// ═══════════════════════════════════════════════════════════════════════════
+
+function* bubbleGen(arr) {
+    const a = [...arr];
+    const n = a.length;
+    const sortedFrom = new Set();
+    for (let i = 0; i < n - 1; i++) {
+        let swapped = false;
+        for (let j = 0; j < n - i - 1; j++) {
+            yield { arr:[...a], highlights:[{idx:j,role:'compare'},{idx:j+1,role:'compare'}], info:`Comparing [${j}]=${a[j]} with [${j+1}]=${a[j+1]}` };
+            if (a[j] > a[j+1]) {
+                [a[j],a[j+1]] = [a[j+1],a[j]];
+                swapped = true;
+                yield { arr:[...a], highlights:[{idx:j,role:'swap'},{idx:j+1,role:'swap'}], info:`Swapped → [${j}]=${a[j]}, [${j+1}]=${a[j+1]}` };
+            }
+        }
+        sortedFrom.add(n-1-i);
+        yield { arr:[...a], highlights:[{idx:n-1-i,role:'sorted'},...[...sortedFrom].map(k=>({idx:k,role:'sorted'}))], info:`Pass ${i+1} complete` };
+        if (!swapped) break;
+    }
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* insertionGen(arr) {
+    const a = [...arr];
+    const n = a.length;
+    yield { arr:[...a], highlights:[{idx:0,role:'sorted'}], info:'Element 0 trivially sorted' };
+    for (let i = 1; i < n; i++) {
+        const key = a[i];
+        let j = i;
+        yield { arr:[...a], highlights:[{idx:i,role:'compare'}], info:`Inserting key=${key} (index ${i})` };
+        while (j > 0 && a[j-1] > key) {
+            a[j] = a[j-1];
+            yield { arr:[...a], highlights:[{idx:j,role:'write'},{idx:j-1,role:'compare'}], info:`Shifted [${j-1}]=${a[j-1]} right` };
+            j--;
+        }
+        a[j] = key;
+        yield { arr:[...a], highlights:[...Array.from({length:i+1},(_,k)=>({idx:k,role:'sorted'}))], info:`Placed key=${key} at [${j}]` };
+    }
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* selectionGen(arr) {
+    const a = [...arr];
+    const n = a.length;
+    for (let i = 0; i < n - 1; i++) {
+        let minIdx = i;
+        yield { arr:[...a], highlights:[{idx:i,role:'active'}], info:`Looking for minimum from index ${i}` };
+        for (let j = i+1; j < n; j++) {
+            yield { arr:[...a], highlights:[{idx:minIdx,role:'pivot'},{idx:j,role:'compare'},...Array.from({length:i},(_,k)=>({idx:k,role:'sorted'}))], info:`Comparing [${j}]=${a[j]} with min=${a[minIdx]}` };
+            if (a[j] < a[minIdx]) minIdx = j;
+        }
+        if (minIdx !== i) {
+            [a[i],a[minIdx]] = [a[minIdx],a[i]];
+            yield { arr:[...a], highlights:[{idx:i,role:'swap'},{idx:minIdx,role:'swap'},...Array.from({length:i},(_,k)=>({idx:k,role:'sorted'}))], info:`Swapped minimum ${a[i]} to position ${i}` };
+        }
+    }
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* shellGen(arr) {
+    const a = [...arr];
+    const n = a.length;
+    const GAPS = [701,301,132,57,23,10,4,1].filter(g => g < n);
+    for (const gap of GAPS) {
+        yield { arr:[...a], highlights:[], info:`Gap = ${gap}` };
+        for (let i = gap; i < n; i++) {
+            const tmp = a[i];
+            let j = i;
+            yield { arr:[...a], highlights:[{idx:i,role:'compare'}], info:`Shell-inserting a[${i}]=${tmp} with gap ${gap}` };
+            while (j >= gap && a[j-gap] > tmp) {
+                a[j] = a[j-gap];
+                yield { arr:[...a], highlights:[{idx:j,role:'write'},{idx:j-gap,role:'compare'}], info:`Shift a[${j-gap}]=${a[j]} to [${j}]` };
+                j -= gap;
+            }
+            a[j] = tmp;
+            yield { arr:[...a], highlights:[{idx:j,role:'swap'}], info:`Placed ${tmp} at [${j}]` };
+        }
+    }
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* mergeGen(arr) {
+    const a = [...arr];
+    const steps = [];
+
+    function collectMerge(arr, lo, hi) {
+        if (hi - lo <= 1) return;
+        const mid = (lo + hi) >> 1;
+        collectMerge(arr, lo, mid);
+        collectMerge(arr, mid, hi);
+        // merge
+        const left = arr.slice(lo, mid), right = arr.slice(mid, hi);
+        let i = 0, j = 0, k = lo;
+        while (i < left.length && j < right.length) {
+            steps.push({ lo, hi, mid, compareIdx:[lo+i, mid+j], arr:[...arr], info:`Merge [${lo}..${hi-1}]: comparing ${left[i]} vs ${right[j]}` });
+            if (left[i] <= right[j]) arr[k++] = left[i++];
+            else arr[k++] = right[j++];
+            steps.push({ lo, hi, arr:[...arr], writeIdx:k-1, info:`Wrote ${arr[k-1]} at [${k-1}]` });
+        }
+        while (i < left.length) { arr[k++] = left[i++]; steps.push({ lo, hi, arr:[...arr], writeIdx:k-1, info:`Copy left ${arr[k-1]}` }); }
+        while (j < right.length) { arr[k++] = right[j++]; steps.push({ lo, hi, arr:[...arr], writeIdx:k-1, info:`Copy right ${arr[k-1]}` }); }
+    }
+    collectMerge(a, 0, a.length);
+
+    for (const s of steps) {
+        const hl = [];
+        if (s.compareIdx) s.compareIdx.forEach(x => hl.push({idx:x,role:'compare'}));
+        if (s.writeIdx != null) hl.push({idx:s.writeIdx,role:'write'});
+        for (let x = s.lo; x < s.hi; x++) {
+            if (!hl.some(h=>h.idx===x)) hl.push({idx:x,role:'active'});
+        }
+        yield { arr:s.arr, highlights:hl, info:s.info };
+    }
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* quickGen(arr) {
+    const a = [...arr];
+    const steps = [];
+
+    function collectQuick(arr, lo, hi) {
+        if (hi - lo <= 1) return;
+        if (hi - lo <= 8) {
+            // insertion sort
+            for (let i = lo+1; i < hi; i++) {
+                const key = arr[i]; let j = i;
+                while (j > lo && arr[j-1] > key) { arr[j] = arr[j-1]; j--; }
+                arr[j] = key;
+                steps.push({ arr:[...arr], highlights:[{idx:j,role:'write'}], info:`Base case insert ${key} at [${j}]` });
+            }
+            return;
+        }
+        // median-of-three
+        const mid = lo + ((hi - lo) >> 1);
+        if (arr[mid] < arr[lo]) [arr[lo],arr[mid]] = [arr[mid],arr[lo]];
+        if (arr[hi-1] < arr[lo]) [arr[lo],arr[hi-1]] = [arr[hi-1],arr[lo]];
+        if (arr[mid] < arr[hi-1]) [arr[mid],arr[hi-1]] = [arr[hi-1],arr[mid]];
+        const pivot = arr[hi-1];
+        steps.push({ arr:[...arr], highlights:[{idx:hi-1,role:'pivot'}], info:`Pivot = ${pivot} at [${hi-1}] (range [${lo}..${hi-1}])` });
+
+        let i = lo;
+        for (let j = lo; j < hi-1; j++) {
+            steps.push({ arr:[...arr], highlights:[{idx:j,role:'compare'},{idx:hi-1,role:'pivot'}], info:`Compare a[${j}]=${arr[j]} with pivot=${pivot}` });
+            if (arr[j] <= pivot) {
+                [arr[i],arr[j]] = [arr[j],arr[i]];
+                steps.push({ arr:[...arr], highlights:[{idx:i,role:'swap'},{idx:j,role:'swap'},{idx:hi-1,role:'pivot'}], info:`Swap a[${i}]↔a[${j}]` });
+                i++;
+            }
+        }
+        [arr[i],arr[hi-1]] = [arr[hi-1],arr[i]];
+        steps.push({ arr:[...arr], highlights:[{idx:i,role:'sorted'}], info:`Pivot ${pivot} settled at [${i}]` });
+        collectQuick(arr, lo, i);
+        collectQuick(arr, i+1, hi);
+    }
+    collectQuick(a, 0, a.length);
+
+    for (const s of steps) yield s;
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* heapGen(arr) {
+    const a = [...arr];
+    const n = a.length;
+    const steps = [];
+
+    function sift(arr, n, root) {
+        while (true) {
+            let largest = root;
+            const l = 2*root+1, r = 2*root+2;
+            steps.push({ arr:[...arr], highlights:[{idx:root,role:'active'},{idx:l<n?l:root,role:'compare'},{idx:r<n?r:root,role:'compare'}], info:`Heapify: root=${root}, l=${l<n?l:'—'}, r=${r<n?r:'—'}` });
+            if (l < n && arr[l] > arr[largest]) largest = l;
+            if (r < n && arr[r] > arr[largest]) largest = r;
+            if (largest === root) break;
+            [arr[root],arr[largest]] = [arr[largest],arr[root]];
+            steps.push({ arr:[...arr], highlights:[{idx:root,role:'swap'},{idx:largest,role:'swap'}], info:`Swap [${root}]=${arr[root]} ↔ [${largest}]=${arr[largest]}` });
+            root = largest;
+        }
+    }
+
+    // Build heap
+    for (let i = Math.floor(n/2)-1; i >= 0; i--) sift(a, n, i);
+    steps.push({ arr:[...a], highlights:[], info:'Max-heap built' });
+
+    for (let i = n-1; i > 0; i--) {
+        [a[0],a[i]] = [a[i],a[0]];
+        steps.push({ arr:[...a], highlights:[{idx:0,role:'swap'},{idx:i,role:'sorted'}], info:`Extract max ${a[i]} to position ${i}` });
+        sift(a, i, 0);
+    }
+
+    for (const s of steps) yield s;
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* introGen(arr) {
+    // Intro sort = quick + heap + insertion; reuse quick generator with depth-limit visible
+    // For visual purposes use quickGen logic with heap fallback annotation
+    const a = [...arr];
+    const steps = [];
+    const maxDepth = 2 * Math.floor(Math.log2(a.length));
+
+    function insertionBase(arr, lo, hi) {
+        for (let i = lo+1; i < hi; i++) {
+            const key = arr[i]; let j = i;
+            while (j > lo && arr[j-1] > key) { arr[j] = arr[j-1]; j--; }
+            arr[j] = key;
+            steps.push({ arr:[...arr], highlights:[{idx:j,role:'write'}], info:`Intro: insertion base — key=${key} → [${j}]` });
+        }
+    }
+
+    function heapFallback(arr, lo, hi) {
+        const n = hi - lo;
+        function sift(root, size) {
+            while (true) {
+                let lg = root; const l=2*root+1, r=2*root+2;
+                if (l<size && arr[lo+l]>arr[lo+lg]) lg=l;
+                if (r<size && arr[lo+r]>arr[lo+lg]) lg=r;
+                if (lg===root) break;
+                [arr[lo+root],arr[lo+lg]] = [arr[lo+lg],arr[lo+root]];
+                steps.push({ arr:[...arr], highlights:[{idx:lo+root,role:'swap'},{idx:lo+lg,role:'swap'}], info:`Heap fallback swap in [${lo}..${hi-1}]` });
+                root=lg;
+            }
+        }
+        for (let i=Math.floor(n/2)-1;i>=0;i--) sift(i,n);
+        for (let i=n-1;i>0;i--) {
+            [arr[lo],arr[lo+i]] = [arr[lo+i],arr[lo]];
+            steps.push({ arr:[...arr], highlights:[{idx:lo,role:'swap'},{idx:lo+i,role:'sorted'}], info:`Heap extract in [${lo}..${hi-1}]` });
+            sift(0,i);
+        }
+    }
+
+    function intro(arr, lo, hi, depth) {
+        if (hi - lo <= 1) return;
+        if (hi - lo <= 8) { insertionBase(arr, lo, hi); return; }
+        if (depth === 0) {
+            steps.push({ arr:[...arr], highlights:Array.from({length:hi-lo},(_,k)=>({idx:lo+k,role:'active'})), info:`Depth limit hit [${lo}..${hi-1}] — switching to heap sort` });
+            heapFallback(arr, lo, hi); return;
+        }
+        const mid = lo + ((hi-lo)>>1);
+        if (arr[mid]<arr[lo]) [arr[lo],arr[mid]]=[arr[mid],arr[lo]];
+        if (arr[hi-1]<arr[lo]) [arr[lo],arr[hi-1]]=[arr[hi-1],arr[lo]];
+        if (arr[mid]<arr[hi-1]) [arr[mid],arr[hi-1]]=[arr[hi-1],arr[mid]];
+        const pivot = arr[hi-1];
+        steps.push({ arr:[...arr], highlights:[{idx:hi-1,role:'pivot'}], info:`Intro quick: pivot=${pivot}, depth=${depth}` });
+        let i = lo;
+        for (let j=lo; j<hi-1; j++) {
+            if (arr[j]<=pivot) {
+                [arr[i],arr[j]]=[arr[j],arr[i]];
+                steps.push({ arr:[...arr], highlights:[{idx:i,role:'swap'},{idx:j,role:'swap'},{idx:hi-1,role:'pivot'}], info:`Swap a[${i}]↔a[${j}]` });
+                i++;
+            }
+        }
+        [arr[i],arr[hi-1]]=[arr[hi-1],arr[i]];
+        steps.push({ arr:[...arr], highlights:[{idx:i,role:'sorted'}], info:`Pivot ${pivot} → [${i}]` });
+        intro(arr, lo, i, depth-1);
+        intro(arr, i+1, hi, depth-1);
+    }
+
+    intro(a, 0, a.length, maxDepth);
+    for (const s of steps) yield s;
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+function* timGen(arr) {
+    const a = [...arr];
+    const n = a.length;
+    const MIN_RUN = Math.max(4, Math.min(32, Math.ceil(n / 8)));
+    const steps = [];
+
+    // Step 1: insertion sort on runs
+    for (let lo = 0; lo < n; lo += MIN_RUN) {
+        const hi = Math.min(lo + MIN_RUN, n);
+        steps.push({ arr:[...a], highlights:Array.from({length:hi-lo},(_,k)=>({idx:lo+k,role:'active'})), info:`Tim: insertion sort run [${lo}..${hi-1}]` });
+        for (let i = lo+1; i < hi; i++) {
+            const key = a[i]; let j = i;
+            while (j > lo && a[j-1] > key) { a[j]=a[j-1]; j--; }
+            a[j]=key;
+            steps.push({ arr:[...a], highlights:[{idx:j,role:'write'},...Array.from({length:i-lo+1},(_,k)=>({idx:lo+k,role:'active'}))], info:`Tim insert key=${key} → [${j}]` });
+        }
+    }
+
+    // Step 2: merge passes
+    for (let size = MIN_RUN; size < n; size *= 2) {
+        for (let lo = 0; lo < n; lo += 2*size) {
+            const mid = Math.min(lo + size, n);
+            const hi  = Math.min(lo + 2*size, n);
+            if (mid >= hi) continue;
+            steps.push({ arr:[...a], highlights:Array.from({length:hi-lo},(_,k)=>({idx:lo+k,role:'active'})), info:`Tim merge [${lo}..${mid-1}] + [${mid}..${hi-1}]` });
+            const left = a.slice(lo,mid), right = a.slice(mid,hi);
+            let i=0,j=0,k=lo;
+            while (i<left.length && j<right.length) {
+                if (left[i]<=right[j]) a[k++]=left[i++];
+                else a[k++]=right[j++];
+                steps.push({ arr:[...a], highlights:[{idx:k-1,role:'write'}], info:`Tim merge write ${a[k-1]} at [${k-1}]` });
+            }
+            while (i<left.length) { a[k++]=left[i++]; steps.push({ arr:[...a], highlights:[{idx:k-1,role:'write'}], info:`Copy left` }); }
+            while (j<right.length) { a[k++]=right[j++]; steps.push({ arr:[...a], highlights:[{idx:k-1,role:'write'}], info:`Copy right` }); }
+        }
+    }
+
+    for (const s of steps) yield s;
+    yield { arr:[...a], highlights:a.map((_,k)=>({idx:k,role:'sorted'})), info:'Sorted ✓', done:true };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Algorithm registry
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ALGOS = [
+    { key:'bubble',    label:'Bubble Sort',    gen:bubbleGen,    stable:true,  complexity:'O(n²)',       space:'O(1)' },
+    { key:'insertion', label:'Insertion Sort', gen:insertionGen, stable:true,  complexity:'O(n²)',       space:'O(1)' },
+    { key:'selection', label:'Selection Sort', gen:selectionGen, stable:false, complexity:'O(n²)',       space:'O(1)' },
+    { key:'shell',     label:'Shell Sort',     gen:shellGen,     stable:false, complexity:'O(n log²n)', space:'O(1)' },
+    { key:'merge',     label:'Merge Sort',     gen:mergeGen,     stable:true,  complexity:'O(n log n)', space:'O(n)' },
+    { key:'quick',     label:'Quick Sort',     gen:quickGen,     stable:false, complexity:'O(n log n)', space:'O(log n)' },
+    { key:'heap',      label:'Heap Sort',      gen:heapGen,      stable:false, complexity:'O(n log n)', space:'O(1)' },
+    { key:'intro',     label:'Intro Sort',     gen:introGen,     stable:false, complexity:'O(n log n)', space:'O(log n)' },
+    { key:'tim',       label:'Tim Sort',       gen:timGen,       stable:true,  complexity:'O(n log n)', space:'O(n)' },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Color map
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ROLE_COLOR = {
+    default: '#3b82f6',
+    compare: '#f59e0b',
+    swap:    '#ef4444',
+    write:   '#ef4444',
+    pivot:   '#a855f7',
+    sorted:  '#10b981',
+    active:  '#06b6d4',
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════════════════
+
+let baseArray = [];
+let algoStates = {}; // key -> { gen, currentStep, done, stepCount, canvas, infoEl, stepEl, opCount }
+let playing = false;
+let playTimer = null;
+let activeAlgos = new Set(ALGOS.map(a => a.key));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Generate array
+// ═══════════════════════════════════════════════════════════════════════════
+
+function generateArray() {
+    const n = +document.getElementById('sizeSlider').value;
+    const type = document.getElementById('inputType').value;
+    const arr = [];
+    switch (type) {
+        case 'random':     for (let i=0;i<n;i++) arr.push(Math.floor(Math.random()*n)+1); break;
+        case 'sorted':     for (let i=0;i<n;i++) arr.push(Math.floor(i + (Math.random()-0.5)*3 + 1)); break;
+        case 'reversed':   for (let i=0;i<n;i++) arr.push(n-i); break;
+        case 'few_unique': for (let i=0;i<n;i++) arr.push(Math.floor(Math.random()*Math.max(3,Math.ceil(n/6)))+1); break;
+        case 'mountain':   for (let i=0;i<n;i++) { const t=i/(n-1); arr.push(Math.round((t<0.5?2*t:2-2*t)*n)+1); } break;
+    }
+    return arr;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Canvas rendering
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderBars(canvas, arr, highlights) {
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.clientWidth  || 320;
+    const H = canvas.clientHeight || 140;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    const n = arr.length;
+    const maxVal = Math.max(...arr, 1);
+    const barW = (W - 2) / n;
+    const hlMap = {};
+    for (const h of (highlights || [])) hlMap[h.idx] = h.role;
+
+    for (let i = 0; i < n; i++) {
+        const role = hlMap[i] || 'default';
+        const color = ROLE_COLOR[role] || ROLE_COLOR.default;
+        const bh = Math.max(2, (arr[i] / maxVal) * (H - 4));
+        const x = 1 + i * barW;
+        const y = H - bh - 1;
+        ctx.fillStyle = color;
+        ctx.fillRect(x + 0.5, y, Math.max(1, barW - 1), bh);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Build UI cards
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildCards() {
+    const section = document.getElementById('algosSection');
+    section.innerHTML = '';
+    algoStates = {};
+
+    for (const algo of ALGOS) {
+        if (!activeAlgos.has(algo.key)) continue;
+
+        const card = document.createElement('div');
+        card.className = 'algo-card';
+        card.dataset.key = algo.key;
+
+        const stableTag = algo.stable
+            ? `<span class="algo-tag tag-stable">Stable</span>`
+            : `<span class="algo-tag tag-unstable">Unstable</span>`;
+
+        card.innerHTML = `
+          <div class="algo-card-hdr">
+            <span class="algo-card-name">${algo.label}</span>
+            ${stableTag}
+          </div>
+          <div class="algo-card-stats">
+            <span>⏱ ${algo.complexity}</span>
+            <span>💾 ${algo.space}</span>
+            <span class="step-counter" id="steps-${algo.key}">steps: 0</span>
+          </div>
+          <div class="algo-card-body">
+            <canvas class="sort-canvas" id="canvas-${algo.key}" height="140"></canvas>
+            <div class="algo-step-info" id="info-${algo.key}">—</div>
+          </div>`;
+
+        section.appendChild(card);
+
+        const canvas = card.querySelector(`#canvas-${algo.key}`);
+
+        algoStates[algo.key] = {
+            gen: algo.gen([...baseArray]),
+            done: false,
+            stepCount: 0,
+            opCount: 0,
+            canvas,
+            infoEl: card.querySelector(`#info-${algo.key}`),
+            stepEl: card.querySelector(`#steps-${algo.key}`),
+            currentArr: [...baseArray],
+        };
+
+        // Initial render
+        renderBars(canvas, baseArray, []);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Step one frame for all active algorithms
+// ═══════════════════════════════════════════════════════════════════════════
+
+function stepAll() {
+    let anyActive = false;
+    for (const [key, state] of Object.entries(algoStates)) {
+        if (state.done) continue;
+        anyActive = true;
+        const result = state.gen.next();
+        if (result.done || (result.value && result.value.done)) {
+            state.done = true;
+            const arr = result.value?.arr || state.currentArr;
+            renderBars(state.canvas, arr, arr.map((_,k)=>({idx:k,role:'sorted'})));
+            state.infoEl.textContent = 'Sorted ✓';
+            state.stepEl.textContent = `steps: ${state.stepCount} (done)`;
+        } else {
+            const { arr, highlights, info } = result.value;
+            state.currentArr = arr;
+            state.stepCount++;
+            state.opCount++;
+            renderBars(state.canvas, arr, highlights || []);
+            state.infoEl.textContent = info || '';
+            state.stepEl.textContent = `steps: ${state.stepCount}`;
+        }
+    }
+
+    if (!anyActive) {
+        stopPlay();
+        showCompareChart();
+        updateStatus('All algorithms finished.');
+        document.getElementById('btnReset').disabled = false;
+    }
+    return anyActive;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Play / pause
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getDelay() {
+    const spd = +document.getElementById('speedSlider').value; // 1–10
+    // speed 1 → 800ms, speed 10 → 10ms
+    return Math.round(800 / Math.pow(spd, 1.4));
+}
+
+function startPlay() {
+    if (playing) return;
+    playing = true;
+    document.getElementById('btnPlay').textContent = '⏸ Pause';
+    document.getElementById('btnStep').disabled = true;
+
+    function tick() {
+        const more = stepAll();
+        if (more) playTimer = setTimeout(tick, getDelay());
+        else playing = false;
+    }
+    playTimer = setTimeout(tick, getDelay());
+}
+
+function stopPlay() {
+    if (!playing) return;
+    playing = false;
+    clearTimeout(playTimer);
+    document.getElementById('btnPlay').textContent = '▶ Play';
+    document.getElementById('btnStep').disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Comparison chart (operations)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showCompareChart() {
+    const panel = document.getElementById('comparePanel');
+    const canvas = document.getElementById('compareCanvas');
+    const keys = Object.keys(algoStates);
+    const ops  = keys.map(k => algoStates[k].stepCount);
+    const maxOps = Math.max(...ops, 1);
+
+    // Use graphics-chart Graph (Bar)
+    const W = Math.min(900, Math.max(500, keys.length * 80 + 120));
+    const g = new Graph(W, 280, GraphType.Bar);
+    g.set_title('Operations per algorithm');
+    g.set_x_label('Algorithm');
+    g.set_y_label('Steps');
+    const palette = [Colors.Blue, Colors.Green, Colors.Orange, Colors.Purple, Colors.Cyan, Colors.Red, Colors.Gray, Colors.DarkGray, Colors.Red];
+    keys.forEach((k, i) => {
+        const algo = ALGOS.find(a => a.key === k);
+        g.add_series(DataSeries(algo?.label || k, [i], [ops[i]], palette[i % palette.length]));
+    });
+    g.render_to_canvas(canvas);
+    panel.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Status bar
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateStatus(msg) {
+    document.getElementById('statusBar').innerHTML =
+        `<span>${msg}</span>` +
+        Object.entries(algoStates).filter(([,s])=>!s.done).map(([k,s]) =>
+            `<span><strong>${k}</strong>: ${s.stepCount} steps</span>`
+        ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Event wiring
+// ═══════════════════════════════════════════════════════════════════════════
+
+document.getElementById('sizeSlider').addEventListener('input', e => {
+    document.getElementById('sizeLbl').textContent = e.target.value;
+});
+
+document.getElementById('speedSlider').addEventListener('input', e => {
+    document.getElementById('speedLbl').textContent = e.target.value;
+});
+
+// Algorithm pills
+document.getElementById('algoPills').addEventListener('click', e => {
+    const pill = e.target.closest('.pill');
+    if (!pill) return;
+    const algo = pill.dataset.algo;
+    if (algo === 'all') {
+        const allOn = [...document.querySelectorAll('.pill[data-algo]:not([data-algo=all])')].every(p=>p.classList.contains('on'));
+        const newState = !allOn;
+        document.querySelectorAll('.pill[data-algo]:not([data-algo=all])').forEach(p => {
+            p.classList.toggle('on', newState);
+            if (newState) activeAlgos.add(p.dataset.algo); else activeAlgos.delete(p.dataset.algo);
+        });
+        pill.classList.toggle('on', newState);
+    } else {
+        pill.classList.toggle('on');
+        if (pill.classList.contains('on')) activeAlgos.add(algo); else activeAlgos.delete(algo);
+        const allOn = [...document.querySelectorAll('.pill[data-algo]:not([data-algo=all])')].every(p=>p.classList.contains('on'));
+        document.querySelector('.pill[data-algo=all]').classList.toggle('on', allOn);
+    }
+});
+
+document.getElementById('btnGenerate').addEventListener('click', () => {
+    stopPlay();
+    baseArray = generateArray();
+    buildCards();
+    document.getElementById('comparePanel').style.display = 'none';
+    document.getElementById('btnPlay').disabled = false;
+    document.getElementById('btnStep').disabled = false;
+    document.getElementById('btnReset').disabled = false;
+    startPlay();
+    updateStatus(`Generated ${baseArray.length} elements — playing…`);
+});
+
+document.getElementById('btnPlay').addEventListener('click', () => {
+    if (!baseArray.length) return;
+    if (playing) stopPlay(); else startPlay();
+});
+
+document.getElementById('btnStep').addEventListener('click', () => {
+    if (!baseArray.length) return;
+    stepAll();
+    updateStatus('Stepped.');
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+    stopPlay();
+    buildCards();
+    document.getElementById('comparePanel').style.display = 'none';
+    document.getElementById('btnPlay').disabled = false;
+    document.getElementById('btnPlay').textContent = '▶ Play';
+    document.getElementById('btnStep').disabled = false;
+    updateStatus(`Reset with same array (${baseArray.length} elements).`);
+});
+
+// Auto-generate and auto-play on load
+baseArray = generateArray();
+buildCards();
+document.getElementById('btnStep').disabled = false;
+startPlay();
+updateStatus(`Auto-playing ${baseArray.length} elements — use Speed or ⏸ Pause`);
+
+// Resize canvases when card layout changes
+const resizeObs = new ResizeObserver(() => {
+    for (const [, state] of Object.entries(algoStates)) {
+        renderBars(state.canvas, state.currentArr || baseArray, []);
+    }
+});
+resizeObs.observe(document.getElementById('algosSection'));
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@ set(DATA_STRUCTURES_SOURCES
 	trees/source/heap.cpp
 	trees/source/log_structured_merge_tree.cpp
 	trees/source/maple_tree.cpp
+	trees/source/btree.cpp
 	list/source/linked_list.cpp
 	maps/source/hash_map.cpp
 	maps/source/concurrent_hash_map.cpp
@@ -29,11 +30,17 @@ target_include_directories(data_structures PUBLIC
 target_compile_features(data_structures PUBLIC cxx_std_17)
 
 find_package(Threads REQUIRED)
-target_link_libraries(data_structures PRIVATE Threads::Threads thread_pool_utils)
+target_link_libraries(data_structures PRIVATE Threads::Threads)
+
+# Optional: link thread_pool_utils if available
+if(TARGET thread_pool_utils)
+	target_link_libraries(data_structures PRIVATE thread_pool_utils)
+endif()
 
 if(BUILD_TESTING)
 	add_executable(data_structures_tests
 		trees/tests/test_binary_search_tree.cpp
+		trees/tests/test_btree.cpp
 		trees/tests/test_splay_tree.cpp
 		trees/tests/test_heap.cpp
 		trees/tests/test_log_structured_merge_tree.cpp
@@ -47,7 +54,10 @@ if(BUILD_TESTING)
 		filters/tests/test_bloom_filter.cpp
 		filters/tests/test_egh_filter.cpp	trees/tests/test_van_emde_boas.cpp
 	list/tests/test_priority_queue.cpp	)
-	target_link_libraries(data_structures_tests PRIVATE data_structures tyst_framework_main Threads::Threads thread_pool_utils)
+	target_link_libraries(data_structures_tests PRIVATE data_structures tyst_framework_main Threads::Threads)
+	if(TARGET thread_pool_utils)
+		target_link_libraries(data_structures_tests PRIVATE thread_pool_utils)
+	endif()
 	target_include_directories(data_structures_tests PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/headers
 		${CMAKE_CURRENT_SOURCE_DIR}/trees/headers

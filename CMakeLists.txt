@@ -51,6 +51,56 @@ set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox sourc
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(COOLBOX_ENABLE_GPU_ACCELERATION "Enable GPU backend detection and acceleration compile definitions" ON)
+
+set(COOLBOX_GPU_BACKENDS "")
+set(COOLBOX_GPU_ENABLED OFF)
+if(COOLBOX_ENABLE_GPU_ACCELERATION)
+    find_package(CUDAToolkit QUIET)
+    if(CUDAToolkit_FOUND)
+        set(COOLBOX_HAS_CUDA ON)
+        set(COOLBOX_GPU_ENABLED ON)
+        list(APPEND COOLBOX_GPU_BACKENDS "CUDA")
+    else()
+        set(COOLBOX_HAS_CUDA OFF)
+    endif()
+
+    find_package(OpenCL QUIET)
+    if(OpenCL_FOUND)
+        set(COOLBOX_HAS_OPENCL ON)
+        set(COOLBOX_GPU_ENABLED ON)
+        list(APPEND COOLBOX_GPU_BACKENDS "OpenCL")
+    else()
+        set(COOLBOX_HAS_OPENCL OFF)
+    endif()
+
+    find_package(OpenGL QUIET)
+    if(OpenGL_FOUND)
+        set(COOLBOX_HAS_OPENGL ON)
+        set(COOLBOX_GPU_ENABLED ON)
+        list(APPEND COOLBOX_GPU_BACKENDS "OpenGL")
+    else()
+        set(COOLBOX_HAS_OPENGL OFF)
+    endif()
+
+    if(COOLBOX_GPU_ENABLED)
+        list(REMOVE_DUPLICATES COOLBOX_GPU_BACKENDS)
+        string(JOIN ", " COOLBOX_GPU_BACKENDS_STR ${COOLBOX_GPU_BACKENDS})
+        message(STATUS "GPU acceleration backends detected: ${COOLBOX_GPU_BACKENDS_STR}")
+    else()
+        message(STATUS "GPU acceleration requested, but no CUDA/OpenCL/OpenGL backend was detected.")
+    endif()
+
+    add_compile_definitions(
+        COOLBOX_ENABLE_GPU_ACCELERATION=1
+        $<$<BOOL:${COOLBOX_HAS_CUDA}>:COOLBOX_HAS_CUDA=1>
+        $<$<BOOL:${COOLBOX_HAS_OPENCL}>:COOLBOX_HAS_OPENCL=1>
+        $<$<BOOL:${COOLBOX_HAS_OPENGL}>:COOLBOX_HAS_OPENGL=1>
+    )
+else()
+    message(STATUS "GPU acceleration detection disabled (COOLBOX_ENABLE_GPU_ACCELERATION=OFF).")
+endif()
+
 # Enable CTest so add_test() calls in subdirectories are discovered
 enable_testing()
 

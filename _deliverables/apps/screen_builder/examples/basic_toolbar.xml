@@ -1,0 +1,14 @@
+<screen title="Example - Basic Toolbar" width="1024" height="640" platform="windows">
+  <vertical>
+    <layout label="Main Screen">
+      <menu_bar>
+        <menu title="File">
+          <item label="Open" shortcut="Ctrl+O" />
+          <item label="Save" shortcut="Ctrl+S" />
+        </menu>
+      </menu_bar>
+      <toolbar actions="Select,Rectangle,Line,Arc" />
+      <text text="Basic geometry toolbar example." width="60" />
+    </layout>
+  </vertical>
+</screen>

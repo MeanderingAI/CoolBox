@@ -15,6 +15,15 @@ unsafe extern "C" {
     fn coolbox_c_capability_count() -> usize;
     fn coolbox_c_capability_at(index: usize) -> *const std::ffi::c_char;
     fn coolbox_c_is_ready() -> i32;
+
+    fn coolbox_c_uuid_v1() -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v2(local_identifier: u32, local_domain: u32) -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v3(namespace_uuid: *const std::ffi::c_char, name: *const std::ffi::c_char) -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v4() -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v5(namespace_uuid: *const std::ffi::c_char, name: *const std::ffi::c_char) -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v6() -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v8(custom_entropy_hex: *const std::ffi::c_char) -> *const std::ffi::c_char;
+    fn coolbox_c_guid() -> *const std::ffi::c_char;
 }
 
 #[cxx::bridge]
@@ -224,4 +233,41 @@ fn c_string(value: *const std::ffi::c_char) -> String {
     unsafe { CStr::from_ptr(value) }
         .to_string_lossy()
         .into_owned()
+}
+
+pub fn uuid_v1() -> String {
+    c_string(unsafe { coolbox_c_uuid_v1() })
+}
+
+pub fn uuid_v2(local_identifier: u32, local_domain: u8) -> String {
+    c_string(unsafe { coolbox_c_uuid_v2(local_identifier, local_domain as u32) })
+}
+
+pub fn uuid_v3(namespace_uuid: &str, name: &str) -> String {
+    let ns = std::ffi::CString::new(namespace_uuid).unwrap_or_default();
+    let nm = std::ffi::CString::new(name).unwrap_or_default();
+    c_string(unsafe { coolbox_c_uuid_v3(ns.as_ptr(), nm.as_ptr()) })
+}
+
+pub fn uuid_v4() -> String {
+    c_string(unsafe { coolbox_c_uuid_v4() })
+}
+
+pub fn uuid_v5(namespace_uuid: &str, name: &str) -> String {
+    let ns = std::ffi::CString::new(namespace_uuid).unwrap_or_default();
+    let nm = std::ffi::CString::new(name).unwrap_or_default();
+    c_string(unsafe { coolbox_c_uuid_v5(ns.as_ptr(), nm.as_ptr()) })
+}
+
+pub fn uuid_v6() -> String {
+    c_string(unsafe { coolbox_c_uuid_v6() })
+}
+
+pub fn uuid_v8(custom_entropy_hex: &str) -> String {
+    let entropy = std::ffi::CString::new(custom_entropy_hex).unwrap_or_default();
+    c_string(unsafe { coolbox_c_uuid_v8(entropy.as_ptr()) })
+}
+
+pub fn guid() -> String {
+    c_string(unsafe { coolbox_c_guid() })
 }

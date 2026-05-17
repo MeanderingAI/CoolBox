@@ -95,13 +95,86 @@ TYST_TEST(GraphicsComponentsTest, RendersBasicWidgets) {
     TYST_EXPECT_EQ(checkbox.front(), "[x] Enable Logs");
 }
 
+TYST_TEST(GraphicsComponentsTest, RendersButtonWithIndependentRoundedCorners) {
+    const auto rounded = graphics::components::Component::button(
+        "Run", true, false, 10, true, false, true, false).render();
+
+    TYST_ASSERT_EQ(rounded.size(), 1U);
+    TYST_EXPECT_EQ(rounded.front().front(), '/');
+    TYST_EXPECT_EQ(rounded.front().back(), '/');
+    TYST_EXPECT_NE(rounded.front().find("Run"), std::string::npos);
+}
+
 TYST_TEST(GraphicsComponentsTest, RendersTextAndEditableViews) {
     const auto text_lines = graphics::components::Component::text_view(
         "A text view should wrap descriptive content for panels.", 18).render();
     const auto editable_lines = graphics::components::Component::editable_text_view("Hello", 5, true, 12).render();
+    const auto editable_advanced = graphics::components::Component::editable_text_view(
+        "The editable control now supports autocomplete and metadata.",
+        10,
+        true,
+        20,
+        true,
+        graphics::components::BorderStyle::None,
+        0,
+        false,
+        true,
+        3,
+        18,
+        {"Hello", "Help", "Helium"}).render();
 
     TYST_EXPECT_GE(text_lines.size(), 2U);
     TYST_EXPECT_NE(editable_lines.front().find("Hello|"), std::string::npos);
+    TYST_EXPECT_NE(editable_advanced.back().find("suggestions:"), std::string::npos);
+}
+
+TYST_TEST(GraphicsComponentsTest, RendersBordersAndLineNumbersForTextViews) {
+    using namespace graphics::components;
+
+    const auto bordered_text = Component::text_view(
+        "first second third fourth fifth",
+        10,
+        true,
+        BorderStyle::Solid,
+        1,
+        true).render();
+
+    const auto bordered_editable = Component::editable_text_view(
+        "alpha beta gamma",
+        5,
+        true,
+        10,
+        true,
+        BorderStyle::Dashed,
+        2,
+        true,
+        true,
+        3,
+        14,
+        {"alpha", "beta"}).render();
+
+    TYST_ASSERT_GE(bordered_text.size(), 4U);
+    TYST_EXPECT_NE(bordered_text.front().find("+"), std::string::npos);
+    TYST_EXPECT_NE(bordered_text[1].find("1:"), std::string::npos);
+
+    TYST_ASSERT_GE(bordered_editable.size(), 6U);
+    TYST_EXPECT_NE(bordered_editable.front().find("~"), std::string::npos);
+    TYST_EXPECT_NE(bordered_editable[2].find("1:"), std::string::npos);
+}
+
+TYST_TEST(GraphicsComponentsTest, RendersTabbedViewWithSubviewContent) {
+    using namespace graphics::components;
+
+    TabbedViewModel model;
+    model
+        .add_tab("Design", ComponentHolder::vertical({Component::button("Draw"), Component::check_box("Snap", true)}))
+        .add_tab("Inspect", ComponentHolder::vertical({Component::text_view("Properties"), Component::button("Refresh")}))
+        .set_selected(1);
+
+    const auto lines = Component::tabbed_view(model).render();
+    TYST_ASSERT_GE(lines.size(), 2U);
+    TYST_EXPECT_NE(lines.front().find("[*Inspect]"), std::string::npos);
+    TYST_EXPECT_NE(lines[1].find("Properties"), std::string::npos);
 }
 
 TYST_TEST(GraphicsComponentsTest, RendersVerticalHorizontalAndGridHolders) {

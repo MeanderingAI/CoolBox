@@ -17,8 +17,18 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../packages/MISC/metadata_management" AND
     endif()
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation")
+    if(NOT TARGET uuid_generation)
+        add_subdirectory(
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation
+                ${CMAKE_CURRENT_BINARY_DIR}/uuid_generation
+        )
+    endif()
+endif()
+
 add_library(coolbox_c_bindings SHARED
     src/coolbox_c.c
+    src/uuid_generation_c_bridge.cpp
 )
 
 add_library(CoolBox::c_bindings ALIAS coolbox_c_bindings)
@@ -62,11 +72,14 @@ target_include_directories(coolbox_c_bindings
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation/headers
 )
 
 target_link_libraries(coolbox_c_bindings
     PRIVATE
         metadata_management
+    uuid_generation
 )
 
 # Only link math library on non-Windows platforms

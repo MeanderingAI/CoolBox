@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Synthesizer · Audio Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3348;
+      --text:#e2e8f0; --muted:#64748b; --brand:#3b82f6; --brand2:#10b981;
+      --brand-pale:#1e3a5f; --warn:#f59e0b; --code-bg:#161b2e;
+    }
+    body { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+    .topbar { background:var(--surface); border-bottom:1px solid var(--border); padding:0 1.2rem; display:flex; align-items:center; gap:.75rem; height:44px; flex-shrink:0; }
+    .tb-icon { font-size:1.2rem; }
+    .tb-title { font-size:.92rem; font-weight:800; letter-spacing:-.02em; }
+    .tb-sub { font-size:.7rem; color:var(--muted); }
+    .tb-badge { margin-left:auto; background:#1a2a1a; color:var(--brand2); border:1px solid var(--brand2); border-radius:999px; font-size:.62rem; font-weight:700; padding:.12em .6em; letter-spacing:.07em; }
+    .tab-bar { display:flex; background:var(--surface2); border-bottom:1px solid var(--border); padding:0 1.2rem; flex-shrink:0; }
+    .tab { padding:.5rem 1.2rem; font-size:.76rem; font-weight:700; cursor:pointer; border-bottom:2px solid transparent; color:var(--muted); transition:color .12s,border-color .12s; user-select:none; }
+    .tab.active { color:var(--brand); border-bottom-color:var(--brand); }
+    .main { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+    .tab-panel { display:none; flex:1; overflow-y:auto; padding:1.2rem 1.4rem; flex-direction:column; gap:1.2rem; }
+    .tab-panel.active { display:flex; }
+
+    /* ── Visualizers ───────────────────────────────────────────── */
+    .viz-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .viz-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .viz-hdr { background:var(--surface2); padding:.4rem .85rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .viz-title { font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    .viz-info  { font-size:.64rem; color:var(--muted); font-family:'Cascadia Code','Consolas',monospace; }
+    canvas { display:block; width:100%; background:#0a0d14; }
+
+    /* ── Controls ──────────────────────────────────────────────── */
+    .ctrl-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.75rem 1rem; display:flex; flex-wrap:wrap; align-items:center; gap:.8rem; }
+    .ctrl-group { display:flex; align-items:center; gap:.35rem; }
+    .ctrl-group label { font-size:.7rem; color:var(--muted); white-space:nowrap; }
+    .ctrl-sep { width:1px; height:22px; background:var(--border); }
+    .wave-pills { display:flex; gap:.3rem; }
+    .wave-pill { padding:.22em .65em; font-size:.7rem; font-weight:700; border-radius:5px; cursor:pointer; background:var(--surface2); border:1px solid var(--border); color:var(--muted); transition:all .1s; user-select:none; }
+    .wave-pill.active { background:var(--brand-pale); border-color:var(--brand); color:var(--brand); }
+    input[type=range] { -webkit-appearance:none; height:4px; border:none; background:var(--surface2); border-radius:2px; accent-color:var(--brand); cursor:pointer; width:90px; }
+    .num-lbl { font-size:.7rem; color:var(--text); min-width:2.5em; font-family:'Cascadia Code','Consolas',monospace; }
+    .active-notes { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; min-height:24px; }
+    .note-pill { background:var(--brand-pale); border:1px solid var(--brand); color:var(--brand); border-radius:4px; font-size:.65rem; font-weight:700; padding:.15em .5em; font-family:'Cascadia Code','Consolas',monospace; animation:pop .1s ease; }
+    @keyframes pop { from { transform:scale(.8); opacity:.6; } to { transform:scale(1); opacity:1; } }
+
+    /* ── Piano ─────────────────────────────────────────────────── */
+    .piano-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .piano-hdr { background:var(--surface2); padding:.4rem .85rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.75rem; }
+    .piano-hdr-title { font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    .piano-hint { font-size:.64rem; color:var(--muted); }
+    .piano-scroll { overflow-x:auto; padding:.85rem 1rem 1rem; }
+    .piano { display:inline-flex; gap:0; user-select:none; }
+    .octave { position:relative; display:inline-flex; }
+    .key { cursor:pointer; transition:background .05s,transform .05s; }
+    .key.white {
+      width:42px; height:130px; background:#f5f0e8; border:1px solid #888;
+      border-radius:0 0 5px 5px; display:flex; align-items:flex-end;
+      justify-content:center; padding-bottom:6px; font-size:.58rem;
+      color:#999; position:relative; z-index:0; margin-right:2px;
+    }
+    .key.white:last-child { margin-right:0; }
+    .key.white:active, .key.white.pressed { background:#b8d0f0; transform:scaleY(.98); }
+    .key.black {
+      width:27px; height:82px; background:#1a1a2e; border:1px solid #000;
+      border-radius:0 0 4px 4px; position:absolute; z-index:1;
+      display:flex; align-items:flex-end; justify-content:center;
+      padding-bottom:4px; font-size:.52rem; color:#667; top:0;
+    }
+    .key.black:active, .key.black.pressed { background:#2a3d6b; }
+
+    /* ── Code / libs shared styles ─────────────────────────────── */
+    .section-title { font-size:.65rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.55rem; }
+    .code-block { background:var(--code-bg); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .code-hdr { display:flex; align-items:center; gap:.5rem; padding:.5rem .9rem; background:var(--surface2); border-bottom:1px solid var(--border); }
+    .code-lang-badge { font-size:.62rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; padding:.15em .5em; border-radius:4px; }
+    .badge-js   { background:#3b2a0a; color:#f59e0b; }
+    .badge-sh   { background:#1e2535; color:#94a3b8; }
+    .badge-cpp  { background:#1e3a5f; color:var(--brand); }
+    .code-filename { font-family:'Cascadia Code','Consolas',monospace; font-size:.7rem; color:var(--muted); }
+    .code-body { padding:.9rem 1.1rem; overflow-x:auto; }
+    .code-body pre { margin:0; font-family:'Cascadia Code','Consolas','Monaco',monospace; font-size:.76rem; line-height:1.7; color:var(--text); white-space:pre; tab-size:2; }
+    .kw  { color:#c792ea; font-weight:600; }
+    .str { color:#c3e88d; }
+    .num { color:#f78c6c; }
+    .cm  { color:var(--muted); font-style:italic; }
+    .fn  { color:#82aaff; }
+    .pkg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; }
+    .pkg-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem; display:flex; flex-direction:column; gap:.35rem; position:relative; overflow:hidden; }
+    .pkg-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:3px 0 0 3px; }
+    .pkg-card.cpp::before { background:var(--brand); }
+    .pkg-card.js::before  { background:#f59e0b; }
+    .pkg-hdr { display:flex; align-items:center; gap:.45rem; }
+    .pkg-icon { font-size:1rem; }
+    .pkg-name { font-size:.82rem; font-weight:700; }
+    .pkg-lang { margin-left:auto; font-size:.6rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:.15em .45em; border-radius:4px; }
+    .lang-cpp { background:#1e3a5f; color:var(--brand); }
+    .lang-js  { background:#3b2a0a; color:#f59e0b; }
+    .pkg-path { font-family:'Cascadia Code','Consolas',monospace; font-size:.65rem; color:var(--muted); }
+    .pkg-desc { font-size:.72rem; color:#94a3b8; line-height:1.55; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="tb-icon">🎹</span>
+  <div><div class="tb-title">Music Synthesizer</div><div class="tb-sub">audio_visual_group · trekker::audio · utils::wave_generator</div></div>
+  <span class="tb-badge">AUDIO DEMO</span>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="demo">🎵 Demo</div>
+  <div class="tab" data-tab="code">&lt;/&gt; Code</div>
+  <div class="tab" data-tab="setup">⚙ Setup</div>
+  <div class="tab" data-tab="libraries">📦 Libraries</div>
+</div>
+
+<div class="main">
+
+  <!-- ── Demo tab ─────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-demo">
+
+    <!-- Visualizers -->
+    <div class="viz-row">
+      <div class="viz-card">
+        <div class="viz-hdr">
+          <span class="viz-title">Oscilloscope</span>
+          <span class="viz-info" id="osc-info">time-domain waveform</span>
+        </div>
+        <canvas id="oscilloscope" height="140"></canvas>
+      </div>
+      <div class="viz-card">
+        <div class="viz-hdr">
+          <span class="viz-title">Spectrum Analyser</span>
+          <span class="viz-info" id="spec-info">frequency domain (FFT)</span>
+        </div>
+        <canvas id="spectrum" height="140"></canvas>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ctrl-panel">
+      <div class="ctrl-group">
+        <label>Waveform</label>
+        <div class="wave-pills" id="wavePills">
+          <div class="wave-pill active" data-wave="Sine">Sine</div>
+          <div class="wave-pill" data-wave="Square">Square</div>
+          <div class="wave-pill" data-wave="Triangle">Triangle</div>
+          <div class="wave-pill" data-wave="Sawtooth">Sawtooth</div>
+          <div class="wave-pill" data-wave="ReverseSawtooth">Rev. Saw</div>
+          <div class="wave-pill" data-wave="WhiteNoise">Noise</div>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <label>Volume</label>
+        <input type="range" id="volSlider" min="0" max="100" value="70" />
+        <span class="num-lbl" id="volLbl">70%</span>
+      </div>
+      <div class="ctrl-group">
+        <label>LPF cutoff</label>
+        <input type="range" id="lpfSlider" min="0" max="100" value="100" />
+        <span class="num-lbl" id="lpfLbl">20kHz</span>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group" style="flex:1">
+        <label>Active notes</label>
+        <div class="active-notes" id="activeNotes">
+          <span style="font-size:.65rem;color:var(--muted)">play a key to start</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Piano -->
+    <div class="piano-wrap">
+      <div class="piano-hdr">
+        <span class="piano-hdr-title">🎹 Piano — C3 to B4</span>
+        <span class="piano-hint">Click keys · keyboard: <code>a s d f g h j</code> = C4–B4 · sharps: <code>w e t y u</code></span>
+      </div>
+      <div class="piano-scroll">
+        <div class="piano" id="piano"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-demo -->
+
+  <!-- ── Code tab ─────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-code">
+    <div>
+      <div class="section-title">Example — live oscillator</div>
+      <div class="code-block">
+        <div class="code-hdr">
+          <span class="code-lang-badge badge-js">JS</span>
+          <span class="code-filename">synth_example.mjs</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">import</span> {
+  WavePattern, WaveConfig, AudioBuffer,
+  AudioSynthEngine,
+  generate_samples_for_duration,
+  mix, fade_in, fade_out, low_pass_filter, peak_normalize,
+} <span class="kw">from</span> <span class="str">'/static/extensions/audio-synth.mjs'</span>;
+
+<span class="cm">// ── Live oscillator (real-time, keyboard-driven) ──────────────────</span>
+<span class="kw">const</span> engine = <span class="kw">new</span> <span class="fn">AudioSynthEngine</span>();
+<span class="kw">await</span> engine.<span class="fn">resume</span>();          <span class="cm">// must be called after a user gesture</span>
+engine.<span class="fn">setMasterGain</span>(<span class="num">0.7</span>);
+
+<span class="cm">// Play C4 (261.63 Hz) with a square wave + low-pass filter</span>
+<span class="kw">const</span> osc = engine.<span class="fn">createOscillator</span>({
+  frequency_hz: <span class="num">261.63</span>,
+  pattern:      WavePattern.Square,
+  gain:         <span class="num">0.4</span>,
+});
+osc.<span class="fn">setFilter</span>(<span class="num">800</span>);            <span class="cm">// low-pass at 800 Hz</span>
+osc.<span class="fn">setFrequency</span>(<span class="num">329.63</span>);    <span class="cm">// glide to E4</span>
+<span class="cm">// ... later ...</span>
+osc.<span class="fn">stop</span>();
+
+<span class="cm">// ── Pre-rendered buffer (generate → process → play) ──────────────</span>
+<span class="kw">const</span> cfg = <span class="kw">new</span> <span class="fn">WaveConfig</span>({ amplitude: <span class="num">0.8</span>, frequency_hz: <span class="num">440</span> });
+<span class="kw">let</span> buf = AudioBuffer.<span class="fn">from_samples</span>(
+  <span class="fn">generate_samples_for_duration</span>(<span class="num">1.0</span>, <span class="num">44100</span>, WavePattern.Sine, cfg),
+  <span class="num">44100</span>
+);
+buf = <span class="fn">fade_in</span>(buf, <span class="num">2000</span>);       <span class="cm">// 2 000-sample ramp in</span>
+buf = <span class="fn">fade_out</span>(buf, <span class="num">4000</span>);      <span class="cm">// 4 000-sample ramp out</span>
+buf = <span class="fn">low_pass_filter</span>(buf, <span class="num">1200</span>);
+buf = <span class="fn">peak_normalize</span>(buf, <span class="num">0.9</span>);
+engine.<span class="fn">play</span>(buf);
+
+<span class="cm">// ── Mix two oscillators into one buffer ───────────────────────────</span>
+<span class="kw">const</span> a = AudioBuffer.<span class="fn">from_samples</span>(
+  <span class="fn">generate_samples_for_duration</span>(<span class="num">1.0</span>, <span class="num">44100</span>, WavePattern.Sine,
+    <span class="kw">new</span> <span class="fn">WaveConfig</span>({ frequency_hz: <span class="num">261.63</span>, amplitude: <span class="num">0.5</span> })), <span class="num">44100</span>);
+
+<span class="kw">const</span> b = AudioBuffer.<span class="fn">from_samples</span>(
+  <span class="fn">generate_samples_for_duration</span>(<span class="num">1.0</span>, <span class="num">44100</span>, WavePattern.Sine,
+    <span class="kw">new</span> <span class="fn">WaveConfig</span>({ frequency_hz: <span class="num">329.63</span>, amplitude: <span class="num">0.5</span> })), <span class="num">44100</span>);
+
+<span class="kw">const</span> chord = <span class="fn">mix</span>([a, b], [<span class="num">0.6</span>, <span class="num">0.6</span>]);
+engine.<span class="fn">play</span>(<span class="fn">peak_normalize</span>(chord, <span class="num">0.9</span>));</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Setup tab ────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-setup">
+    <div style="display:flex;flex-direction:column;gap:1.2rem">
+      <div>
+        <div class="section-title">Build emscripten modules</div>
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang-badge badge-sh">Shell</span>
+            <span class="code-filename">terminal (emsdk activated)</span>
+          </div>
+          <div class="code-body"><pre><span class="cm"># Activate emsdk first</span>
+source /path/to/emsdk/emsdk_env.sh
+
+<span class="cm"># Configure + build both audio modules</span>
+emcmake cmake -B build_wasm -DCMAKE_BUILD_TYPE=Release
+cmake --build build_wasm --target wave_generator_js
+cmake --build build_wasm --target audio_processing_js
+
+<span class="cm"># Outputs: build_wasm/wave_generator.js + audio_processing.js</span></pre></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Use the JS mirror (no build required)</div>
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang-badge badge-js">JS</span>
+            <span class="code-filename">any browser script (type="module")</span>
+          </div>
+          <div class="code-body"><pre><span class="cm">// Import the pure-JS mirror — no WASM build needed</span>
+<span class="kw">import</span> { WavePattern, AudioSynthEngine } <span class="kw">from</span>
+  <span class="str">'/static/extensions/audio-synth.mjs'</span>;</pre></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">C++ usage (native)</div>
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang-badge badge-cpp">C++</span>
+            <span class="code-filename">synth_example.cpp</span>
+          </div>
+          <div class="code-body"><pre><span class="kw">#include</span> <span class="str">"wave_generator.hpp"</span>
+<span class="kw">#include</span> <span class="str">"audio_processing.h"</span>
+
+<span class="kw">using namespace</span> utils::wave_generator;
+<span class="kw">using namespace</span> trekker::audio;
+
+<span class="cm">// Generate 1 second of 440 Hz sine wave at 44 100 Hz</span>
+WaveConfig cfg;
+cfg.amplitude    = <span class="num">0.8f</span>;
+cfg.frequency_hz = <span class="num">440.0</span>;
+
+<span class="kw">auto</span> samples = <span class="fn">generate_samples_for_duration</span>(
+    <span class="num">1.0</span>, <span class="num">44100</span>, WavePattern::Sine, cfg);
+
+<span class="cm">// Wrap in AudioBuffer and apply effects</span>
+AudioBuffer buf = AudioBuffer::<span class="fn">silent</span>(<span class="num">44100</span>, <span class="num">1</span>, samples.size());
+<span class="kw">for</span> (size_t i = <span class="num">0</span>; i &lt; samples.size(); ++i)
+    buf.planes[<span class="num">0</span>][i] = <span class="kw">static_cast</span>&lt;<span class="kw">float</span>&gt;(samples[i]);
+
+buf = <span class="fn">fade_in</span>(buf, <span class="num">2000</span>);
+buf = <span class="fn">fade_out</span>(buf, <span class="num">4000</span>);
+buf = <span class="fn">low_pass_filter</span>(buf, <span class="num">1200.0f</span>);
+buf = <span class="fn">peak_normalize</span>(buf, <span class="num">0.9f</span>);</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Libraries tab ────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-libraries">
+    <div>
+      <div class="section-title">Libraries used in this demo</div>
+      <div class="pkg-grid">
+
+        <div class="pkg-card js">
+          <div class="pkg-hdr">
+            <span class="pkg-icon">🎵</span>
+            <span class="pkg-name">audio-synth.mjs</span>
+            <span class="pkg-lang lang-js">JS</span>
+          </div>
+          <div class="pkg-path">/static/extensions/audio-synth.mjs</div>
+          <div class="pkg-desc">Browser-side JS mirror of both C++ audio libraries. Exposes identical API names using the Web Audio API for real-time synthesis and AudioBuffer for offline processing.</div>
+        </div>
+
+        <div class="pkg-card cpp">
+          <div class="pkg-hdr">
+            <span class="pkg-icon">🎛</span>
+            <span class="pkg-name">trekker::audio</span>
+            <span class="pkg-lang lang-cpp">C++</span>
+          </div>
+          <div class="pkg-path">audio_visual_group · VIDEO_ASSETS · audio_processing</div>
+          <div class="pkg-desc">AudioBuffer, Resampler, mix, peak_normalize, rms_normalize, fade_in/out, low/high_pass_filter, delay_effect, compress. Emscripten target: audio_processing_js.</div>
+        </div>
+
+        <div class="pkg-card cpp">
+          <div class="pkg-hdr">
+            <span class="pkg-icon">〜</span>
+            <span class="pkg-name">utils::wave_generator</span>
+            <span class="pkg-lang lang-cpp">C++</span>
+          </div>
+          <div class="pkg-path">trekker · MISC · wave_generator</div>
+          <div class="pkg-desc">WavePattern (Sine, Square, Triangle, Sawtooth, ReverseSawtooth, Pulse, WhiteNoise), WaveConfig, sample_at, generate_samples, generate_samples_for_duration. Emscripten target: wave_generator_js.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- .main -->
+
+<script type="module">
+import {
+  WavePattern, WaveConfig, AudioSynthEngine,
+  generate_samples_for_duration, mix, fade_in, fade_out,
+  low_pass_filter, peak_normalize, AudioBuffer,
+} from '/static/extensions/audio-synth.mjs';
+
+// ─────────────────────────────────────────────────────────────────
+// Tab switching
+// ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Piano key definitions
+// C3 (MIDI 48) → B4 (MIDI 71)
+// ─────────────────────────────────────────────────────────────────
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+function midiToName(m) { return NOTE_NAMES[m % 12] + Math.floor(m / 12 - 1); }
+
+// Black key left offsets (px) within one octave (44px white + 2px gap = 46px pitch)
+// Positions: between C-D, D-E, F-G, G-A, A-B
+const BLACK_OFFSETS = { 1: 31, 3: 77, 6: 169, 8: 215, 10: 261 };
+// noteIndex → white key index (0-6)
+const WHITE_IDX = { 0:0, 2:1, 4:2, 5:3, 7:4, 9:5, 11:6 };
+const IS_WHITE  = n => n in WHITE_IDX;
+
+// Keyboard shortcut → MIDI (C4=60 octave)
+const KB_MAP = {
+  'a':60, 'w':61, 's':62, 'e':63, 'd':64,
+  'f':65, 't':66, 'g':67, 'y':68, 'h':69,
+  'u':70, 'j':71,
+};
+const KB_LABEL = Object.fromEntries(Object.entries(KB_MAP).map(([k,v])=>[v,k]));
+
+// ─────────────────────────────────────────────────────────────────
+// Build piano DOM
+// ─────────────────────────────────────────────────────────────────
+const pianoEl = document.getElementById('piano');
+const keyElements = {}; // midi → DOM element
+
+for (let oct = 3; oct <= 4; oct++) {
+  const octDiv = document.createElement('div');
+  octDiv.className = 'octave';
+  // Octave width = 7 white * 44 + 6 gaps * 2 = 320px
+  octDiv.style.width = '320px';
+
+  for (let n = 0; n < 12; n++) {
+    const midi = (oct + 1) * 12 + n;
+    const noteName = NOTE_NAMES[n] + oct;
+    const el = document.createElement('div');
+
+    if (IS_WHITE(n)) {
+      el.className = 'key white';
+      el.textContent = KB_LABEL[midi] ? KB_LABEL[midi].toUpperCase() : noteName;
+      octDiv.appendChild(el);
+    } else {
+      el.className = 'key black';
+      el.style.left = BLACK_OFFSETS[n] + 'px';
+      el.textContent = KB_LABEL[midi] || '';
+      octDiv.appendChild(el);
+    }
+
+    el.dataset.midi = midi;
+    keyElements[midi] = el;
+
+    el.addEventListener('mousedown', e => { e.preventDefault(); noteOn(midi); });
+    el.addEventListener('mouseup',   ()  => noteOff(midi));
+    el.addEventListener('mouseleave',()  => noteOff(midi));
+    el.addEventListener('touchstart', e => { e.preventDefault(); noteOn(midi); }, { passive:false });
+    el.addEventListener('touchend',   e => { e.preventDefault(); noteOff(midi); }, { passive:false });
+  }
+  pianoEl.appendChild(octDiv);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Synth engine + state
+// ─────────────────────────────────────────────────────────────────
+const engine = new AudioSynthEngine();
+let currentWave = WavePattern.Sine;
+let currentLpf  = 20000;
+let activeOscs  = {}; // midi → oscHandle
+
+function noteOn(midi) {
+  if (activeOscs[midi]) return; // already playing
+  engine.resume();
+  const osc = engine.createOscillator({
+    frequency_hz: midiToFreq(midi),
+    pattern: currentWave,
+    gain: 0.35,
+  });
+  osc.setFilter(currentLpf);
+  activeOscs[midi] = osc;
+  if (keyElements[midi]) keyElements[midi].classList.add('pressed');
+  updateActiveNotesDisplay();
+}
+
+function noteOff(midi) {
+  const osc = activeOscs[midi];
+  if (!osc) return;
+  osc.stop();
+  delete activeOscs[midi];
+  if (keyElements[midi]) keyElements[midi].classList.remove('pressed');
+  updateActiveNotesDisplay();
+}
+
+function updateActiveNotesDisplay() {
+  const el = document.getElementById('activeNotes');
+  const midis = Object.keys(activeOscs).map(Number).sort((a,b)=>a-b);
+  if (!midis.length) {
+    el.innerHTML = '<span style="font-size:.65rem;color:var(--muted)">play a key to start</span>';
+    return;
+  }
+  el.innerHTML = midis.map(m =>
+    `<span class="note-pill">${midiToName(m)}</span>`
+  ).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Keyboard events
+// ─────────────────────────────────────────────────────────────────
+const heldKeys = new Set();
+document.addEventListener('keydown', e => {
+  if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const midi = KB_MAP[e.key.toLowerCase()];
+  if (midi != null && !heldKeys.has(midi)) {
+    heldKeys.add(midi);
+    noteOn(midi);
+  }
+});
+document.addEventListener('keyup', e => {
+  const midi = KB_MAP[e.key.toLowerCase()];
+  if (midi != null) {
+    heldKeys.delete(midi);
+    noteOff(midi);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Wave pill controls
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('wavePills').addEventListener('click', e => {
+  const pill = e.target.closest('.wave-pill');
+  if (!pill) return;
+  document.querySelectorAll('.wave-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  currentWave = WavePattern[pill.dataset.wave];
+  // Update all currently playing oscillators
+  for (const osc of Object.values(activeOscs)) osc.setType(currentWave);
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Volume + LPF sliders
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('volSlider').addEventListener('input', function() {
+  const v = this.value / 100;
+  document.getElementById('volLbl').textContent = this.value + '%';
+  engine.setMasterGain(v);
+});
+
+// Logarithmic mapping for LPF: slider 0–100 → 80–20000 Hz
+function lpfSliderToHz(v) {
+  return Math.round(80 * Math.pow(20000 / 80, v / 100));
+}
+function hzDisplay(hz) {
+  return hz >= 1000 ? (hz / 1000).toFixed(1) + 'kHz' : hz + 'Hz';
+}
+document.getElementById('lpfSlider').addEventListener('input', function() {
+  currentLpf = lpfSliderToHz(+this.value);
+  document.getElementById('lpfLbl').textContent = hzDisplay(currentLpf);
+  for (const osc of Object.values(activeOscs)) osc.setFilter(currentLpf);
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Visualizer draw loop
+// ─────────────────────────────────────────────────────────────────
+const oscCanvas  = document.getElementById('oscilloscope');
+const specCanvas = document.getElementById('spectrum');
+const oscCtx     = oscCanvas.getContext('2d');
+const specCtx    = specCanvas.getContext('2d');
+
+function resizeCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr  = window.devicePixelRatio || 1;
+  if (canvas.width  !== Math.round(rect.width  * dpr) ||
+      canvas.height !== Math.round(rect.height * dpr)) {
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    canvas.getContext('2d').scale(dpr, dpr);
+  }
+}
+
+const timeDomainData = new Float32Array(2048);
+const freqData       = new Uint8Array(1024);
+
+function drawOscilloscope(analyser) {
+  const W = oscCanvas.getBoundingClientRect().width;
+  const H = oscCanvas.getBoundingClientRect().height;
+  analyser.getFloatTimeDomainData(timeDomainData);
+
+  oscCtx.clearRect(0, 0, W, H);
+  oscCtx.fillStyle = '#0a0d14';
+  oscCtx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  oscCtx.strokeStyle = '#1e2535';
+  oscCtx.lineWidth = 1;
+  oscCtx.beginPath();
+  oscCtx.moveTo(0, H / 2); oscCtx.lineTo(W, H / 2);
+  oscCtx.stroke();
+
+  // Trigger: find first rising zero crossing
+  let start = 0;
+  for (let i = 1; i < timeDomainData.length - 1; i++) {
+    if (timeDomainData[i - 1] < 0 && timeDomainData[i] >= 0) { start = i; break; }
+  }
+
+  const sliceW = W / 512;
+  oscCtx.beginPath();
+  oscCtx.strokeStyle = '#10b981';
+  oscCtx.lineWidth = 1.5;
+  for (let i = 0; i < 512; i++) {
+    const x = i * sliceW;
+    const v = timeDomainData[start + i] ?? 0;
+    const y = (1 - (v + 1) / 2) * H;
+    i === 0 ? oscCtx.moveTo(x, y) : oscCtx.lineTo(x, y);
+  }
+  oscCtx.stroke();
+
+  // Peak label
+  const peak = Math.max(...Array.from(timeDomainData).map(Math.abs));
+  document.getElementById('osc-info').textContent =
+    `peak: ${peak.toFixed(3)}  ·  fftSize: ${analyser.fftSize}`;
+}
+
+function drawSpectrum(analyser) {
+  const W = specCanvas.getBoundingClientRect().width;
+  const H = specCanvas.getBoundingClientRect().height;
+  analyser.getByteFrequencyData(freqData);
+
+  specCtx.clearRect(0, 0, W, H);
+  specCtx.fillStyle = '#0a0d14';
+  specCtx.fillRect(0, 0, W, H);
+
+  // Show first 256 bins (0–5 kHz at 44.1 kHz sample rate)
+  const numBars = 128;
+  const barW    = W / numBars - 1;
+  for (let i = 0; i < numBars; i++) {
+    // Logarithmic bin mapping
+    const binIdx  = Math.round(Math.pow(i / numBars, 1.5) * 200);
+    const val     = (freqData[binIdx] ?? 0) / 255;
+    const h       = val * H;
+    const hue     = 180 + val * 120;
+    specCtx.fillStyle = `hsl(${hue},80%,${40 + val * 30}%)`;
+    specCtx.fillRect(i * (barW + 1), H - h, barW, h);
+  }
+
+  // Dominant frequency label
+  let maxBin = 0;
+  for (let i = 1; i < 256; i++) if (freqData[i] > freqData[maxBin]) maxBin = i;
+  const domFreq = Math.round(maxBin * (analyser.context.sampleRate / analyser.fftSize));
+  document.getElementById('spec-info').textContent =
+    freqData[maxBin] > 10 ? `dominant: ${domFreq} Hz` : 'frequency domain (FFT)';
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  resizeCanvas(oscCanvas);
+  resizeCanvas(specCanvas);
+  const analyser = engine.analyser;
+  if (analyser) {
+    drawOscilloscope(analyser);
+    drawSpectrum(analyser);
+  }
+}
+loop();
+</script>
+</body>
+</html>

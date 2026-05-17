@@ -11,7 +11,8 @@ struct CoolBoxClient {
 static const char *const COOLBOX_C_CAPABILITIES[] = {
     "metadata",
     "version",
-    "metadata_management"
+    "metadata_management",
+    "uuid_generation"
 };
 
 static const char *const COOLBOX_C_DEFAULT_ENDPOINT = "local://coolbox";

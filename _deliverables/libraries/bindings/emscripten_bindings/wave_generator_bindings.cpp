@@ -13,6 +13,8 @@
 
 #include <emscripten/bind.h>
 #include "wave_generator.hpp"
+#include <vector>
+#include <cmath>
 
 using namespace emscripten;
 using namespace utils::wave_generator;
@@ -53,6 +55,28 @@ static std::vector<double> js_generate_samples_for_duration(double duration_seco
                                          static_cast<WavePattern>(pattern_int), config);
 }
 
+// FFT computation function
+std::vector<std::complex<double>> compute_fft(const std::vector<double>& input) {
+    size_t N = input.size();
+    std::vector<std::complex<double>> output(N);
+
+    for (size_t k = 0; k < N; ++k) {
+        std::complex<double> sum(0.0, 0.0);
+        for (size_t n = 0; n < N; ++n) {
+            double angle = -2.0 * M_PI * k * n / N;
+            sum += std::polar(input[n], angle);
+        }
+        output[k] = sum;
+    }
+
+    return output;
+}
+
+// Wrapper for JavaScript
+static std::vector<std::complex<double>> js_compute_fft(const std::vector<double>& input) {
+    return compute_fft(input);
+}
+
 // ── Bindings ──────────────────────────────────────────────────────────────────
 
 EMSCRIPTEN_BINDINGS(wave_generator_module) {
@@ -81,4 +105,5 @@ EMSCRIPTEN_BINDINGS(wave_generator_module) {
     function("sample_at",                     &js_sample_at);
     function("generate_samples",              &js_generate_samples);
     function("generate_samples_for_duration", &js_generate_samples_for_duration);
+    function("compute_fft",                   &js_compute_fft);
 }
