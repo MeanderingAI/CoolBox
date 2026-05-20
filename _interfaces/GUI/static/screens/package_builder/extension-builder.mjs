@@ -309,9 +309,11 @@ const LANG_ICONS = {
     go:         '🐹',
     java:       '☕',
     javascript: '🟨',
+    postgres:   '🐘',
     python:     '🐍',
     r:          '📊',
     rust:       '🦀',
+    swift:      '🕊️',
     v:          '🔷',
 };
 
@@ -323,6 +325,8 @@ const BUILD_TYPE_LABEL = {
     npm:         'npm',
     python:      'pip install',
     emscripten:  'emcmake cmake',
+    postgres:    'SQL package',
+    swift:       'swift build',
     vlang:       'v build',
     c3:          'c3c compile',
     r:           'R CMD build',
@@ -336,6 +340,7 @@ function _toolchainOk(binding) {
     if (binding.build_type === 'vlang')      return binding.has_v_exec !== false;
     if (binding.build_type === 'c3')         return binding.has_c3c_exec !== false;
     if (binding.build_type === 'r')          return binding.has_r_exec !== false;
+    if (binding.build_type === 'swift')      return binding.has_swift_exec !== false;
     return true;
 }
 
@@ -356,6 +361,10 @@ function _toolchainHint(binding) {
         return '⚠️ R not found — use Install Tools or https://cran.r-project.org';
     if (binding.build_type === 'r' && binding.has_rtools === false)
         return '⚠️ Rtools not found — use Install Tools to set up gcc for R packages';
+    if (binding.build_type === 'swift' && binding.has_swift_exec === false)
+        return '⚠️ Swift toolchain not found — install from https://www.swift.org/download/';
+    if (binding.build_type === 'postgres' && binding.has_psql_exec === false)
+        return '⚠️ psql not found — install PostgreSQL client tools to enable live SQL validation';
     return null;
 }
 

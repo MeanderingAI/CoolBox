@@ -82,6 +82,10 @@ std::string js_guid() {
     return generate_guid();
 }
 
+std::string js_cuid() {
+    return generate_cuid();
+}
+
 std::string ns_dns() { return namespaces::dns().to_string(); }
 std::string ns_url() { return namespaces::url().to_string(); }
 std::string ns_oid() { return namespaces::oid().to_string(); }
@@ -99,6 +103,7 @@ EMSCRIPTEN_BINDINGS(uuid_generation_module) {
     function("uuid_v7", &js_uuid_v7);
     function("uuid_v8", &js_uuid_v8);
     function("guid", &js_guid);
+    function("cuid", &js_cuid);
 
     function("namespace_dns", &ns_dns);
     function("namespace_url", &ns_url);

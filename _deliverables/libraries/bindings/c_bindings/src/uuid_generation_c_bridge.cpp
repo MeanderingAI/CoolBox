@@ -134,4 +134,12 @@ const char* coolbox_c_guid(void) {
     }
 }
 
+const char* coolbox_c_cuid(void) {
+    try {
+        return store(trekker::misc::uuid_generation::generate_cuid());
+    } catch (...) {
+        return fail();
+    }
+}
+
 } // extern "C"

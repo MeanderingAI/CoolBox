@@ -94,3 +94,19 @@ TEST(UuidGenerationTest, UuidStringHasCanonicalLayout) {
     EXPECT_EQ(value[18], '-');
     EXPECT_EQ(value[23], '-');
 }
+
+TEST(UuidGenerationTest, GeneratesCuidWithExpectedShape) {
+    const std::string cuid = generate_cuid();
+    EXPECT_EQ(cuid.size(), 25U);
+    EXPECT_EQ(cuid.front(), 'c');
+    for (char ch : cuid) {
+        const unsigned char u = static_cast<unsigned char>(ch);
+        EXPECT_TRUE(std::isdigit(u) || (ch >= 'a' && ch <= 'z'));
+    }
+}
+
+TEST(UuidGenerationTest, GeneratesDistinctCuids) {
+    const std::string first = generate_cuid();
+    const std::string second = generate_cuid();
+    EXPECT_TRUE(first != second);
+}

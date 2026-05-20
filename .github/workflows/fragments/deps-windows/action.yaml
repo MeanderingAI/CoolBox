@@ -6,106 +6,118 @@ description: 'Install and configure dependencies for Windows builds'
 runs:
   using: 'composite'
   steps:
-  - name: Install vcpkg dependencies (Windows ARM64)
-  if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-  shell: powershell
-  run: |
-    function Find-VcpkgExe {
-      $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
-      $candidates = @(
-        $(if ($null -ne $command) { $command.Source }),
-        $(if ($null -ne $command) { $command.Path }),
-        $(if ($env:VCPKG_ROOT) { Join-Path $env:VCPKG_ROOT 'vcpkg.exe' }),
-        'C:\vcpkg\vcpkg.exe',
-        $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'vcpkg\vcpkg.exe' }),
-        $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'vcpkg\vcpkg.exe' })
-      ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-
-      foreach ($candidate in $candidates) {
-        if (Test-Path $candidate) {
-          return $candidate
+    - name: Install vcpkg dependencies (Windows ARM64)
+      shell: powershell
+      run: |
+        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+          Write-Host 'Skipping ARM64 vcpkg dependency install'
+          exit 0
         }
-      }
 
-      return $null
-    }
+        function Find-VcpkgExe {
+          $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+          $candidates = @(
+            $(if ($null -ne $command) { $command.Source }),
+            $(if ($null -ne $command) { $command.Path }),
+            $(if ($env:VCPKG_ROOT) { Join-Path $env:VCPKG_ROOT 'vcpkg.exe' }),
+            'C:\vcpkg\vcpkg.exe',
+            $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'vcpkg\vcpkg.exe' }),
+            $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'vcpkg\vcpkg.exe' })
+          ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
 
-    $vcpkgExe = Find-VcpkgExe
-    if ($null -eq $vcpkgExe) {
-      & .\_scripts\install_vcpkg.ps1
-      if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-      }
-      $vcpkgExe = Find-VcpkgExe
-    }
+          foreach ($candidate in $candidates) {
+            if (Test-Path $candidate) {
+              return $candidate
+            }
+          }
 
-    if ($null -eq $vcpkgExe) {
-      throw 'vcpkg.exe was not found after installation attempt. Windows ARM64 hosted cross-builds require vcpkg with arm64-windows dependencies.'
-    }
+          return $null
+        }
 
-    $vcpkgRoot = Split-Path -Parent $vcpkgExe
-    Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
-    Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
+        $vcpkgExe = Find-VcpkgExe
+        if ($null -eq $vcpkgExe) {
+          & .\_scripts\install_vcpkg.ps1
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          $vcpkgExe = Find-VcpkgExe
+        }
 
-    & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows openssl:arm64-windows
-    if ($LASTEXITCODE -ne 0) {
-      exit $LASTEXITCODE
-    }
+        if ($null -eq $vcpkgExe) {
+          throw 'vcpkg.exe was not found after installation attempt. Windows ARM64 hosted cross-builds require vcpkg with arm64-windows dependencies.'
+        }
 
-- name: Clean up stale MSYS2 install (all Windows)
-  if: runner.os == 'Windows' && matrix.platform != 'windows-arm64'
-  run: |
-    if (Test-Path 'D:\a\_temp\msys64') { Remove-Item -Recurse -Force 'D:\a\_temp\msys64' }
-  shell: pwsh
+        $vcpkgRoot = Split-Path -Parent $vcpkgExe
+        Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
+        Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
 
-- name: Install MSYS2 (Windows)
-  if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
-  id: msys2
-  uses: msys2/setup-msys2@v2
-  with:
-    msystem: MINGW64
-    path-type: inherit
-    update: true
+        & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows openssl:arm64-windows
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
 
-- name: Install MSYS2 and MinGW for ARM64
-  if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-  uses: msys2/setup-msys2@v2
-  with:
-    msystem: MINGW64
-    path-type: inherit
-    update: true
+    - name: Clean up stale MSYS2 install (all Windows)
+      shell: pwsh
+      run: |
+        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -eq 'ARM64') {
+          Write-Host 'Skipping MSYS2 cleanup'
+          exit 0
+        }
+        if (Test-Path 'D:\a\_temp\msys64') { Remove-Item -Recurse -Force 'D:\a\_temp\msys64' }
 
-- name: Install MinGW GSL, SQLite3, and Bison (Windows x86_64)
-  if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
-  run: |
-    set -e
-    pacman -S --noconfirm --needed mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison
-  shell: msys2 {0}
+    - name: Install MSYS2 (Windows)
+      id: msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        path-type: inherit
+        update: true
 
+    - name: Install MinGW GSL, SQLite3, and Bison (Windows x86_64)
+      shell: msys2 {0}
+      run: |
+        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "X64" ]; then
+          echo "Skipping x86_64 MinGW dependency install"
+          exit 0
+        fi
+        set -e
+        pacman -S --noconfirm --needed mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison
 
-- name: Install MinGW and make (Windows ARM64)
-  if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-  run: |
-    set -e
-    pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-make make
-  shell: msys2 {0}
+    - name: Install MinGW and make (Windows ARM64)
+      shell: msys2 {0}
+      run: |
+        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "ARM64" ]; then
+          echo "Skipping ARM64 MinGW/make install"
+          exit 0
+        fi
+        set -e
+        pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-make make
 
-- name: Install Bison (Windows ARM64)
-  if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-  shell: powershell
-  run: |
-    & _scripts/install_bison.ps1
+    - name: Install Bison (Windows ARM64)
+      shell: powershell
+      run: |
+        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+          Write-Host 'Skipping ARM64 bison install'
+          exit 0
+        }
+        & _scripts/install_bison.ps1
 
-- name: Configure CMake (Windows x86_64 / MSYS2)
-    if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
-    run: |
-      cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
-    shell: msys2 {0}
+    - name: Configure CMake (Windows x86_64 / MSYS2)
+      shell: msys2 {0}
+      run: |
+        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "X64" ]; then
+          echo "Skipping x86_64 CMake configure"
+          exit 0
+        fi
+        cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
 
-  - name: Configure CMake (Windows ARM64 / MinGW preferred)
-    if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
-    shell: powershell
-    run: |
+    - name: Configure CMake (Windows ARM64 / MinGW preferred)
+      shell: powershell
+      run: |
+        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+          Write-Host 'Skipping ARM64 CMake configure'
+          exit 0
+        }
         $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
         if (!(Test-Path $vcpkgToolchain)) {
           throw "vcpkg toolchain file not found at $vcpkgToolchain"
@@ -136,12 +148,16 @@ runs:
           }
         }
 
-  - name: Show CMake cache (Windows)
-    if: runner.os == 'Windows'
-    run: |
-      echo "=== build/CMakeCache.txt ==="
-      if [ -f build/CMakeCache.txt ]; then
-        grep -i 'BUILD_IO_SQL\|SQLite3' build/CMakeCache.txt || true
-      else
-        echo "No CMakeCache.txt found"
-      fi
+    - name: Show CMake cache (Windows)
+      shell: powershell
+      run: |
+        if ($env:RUNNER_OS -ne 'Windows') {
+          Write-Host 'Skipping cache dump on non-Windows runner'
+          exit 0
+        }
+        Write-Host '=== build/CMakeCache.txt ==='
+        if (Test-Path 'build/CMakeCache.txt') {
+          Select-String -Path 'build/CMakeCache.txt' -Pattern 'BUILD_IO_SQL|SQLite3' -CaseSensitive:$false
+        } else {
+          Write-Host 'No CMakeCache.txt found'
+        }

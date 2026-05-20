@@ -45,6 +45,7 @@ std::string generate_uuid_by_version(const std::string& version_value, int index
     if (v == "7" || v == "v7") return generate_v7().to_string();
     if (v == "8" || v == "v8") return generate_v8({}).to_string();
     if (v == "guid") return generate_guid();
+    if (v == "cuid") return generate_cuid();
 
     return "";
 }
@@ -64,7 +65,7 @@ int main(int argc, const char* const argv[]) {
     parser.set_description("Generate UUIDs in terminal output by version and batch size.");
 
     parser.add_option({"help", 'h', false, false, "", "Show help and exit."});
-    parser.add_option({"version", 'v', true, true, "VERSION", "UUID version: 1,2,3,4,5,6,7,8,v1..v8 or guid"});
+    parser.add_option({"version", 'v', true, true, "VERSION", "UUID version: 1,2,3,4,5,6,7,8,v1..v8,guid or cuid"});
     parser.add_option({"batch", 'b', true, true, "COUNT", "How many UUIDs to generate"});
 
     const auto result = parser.parse_argv(argc, argv);

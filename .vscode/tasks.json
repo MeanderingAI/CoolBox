@@ -610,15 +610,17 @@
 		{
 			"label": "build-secret-gen-cli-debug",
 			"type": "shell",
-			"command": "cmake",
+			"command": "powershell",
 			"args": [
-				"--build",
-				"build",
-				"--config",
-				"Debug",
-				"--target",
-				"secret_gen_cli"
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"if (Test-Path 'build/CMakeCache.txt') { Remove-Item -Force 'build/CMakeCache.txt' }; if (Test-Path 'build/CMakeFiles') { Remove-Item -Recurse -Force 'build/CMakeFiles' }; cmake -S . -B build -DBUILD_PRODUCTS=ON; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build --config Debug --target secret_gen_cli"
 			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
 			"isBackground": false,
 			"group": "build",
 			"problemMatcher": []
@@ -654,9 +656,7 @@
 			"isBackground": false,
 			"group": "build",
 			"problemMatcher": []
-		}
-	]
-	,
+		},
 		{
 			"label": "launch-gui-from-interfaces",
 			"type": "shell",
@@ -675,4 +675,5 @@
 			"problemMatcher": [],
 			"group": "run"
 		}
+	]
 }

@@ -10,6 +10,7 @@ import '../workspace-editor.mjs';
 import './plan-canvas.mjs';
 import './git-sub-repos.mjs';
 import './git-experiment-center.mjs';
+import './git-pipeline.mjs';
 
 const SUB_TABS = [
     { id: 'history',    label: '📋 History',          tag: 'git-history'           },
@@ -18,6 +19,7 @@ const SUB_TABS = [
     { id: 'commit',     label: '✏️ Commit',            tag: 'git-commit'            },
     { id: 'merge',      label: '🔀 Merge',             tag: 'git-merge'             },
     { id: 'remotes',    label: '🌐 Remotes',           tag: 'git-provider'          },
+    { id: 'pipeline',   label: '🛠 Pipeline',          tag: 'git-pipeline'          },
     { id: 'workspace',  label: '✏️ Workspace',         tag: 'workspace-editor'      },
     { id: 'plans',      label: '🗺 Plans',             tag: 'plan-canvas'           },
     { id: 'subrepos',   label: '📂 Sub-Repos',         tag: 'git-sub-repos'         },

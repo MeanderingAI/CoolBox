@@ -108,6 +108,7 @@ COOLBOX_C_API const char *coolbox_c_uuid_v5(const char *namespace_uuid, const ch
 COOLBOX_C_API const char *coolbox_c_uuid_v6(void);
 COOLBOX_C_API const char *coolbox_c_uuid_v8(const char *custom_entropy_hex);
 COOLBOX_C_API const char *coolbox_c_guid(void);
+COOLBOX_C_API const char *coolbox_c_cuid(void);
 
 #ifdef __cplusplus
 }

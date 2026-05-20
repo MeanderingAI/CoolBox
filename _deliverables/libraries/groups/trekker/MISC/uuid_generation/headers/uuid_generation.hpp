@@ -36,6 +36,7 @@ Uuid generate_v7();
 Uuid generate_v8(const std::vector<std::uint8_t>& custom_entropy);
 
 std::string generate_guid();
+std::string generate_cuid();
 
 } // namespace uuid_generation
 } // namespace misc

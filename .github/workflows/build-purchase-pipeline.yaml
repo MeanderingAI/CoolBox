@@ -44,7 +44,7 @@ jobs:
           fi
           echo "startsWith(github.ref, 'refs/heads/v') => ${BRANCH_OK}"
           echo "\nPer-job quick summary (purchase generation and product builds both fan out from build_libs)"
-          for job in build_libs build_products build_cpp_docs build_tutorials generate_purchase_python generate_purchase_js generate_purchase_go generate_purchase_c generate_purchase_java generate_purchase_r generate_purchase_rust; do
+          for job in build_libs build_products build_cpp_docs build_tutorials generate_purchase_python generate_purchase_js generate_purchase_go generate_purchase_c generate_purchase_java generate_purchase_r generate_purchase_rust generate_purchase_swift generate_purchase_postgres; do
             echo "- ${job}: if-condition (startsWith branch) => ${BRANCH_OK}; needs: $( if [[ "${job}" == "build_libs" || "${job}" == "build_cpp_docs" || "${job}" == "build_tutorials" ]]; then echo "none"; else echo "build_libs"; fi )"
           done
           echo "\nNote: If 'build_libs' is skipped, any job that lists it in 'needs' will be skipped even if its own 'if' would pass."
@@ -103,6 +103,8 @@ jobs:
       - generate_purchase_java
       - generate_purchase_r
       - generate_purchase_rust
+      - generate_purchase_swift
+      - generate_purchase_postgres
       - generate_lsp_images
       - publish_lsp_packages
     runs-on: ubuntu-latest
@@ -132,6 +134,8 @@ jobs:
           echo "generate_purchase_java: ${{ needs.generate_purchase_java.result }}" >> diagnostics/jobs_summary.txt
           echo "generate_purchase_r: ${{ needs.generate_purchase_r.result }}" >> diagnostics/jobs_summary.txt
           echo "generate_purchase_rust: ${{ needs.generate_purchase_rust.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_swift: ${{ needs.generate_purchase_swift.result }}" >> diagnostics/jobs_summary.txt
+          echo "generate_purchase_postgres: ${{ needs.generate_purchase_postgres.result }}" >> diagnostics/jobs_summary.txt
           echo "generate_lsp_images: ${{ needs.generate_lsp_images.result }}" >> diagnostics/jobs_summary.txt
           echo "publish_lsp_packages: ${{ needs.publish_lsp_packages.result }}" >> diagnostics/jobs_summary.txt
           echo "----" >> diagnostics/jobs_summary.txt
@@ -226,6 +230,18 @@ jobs:
     uses: ./.github/workflows/generate-purchase-rust.yaml
     secrets: inherit
 
+  generate_purchase_swift:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/generate-purchase-swift.yaml
+    secrets: inherit
+
+  generate_purchase_postgres:
+    needs:
+      - build_libs
+    uses: ./.github/workflows/generate-purchase-postgres.yaml
+    secrets: inherit
+
   docs_publish:
     if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')) }}
     needs:
@@ -238,6 +254,8 @@ jobs:
       - generate_purchase_java
       - generate_purchase_r
       - generate_purchase_rust
+      - generate_purchase_swift
+      - generate_purchase_postgres
     permissions:
       contents: write
       pages: write

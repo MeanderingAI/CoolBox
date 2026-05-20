@@ -11,6 +11,8 @@ This document indexes the extension and binding packages that are maintained in 
 - JavaScript / Emscripten: `docs/internal_documents/extensions/javascript/README.md`
 - Rust: `docs/internal_documents/extensions/rust/README.md`
 - R: `docs/internal_documents/extensions/r/README.md`
+- Swift: `docs/internal_documents/extensions/swift/README.md`
+- Postgres: `docs/internal_documents/extensions/postgres/README.md`
 
 Each extension README contains:
 
@@ -33,5 +35,7 @@ The reusable release workflows publish these extension artifact families:
 - `c-extension-*`
 - `javascript-extension-*`
 - `java-extension-*`
+- `swift-extension-*`
+- `postgres-extension-*`
 
 These names matter because the docs publishing workflow restores artifacts by those exact names before generating the unified site.

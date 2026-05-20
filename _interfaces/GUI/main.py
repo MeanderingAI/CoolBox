@@ -29,7 +29,14 @@ class NoCacheStaticFiles(StaticFiles):
         return response
 
 
+
+
+from library import pipeline_preview
+from library import pipeline_act
+
 app = FastAPI()
+app.include_router(pipeline_preview.router)
+app.include_router(pipeline_act.router)
 app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 
 
@@ -559,9 +566,11 @@ def list_extensions():
         "emscripten_bindings": "Emscripten",
         "go_bindings":         "Go",
         "java_bindings":       "Java",
+        "postgres_bindings":   "Postgres",
         "python_bindings":     "Python",
         "r_bindings":          "R",
         "rust_bindings":       "Rust",
+        "swift_bindings":      "Swift",
         "vlang_bindings":      "V",
     }
 
@@ -577,6 +586,8 @@ def list_extensions():
         has_go      = os.path.isfile(os.path.join(entry_path, "go.mod"))
         has_pom     = os.path.isfile(os.path.join(entry_path, "pom.xml"))
         has_package = os.path.isfile(os.path.join(entry_path, "package.json"))
+        has_swift_pkg = os.path.isfile(os.path.join(entry_path, "Package.swift"))
+        has_postgres_sql = bool(list(__import__("glob").glob(os.path.join(entry_path, "**", "*.sql"), recursive=True)))
         has_v_mod   = (os.path.isfile(os.path.join(entry_path, "v.mod")) or
                        bool(list(__import__("glob").glob(os.path.join(entry_path, "*.v")))))
         has_c3      = bool(list(__import__("glob").glob(os.path.join(entry_path, "**", "*.c3"), recursive=True)))
@@ -607,6 +618,8 @@ def list_extensions():
                 "go"         if has_go      else
                 "maven"      if has_pom     else
                 "npm"        if has_package else
+                "swift"      if has_swift_pkg else
+                "postgres"   if has_postgres_sql and "postgres" in entry.lower() else
                 "vlang"      if has_v_mod   else
                 "c3"         if has_c3      else
                 "r"          if has_r       else
@@ -714,6 +727,8 @@ def list_extensions():
         # R: check if R/Rscript is installed
         has_r_exec = None
         has_rtools = None
+        has_swift_exec = None
+        has_psql_exec = None
         if has_r:
             import shutil as _shutil
             has_r_exec = bool(
@@ -737,6 +752,31 @@ def list_extensions():
                 ])
             else:
                 has_rtools = True  # Linux/macOS use system gcc
+
+        # Swift toolchain check
+        if has_swift_pkg:
+            import shutil as _shutil
+            has_swift_exec = bool(
+                _shutil.which("swift") or
+                any(os.path.isfile(p) for p in [
+                    r"C:\Swift\bin\swift.exe",
+                    r"C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr\bin\swift.exe",
+                ])
+            )
+
+        # Postgres CLI check (optional live SQL validation)
+        if has_postgres_sql and "postgres" in entry.lower():
+            import shutil as _shutil
+            has_psql_exec = bool(
+                _shutil.which("psql") or
+                any(os.path.isfile(p) for p in [
+                    r"C:\Program Files\PostgreSQL\17\bin\psql.exe",
+                    r"C:\Program Files\PostgreSQL\16\bin\psql.exe",
+                    r"C:\Program Files\PostgreSQL\15\bin\psql.exe",
+                    r"C:\Program Files\PostgreSQL\14\bin\psql.exe",
+                    r"C:\Program Files\PostgreSQL\13\bin\psql.exe",
+                ])
+            )
         # Parse CMakeLists.txt to find the real primary cmake target name
         cmake_target = None
         if has_cmake:
@@ -771,6 +811,8 @@ def list_extensions():
             "has_c3c_exec": has_c3c_exec,
             "has_r_exec":   has_r_exec,
             "has_rtools":   has_rtools,
+            "has_swift_exec": has_swift_exec,
+            "has_psql_exec": has_psql_exec,
         })
     return JSONResponse({"bindings": bindings})
 

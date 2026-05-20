@@ -1,5 +1,24 @@
 # Compiling
 
+## v1.3.5 Sub-Repo Additions
+
+The following repositories are tracked as git submodules for v1.3.5:
+
+1. `business_site` at `_sub_repos/business_site` from `https://github.com/MeanderingAI/business_site.git`
+2. `Teniky` at `_sub_repos/Teniky` from `https://github.com/AIMeandering/Teniky.git`
+
+Clone with submodules:
+
+```bash
+git clone --recurse-submodules https://github.com/MeanderingAI/CoolBox.git
+```
+
+Update submodules after cloning:
+
+```bash
+git submodule update --init --recursive
+```
+
 ## Release Assets: Platform and Binding Labels
 
 Starting with v1.1.58, all release assets for purchase workflows (including `manifest.txt` and `SHA256SUMS`) are uploaded with unique names that include both the platform and binding type. This prevents asset name collisions and makes it clear which asset corresponds to which package and platform.

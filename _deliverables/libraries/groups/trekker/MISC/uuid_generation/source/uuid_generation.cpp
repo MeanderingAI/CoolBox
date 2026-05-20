@@ -49,6 +49,54 @@ std::array<std::uint8_t, 6> random_node_id() {
     return node;
 }
 
+char base36_digit(std::uint8_t value) {
+    return static_cast<char>(value < 10U ? ('0' + value) : ('a' + (value - 10U)));
+}
+
+std::string to_base36(std::uint64_t value) {
+    if (value == 0U) {
+        return "0";
+    }
+    std::string out;
+    while (value > 0U) {
+        const std::uint8_t digit = static_cast<std::uint8_t>(value % 36U);
+        out.push_back(base36_digit(digit));
+        value /= 36U;
+    }
+    std::reverse(out.begin(), out.end());
+    return out;
+}
+
+std::string to_base36_padded(std::uint64_t value, std::size_t width) {
+    std::string out = to_base36(value);
+    if (out.size() < width) {
+        out.insert(out.begin(), width - out.size(), '0');
+    } else if (out.size() > width) {
+        out = out.substr(out.size() - width);
+    }
+    return out;
+}
+
+std::string random_base36(std::size_t count) {
+    std::string out;
+    out.reserve(count);
+    std::uint64_t pool = 0U;
+    std::uint8_t available = 0U;
+
+    while (out.size() < count) {
+        if (available == 0U) {
+            pool = random_u64();
+            available = 12U; // floor(log_36(2^64)) ~= 12
+        }
+        const std::uint8_t digit = static_cast<std::uint8_t>(pool % 36U);
+        out.push_back(base36_digit(digit));
+        pool /= 36U;
+        --available;
+    }
+
+    return out;
+}
+
 std::uint64_t now_100ns_since_gregorian_epoch() {
     const auto now = std::chrono::system_clock::now().time_since_epoch();
     const auto unix_100ns = std::chrono::duration_cast<std::chrono::duration<std::uint64_t, std::ratio<1, 10000000>>>(now).count();
@@ -376,6 +424,26 @@ Uuid generate_v8(const std::vector<std::uint8_t>& custom_entropy) {
 
 std::string generate_guid() {
     return generate_v4().to_guid_string(true);
+}
+
+std::string generate_cuid() {
+    // CUID format used here: c + time(8) + counter(4) + fingerprint(4) + random(8)
+    // => fixed 25-char lowercase identifier.
+    static std::atomic<std::uint32_t> counter{0U};
+    static const std::string fingerprint = random_base36(4);
+
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    const std::uint64_t unix_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+    const std::uint32_t count = counter.fetch_add(1U) % 1679616U; // 36^4
+
+    std::string out;
+    out.reserve(25);
+    out.push_back('c');
+    out += to_base36_padded(unix_ms, 8);
+    out += to_base36_padded(count, 4);
+    out += fingerprint;
+    out += random_base36(8);
+    return out;
 }
 
 } // namespace uuid_generation

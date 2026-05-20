@@ -288,6 +288,15 @@ add_emscripten_module(uuid_generation_js createUuidGenerationModule
     "${UUID_GEN_SRC_DIR}/headers"
 )
 
+if(BUILD_TESTING)
+    add_test(
+        NAME emscripten_uuid_bindings_cuid_smoke
+        COMMAND ${CMAKE_COMMAND}
+            -DUUID_BINDINGS_FILE=${CMAKE_CURRENT_SOURCE_DIR}/uuid_generation_bindings.cpp
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_uuid_bindings_cuid.cmake
+    )
+endif()
+
 # ── Audio Processing ─────────────────────────────────────────────
 set(AUDIO_PROC_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/audio_visual_group/VIDEO_ASSETS/audio_processing")
 
