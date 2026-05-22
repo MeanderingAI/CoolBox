@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
 master_installer.py
@@ -19,56 +20,9 @@ Usage:
   python master_installer.py --check         # check which are installed
 
 Each installer streams output line-by-line and exits with the sentinel
-    __EXIT_CODE__:<n>
-so that the GUI frontend can parse success/failure.
 """
 
-import os
-import re
-import sys
-import argparse
-import platform
-import shutil
-import subprocess
-import tarfile
-import zipfile
-import urllib.request
-from pathlib import Path
-
-# Ensure UTF-8 output on Windows (avoids cp1252 UnicodeEncodeError)
-if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
-    sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1, closefd=False)
-if sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
-    sys.stderr = open(sys.stderr.fileno(), mode='w', encoding='utf-8', buffering=1, closefd=False)
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _os() -> str:
-    return platform.system()   # "Windows" | "Darwin" | "Linux"
-
-def _arch() -> str:
-    m = platform.machine().lower()
-    if m in ("amd64", "x86_64"):
-        return "amd64"
-    if m in ("arm64", "aarch64"):
-        return "arm64"
-    return m
-
-def _which(name: str, extra_paths: list[str] | None = None) -> str | None:
-    exe = shutil.which(name)
-    if exe:
-        return exe
-    if extra_paths:
-        for p in extra_paths:
-            if os.path.isfile(p):
-                return p
-    return None
-
-def _tmp_dir() -> Path:
-    root = Path(__file__).resolve().parent.parent.parent
-    d = root / "_local_build_pipeline" / "tmp" / "installers"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+TOOLS["install_dep"] = {"label": "Install missing dependencies (GSL, Doxygen)", "fn": install_dep, "check": tuple()}
 
 def _download(url: str, dest: Path) -> None:
     print(f"  Downloading {url}", flush=True)
@@ -866,8 +820,8 @@ def main() -> int:
     )
     parser.add_argument(
         "tools", nargs="*",
-        choices=list(TOOLS.keys()) + ["all"],
-        help="Tool(s) to install: go | maven | c3c | vlang | r | all",
+        choices=list(TOOLS.keys()) + ["all", "install_dep"],
+        help="Tool(s) to install: go | maven | c3c | vlang | r | install_dep | all",
     )
     parser.add_argument("--all",   action="store_true", help="Install all tools")
     parser.add_argument("--check", action="store_true", help="Check which tools are installed")
