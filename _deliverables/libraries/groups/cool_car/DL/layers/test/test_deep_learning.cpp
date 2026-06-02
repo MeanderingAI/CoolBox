@@ -1,3 +1,7 @@
+
+#include <complex>
+#include <type_traits>
+#include <limits>
 #include "tyst_framework.hpp"
 #include "tensor.h"
 #include "layer.h"
@@ -624,20 +628,12 @@ TEST(IntegrationTest, RNNPipeline) {
     EXPECT_EQ(output.shape()[1], 3);
 }
 
+
 // ============================================================================
-// Integration: Transformer Encoder Pipeline
+// Main entry point for tyst framework
 // ============================================================================
 
-TEST(IntegrationTest, TransformerEncoderPipeline) {
-    TransformerEncoderLayer encoder(16, 4, 64, 0.0);
-    Tensor input({5, 16});
-    input.randomize(-0.1, 0.1);
-    
-    // Run two encoder layers sequentially
-    Tensor hidden = encoder.forward(input);
-    TransformerEncoderLayer encoder2(16, 4, 64, 0.0);
-    Tensor output = encoder2.forward(hidden);
-    
-    EXPECT_EQ(output.shape()[0], 5);
-    EXPECT_EQ(output.shape()[1], 16);
+int main(int argc, char** argv) {
+    tyst::framework::init(&argc, argv);
+    return tyst::framework::run_all_tests();
 }

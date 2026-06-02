@@ -25,16 +25,16 @@ void ExtendedKalmanFilter::setMeasurementModel(
 // Helper: multiply DenseMatrix by vector
 static ExtendedKalmanFilter::Vector multiplyVec(const ExtendedKalmanFilter::Matrix& M, const ExtendedKalmanFilter::Vector& v) {
     size_t rows = M.rows(), cols = M.cols();
-    ExtendedKalmanFilter::Vector result(rows, 0.0);
+    ExtendedKalmanFilter::Vector result = ExtendedKalmanFilter::Vector::Zero(rows);
     for (size_t i = 0; i < rows; ++i)
         for (size_t j = 0; j < cols; ++j)
-            result[i] += M.at(i, j) * v[j];
+            result.at(i) += M.at(i, j) * v.at(j);
     return result;
 }
 
 // Helper: convert unique_ptr<MatrixBase> to DenseMatrix
-static ExtendedKalmanFilter::Matrix toDense(const std::unique_ptr<matrix::MatrixBase>& ptr) {
-    const matrix::DenseMatrix* dm = dynamic_cast<const matrix::DenseMatrix*>(ptr.get());
+static ExtendedKalmanFilter::Matrix toDense(const std::unique_ptr<mytrix::MatrixBase>& ptr) {
+    const mytrix::DenseMatrix* dm = dynamic_cast<const mytrix::DenseMatrix*>(ptr.get());
     if (!dm) throw std::runtime_error("Matrix conversion failed");
     return *dm;
 }
@@ -44,13 +44,13 @@ void ExtendedKalmanFilter::predict() {
     x_ = f_(x_);
     // P_ = F_mat * P_ * F_mat.transpose() + Q_;
     // F_mat * P_ * F_mat.transpose() + Q_
-    std::unique_ptr<matrix::MatrixBase> FP_ptr = F_mat.multiply(P_);
+    std::unique_ptr<mytrix::MatrixBase> FP_ptr = F_mat.multiply(P_);
     Matrix FP = toDense(FP_ptr);
-    std::unique_ptr<matrix::MatrixBase> Ft_ptr = F_mat.transpose();
+    std::unique_ptr<mytrix::MatrixBase> Ft_ptr = F_mat.transpose();
     Matrix Ft = toDense(Ft_ptr);
-    std::unique_ptr<matrix::MatrixBase> FPFt_ptr = FP.multiply(Ft);
+    std::unique_ptr<mytrix::MatrixBase> FPFt_ptr = FP.multiply(Ft);
     Matrix FPFt = toDense(FPFt_ptr);
-    std::unique_ptr<matrix::MatrixBase> PQ_ptr = FPFt.add(Q_);
+    std::unique_ptr<mytrix::MatrixBase> PQ_ptr = FPFt.add(Q_);
     P_ = toDense(PQ_ptr);
 }
 
@@ -58,33 +58,33 @@ void ExtendedKalmanFilter::update(const Vector& z) {
     Matrix H_mat = H_(x_);
     Vector y = z;
     const Vector hx = h_(x_);
-    for (size_t i = 0; i < y.size(); ++i) y[i] -= hx[i];
-    std::unique_ptr<matrix::MatrixBase> HP_ptr = H_mat.multiply(P_);
+    for (size_t i = 0; i < y.size(); ++i) y.at(i) -= hx.at(i);
+    std::unique_ptr<mytrix::MatrixBase> HP_ptr = H_mat.multiply(P_);
     Matrix HP = toDense(HP_ptr);
-    std::unique_ptr<matrix::MatrixBase> Ht_ptr = H_mat.transpose();
+    std::unique_ptr<mytrix::MatrixBase> Ht_ptr = H_mat.transpose();
     Matrix Ht = toDense(Ht_ptr);
-    std::unique_ptr<matrix::MatrixBase> HPHt_ptr = HP.multiply(Ht);
+    std::unique_ptr<mytrix::MatrixBase> HPHt_ptr = HP.multiply(Ht);
     Matrix HPHt = toDense(HPHt_ptr);
-    std::unique_ptr<matrix::MatrixBase> S_ptr = HPHt.add(R_);
+    std::unique_ptr<mytrix::MatrixBase> S_ptr = HPHt.add(R_);
     Matrix S = toDense(S_ptr);
     // For now, use identity as S inverse (should implement real inverse)
     Matrix S_inv = Matrix(S.data.inverse());
-    std::unique_ptr<matrix::MatrixBase> PHt_ptr = P_.multiply(Ht);
+    std::unique_ptr<mytrix::MatrixBase> PHt_ptr = P_.multiply(Ht);
     Matrix PHt = toDense(PHt_ptr);
-    std::unique_ptr<matrix::MatrixBase> K_ptr = PHt.multiply(S_inv);
+    std::unique_ptr<mytrix::MatrixBase> K_ptr = PHt.multiply(S_inv);
     Matrix K = toDense(K_ptr);
     // x_ = x_ + K * y;
     Vector Ky = multiplyVec(K, y);
-    for (size_t i = 0; i < x_.size(); ++i) x_[i] += Ky[i];
+    for (size_t i = 0; i < x_.size(); ++i) x_.at(i) += Ky.at(i);
     // I - K*H
     Matrix I = Matrix::Identity(x_.size());
-    std::unique_ptr<matrix::MatrixBase> KH_ptr = K.multiply(H_mat);
+    std::unique_ptr<mytrix::MatrixBase> KH_ptr = K.multiply(H_mat);
     Matrix KH = toDense(KH_ptr);
     Matrix I_minus_KH = I;
     for (size_t r = 0; r < I.rows(); ++r)
         for (size_t c = 0; c < I.cols(); ++c)
             I_minus_KH.at(r, c) -= KH.at(r, c);
-    std::unique_ptr<matrix::MatrixBase> IP_ptr = I_minus_KH.multiply(P_);
+    std::unique_ptr<mytrix::MatrixBase> IP_ptr = I_minus_KH.multiply(P_);
     P_ = toDense(IP_ptr);
 }
 

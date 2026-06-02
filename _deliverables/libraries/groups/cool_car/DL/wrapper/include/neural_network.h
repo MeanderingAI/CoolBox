@@ -4,7 +4,7 @@
 #include "layer.h"
 #include "loss.h"
 #include "optimizer.h"
-#include "tensor.h"
+#include "../../layers/include/tensor.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -71,7 +71,7 @@ public:
 
     Tensor forward(const Tensor& input);
     void train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
-               size_t epochs = 10, size_t batch_size = 32, bool verbose = false);
+               int epochs = 10, int batch_size = 32, bool verbose = false);
     Tensor predict(const Tensor& input);
 
     double train_step(const Tensor& input, const Tensor& target);

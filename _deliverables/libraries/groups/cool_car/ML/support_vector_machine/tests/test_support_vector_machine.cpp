@@ -43,7 +43,9 @@ TYST_TEST(SupportVectorMachineKernelTest, LinearKernelComputesDotProduct) {
 	const Eigen::VectorXd left = make_vector(1.0, 3.0);
 	const Eigen::VectorXd right = make_vector(2.0, 4.0);
 
-	TYST_EXPECT_NEAR(kernel.calculate(left, right), 14.0, 1e-12);
+	std::vector<double> left_vec(left.data(), left.data() + left.size());
+	std::vector<double> right_vec(right.data(), right.data() + right.size());
+	TYST_EXPECT_NEAR(kernel.calculate(left_vec, right_vec), 14.0, 1e-12);
 }
 
 TYST_TEST(SupportVectorMachineKernelTest, PolynomialKernelAppliesGammaOffsetAndDegree) {
@@ -52,14 +54,17 @@ TYST_TEST(SupportVectorMachineKernelTest, PolynomialKernelAppliesGammaOffsetAndD
 	const Eigen::VectorXd left = make_vector(2.0, 0.0);
 	const Eigen::VectorXd right = make_vector(1.0, 1.0);
 
-	TYST_EXPECT_NEAR(kernel.calculate(left, right), 8.0, 1e-12);
+	std::vector<double> left_vec(left.data(), left.data() + left.size());
+	std::vector<double> right_vec(right.data(), right.data() + right.size());
+	TYST_EXPECT_NEAR(kernel.calculate(left_vec, right_vec), 8.0, 1e-12);
 }
 
 TYST_TEST(SupportVectorMachineKernelTest, RbfKernelReturnsOneForIdenticalVectors) {
 	RBFKernel kernel(0.75);
 	const Eigen::VectorXd sample = make_vector(1.5, -0.5);
 
-	TYST_EXPECT_NEAR(kernel.calculate(sample, sample), 1.0, 1e-12);
+	std::vector<double> sample_vec(sample.data(), sample.data() + sample.size());
+	TYST_EXPECT_NEAR(kernel.calculate(sample_vec, sample_vec), 1.0, 1e-12);
 }
 
 TYST_TEST(SupportVectorMachineKernelTest, SigmoidKernelMatchesHyperbolicTangentForm) {
@@ -68,7 +73,9 @@ TYST_TEST(SupportVectorMachineKernelTest, SigmoidKernelMatchesHyperbolicTangentF
 	const Eigen::VectorXd left = make_vector(2.0, 1.0);
 	const Eigen::VectorXd right = make_vector(4.0, -2.0);
 
-	TYST_EXPECT_NEAR(kernel.calculate(left, right), std::tanh(0.25 * 6.0 - 0.5), 1e-12);
+	std::vector<double> left_vec(left.data(), left.data() + left.size());
+	std::vector<double> right_vec(right.data(), right.data() + right.size());
+	TYST_EXPECT_NEAR(kernel.calculate(left_vec, right_vec), std::tanh(0.25 * 6.0 - 0.5), 1e-12);
 }
 
 TYST_TEST(SupportVectorMachineModelTest, LinearKernelSeparatesTrainingSamples) {
@@ -77,10 +84,12 @@ TYST_TEST(SupportVectorMachineModelTest, LinearKernelSeparatesTrainingSamples) {
 
 	const Eigen::MatrixXd inputs = make_separable_training_inputs();
 	const Eigen::VectorXd labels = make_separable_training_labels();
-	svm.fit(inputs, labels);
+	svm.fit(mytrix::DenseMatrix(inputs), mytrix::DenseMatrix(labels));
 
 	for (Eigen::Index index = 0; index < inputs.rows(); ++index) {
-		TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix(inputs.row(index).begin(), 1, inputs.cols())), labels(index));
+		std::vector<double> row_vec(inputs.row(index).data(), inputs.row(index).data() + inputs.cols());
+		mytrix::DenseMatrix row_matrix(row_vec, 1, inputs.cols());
+		TYST_EXPECT_EQ(svm.predict(row_matrix), labels(index));
 	}
 }
 
@@ -88,10 +97,10 @@ TYST_TEST(SupportVectorMachineModelTest, LinearKernelClassifiesHeldOutPointsNear
 	LinearKernel kernel;
 	SVM svm(kernel);
 
-	svm.fit(make_separable_training_inputs(), make_separable_training_labels());
+	svm.fit(mytrix::DenseMatrix(make_separable_training_inputs()), mytrix::DenseMatrix(make_separable_training_labels()));
 
-	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({3.0, 1.0}, 1, 2)), 1.0);
-	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({-2.5, -1.5}, 1, 2)), -1.0);
+	TYST_EXPECT_EQ(svm.predict(mytrix::DenseMatrix({3.0, 1.0}, 1, 2)), 1.0);
+	TYST_EXPECT_EQ(svm.predict(mytrix::DenseMatrix({-2.5, -1.5}, 1, 2)), -1.0);
 }
 
 TYST_TEST(SupportVectorMachineModelTest, RbfKernelSeparatesSameSimpleDataset) {
@@ -100,8 +109,8 @@ TYST_TEST(SupportVectorMachineModelTest, RbfKernelSeparatesSameSimpleDataset) {
 
 	const Eigen::MatrixXd inputs = make_separable_training_inputs();
 	const Eigen::VectorXd labels = make_separable_training_labels();
-	svm.fit(inputs, labels);
+	svm.fit(mytrix::DenseMatrix(inputs), mytrix::DenseMatrix(labels));
 
-	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({2.5, 1.5}, 1, 2)), 1.0);
-	TYST_EXPECT_EQ(svm.predict(matrix::DenseMatrix({-1.5, -2.5}, 1, 2)), -1.0);
+	TYST_EXPECT_EQ(svm.predict(mytrix::DenseMatrix({2.5, 1.5}, 1, 2)), 1.0);
+	TYST_EXPECT_EQ(svm.predict(mytrix::DenseMatrix({-1.5, -2.5}, 1, 2)), -1.0);
 }

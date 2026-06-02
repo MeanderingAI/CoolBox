@@ -36,4 +36,10 @@ public:
           voltage_(voltage),
           internal_resistance_(internal_resistance) {}
 
-    /**
+    // ...existing code...
+
+};
+
+} // namespace circuitry
+
+#endif // CIRCUITRY_BATTERY_H

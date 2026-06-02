@@ -35,7 +35,7 @@ public:
      * @brief Trains the model using a Document-Term Matrix (M).
      * @param document_term_matrix The input matrix. It must be convertible to Eigen::MatrixXd.
      */
-    void train(const matrix::DenseMatrix& document_term_matrix);
+    void train(const mytrix::DenseMatrix& document_term_matrix);
 
     /**
      * @brief Predicts the reconstructed value for a given document and term (U_i * V_j^T).
@@ -49,13 +49,13 @@ public:
      * @brief Gets the Document-Feature Matrix (U).
      * @return U matrix. Rows are documents, columns are latent features.
      */
-    const matrix::DenseMatrix& get_document_features() const { return U; }
+    const mytrix::DenseMatrix& get_document_features() const { return U; }
 
     /**
      * @brief Gets the Term-Feature Matrix (V).
      * @return V matrix. Rows are terms, columns are latent features.
      */
-    const matrix::DenseMatrix& get_term_features() const { return V; }
+    const mytrix::DenseMatrix& get_term_features() const { return V; }
 
 private:
     int K; // Number of latent features
@@ -67,9 +67,9 @@ private:
     int num_terms;
 
     // U: Document-Feature Matrix (D x K)
-    matrix::DenseMatrix U;
+    mytrix::DenseMatrix U;
     // V: Term-Feature Matrix (T x K)
-    matrix::DenseMatrix V;
+    mytrix::DenseMatrix V;
 
     /**
      * @brief Initializes the matrices U and V.

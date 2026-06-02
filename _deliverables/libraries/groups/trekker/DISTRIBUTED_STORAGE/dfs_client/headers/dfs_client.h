@@ -120,8 +120,9 @@ public:
 
     // Connect to an in-process MetadataServer + local BlockStore (for testing
     // and single-machine use).  In a real deployment these would be TCP stubs.
+    DfsClient(MetadataServer* meta, BlockStore* local_store);
     explicit DfsClient(MetadataServer* meta, BlockStore* local_store,
-                       Config cfg = {});
+                       Config cfg);
 
     // ── Namespace ─────────────────────────────────────────────────────────
     DfsError mkdir(const std::string& path, bool parents = false,

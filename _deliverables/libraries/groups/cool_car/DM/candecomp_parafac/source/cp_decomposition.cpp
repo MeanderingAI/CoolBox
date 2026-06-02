@@ -33,6 +33,29 @@ mytrix::DenseMatrix kronecker_product(const mytrix::DenseMatrix& A,
     return result;
 }
 
+mytrix::DenseMatrix khatri_rao_product(const mytrix::DenseMatrix& A,
+                                       const mytrix::DenseMatrix& B) {
+    if (A.cols() != B.cols()) {
+        throw std::invalid_argument(
+            "Khatri-Rao product requires equal number of columns");
+    }
+
+    const int rows = A.rows() * B.rows();
+    const int cols = A.cols();
+    mytrix::DenseMatrix result(rows, cols);
+
+    for (int r = 0; r < cols; ++r) {
+        int out = 0;
+        for (int i = 0; i < A.rows(); ++i) {
+            for (int j = 0; j < B.rows(); ++j) {
+                result(out++, r) = A(i, r) * B(j, r);
+            }
+        }
+    }
+
+    return result;
+}
+
 mytrix::DenseMatrix hadamard_product(const mytrix::DenseMatrix& A,
                                      const mytrix::DenseMatrix& B) {
     if (A.rows() != B.rows() || A.cols() != B.cols()) {
@@ -133,8 +156,8 @@ CPDecomposition decompose_3d_tensor(
             }
         }
 
-        // Kronecker product: C ⊙ B (row-wise kron)
-        mytrix::DenseMatrix kr_CB = kronecker_product(C, B);
+        // Khatri-Rao product: C ⊙ B
+        mytrix::DenseMatrix kr_CB = khatri_rao_product(C, B);
 
         // Solve mode-I unfolding: A = tensor_I * kr_CB * inv(gram_C ∘ gram_B)
         // For simplicity, use pseudo-inverse via normal equations
@@ -170,8 +193,8 @@ CPDecomposition decompose_3d_tensor(
             }
         }
 
-        // Kronecker product: C ⊙ A
-        mytrix::DenseMatrix kr_CA = kronecker_product(C, A);
+        // Khatri-Rao product: C ⊙ A
+        mytrix::DenseMatrix kr_CA = khatri_rao_product(C, A);
         mytrix::DenseMatrix numerator_B = tensor_J * kr_CA;
         mytrix::DenseMatrix hadamard_grams_B = hadamard_product(gram_C, gram_A);
 
@@ -195,8 +218,8 @@ CPDecomposition decompose_3d_tensor(
             }
         }
 
-        // Kronecker product: B ⊙ A
-        mytrix::DenseMatrix kr_BA = kronecker_product(B, A);
+        // Khatri-Rao product: B ⊙ A
+        mytrix::DenseMatrix kr_BA = khatri_rao_product(B, A);
         mytrix::DenseMatrix numerator_C = tensor_K * kr_BA;
         mytrix::DenseMatrix hadamard_grams_C = hadamard_product(gram_B, gram_A);
 

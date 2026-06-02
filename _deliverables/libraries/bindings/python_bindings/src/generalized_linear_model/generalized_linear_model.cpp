@@ -1,5 +1,5 @@
 
-#include <generalized_linear_model.h>
+#include "generalized_linear_model/generalized_linear_model.h"
 
 /**
  * @brief Initialize the model parameters.

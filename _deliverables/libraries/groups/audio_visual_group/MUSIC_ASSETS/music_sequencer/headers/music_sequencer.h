@@ -112,7 +112,8 @@ public:
         float         beats_per_step = 0.25f; // 1/16 note at 4/4
     };
 
-    explicit Sequencer(Config cfg = {});
+    Sequencer();
+    explicit Sequencer(Config cfg);
 
     // ── Slider controls (thread-safe) ──────────────────────────────────────
     void set_bpm(float bpm);

@@ -1,0 +1,58 @@
+# Makefile.osx - macOS-specific build logic for CoolBox
+
+# Set Python executable (prefer venv)
+PYTHON := $(if $(wildcard .venv/bin/python),$(CURDIR)/.venv/bin/python,python3)
+
+# Homebrew is the default package manager on macOS
+BREW := $(shell command -v brew 2>/dev/null)
+
+# Emscripten SDK location (override with EMSDK=/your/path)
+EMSDK ?= $(HOME)/emsdk
+
+# Set global DYLD_LIBRARY_PATH for all run/install commands
+DYLD_LIBRARY_PATH := $(CURDIR)/lib:$(DYLD_LIBRARY_PATH)
+
+.DEFAULT_GOAL := help
+
+help:
+	@echo "\nCoolBox macOS Build System"
+	@echo "----------------------------------------"
+	@echo "make configure            Configure CMake for macOS (Unix Makefiles)"
+	@echo "make build                Build all targets"
+	@echo "make build_libraries      Build all libraries"
+	@echo "make test                 Run all tests"
+	@echo "make install_system_deps  Install system dependencies via Homebrew"
+	@echo "make clean                Remove build artifacts"
+
+configure:
+	@echo "[Makefile.osx] Configuring CMake for macOS..."
+	@cmake -S . -B build -G "Unix Makefiles"
+
+build: configure
+	@echo "[Makefile.osx] Building all targets..."
+	@cmake --build build
+
+build_libraries: configure
+	@echo "[Makefile.osx] Building all libraries..."
+	@cmake --build build
+
+# Run all tests
+
+test: configure
+	@echo "[Makefile.osx] Building test binaries..."
+	@cmake --build build
+	@echo "[Makefile.osx] Running all tests..."
+	@cd build && ctest --output-on-failure || true
+
+# Install system dependencies using Homebrew
+install_system_deps:
+	@if [ -z "$(BREW)" ]; then \
+		echo "Homebrew not found. Please install Homebrew: https://brew.sh/"; \
+		exit 1; \
+	fi
+	@echo "[Makefile.osx] Installing system dependencies via Homebrew..."
+	@$(BREW) install cmake doxygen gsl eigen || true
+
+clean:
+	@echo "[Makefile.osx] Cleaning build artifacts..."
+	@rm -rf build lib

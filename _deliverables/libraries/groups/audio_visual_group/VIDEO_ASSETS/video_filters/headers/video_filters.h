@@ -99,7 +99,8 @@ public:
         int   search_radius = 8;    // half-pel search range
         float blend_alpha   = 0.6f; // weight of current frame
     };
-    explicit MotionCompensatedDenoise(Config cfg = {});
+    MotionCompensatedDenoise();
+    explicit MotionCompensatedDenoise(Config cfg);
 
     VideoFrame process(const VideoFrame& current);
     void reset();

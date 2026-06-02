@@ -35,9 +35,10 @@ if(BUILD_TESTING)
         distributed_lock/tests/test_distributed_lock.cpp
         service_registry/tests/test_service_registry.cpp
         circuit_breaker/tests/test_circuit_breaker.cpp
+        ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
     )
     target_link_libraries(distributed_tests PRIVATE
-        distributed_compute tyst_framework_main Threads::Threads)
+        distributed_compute Threads::Threads)
     target_include_directories(distributed_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/task_queue/headers
         ${CMAKE_CURRENT_SOURCE_DIR}/consensus/headers
@@ -45,6 +46,7 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/distributed_lock/headers
         ${CMAKE_CURRENT_SOURCE_DIR}/service_registry/headers
         ${CMAKE_CURRENT_SOURCE_DIR}/circuit_breaker/headers
+        ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
     )
     add_test(NAME DistributedTests COMMAND distributed_tests)
 endif()

@@ -11,7 +11,7 @@ TYST_TEST(MarkedPointProcessTest, UsesConfiguredParametersForIntensityPrediction
 	MarkedPointProcess process(2, 0.01, 1);
 
 	process.set_base_intensity({0.2, 0.3});
-	matrix::DenseMatrix excitation(2, 2);
+	mytrix::DenseMatrix excitation(2, 2);
 	excitation.at(0,0) = 0.5; excitation.at(0,1) = 0.0;
 	excitation.at(1,0) = 0.0; excitation.at(1,1) = 0.25;
 	process.set_excitation_matrix(excitation);
@@ -27,7 +27,7 @@ TYST_TEST(MarkedPointProcessTest, GeneratesValidSequencesAndFiniteLikelihoods) {
 	MarkedPointProcess process(2, 0.01, 1);
 
 	process.set_base_intensity({0.4, 0.2});
-	process.set_excitation_matrix(matrix::DenseMatrix(2, 2));
+	process.set_excitation_matrix(mytrix::DenseMatrix(2, 2));
 	process.set_decay_rate(1.0);
 
 	const auto [times, marks] = process.generate_sequence(3.0, 20);

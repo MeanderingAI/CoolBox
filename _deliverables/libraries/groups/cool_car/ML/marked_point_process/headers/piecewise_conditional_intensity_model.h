@@ -101,7 +101,7 @@ public:
      */
     void fit_with_covariates(
         const std::vector<std::vector<double>>& event_times,
-        const std::vector<matrix::DenseMatrix>& covariates
+        const std::vector<mytrix::DenseMatrix>& covariates
     );
 
     /**

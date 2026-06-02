@@ -52,9 +52,35 @@ enum class ComponentType {
     WIRE
 };
 
+
 /**
  * @brief Base class for all circuit components.
  *
  * Every component has two endpoint coordinates (node1, node2),
- * a label, and a raw value string. Derived classes add
- * ...existing code...
+ * a label, and a raw value string. Derived classes add additional fields.
+ */
+
+class Component {
+public:
+    Point node1_;
+    Point node2_;
+    std::string label_;
+    std::string value_;
+
+    Component()
+        : node1_(), node2_(), label_(""), value_("") {}
+
+    Component(double x1, double y1, double x2, double y2,
+              const std::string& label, const std::string& value)
+        : node1_(x1, y1), node2_(x2, y2), label_(label), value_(value) {}
+
+    virtual ~Component() = default;
+
+    virtual ComponentType type() const = 0;
+    virtual std::string type_name() const = 0;
+    virtual std::string to_string() const = 0;
+};
+
+} // namespace circuitry
+
+#endif // CIRCUITRY_COMPONENT_H

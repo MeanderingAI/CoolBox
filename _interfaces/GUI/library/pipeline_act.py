@@ -3,11 +3,9 @@ import subprocess
 import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
+from __init__ import GITHUB_WORKFLOWS, REPO_ROOT
 
 router = APIRouter()
-
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-GITHUB_WORKFLOWS = os.path.join(REPO_ROOT, ".github", "workflows")
 
 
 def _docker_ready() -> bool:

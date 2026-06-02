@@ -52,9 +52,12 @@ if(BUILD_TESTING)
 		maps/tests/test_concurrent_hash_map.cpp
 		list/tests/test_concurrent_linked_list.cpp
 		filters/tests/test_bloom_filter.cpp
-		filters/tests/test_egh_filter.cpp	trees/tests/test_van_emde_boas.cpp
-	list/tests/test_priority_queue.cpp	)
-	target_link_libraries(data_structures_tests PRIVATE data_structures tyst_framework_main Threads::Threads)
+		filters/tests/test_egh_filter.cpp
+		trees/tests/test_van_emde_boas.cpp
+		list/tests/test_priority_queue.cpp
+		${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
+	)
+	target_link_libraries(data_structures_tests PRIVATE data_structures Threads::Threads)
 	if(TARGET thread_pool_utils)
 		target_link_libraries(data_structures_tests PRIVATE thread_pool_utils)
 	endif()
@@ -64,6 +67,7 @@ if(BUILD_TESTING)
 		${CMAKE_CURRENT_SOURCE_DIR}/maps/headers
 		${CMAKE_CURRENT_SOURCE_DIR}/list/headers
 		${CMAKE_CURRENT_SOURCE_DIR}/filters/headers
+		${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
 	)
 	add_test(NAME DataStructuresTests COMMAND data_structures_tests)
 endif()

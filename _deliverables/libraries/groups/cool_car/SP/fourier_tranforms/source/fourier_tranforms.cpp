@@ -108,8 +108,8 @@ ComplexMatrix::ComplexMatrix(std::size_t rows, std::size_t cols)
     : real(rows, cols), imag(rows, cols) {}
 
 ComplexMatrix::ComplexMatrix(const std::vector<std::vector<Complex>>& values)
-    : real(values.size(), values.empty() ? 0U : values.front().size()),
-      imag(values.size(), values.empty() ? 0U : values.front().size()) {
+        : real(values.size(), values.empty() ? 0U : values.front().size()),
+            imag(values.size(), values.empty() ? 0U : values.front().size()) {
     if (values.empty()) {
         return;
     }

@@ -478,9 +478,24 @@ bool FullApplicationWindow::create() {
                                                      2UL,
                                                      false);
 
+    if (!impl_->config.title.c_str()) {
+#ifdef __OBJC__
+        NSLog(@"[DEBUG] Window title is null pointer! Setting to default title.");
+#endif
+    }
+    else if (strlen(impl_->config.title.c_str()) == 0) {
+#ifdef __OBJC__
+        NSLog(@"[DEBUG] Window title is empty string! Setting to default title.");
+#endif
+    }
+    else {
+#ifdef __OBJC__
+        NSLog(@"[DEBUG] Window title: %s", impl_->config.title.c_str());
+#endif
+    }
     auto* title_string = reinterpret_cast<MsgSend>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSString")),
                                                                  sel_registerName("stringWithUTF8String:"),
-                                                                 impl_->config.title.c_str());
+                                                                 impl_->config.title.c_str() ? impl_->config.title.c_str() : "Untitled");
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(window, sel_registerName("setTitle:"), title_string);
     if (impl_->config.visible) {
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(window, sel_registerName("makeKeyAndOrderFront:"), nil);
@@ -688,9 +703,24 @@ void FullApplicationWindow::set_title(const std::string& title) {
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->window) {
+        if (!title.c_str()) {
+    #ifdef __OBJC__
+            NSLog(@"[DEBUG] set_title: title is null pointer! Setting to default title.");
+    #endif
+        }
+        else if (strlen(title.c_str()) == 0) {
+    #ifdef __OBJC__
+            NSLog(@"[DEBUG] set_title: title is empty string! Setting to default title.");
+    #endif
+        }
+        else {
+    #ifdef __OBJC__
+            NSLog(@"[DEBUG] set_title: title = %s", title.c_str());
+    #endif
+        }
         auto* title_string = reinterpret_cast<id (*)(id, SEL, const char*)>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSString")),
                                                                                             sel_registerName("stringWithUTF8String:"),
-                                                                                            title.c_str());
+                                                                                            title.c_str() ? title.c_str() : "Untitled");
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(reinterpret_cast<id>(impl_->window), sel_registerName("setTitle:"), title_string);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)

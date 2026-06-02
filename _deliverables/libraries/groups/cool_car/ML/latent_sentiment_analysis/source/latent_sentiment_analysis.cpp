@@ -9,8 +9,8 @@ LatentSentimentAnalysis::LatentSentimentAnalysis(int latent_features,
 void LatentSentimentAnalysis::initialize_matrices(int rows_U, int rows_V) {
     std::mt19937 gen(42);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
-    U = matrix::DenseMatrix(rows_U, K);
-    V = matrix::DenseMatrix(rows_V, K);
+    U = mytrix::DenseMatrix(rows_U, K);
+    V = mytrix::DenseMatrix(rows_V, K);
     for (int i = 0; i < rows_U; ++i)
         for (int j = 0; j < K; ++j)
             U.at(i, j) = dist(gen) * 0.1;
@@ -28,7 +28,7 @@ void LatentSentimentAnalysis::sgd_step(int i, int j, double error) {
     }
 }
 
-void LatentSentimentAnalysis::train(const matrix::DenseMatrix& document_term_matrix) {
+void LatentSentimentAnalysis::train(const mytrix::DenseMatrix& document_term_matrix) {
     num_documents = document_term_matrix.rows();
     num_terms = document_term_matrix.cols();
     initialize_matrices(num_documents, num_terms);

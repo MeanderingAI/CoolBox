@@ -8,7 +8,7 @@
  *   - MNA solver correctness for series, parallel, and mixed circuits
  */
 
-#include "tyst_framework.hpp"
+#include <tyst_framework.hpp>
 #include "circuitry.h"
 
 #include <cmath>

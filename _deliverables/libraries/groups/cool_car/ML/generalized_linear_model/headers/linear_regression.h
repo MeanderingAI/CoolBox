@@ -30,10 +30,11 @@ private:
 class LinearRegression : public GLM {
 private:
     std::mt19937 g;
+    LinearRegressionFitMethod fit_method_copy_;
 public:
     // The constructor correctly initializes the base class first, then its own members.
-    LinearRegression(const LinearRegressionFitMethod& fit_method) 
-        : GLM(fit_method) {
+    LinearRegression(const LinearRegressionFitMethod& fit_method)
+        : GLM(fit_method), fit_method_copy_(fit_method) {
         std::random_device rd;
         g.seed(rd());
     }

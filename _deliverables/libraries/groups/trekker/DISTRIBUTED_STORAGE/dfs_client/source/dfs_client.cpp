@@ -116,6 +116,9 @@ DfsError FileHandle::close() {
 
 // ── DfsClient ─────────────────────────────────────────────────────────────────
 
+DfsClient::DfsClient(MetadataServer* meta, BlockStore* store)
+    : DfsClient(meta, store, Config{}) {}
+
 DfsClient::DfsClient(MetadataServer* meta, BlockStore* store, Config cfg)
     : meta_(meta), store_(store), cfg_(std::move(cfg)) {}
 

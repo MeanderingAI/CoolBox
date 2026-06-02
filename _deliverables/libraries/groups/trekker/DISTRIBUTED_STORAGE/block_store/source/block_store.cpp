@@ -50,6 +50,8 @@ BlockId compute_block_id(const std::uint8_t* data, std::size_t len) {
 
 // ── BlockStore ────────────────────────────────────────────────────────────────
 
+BlockStore::BlockStore() : cfg_{} {}
+
 BlockStore::BlockStore(Config cfg) : cfg_(std::move(cfg)) {}
 
 BlockId BlockStore::put(const std::uint8_t* data, std::size_t len) {
@@ -75,7 +77,6 @@ std::optional<std::vector<std::uint8_t>> BlockStore::get(const BlockId& id) cons
     std::lock_guard<std::mutex> lock(mtx_);
     auto it = store_.find(hex);
     if (it == store_.end()) return std::nullopt;
-    it->second.meta.ref_count; // touch atime conceptually
     return it->second.data;
 }
 

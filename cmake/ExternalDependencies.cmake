@@ -13,7 +13,32 @@ endif()
 # Use FetchContent to manage external dependencies
 include(FetchContent)
 
-## Eigen removed: replaced by mytrix everywhere
+
+# --- Eigen (header-only, always fetch for portability) ---
+if(NOT TARGET Eigen3::Eigen)
+  message(STATUS "Fetching Eigen3 via FetchContent (header-only)...")
+  include(FetchContent)
+  FetchContent_Declare(
+    eigen
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+    GIT_TAG 3.4.0
+  )
+
+  # Populate Eigen sources without add_subdirectory/MakeAvailable so Eigen's
+  # own tests are not registered into this repository's CTest run.
+  FetchContent_GetProperties(eigen)
+  if(NOT eigen_POPULATED)
+    FetchContent_Populate(eigen)
+  endif()
+
+  # Provide Eigen3::Eigen target for consumers
+  if(NOT TARGET Eigen3::Eigen)
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    set_target_properties(Eigen3::Eigen PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${eigen_SOURCE_DIR}"
+    )
+  endif()
+endif()
 
 
 # Find or fetch Doxygen

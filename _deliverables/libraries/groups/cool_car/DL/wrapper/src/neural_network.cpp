@@ -4,6 +4,8 @@
 namespace ml {
 namespace deep_learning {
 
+NeuralNetwork::NeuralNetwork() = default;
+
 void NeuralNetwork::add_layer(std::shared_ptr<Layer> layer) {
     layers_.push_back(layer);
 }

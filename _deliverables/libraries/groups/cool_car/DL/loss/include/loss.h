@@ -1,7 +1,7 @@
 #ifndef LOSS_H
 #define LOSS_H
 
-#include "tensor.h"
+#include "../../layers/include/tensor.h"
 #include <string>
 
 namespace ml {

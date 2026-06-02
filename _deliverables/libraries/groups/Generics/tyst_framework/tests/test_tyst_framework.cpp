@@ -38,3 +38,11 @@ TYST_TEST_F(CounterFixture, SupportsFixtures) {
 }
 
 } // namespace
+
+// Main entry point for tyst framework
+#if defined(__APPLE__) && defined(__aarch64__)
+int main(int argc, char** argv) {
+    tyst::framework::init(&argc, argv);
+    return tyst::framework::run_all_tests();
+}
+#endif

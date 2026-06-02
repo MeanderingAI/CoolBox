@@ -197,6 +197,7 @@ class GitSubRepos extends HTMLElement {
         style.textContent = STYLE;
         shadow.appendChild(style);
 
+
         const toolbar = document.createElement('div');
         toolbar.className = 'toolbar';
 
@@ -208,8 +209,30 @@ class GitSubRepos extends HTMLElement {
         refreshBtn.textContent = '↺ Refresh';
         refreshBtn.addEventListener('click', () => this._load());
 
+        const pullBtn = document.createElement('button');
+        pullBtn.className = 'refresh-btn';
+        pullBtn.textContent = '⇅ Pull All';
+        pullBtn.title = 'Run git pull --recurse-submodules in all sub-repos';
+        pullBtn.addEventListener('click', async () => {
+            pullBtn.disabled = true;
+            pullBtn.textContent = 'Pulling…';
+            try {
+                const res = await fetch('/git/sub-repos/pull', { method: 'POST' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Unknown error');
+                this._load();
+            } catch (err) {
+                alert('Failed to pull all sub-repos: ' + err);
+            } finally {
+                pullBtn.disabled = false;
+                pullBtn.textContent = '⇅ Pull All';
+            }
+        });
+
         toolbar.appendChild(this._countLabel);
         toolbar.appendChild(refreshBtn);
+        toolbar.appendChild(pullBtn);
         shadow.appendChild(toolbar);
 
         this._content = document.createElement('div');

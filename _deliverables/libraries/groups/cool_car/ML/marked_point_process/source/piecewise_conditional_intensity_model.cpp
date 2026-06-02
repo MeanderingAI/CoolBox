@@ -178,7 +178,7 @@ void PiecewiseConditionalIntensityModel::fit(const std::vector<std::vector<doubl
 
 void PiecewiseConditionalIntensityModel::fit_with_covariates(
     const std::vector<std::vector<double>>& event_times,
-    const std::vector<matrix::DenseMatrix>& covariates) {
+    const std::vector<mytrix::DenseMatrix>& covariates) {
     fit(event_times); // Simplified
 }
 

@@ -1,7 +1,7 @@
 #ifndef COOLBOX__LIBRARIES_PACKAGES_DM_CANDECOMP_PARAFAC_HEADERS_CP_DECOMPOSITION_HPP
 #define COOLBOX__LIBRARIES_PACKAGES_DM_CANDECOMP_PARAFAC_HEADERS_CP_DECOMPOSITION_HPP
 
-#include "matrix_dense.h"
+#include "../../MATRIX/headers/matrix_dense.h"
 
 #include <cstddef>
 #include <limits>

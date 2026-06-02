@@ -1,5 +1,10 @@
+
 cmake_minimum_required(VERSION 3.20)
 project(CoolBoxSQL LANGUAGES C CXX)
+
+# Force Eigen to use at least C++11 (and respect top-level C++ standard)
+set(EIGEN_TEST_CXX11 ON CACHE BOOL "Enable C++11/17 for Eigen" FORCE)
+
 
 # Ensure custom Find*.cmake modules are found before dependency checks run.
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
@@ -343,8 +348,8 @@ if(BUILD_PYTHON_BINDINGS)
     endif()
 endif()
 
-
-
-
+# Find and include Eigen3 globally for all targets that need it
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 # External QUIC/HTTP3 dependency support disabled for pure HTTP2 build

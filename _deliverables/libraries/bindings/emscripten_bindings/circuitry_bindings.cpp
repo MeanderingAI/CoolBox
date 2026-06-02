@@ -39,3 +39,7 @@ val solve_circuit_json(const std::string& json_str) {
     result.set("total_current", sol.total_current);
     return result;
 }
+
+EMSCRIPTEN_BINDINGS(circuitry_module) {
+    function("solve_circuit_json", &solve_circuit_json);
+}

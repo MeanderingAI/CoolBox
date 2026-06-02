@@ -1,16 +1,12 @@
 import os
+import sys
 import subprocess
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
+from __init__ import REPO_ROOT, DSN_PATH, SCRIPT_PATH
 
 router = APIRouter()
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SCRIPT_PATH = os.path.join(REPO_ROOT, "_scripts", "preview_github_workflow_changes.py")
-
-
-# Store DSN in a temp file for session persistence
-DSN_PATH = os.path.join(REPO_ROOT, "_local_build_pipeline", "tmp", "postgres_dsn.txt")
 
 @router.get("/api/pipeline/dsn")
 def get_postgres_dsn():

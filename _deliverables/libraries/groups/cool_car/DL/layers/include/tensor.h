@@ -1,7 +1,8 @@
 #ifndef TENSOR_H
-
 #define TENSOR_H
 
+#include <complex>
+#include <type_traits>
 #include <vector>
 #include <memory>
 #include <stdexcept>
@@ -14,6 +15,8 @@ namespace ml {
 namespace deep_learning {
 
 class Tensor {
+    // Internal utility: convert N-D indices to flat index
+    size_t flat_index(const std::vector<size_t>& indices) const;
 public:
     // Constructors
     Tensor() : data_(), shape_() {}

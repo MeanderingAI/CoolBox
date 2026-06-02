@@ -13,7 +13,7 @@ namespace dimensionality_reduction {
 
 class KNN {
 public:
-    using Matrix = matrix::DenseMatrix;
+    using Matrix = mytrix::DenseMatrix;
     using Vector = std::vector<double>;
 
     explicit KNN(int k = 5, const std::string& metric = "euclidean");

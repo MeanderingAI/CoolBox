@@ -1,5 +1,16 @@
+# Add a CTest entry to run the Python HMM bindings test
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+add_test(NAME hmm_python_bindings_test
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_bindings.py
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
 # Add bindings for new libraries
-add_subdirectory(http)
+option(BUILD_PYTHON_HTTP_BINDINGS "Build python http_bindings module" OFF)
+if(BUILD_PYTHON_HTTP_BINDINGS)
+    add_subdirectory(http)
+else()
+    message(STATUS "Skipping python http_bindings (BUILD_PYTHON_HTTP_BINDINGS=OFF)")
+endif()
 add_subdirectory(fuzzer)
 cmake_minimum_required(VERSION 3.12)
 project(ml_core_python_bindings)
@@ -37,6 +48,8 @@ list(FILTER ML_SOURCES EXCLUDE REGEX "main\\.cpp$")
 pybind11_add_module(ml_core 
     py_ml_core.cpp
     ${ML_SOURCES}
+    src/generalized_linear_model/generalized_linear_model.cpp
+    src/generalized_linear_model/linear_regression.cpp
     src/distributed/distributed_trainer.cpp
     src/distributed/message_passing.cpp
     src/nlp/embeddings.cpp
@@ -51,6 +64,7 @@ pybind11_add_module(ml_core
     ../../groups/cool_car/DL/wrapper/src/neural_network.cpp
     ../../groups/cool_car/DL/loss/src/loss.cpp
     ../../groups/cool_car/DL/layers/src/layer.cpp
+    src/pde_spde_bindings.cpp
 )
 
 # Set properties
@@ -86,3 +100,31 @@ endif()
 set_target_properties(ml_core PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
+# Add py_circuitry only when the circuitry API is available in headers.
+set(CIRCUITRY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/sim_group/ELECTRONICS/circuitry/include)
+set(CIRCUITRY_HEADER ${CIRCUITRY_INCLUDE_DIR}/circuit.h)
+
+set(BUILD_PY_CIRCUITRY ON)
+if(EXISTS ${CIRCUITRY_HEADER})
+    file(READ ${CIRCUITRY_HEADER} CIRCUITRY_HEADER_CONTENT)
+    string(FIND "${CIRCUITRY_HEADER_CONTENT}" "class Circuit" HAS_CIRCUIT_CLASS)
+    if(HAS_CIRCUIT_CLASS EQUAL -1)
+        set(BUILD_PY_CIRCUITRY OFF)
+        message(WARNING "Skipping py_circuitry: circuitry headers do not expose class Circuit yet.")
+    endif()
+else()
+    set(BUILD_PY_CIRCUITRY OFF)
+    message(WARNING "Skipping py_circuitry: circuitry header not found.")
+endif()
+
+if(BUILD_PY_CIRCUITRY)
+    pybind11_add_module(py_circuitry
+        electronics/py_circuitry.cpp
+    )
+    target_include_directories(py_circuitry PRIVATE
+        ${CIRCUITRY_INCLUDE_DIR}
+    )
+    target_link_libraries(py_circuitry PRIVATE Eigen3::Eigen)
+    set_target_properties(py_circuitry PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+endif()

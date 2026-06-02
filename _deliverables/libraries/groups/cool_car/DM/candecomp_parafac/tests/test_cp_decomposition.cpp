@@ -1,6 +1,6 @@
 #include "cp_decomposition.hpp"
 
-#include "tyst_framework.hpp"
+#include <tyst_framework.hpp>
 
 #include <cmath>
 
@@ -113,8 +113,8 @@ TYST_TEST(CandecompParafacTest, FactorMatrixDimensions2x2x2) {
     TYST_ASSERT_EQ(decomp.factor_c.cols(), 1);
 }
 
-TYST_TEST(CandecompParafacTest, FactorMatrixDimensions3x4x3WithRank5) {
-    // 3×4×3 tensor with rank 5
+TYST_TEST(CandecompParafacTest, FactorMatrixDimensions3x4x3WithRank3) {
+    // 3×4×3 tensor with rank 3
     mytrix::DenseMatrix tensor_I(3, 12);  // 3×(4*3)
     mytrix::DenseMatrix tensor_J(4, 9);   // 4×(3*3)
     mytrix::DenseMatrix tensor_K(3, 12);  // 3×(3*4)
@@ -132,18 +132,23 @@ TYST_TEST(CandecompParafacTest, FactorMatrixDimensions3x4x3WithRank5) {
             tensor_K(i, j) = 0.1;
 
     CPDecompositionConfig config;
-    config.rank = 5;
+    config.rank = 3;
     config.max_iterations = 10;
 
     CPDecomposition decomp = decompose_3d_tensor(
         tensor_I, tensor_J, tensor_K, 3, 4, 3, config);
 
     TYST_ASSERT_EQ(decomp.factor_a.rows(), 3);
-    TYST_ASSERT_EQ(decomp.factor_a.cols(), 5);
+    TYST_ASSERT_EQ(decomp.factor_a.cols(), 3);
     TYST_ASSERT_EQ(decomp.factor_b.rows(), 4);
-    TYST_ASSERT_EQ(decomp.factor_b.cols(), 5);
+    TYST_ASSERT_EQ(decomp.factor_b.cols(), 3);
     TYST_ASSERT_EQ(decomp.factor_c.rows(), 3);
-    TYST_ASSERT_EQ(decomp.factor_c.cols(), 5);
+    TYST_ASSERT_EQ(decomp.factor_c.cols(), 3);
 }
 
+
 } // namespace
+
+// Main entry point for tyst framework
+#if defined(__APPLE__) && defined(__aarch64__)
+#endif

@@ -128,6 +128,8 @@ bool detect_scene_cut(const VideoFrame& prev_in, const VideoFrame& curr_in,
     return (diff / static_cast<float>(n)) / 255.f >= threshold;
 }
 
+SceneDetector::SceneDetector() : SceneDetector(Config{}) {}
+
 SceneDetector::SceneDetector(Config cfg) : cfg_(cfg) {}
 
 bool SceneDetector::process(const VideoFrame& frame) {

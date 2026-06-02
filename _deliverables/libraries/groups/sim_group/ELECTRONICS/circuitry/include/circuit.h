@@ -12,6 +12,10 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <type_traits>
+#include <utility>
+#include <memory>
+
 namespace circuitry {
 
 /**
@@ -38,3 +42,9 @@ namespace circuitry {
  *     "type": "wire",
  *     "x1": 200, "y1": 300, "x2": 300, "y2": 300,
  *     "label": "", "value": ""
+ * ]
+ * @endcode
+ */
+} // namespace circuitry
+
+#endif // CIRCUIT_H

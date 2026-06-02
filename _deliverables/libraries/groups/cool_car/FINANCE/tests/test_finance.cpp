@@ -1,6 +1,6 @@
 #include "finance.hpp"
 
-#include "tyst_framework.hpp"
+#include <tyst_framework.hpp>
 
 #include <cmath>
 #include <stdexcept>

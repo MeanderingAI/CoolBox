@@ -12,12 +12,8 @@ from typing import Optional
 
 
 def _repo_root() -> str:
-    # This file lives at _interfaces/GUI/library/makefile_manager.py.
-    # Four levels up: library/ → GUI/ → _interfaces/ → CoolBox/ (repo root)
-    return os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
-
+    """Return repository root (CoolBox/) from _interfaces/GUI/library/."""
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 def _is_windows() -> bool:
     return platform.system() == "Windows"

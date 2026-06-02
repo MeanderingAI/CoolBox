@@ -1,4 +1,4 @@
-#include "DL/wrapper/include/neural_network.h"
+#include "deep_learning/neural_network.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm>

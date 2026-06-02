@@ -12,7 +12,7 @@ void LinearRegression::fit(const std::vector<std::vector<double>>& X, const std:
     int num_features = static_cast<int>(X[0].size());
     initialize_parameters(num_features);
 
-    const auto& method = dynamic_cast<const LinearRegressionFitMethod&>(fit_method_);
+    const auto& method = fit_method_copy_;
 
     if (method.get_type() == LinearRegressionFitMethod::CLOSED_FORM) {
         // Normal equation: w = (X^T X)^{-1} X^T y

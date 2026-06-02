@@ -39,9 +39,17 @@ public:
     static Resistor from_fields(double x1, double y1, double x2, double y2,
                                 const std::string& label,
                                 const std::string& value_str) {
-        double r = parse_numeric(value_str);
+                                double r = parse_numeric(value_str); // Call to the new parse_numeric function
         return Resistor(x1, y1, x2, y2, label, value_str, r);
     }
+
+                            static double parse_numeric(const std::string& value_str) {
+                                // Simple parser: extract the first number in the string
+                                std::istringstream iss(value_str);
+                                double val = 0.0;
+                                iss >> val;
+                                return val;
+                            }
 
     // --- Component interface ---
     ComponentType type() const override { return ComponentType::RESISTOR; }
@@ -57,4 +65,11 @@ public:
     }
 
     // --- Accessors ---
-    ...existing code...
+    double resistance() const { return resistance_; }
+    void set_resistance(double r) { resistance_ = r; }
+
+};
+
+} // namespace circuitry
+
+#endif // CIRCUITRY_RESISTOR_H

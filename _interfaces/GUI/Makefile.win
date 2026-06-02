@@ -1,5 +1,10 @@
+dashboard: install-deps
 install-deps:
 	@echo Installing dashboard dependencies...
+	if not exist ..\.venv\Scripts\pip.exe (
+		@echo pip not found, attempting to install...
+		../.venv/Scripts/python.exe -m ensurepip --upgrade || ../.venv/Scripts/python.exe -m pip install --upgrade pip
+	)
 	../.venv/Scripts/python.exe -m pip install -r requirements.txt
 
 dashboard: install-deps

@@ -35,6 +35,10 @@ struct VuMeterState {
 };
 
 class VuMeter {
+    public:
+        VuMeter() = default;
+    VuMeter(const VuMeter&) = delete;
+    VuMeter& operator=(const VuMeter&) = delete;
 public:
     // Call after each render block with interleaved stereo samples.
     void update(const std::vector<float>& stereo_samples);
@@ -73,6 +77,8 @@ struct ChannelStripState {
 // Owns a VuMeter; applies gain, fader, and pan to a mono or stereo audio block.
 
 class ChannelStrip {
+    ChannelStrip(const ChannelStrip&) = delete;
+    ChannelStrip& operator=(const ChannelStrip&) = delete;
 public:
     explicit ChannelStrip(std::size_t id, ChannelStripState state = {});
 
@@ -164,7 +170,7 @@ public:
 
 private:
     std::uint32_t              sample_rate_;
-    std::vector<ChannelStrip>  channels_;
+    std::vector<std::unique_ptr<ChannelStrip>> channels_;
     std::size_t                next_id_ = 0;
     MasterSectionState         master_;
     VuMeter                    master_vu_;

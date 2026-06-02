@@ -8,7 +8,7 @@
 #include <memory>
 #include <stdexcept>
 
-using matrix::DenseMatrix;
+using mytrix::DenseMatrix;
 
 namespace bayesian_db {
 

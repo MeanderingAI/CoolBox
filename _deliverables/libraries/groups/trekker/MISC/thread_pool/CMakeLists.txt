@@ -9,8 +9,12 @@ target_include_directories(thread_pool_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
 enable_testing()
 add_executable(thread_pool_tests
     tests/test_thread_pool.cpp
+    ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
 )
-target_link_libraries(thread_pool_tests PRIVATE thread_pool_utils tyst_framework_main)
+target_link_libraries(thread_pool_tests PRIVATE thread_pool_utils)
+target_include_directories(thread_pool_tests SYSTEM PRIVATE
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
+)
 add_test(NAME ThreadPoolTests COMMAND thread_pool_tests)
 
 set_target_properties(thread_pool_utils PROPERTIES PUBLIC_HEADER "headers/thread_pool.h")

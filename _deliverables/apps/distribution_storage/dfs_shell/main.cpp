@@ -77,7 +77,7 @@ int main(int argc, char* /*argv*/[]) {
             std::ifstream f(local_path, std::ios::binary);
             if (!f) { std::cout << "cannot open local file: " << local_path << "\n"; continue; }
             const std::vector<std::uint8_t> data(
-                std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+                (std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
             if (!ms.exists(dfs_path)) ms.create(dfs_path);
             const auto err = client.write_all(dfs_path, data.data(), data.size());
             if (err == trekker::dfs::DfsError::OK)

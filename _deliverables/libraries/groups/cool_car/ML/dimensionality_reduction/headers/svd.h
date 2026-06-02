@@ -11,7 +11,7 @@ namespace dimensionality_reduction {
 
 class SVD {
 public:
-    using Matrix = matrix::DenseMatrix;
+    using Matrix = mytrix::DenseMatrix;
     using Vector = std::vector<double>;
 
     explicit SVD(bool compute_full_matrices = false);

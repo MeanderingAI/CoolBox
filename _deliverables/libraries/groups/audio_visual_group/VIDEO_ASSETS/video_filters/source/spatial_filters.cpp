@@ -327,6 +327,8 @@ void TemporalDenoise::reset() { has_prev_ = false; }
 
 // ── Motion-compensated denoise ────────────────────────────────────────────────
 
+MotionCompensatedDenoise::MotionCompensatedDenoise() : MotionCompensatedDenoise(Config{}) {}
+
 MotionCompensatedDenoise::MotionCompensatedDenoise(Config cfg) : cfg_(cfg) {}
 
 VideoFrame MotionCompensatedDenoise::compensate(const VideoFrame& cur,

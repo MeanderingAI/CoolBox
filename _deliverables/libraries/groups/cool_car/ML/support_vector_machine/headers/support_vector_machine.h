@@ -60,11 +60,11 @@ public:
     ~SVM() = default;
 
     enum class SolverType { GradientDescent, SMO };
-    void fit(const matrix::DenseMatrix& X, const matrix::DenseMatrix& y, SolverType solver = SolverType::SMO);
-    double predict(const matrix::DenseMatrix& sample) const;
+    void fit(const mytrix::DenseMatrix& X, const mytrix::DenseMatrix& y, SolverType solver = SolverType::SMO);
+    double predict(const mytrix::DenseMatrix& sample) const;
 
 private:
-    matrix::DenseMatrix support_vectors_;
+    mytrix::DenseMatrix support_vectors_;
     std::vector<double> support_vector_labels_;
     std::vector<double> alphas_;
     double bias_;

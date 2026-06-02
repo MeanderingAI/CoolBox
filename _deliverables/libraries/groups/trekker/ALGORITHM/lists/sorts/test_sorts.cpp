@@ -1,4 +1,4 @@
-#include "tyst_framework.hpp"
+#include <tyst_framework.hpp>
 #include "sorts.h"
 
 #include <algorithm>
@@ -277,23 +277,23 @@ TEST(HeapSortTest, AllSame) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 TEST(IntroSortTest, RandomInts) {
-    check_sort([](auto b, auto e){ intro_sort(b, e); }, make_random(500));
+    check_sort([](auto b, auto e){ intro_sort(b, e, std::less<>{}); }, make_random(500));
 }
 
 TEST(IntroSortTest, AlreadySorted) {
-    check_sort([](auto b, auto e){ intro_sort(b, e); }, make_sorted(200));
+    check_sort([](auto b, auto e){ intro_sort(b, e, std::less<>{}); }, make_sorted(200));
 }
 
 TEST(IntroSortTest, Reversed) {
-    check_sort([](auto b, auto e){ intro_sort(b, e); }, make_reversed(200));
+    check_sort([](auto b, auto e){ intro_sort(b, e, std::less<>{}); }, make_reversed(200));
 }
 
 TEST(IntroSortTest, Duplicates) {
-    check_sort([](auto b, auto e){ intro_sort(b, e); }, make_duplicates(500));
+    check_sort([](auto b, auto e){ intro_sort(b, e, std::less<>{}); }, make_duplicates(500));
 }
 
 TEST(IntroSortTest, LargeRandom) {
-    check_sort([](auto b, auto e){ intro_sort(b, e); }, make_random(100000, 31));
+    check_sort([](auto b, auto e){ intro_sort(b, e, std::less<>{}); }, make_random(100000, 31));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -456,6 +456,6 @@ TEST(CrossAlgorithmTest, AllAgreeOnRandomInput) {
     test("merge",     [](auto b, auto e){ merge_sort(b, e); });
     test("quick",     [](auto b, auto e){ quick_sort(b, e); });
     test("heap",      [](auto b, auto e){ heap_sort(b, e); });
-    test("intro",     [](auto b, auto e){ intro_sort(b, e); });
+    test("intro",     [](auto b, auto e){ intro_sort(b, e, std::less<>{}); });
     test("tim",       [](auto b, auto e){ tim_sort(b, e); });
 }

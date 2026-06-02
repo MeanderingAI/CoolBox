@@ -29,7 +29,7 @@ public:
     std::optional<std::unordered_map<std::string, std::string>> map(const std::string& table, const std::unordered_map<std::string, std::string>& evidence) const;
     std::optional<std::unordered_map<std::string, std::string>> mle(const std::string& table, const std::unordered_map<std::string, std::string>& evidence) const;
     // Encode a table as a matrix (strings to ints)
-    std::unique_ptr<matrix::DenseMatrix> table_to_matrix(const std::string& table) const;
+    std::unique_ptr<mytrix::DenseMatrix> table_to_matrix(const std::string& table) const;
     // Decode a matrix row to string values
     std::unordered_map<std::string, std::string> decode_row(const std::string& table, const std::vector<int>& encoded_row) const;
 private:

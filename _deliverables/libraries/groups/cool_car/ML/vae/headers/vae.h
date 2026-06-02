@@ -49,9 +49,9 @@ struct VAEEpochResult {
  */
 class VAE {
 public:
-    using MatrixD = matrix::DenseMatrix;
-    using VectorD = std::vector<double>;
-    using RowVectorD = std::vector<double>; // or a custom row vector type if available
+    using MatrixD = mytrix::DenseMatrix;
+    using VectorD = mytrix::DenseVector;
+    using RowVectorD = mytrix::DenseVector;
 
 private:
     int input_dim_;
@@ -146,7 +146,7 @@ public:
                 // Extract batch
                 MatrixD batch(bs, input_dim_);
                 for (int i = 0; i < bs; ++i)
-                    batch.row(i) = data.row(indices[start + i]);
+                    batch.data.row(i) = data.row(indices[start + i]).data;
 
                 // ── E-step: forward pass ──
                 ForwardCache cache = forward(batch);
@@ -183,9 +183,9 @@ public:
      * @brief Encode data to latent space (returns mean of q(z|x)).
      */
     MatrixD encode(const MatrixD& x) const {
-        MatrixD h1 = (x * W1_).rowwise() + b1_.transpose();
+        MatrixD h1 = (x * W1_).rowwise_add(b1_);
         MatrixD h1_act = relu(h1);
-        MatrixD mu = (h1_act * W_mu_).rowwise() + b_mu_.transpose();
+        MatrixD mu = (h1_act * W_mu_).rowwise_add(b_mu_);
         return mu;
     }
 
@@ -193,10 +193,10 @@ public:
      * @brief Encode to full posterior parameters (mean and log-variance).
      */
     std::pair<MatrixD, MatrixD> encode_distribution(const MatrixD& x) const {
-        MatrixD h1 = (x * W1_).rowwise() + b1_.transpose();
+        MatrixD h1 = (x * W1_).rowwise_add(b1_);
         MatrixD h1_act = relu(h1);
-        MatrixD mu = (h1_act * W_mu_).rowwise() + b_mu_.transpose();
-        MatrixD logvar = (h1_act * W_logvar_).rowwise() + b_logvar_.transpose();
+        MatrixD mu = (h1_act * W_mu_).rowwise_add(b_mu_);
+        MatrixD logvar = (h1_act * W_logvar_).rowwise_add(b_logvar_);
         return {mu, logvar};
     }
 
@@ -204,9 +204,9 @@ public:
      * @brief Decode latent vectors to reconstructions.
      */
     MatrixD decode(const MatrixD& z) const {
-        MatrixD h2 = (z * W2_).rowwise() + b2_.transpose();
+        MatrixD h2 = (z * W2_).rowwise_add(b2_);
         MatrixD h2_act = relu(h2);
-        MatrixD logits = (h2_act * W3_).rowwise() + b3_.transpose();
+        MatrixD logits = (h2_act * W3_).rowwise_add(b3_);
         return sigmoid(logits);
     }
 
@@ -290,15 +290,15 @@ private:
     // ---------------------------------------------------------------
 
     static MatrixD relu(const MatrixD& x) {
-        return x.cwiseMax(0.0);
+        return MatrixD(x.data.cwiseMax(0.0));
     }
 
     static MatrixD relu_grad(const MatrixD& x) {
-        return (x.array() > 0.0).cast<double>();
+        return MatrixD((x.data.array() > 0.0).cast<double>());
     }
 
     static MatrixD sigmoid(const MatrixD& x) {
-        return (1.0 + (-x.array()).exp()).inverse().matrix();
+        return MatrixD((1.0 + (-x.data.array()).exp()).inverse().matrix());
     }
 
     // ---------------------------------------------------------------
@@ -311,20 +311,20 @@ private:
         int bs = static_cast<int>(x.rows());
 
         // Encoder
-        c.h1     = (x * W1_).rowwise() + b1_.transpose();
+        c.h1     = MatrixD((x.data * W1_.data).rowwise() + b1_.data.transpose());
         c.h1_act = relu(c.h1);
-        c.mu     = (c.h1_act * W_mu_).rowwise() + b_mu_.transpose();
-        c.logvar = (c.h1_act * W_logvar_).rowwise() + b_logvar_.transpose();
+        c.mu     = MatrixD((c.h1_act.data * W_mu_.data).rowwise() + b_mu_.data.transpose());
+        c.logvar = MatrixD((c.h1_act.data * W_logvar_.data).rowwise() + b_logvar_.data.transpose());
 
         // Reparameterisation: z = μ + σ ⊙ ε
-        c.std = (0.5 * c.logvar.array()).exp().matrix();
+        c.std = MatrixD((0.5 * c.logvar.data.array()).exp().matrix());
         c.eps = sample_noise(bs, latent_dim_);
-        c.z   = c.mu + c.std.cwiseProduct(c.eps);
+        c.z   = MatrixD(c.mu.data + c.std.data.cwiseProduct(c.eps.data));
 
         // Decoder
-        c.h2     = (c.z * W2_).rowwise() + b2_.transpose();
+        c.h2     = MatrixD((c.z.data * W2_.data).rowwise() + b2_.data.transpose());
         c.h2_act = relu(c.h2);
-        MatrixD logits = (c.h2_act * W3_).rowwise() + b3_.transpose();
+        MatrixD logits = MatrixD((c.h2_act.data * W3_.data).rowwise() + b3_.data.transpose());
         c.x_hat = sigmoid(logits);
 
         return c;
@@ -337,18 +337,18 @@ private:
     /** @brief Binary cross-entropy (mean over batch). */
     static double reconstruction_loss(const MatrixD& x, const MatrixD& x_hat) {
         // Clamp x_hat to avoid log(0)
-        MatrixD xh = x_hat.array().max(1e-8).min(1.0 - 1e-8).matrix();
-        double bce = -(x.array() * xh.array().log()
-                     + (1.0 - x.array()) * (1.0 - xh.array()).log()).sum();
-        return bce / x.rows();
+        MatrixD xh = MatrixD(x_hat.data.array().max(1e-8).min(1.0 - 1e-8).matrix());
+        double bce = -(x.data.array() * xh.data.array().log()
+                 + (1.0 - x.data.array()) * (1.0 - xh.data.array()).log()).sum();
+        return bce / x.data.rows();
     }
 
     /** @brief KL divergence KL(q(z|x) ‖ p(z)) (mean over batch). */
     static double kl_divergence(const MatrixD& mu, const MatrixD& logvar) {
         // KL = -0.5 * Σ(1 + log σ² - μ² - σ²)
-        double kl = -0.5 * (1.0 + logvar.array() - mu.array().square()
-                          - logvar.array().exp()).sum();
-        return kl / mu.rows();
+        double kl = -0.5 * (1.0 + logvar.data.array() - mu.data.array().square()
+                  - logvar.data.array().exp()).sum();
+        return kl / mu.data.rows();
     }
 
     // ---------------------------------------------------------------
@@ -362,67 +362,67 @@ private:
         // ── Decoder gradients ──
 
         // d_loss / d_logits = x_hat - x  (BCE gradient through sigmoid)
-        MatrixD d_logits = (c.x_hat - c.x);  // bs × input_dim
+        MatrixD d_logits = MatrixD(c.x_hat.data - c.x.data);
 
         // Gradients for W3, b3
-        MatrixD dW3 = c.h2_act.transpose() * d_logits * inv_bs;
-        VectorD db3 = d_logits.colwise().mean().transpose();
+        MatrixD dW3 = MatrixD(c.h2_act.data.transpose() * d_logits.data * inv_bs);
+        VectorD db3 = VectorD((d_logits.data.colwise().mean()).transpose());
 
         // Backprop through relu
-        MatrixD d_h2_act = d_logits * W3_.transpose();
-        MatrixD d_h2 = d_h2_act.cwiseProduct(relu_grad(c.h2));
+        MatrixD d_h2_act = MatrixD(d_logits.data * W3_.data.transpose());
+        MatrixD d_h2 = MatrixD(d_h2_act.data.cwiseProduct(relu_grad(c.h2).data));
 
         // Gradients for W2, b2
-        MatrixD dW2 = c.z.transpose() * d_h2 * inv_bs;
-        VectorD db2 = d_h2.colwise().mean().transpose();
+        MatrixD dW2 = MatrixD(c.z.data.transpose() * d_h2.data * inv_bs);
+        VectorD db2 = VectorD((d_h2.data.colwise().mean()).transpose());
 
         // ── Latent gradients ──
 
         // d_loss / d_z (from reconstruction)
-        MatrixD d_z = d_h2 * W2_.transpose();
+        MatrixD d_z = MatrixD(d_h2.data * W2_.data.transpose());
 
         // ── KL gradients (added to encoder gradients) ──
         // d_KL / d_mu = mu
         // d_KL / d_logvar = 0.5 * (exp(logvar) - 1)
-        MatrixD d_mu_kl = c.mu * inv_bs;
-        MatrixD d_logvar_kl = 0.5 * (c.logvar.array().exp() - 1.0).matrix() * inv_bs;
+        MatrixD d_mu_kl = MatrixD(c.mu.data * inv_bs);
+        MatrixD d_logvar_kl = MatrixD(0.5 * (c.logvar.data.array().exp() - 1.0).matrix() * inv_bs);
 
         // ── Encoder gradients (through reparameterisation) ──
 
         // d_z / d_mu = I
         // d_z / d_std = eps
         // d_z / d_logvar = 0.5 * std * eps  (chain through std = exp(0.5*logvar))
-        MatrixD d_mu = d_z + d_mu_kl;
-        MatrixD d_logvar = d_z.cwiseProduct(c.eps).cwiseProduct(c.std) * 0.5 + d_logvar_kl;
+        MatrixD d_mu = MatrixD(d_z.data + d_mu_kl.data);
+        MatrixD d_logvar = MatrixD(d_z.data.cwiseProduct(c.eps.data).cwiseProduct(c.std.data) * 0.5 + d_logvar_kl.data);
 
         // Gradients for W_mu, b_mu
-        MatrixD dW_mu = c.h1_act.transpose() * d_mu * inv_bs;
-        VectorD db_mu = d_mu.colwise().mean().transpose();
+        MatrixD dW_mu = MatrixD(c.h1_act.data.transpose() * d_mu.data * inv_bs);
+        VectorD db_mu = VectorD((d_mu.data.colwise().mean()).transpose());
 
         // Gradients for W_logvar, b_logvar
-        MatrixD dW_logvar = c.h1_act.transpose() * d_logvar * inv_bs;
-        VectorD db_logvar = d_logvar.colwise().mean().transpose();
+        MatrixD dW_logvar = MatrixD(c.h1_act.data.transpose() * d_logvar.data * inv_bs);
+        VectorD db_logvar = VectorD((d_logvar.data.colwise().mean()).transpose());
 
         // Backprop through encoder hidden
-        MatrixD d_h1_act = d_mu * W_mu_.transpose()
-                         + d_logvar * W_logvar_.transpose();
-        MatrixD d_h1 = d_h1_act.cwiseProduct(relu_grad(c.h1));
+        MatrixD d_h1_act = MatrixD(d_mu.data * W_mu_.data.transpose()
+                 + d_logvar.data * W_logvar_.data.transpose());
+        MatrixD d_h1 = MatrixD(d_h1_act.data.cwiseProduct(relu_grad(c.h1).data));
 
         // Gradients for W1, b1
-        MatrixD dW1 = c.x.transpose() * d_h1 * inv_bs;
-        VectorD db1 = d_h1.colwise().mean().transpose();
+        MatrixD dW1 = MatrixD(c.x.data.transpose() * d_h1.data * inv_bs);
+        VectorD db1 = VectorD((d_h1.data.colwise().mean()).transpose());
 
         // ── M-step: gradient descent update ──
-        W1_       -= learning_rate_ * dW1;
-        b1_       -= learning_rate_ * db1;
-        W_mu_     -= learning_rate_ * dW_mu;
-        b_mu_     -= learning_rate_ * db_mu;
-        W_logvar_ -= learning_rate_ * dW_logvar;
-        b_logvar_ -= learning_rate_ * db_logvar;
-        W2_       -= learning_rate_ * dW2;
-        b2_       -= learning_rate_ * db2;
-        W3_       -= learning_rate_ * dW3;
-        b3_       -= learning_rate_ * db3;
+        W1_       = MatrixD(W1_.data - dW1.data * learning_rate_);
+        b1_       = VectorD(b1_.data - db1.data * learning_rate_);
+        W_mu_     = MatrixD(W_mu_.data - dW_mu.data * learning_rate_);
+        b_mu_     = VectorD(b_mu_.data - db_mu.data * learning_rate_);
+        W_logvar_ = MatrixD(W_logvar_.data - dW_logvar.data * learning_rate_);
+        b_logvar_ = VectorD(b_logvar_.data - db_logvar.data * learning_rate_);
+        W2_       = MatrixD(W2_.data - dW2.data * learning_rate_);
+        b2_       = VectorD(b2_.data - db2.data * learning_rate_);
+        W3_       = MatrixD(W3_.data - dW3.data * learning_rate_);
+        b3_       = VectorD(b3_.data - db3.data * learning_rate_);
     }
 
     // ---------------------------------------------------------------

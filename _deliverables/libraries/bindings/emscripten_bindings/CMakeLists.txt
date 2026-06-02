@@ -305,3 +305,21 @@ add_emscripten_module(audio_processing_js createAudioProcessingModule
     "${AUDIO_PROC_SRC_DIR}/source/audio_buffer.cpp;${AUDIO_PROC_SRC_DIR}/source/resampler.cpp;${AUDIO_PROC_SRC_DIR}/source/mixer.cpp;${AUDIO_PROC_SRC_DIR}/source/effects.cpp"
     "${AUDIO_PROC_SRC_DIR}/headers"
 )
+
+# ── PDE/SPDE (MATH) ─────────────────────────────────────────────
+set(MATH_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/cool_car/MATH")
+
+add_emscripten_module(pde_spde_js createPdeSpdeModule
+    pde_spde_bindings.cpp
+    "${MATH_SRC_DIR}/pde_solver.cpp;${MATH_SRC_DIR}/spde.cpp"
+    "${MATH_SRC_DIR}"
+)
+
+# ── Circuitry (Electronics) ──────────────────────────────────────
+set(CIRCUITRY_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/sim_group/ELECTRONICS/circuitry")
+
+add_emscripten_module(circuitry_js createCircuitryModule
+    circuitry_bindings.cpp
+    "${CIRCUITRY_SRC_DIR}/src/circuit.cpp"
+    "${CIRCUITRY_SRC_DIR}/include"
+)

@@ -70,7 +70,8 @@ public:
         float   sensitivity        = 1.5f;
     };
 
-    explicit SceneDetector(Config cfg = {});
+    SceneDetector();
+    explicit SceneDetector(Config cfg);
 
     // Returns true if this frame starts a new scene.
     bool process(const VideoFrame& frame);

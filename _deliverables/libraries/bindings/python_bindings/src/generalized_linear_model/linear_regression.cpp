@@ -1,10 +1,10 @@
-
 #include <iostream>
 #include <stdexcept>
 #include <random>
-#include "mytrix_eigen_compat.hpp"
-#include <linear_regression.h>
-#include <generalized_linear_model.h>
+#include <algorithm>
+#include <numeric>
+#include <Eigen/Dense>
+#include "generalized_linear_model/linear_regression.h"
 
 
 /**
@@ -135,7 +135,16 @@ void LinearRegression::fit_sgd(const std::vector<std::vector<double>>& X, const 
  * @param method The fitting method to use.
  */
 void LinearRegression::fit(const std::vector<std::vector<double>>& X, const std::vector<double>& y) {
-    const auto& lr_fit_method = static_cast<const LinearRegressionFitMethod&>(fit_method_);
+    if (X.empty() || y.empty() || X.size() != y.size()) {
+        throw std::invalid_argument("Input data is invalid or has a size mismatch.");
+    }
+    if (X[0].empty()) {
+        throw std::invalid_argument("Input feature vectors cannot be empty.");
+    }
+
+    initialize_parameters(static_cast<int>(X[0].size()));
+
+    const auto& lr_fit_method = fit_method_copy_;
 
     const auto& method = lr_fit_method.get_type();
     switch (method) {

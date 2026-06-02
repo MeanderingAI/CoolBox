@@ -39,7 +39,7 @@ build: configure
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building project..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] Build complete."'
 
 build_libraries: configure
-	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building libraries (delegating to CMake)..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Release build failed, retrying default configuration..."; cmake --build build; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Both Release and default builds failed."; exit $$LASTEXITCODE } }; Write-Host "[Makefile.win] Build step finished."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building all libraries..."; cmake --build build --config Release'
 	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
 
 build_%: configure
@@ -99,3 +99,6 @@ clean:
 
 completion:
 	@$(POWERSHELL) -Command 'Write-Host "# completion script not implemented for Windows Makefile"'
+
+install_system_deps:
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Installing system dependencies via vcpkg..."; if (!(Test-Path vcpkg)) { git clone https://github.com/microsoft/vcpkg.git vcpkg; cd vcpkg; .\bootstrap-vcpkg.bat }; .\vcpkg\vcpkg.exe install eigen3 gsl doxygen cmake'

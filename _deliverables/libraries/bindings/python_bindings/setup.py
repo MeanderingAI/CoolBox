@@ -1,3 +1,4 @@
+from typing import Union
 import os
 from pathlib import Path
 import glob
@@ -7,6 +8,21 @@ import sys
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
+from setuptools.command.build_ext import build_ext as build_ext_orig
+class build_ext_with_move(build_ext_orig):
+    def run(self):
+        super().run()
+        # Move built ml_core*.so into ml_toolbox/ for in-place builds
+        search_dirs = ['.', self.build_lib if hasattr(self, 'build_lib') else None]
+        found = False
+        for search_dir in filter(None, search_dirs):
+            for so_file in glob.glob(os.path.join(search_dir, "ml_core*.so")):
+                dest = os.path.join("ml_toolbox", os.path.basename(so_file))
+                print(f"[post-build] Moving {so_file} -> {dest}")
+                shutil.move(so_file, dest)
+                found = True
+        if not found:
+            print("[post-build] No ml_core*.so file found to move.")
 
 
 project_root = Path(__file__).resolve().parent
@@ -84,7 +100,7 @@ def resolve_eigen_include_dirs(paths):
     return resolved
 
 
-def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
+def sync_vendor_file(repo_source: Union[Path, str], vendored_path: Union[Path, str]) -> Path:
     if repo_source.exists():
         vendored_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(repo_source, vendored_path)
@@ -95,7 +111,7 @@ def sync_vendor_file(repo_source: Path, vendored_path: Path) -> Path:
     return vendored_path
 
 
-def to_setup_relative_path(path: Path | str) -> str:
+def to_setup_relative_path(path: Union[Path, str]) -> str:
     path_obj = Path(path)
 
     if not path_obj.is_absolute():
@@ -243,7 +259,10 @@ include_dirs = [
 
 extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall"]
 
-source_files = ["py_ml_core.cpp"]
+source_files = [
+    "py_ml_core.cpp",
+    "src/pde_spde_bindings.cpp",
+]
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
@@ -331,7 +350,8 @@ ext_modules = [
 ]
 
 setup(
+    packages=["ml_toolbox"],
     ext_modules=ext_modules,
-    cmdclass={"build_ext": build_ext},
+    cmdclass={"build_ext": build_ext_with_move},
     zip_safe=False,
 )

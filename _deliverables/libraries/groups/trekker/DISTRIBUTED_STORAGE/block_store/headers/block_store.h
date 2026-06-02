@@ -46,7 +46,8 @@ public:
         std::string storage_dir  = "";                // empty = in-memory only
     };
 
-    explicit BlockStore(Config cfg = {});
+    BlockStore();
+    explicit BlockStore(Config cfg);
     ~BlockStore() = default;
 
     BlockStore(const BlockStore&) = delete;

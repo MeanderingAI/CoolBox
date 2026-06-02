@@ -1,7 +1,4 @@
-// radix_tree.h
-// Radix Tree (Compact Prefix Tree) implementation for the DATASTRUCTURE package
-// Author: [Your Name]
-// License: Same as project
+
 #pragma once
 
 #include <memory>
@@ -10,7 +7,6 @@
 #include <optional>
 
 // A simple radix tree (compact prefix tree) for string keys
-
 template <typename Value>
 class radix_tree {
     struct Node {
@@ -18,7 +14,6 @@ class radix_tree {
         std::optional<Value> value;
     };
     std::shared_ptr<Node> root_;
-
 public:
     radix_tree() : root_(std::make_shared<Node>()) {}
 
@@ -74,7 +69,30 @@ public:
         return node->value;
     }
 
+    // Remove a key (returns true if removed)
+    bool remove(const std::string& key) {
+        return remove_internal(root_, key, 0);
+    }
+
 private:
+    // Helper for remove
+    bool remove_internal(std::shared_ptr<Node> node, const std::string& key, size_t pos) {
+        if (pos == key.size()) {
+            if (node->value) {
+                node->value.reset();
+                return true;
+            }
+            return false;
+        }
+        for (auto& [edge, child] : node->children) {
+            size_t match = common_prefix(key, pos, edge);
+            if (match == edge.size() && key.substr(pos, match) == edge) {
+                return remove_internal(child, key, pos + match);
+            }
+        }
+        return false;
+    }
+
     // Returns length of common prefix between key[pos:] and edge
     static size_t common_prefix(const std::string& key, size_t pos, const std::string& edge) {
         size_t i = 0;

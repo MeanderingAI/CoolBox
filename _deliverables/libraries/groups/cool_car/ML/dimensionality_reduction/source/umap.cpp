@@ -26,19 +26,20 @@ void UMAP::find_ab_params() {
     }
 }
 
-std::vector<double> UMAP::smooth_knn_dist(const matrix::DenseMatrix& distances, int k,
+std::vector<double> UMAP::smooth_knn_dist(const mytrix::DenseMatrix& distances, int k,
                                           int n_iter, double local_connectivity,
                                           double bandwidth) {
     return std::vector<double>(distances.rows(), 1.0);
 }
 
-std::pair<std::vector<std::vector<int>>, matrix::DenseMatrix> UMAP::compute_membership_strengths(
-    const std::vector<std::vector<int>>& knn_indices, const matrix::DenseMatrix& knn_distances) {
+
+std::pair<std::vector<std::vector<int>>, mytrix::DenseMatrix> UMAP::compute_membership_strengths(
+    const std::vector<std::vector<int>>& knn_indices, const mytrix::DenseMatrix& knn_distances) {
     return {knn_indices, knn_distances};
 }
 
-matrix::DenseMatrix UMAP::initialize_embedding(int n_samples) {
-    return matrix::DenseMatrix(n_samples, n_components_);
+mytrix::DenseMatrix UMAP::initialize_embedding(int n_samples) {
+    return mytrix::DenseMatrix(n_samples, n_components_);
 }
 
 double UMAP::compute_loss(const std::vector<double>& y_i, const std::vector<double>& y_j,
@@ -51,24 +52,26 @@ std::vector<double> UMAP::compute_gradient(const std::vector<double>& y_i, const
     return std::vector<double>(y_i.size(), 0.0);
 }
 
-void UMAP::optimize_embedding(const matrix::DenseMatrix& graph_weights,
+void UMAP::optimize_embedding(const mytrix::DenseMatrix& graph_weights,
                                const std::vector<std::vector<int>>& graph_edges) {
     // TODO: Implement for DenseMatrix
 }
 
-void UMAP::fit(const matrix::DenseMatrix& X) {
+void UMAP::fit(const mytrix::DenseMatrix& X) {
     X_train_ = X;
     find_ab_params();
     embedding_ = initialize_embedding(X.rows());
     fitted_ = true;
 }
 
-matrix::DenseMatrix UMAP::transform(const matrix::DenseMatrix& X) const {
+
+mytrix::DenseMatrix UMAP::transform(const mytrix::DenseMatrix& X) const {
     if (!fitted_) throw std::runtime_error("UMAP not fitted yet");
-    return matrix::DenseMatrix(X.rows(), n_components_);
+    return mytrix::DenseMatrix(X.rows(), n_components_);
 }
 
-matrix::DenseMatrix UMAP::fit_transform(const matrix::DenseMatrix& X) {
+
+mytrix::DenseMatrix UMAP::fit_transform(const mytrix::DenseMatrix& X) {
     fit(X);
     return embedding_;
 }

@@ -53,7 +53,8 @@ public:
         float max_correction_delta  = 0.05f;
     };
 
-    explicit SyncController(Config cfg = {});
+    SyncController();
+    explicit SyncController(Config cfg);
 
     // Call when a new audio frame with the given PTS has been decoded.
     void report_audio_pts(std::int64_t pts_us, const MasterClock& clock);

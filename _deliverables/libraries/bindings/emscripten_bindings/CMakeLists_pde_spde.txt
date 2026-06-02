@@ -1,0 +1,23 @@
+# Add to CMakeLists.txt for Emscripten bindings
+set(PDE_SPDE_BINDINGS_SRC
+    ${CMAKE_CURRENT_LIST_DIR}/pde_spde_bindings.cpp
+)
+
+add_library(pde_spde_bindings SHARED ${PDE_SPDE_BINDINGS_SRC})
+
+target_include_directories(pde_spde_bindings PRIVATE
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATH
+)
+
+target_link_libraries(pde_spde_bindings PRIVATE
+    # Add dependencies if needed
+)
+
+set_target_properties(pde_spde_bindings PROPERTIES
+    OUTPUT_NAME "pde_spde_bindings"
+)
+
+# Emscripten-specific settings
+if(EMSCRIPTEN)
+    set_target_properties(pde_spde_bindings PROPERTIES SUFFIX ".wasm")
+endif()

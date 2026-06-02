@@ -8,13 +8,13 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../packages/MISC/metadata_management" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../packages/MISC/metadata_management")
-    if(NOT TARGET metadata_management)
-        add_subdirectory(
-                ${CMAKE_CURRENT_SOURCE_DIR}/../packages/MISC/metadata_management
-                ${CMAKE_CURRENT_BINARY_DIR}/metadata_management
-        )
-    endif()
+
+# Always add the correct metadata_management subdirectory for this repo layout
+if(NOT TARGET metadata_management)
+    add_subdirectory(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/metadata_management
+        ${CMAKE_CURRENT_BINARY_DIR}/metadata_management
+    )
 endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation")

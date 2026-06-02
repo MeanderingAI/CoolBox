@@ -8,6 +8,8 @@ namespace av_sync {
 
 // ── SyncController ────────────────────────────────────────────────────────────
 
+SyncController::SyncController() : SyncController(Config{}) {}
+
 SyncController::SyncController(Config cfg) : cfg_(cfg) {}
 
 void SyncController::report_audio_pts(std::int64_t pts_us, const MasterClock& clock) {

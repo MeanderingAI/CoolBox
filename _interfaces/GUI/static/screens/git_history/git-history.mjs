@@ -144,8 +144,10 @@ function _esc(s) {
 }
 
 function _formatDate(iso) {
+    if (!iso) return '';
     try {
         const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
         return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
             + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
     } catch { return iso; }

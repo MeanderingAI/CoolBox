@@ -1,4 +1,4 @@
-#include "tensor.h"
+#include "../include/tensor.h"
 #include <random>
 #include <functional>
 #include <stdexcept>

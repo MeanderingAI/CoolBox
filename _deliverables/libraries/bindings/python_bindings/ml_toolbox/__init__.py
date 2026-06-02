@@ -53,29 +53,21 @@ See the examples/ directory for comprehensive usage examples:
 
 __version__ = "0.2.0"
 
-from ..metadata_client import Client, create_default, for_endpoint
 
-# Import the C++ extension
 try:
-    from ....python_bindings.ml_toolbox import ml_core as _ml_core
-    from ....python_bindings.ml_toolbox.ml_core import *
+    from ..metadata_client import Client, create_default, for_endpoint
 except ImportError:
-    # Try to import from the parent directory (during development)
-    try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
-        # Re-export all symbols
-        import sys
-        _module = sys.modules[__name__]
-        for attr in dir(ml_core):
-            if not attr.startswith('_'):
-                setattr(_module, attr, getattr(ml_core, attr))
-    except ImportError as e:
-        raise ImportError(
-            "Failed to import ml_core extension. "
-            "Please build the package first: python setup.py build_ext --inplace"
-        ) from e
+    from metadata_client import Client, create_default, for_endpoint
 
-ml_core = _ml_core if "_ml_core" in globals() else ml_core
+
+# Patch: Import the extension directly for local development
+try:
+    from . import ml_core as _ml_core
+except ImportError as e:
+    raise ImportError(
+        "Failed to import ml_core extension. Please build the package first: python setup.py build_ext --inplace"
+    ) from e
+ml_core = _ml_core
 
 __all__ = [
     "Client",

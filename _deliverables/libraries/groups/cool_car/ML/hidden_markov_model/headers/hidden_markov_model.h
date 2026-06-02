@@ -12,28 +12,28 @@ private:
     int num_observations;
     
     std::vector<double> initial_probabilities; // pi vector
-    matrix::DenseMatrix transition_matrix;     // A matrix
-    matrix::DenseMatrix emission_matrix;       // B matrix
+    mytrix::DenseMatrix transition_matrix;     // A matrix
+    mytrix::DenseMatrix emission_matrix;       // B matrix
 
     std::mt19937 gen;
 
     static double log_sum_exp(double log_a, double log_b);
     static double log_sum_exp(const std::vector<double>& vals);
-    matrix::DenseMatrix forward_pass(const std::vector<int>& observations) const;
-    matrix::DenseMatrix backward_pass(const std::vector<int>& observations) const;
+    mytrix::DenseMatrix forward_pass(const std::vector<int>& observations) const;
+    mytrix::DenseMatrix backward_pass(const std::vector<int>& observations) const;
 public:
     // Constructor to initialize the HMM with its parameters
     HMM(int states, int observations);
     
     // Setters for the model parameters using Eigen types
     void set_initial_probabilities(const std::vector<double>& pi);
-    void set_transition_matrix(const matrix::DenseMatrix& A);
-    void set_emission_matrix(const matrix::DenseMatrix& B);
+    void set_transition_matrix(const mytrix::DenseMatrix& A);
+    void set_emission_matrix(const mytrix::DenseMatrix& B);
     
     // Getters for the model parameters
     std::vector<double> get_initial_probabilities() const;
-    matrix::DenseMatrix get_transition_matrix() const;
-    matrix::DenseMatrix get_emission_matrix() const;
+    mytrix::DenseMatrix get_transition_matrix() const;
+    mytrix::DenseMatrix get_emission_matrix() const;
     
     // Core HMM Algorithms
     

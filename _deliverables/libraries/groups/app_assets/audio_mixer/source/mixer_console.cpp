@@ -50,7 +50,7 @@ VuMeterState VuMeter::state() const {
 // ── ChannelStrip ──────────────────────────────────────────────────────────────
 
 ChannelStrip::ChannelStrip(std::size_t id, ChannelStripState state)
-    : id_(id), state_(std::move(state)) {}
+    : id_(id), state_(std::move(state)), vu_() {}
 
 void ChannelStrip::process(const std::vector<float>& mono_in,
                            std::vector<float>&       stereo_out,
@@ -82,12 +82,12 @@ void ChannelStrip::process(const std::vector<float>& mono_in,
 // ── MixerConsole ──────────────────────────────────────────────────────────────
 
 MixerConsole::MixerConsole(std::size_t num_channels, std::uint32_t sample_rate)
-    : sample_rate_(sample_rate)
+    : sample_rate_(sample_rate), master_vu_()
 {
     for (std::size_t i = 0; i < num_channels; ++i) {
         ChannelStripState s;
         s.name = "Ch " + std::to_string(i + 1);
-        channels_.emplace_back(next_id_++, s);
+        channels_.emplace_back(std::make_unique<ChannelStrip>(next_id_++, s));
     }
 }
 
@@ -96,22 +96,22 @@ std::size_t MixerConsole::add_channel(const std::string& name) {
     ChannelStripState s;
     s.name = name.empty() ? ("Ch " + std::to_string(next_id_ + 1)) : name;
     const std::size_t id = next_id_++;
-    channels_.emplace_back(id, s);
+    channels_.emplace_back(std::make_unique<ChannelStrip>(id, s));
     return id;
 }
 
 void MixerConsole::remove_channel(std::size_t id) {
     std::lock_guard<std::mutex> lk(mtx_);
     channels_.erase(std::remove_if(channels_.begin(), channels_.end(),
-        [id](const ChannelStrip& c) { return c.id() == id; }), channels_.end());
+        [id](const std::unique_ptr<ChannelStrip>& c) { return c->id() == id; }), channels_.end());
 }
 
 ChannelStrip* MixerConsole::channel(std::size_t id) {
-    for (auto& c : channels_) if (c.id() == id) return &c;
+    for (auto& c : channels_) if (c->id() == id) return c.get();
     return nullptr;
 }
 const ChannelStrip* MixerConsole::channel(std::size_t id) const {
-    for (const auto& c : channels_) if (c.id() == id) return &c;
+    for (const auto& c : channels_) if (c->id() == id) return c.get();
     return nullptr;
 }
 
@@ -158,13 +158,13 @@ std::vector<float> MixerConsole::mix(const std::vector<std::vector<float>>& inpu
                                      std::size_t num_samples) {
     // Determine solo state.
     bool any_solo = false;
-    for (const auto& c : channels_) if (c.state().soloed) { any_solo = true; break; }
+    for (const auto& c : channels_) if (c->state().soloed) { any_solo = true; break; }
 
     std::vector<float> master_buf(num_samples * 2, 0.f);
     std::vector<float> ch_stereo;
 
     for (std::size_t i = 0; i < channels_.size() && i < inputs.size(); ++i) {
-        channels_[i].process(inputs[i], ch_stereo, any_solo);
+        channels_[i]->process(inputs[i], ch_stereo, any_solo);
         for (std::size_t s = 0; s < master_buf.size(); ++s)
             master_buf[s] += ch_stereo[s];
     }
@@ -191,7 +191,7 @@ VuMeterState MixerConsole::channel_vu(std::size_t id) const {
 }
 
 void MixerConsole::decay_all_vu(float factor) {
-    for (auto& c : channels_) c.decay_vu(factor);
+    for (auto& c : channels_) c->decay_vu(factor);
     master_vu_.decay(factor);
 }
 

@@ -1,6 +1,6 @@
 #include "../headers/auth_system.h"
 
-#include "../../../MISC/hash/headers/password_hash.hpp"
+#include "password_hash.hpp"
 
 #include <array>
 #include <chrono>

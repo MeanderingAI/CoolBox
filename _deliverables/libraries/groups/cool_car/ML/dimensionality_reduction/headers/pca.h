@@ -11,7 +11,7 @@
 
 class PCA {
 public:
-    using Matrix = matrix::DenseMatrix;
+    using Matrix = mytrix::DenseMatrix;
     using Vector = std::vector<double>;
 
     explicit PCA(int n_components = 0, bool center = true, bool scale = false);
@@ -36,9 +36,9 @@ private:
     Vector explained_variance_ratio_;
     Vector singular_values_;
     SVD svd_;
-    static std::vector<double> compute_mean(const matrix::DenseMatrix& X);
-    static std::vector<double> compute_std(const matrix::DenseMatrix& X, const std::vector<double>& mean);
-    static matrix::DenseMatrix preprocess(const matrix::DenseMatrix& X);
+    static std::vector<double> compute_mean(const mytrix::DenseMatrix& X);
+    static std::vector<double> compute_std(const mytrix::DenseMatrix& X, const std::vector<double>& mean);
+    static mytrix::DenseMatrix preprocess(const mytrix::DenseMatrix& X);
 };
 
  } // namespace dimensionality_reduction

@@ -12,7 +12,7 @@ ml::MarkedPointProcess::MarkedPointProcess(int num_marks, double learning_rate, 
 
 void ml::MarkedPointProcess::initialize_parameters() {
     mu_ = std::vector<double>(num_marks_, 0.1);
-    alpha_ = matrix::DenseMatrix(num_marks_, num_marks_);
+    alpha_ = mytrix::DenseMatrix(num_marks_, num_marks_);
     for (int i = 0; i < num_marks_; ++i)
         for (int j = 0; j < num_marks_; ++j)
             alpha_.at(i, j) = 0.01;
@@ -102,10 +102,10 @@ double ml::MarkedPointProcess::log_likelihood(const std::vector<std::vector<doub
 }
 
 std::vector<double> ml::MarkedPointProcess::get_base_intensity() const { return mu_; }
-matrix::DenseMatrix ml::MarkedPointProcess::get_excitation_matrix() const { return alpha_; }
+mytrix::DenseMatrix ml::MarkedPointProcess::get_excitation_matrix() const { return alpha_; }
 double ml::MarkedPointProcess::get_decay_rate() const { return beta_; }
 void ml::MarkedPointProcess::set_base_intensity(const std::vector<double>& bi) { mu_ = bi; }
-void ml::MarkedPointProcess::set_excitation_matrix(const matrix::DenseMatrix& em) { alpha_ = em; }
+void ml::MarkedPointProcess::set_excitation_matrix(const mytrix::DenseMatrix& em) { alpha_ = em; }
 void ml::MarkedPointProcess::set_decay_rate(double d) { beta_ = d; }
 double ml::MarkedPointProcess::kernel_integral(double t) const {
     // NOTE: This is a stub. Implement kernel integral logic as needed.

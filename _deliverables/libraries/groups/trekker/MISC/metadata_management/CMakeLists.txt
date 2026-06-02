@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.12)
+project(metadata_management)
 add_library(metadata_management SHARED
     source/metadata_management.cpp
 )

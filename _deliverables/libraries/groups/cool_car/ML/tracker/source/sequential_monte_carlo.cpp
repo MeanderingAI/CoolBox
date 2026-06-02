@@ -12,7 +12,7 @@ SequentialMonteCarlo::SequentialMonteCarlo(int num_particles)
     particles_.resize(num_particles_);
     double uniform_weight = 1.0 / num_particles_;
     for (auto& p : particles_) {
-        p.state = mytrix::Vector{dist(gen), dist(gen), dist(gen)};
+        p.state = mytrix::Vector(std::vector<double>{dist(gen), dist(gen), dist(gen)}, 3);
         p.weight = uniform_weight;
     }
 }
@@ -24,9 +24,9 @@ void SequentialMonteCarlo::predict() {
     
     for (auto& p : particles_) {
         // Simple random walk model
-        p.state[0] += std::cos(p.state[2]) * 0.1 + noise(gen);
-        p.state[1] += std::sin(p.state[2]) * 0.1 + noise(gen);
-        p.state[2] += noise(gen) * 0.05;
+        p.state.at(0) += std::cos(p.state.at(2)) * 0.1 + noise(gen);
+        p.state.at(1) += std::sin(p.state.at(2)) * 0.1 + noise(gen);
+        p.state.at(2) += noise(gen) * 0.05;
     }
 }
 
@@ -35,10 +35,14 @@ void SequentialMonteCarlo::update(const mytrix::Vector& z) {
     double total_weight = 0.0;
     for (auto& p : particles_) {
         // Simple Gaussian likelihood
-        mytrix::Vector expected_z(p.state.begin(), p.state.begin() + z.size());
+        std::vector<double> subvec(z.size());
+        for (size_t i = 0; i < z.size(); ++i) {
+            subvec[i] = p.state.at(i);
+        }
+        mytrix::Vector expected_z(subvec, z.size());
         double dist_sq = 0.0;
         for (size_t i = 0; i < z.size(); ++i) {
-            double diff = z[i] - expected_z[i];
+            double diff = z.at(i) - expected_z.at(i);
             dist_sq += diff * diff;
         }
         p.weight *= std::exp(-0.5 * dist_sq);

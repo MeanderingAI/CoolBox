@@ -11,17 +11,17 @@ dimensionality_reduction::PCA::PCA(int n_components, bool center, bool scale)
 
 
 // Static helper implementations
-std::vector<double> dimensionality_reduction::PCA::compute_mean(const matrix::DenseMatrix& X) {
+std::vector<double> dimensionality_reduction::PCA::compute_mean(const mytrix::DenseMatrix& X) {
     // TODO: Implement mean computation for DenseMatrix
     return std::vector<double>(X.cols(), 0.0);
 }
 
-std::vector<double> dimensionality_reduction::PCA::compute_std(const matrix::DenseMatrix& X, const std::vector<double>& mean) {
+std::vector<double> dimensionality_reduction::PCA::compute_std(const mytrix::DenseMatrix& X, const std::vector<double>& mean) {
     // TODO: Implement std computation for DenseMatrix
     return std::vector<double>(X.cols(), 1.0);
 }
 
-matrix::DenseMatrix dimensionality_reduction::PCA::preprocess(const matrix::DenseMatrix& X) {
+mytrix::DenseMatrix dimensionality_reduction::PCA::preprocess(const mytrix::DenseMatrix& X) {
     // TODO: Implement preprocessing for DenseMatrix
     return X;
 }

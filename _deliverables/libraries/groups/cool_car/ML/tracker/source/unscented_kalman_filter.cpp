@@ -3,7 +3,7 @@
 
 UnscentedKalmanFilter::UnscentedKalmanFilter(int state_dim, int meas_dim)
     : n_x_(state_dim), n_z_(meas_dim) {
-    x_ = mytrix::Vector(n_x_, 0.0);
+    x_ = mytrix::Vector(std::vector<double>(n_x_, 0.0), n_x_);
     P_ = mytrix::Matrix::Identity(n_x_);
     Q_ = mytrix::Matrix::Identity(n_x_);
     // Scale Q_ by 0.01
@@ -38,10 +38,10 @@ void UnscentedKalmanFilter::setMeasurementModel(
 void UnscentedKalmanFilter::computeWeights() {
     lambda_ = alpha_ * alpha_ * (n_x_ + kappa_) - n_x_;
     int n_sigma = 2 * n_x_ + 1;
-    weights_mean_ = Vector(n_sigma, 1.0 / (2.0 * (n_x_ + lambda_)));
-    weights_cov_ = Vector(n_sigma, 1.0 / (2.0 * (n_x_ + lambda_)));
-    if (!weights_mean_.empty()) weights_mean_[0] = lambda_ / (n_x_ + lambda_);
-    if (!weights_cov_.empty()) weights_cov_[0] = lambda_ / (n_x_ + lambda_) + (1.0 - alpha_ * alpha_ + beta_);
+    weights_mean_ = Vector(std::vector<double>(n_sigma, 1.0 / (2.0 * (n_x_ + lambda_))), n_sigma);
+    weights_cov_ = Vector(std::vector<double>(n_sigma, 1.0 / (2.0 * (n_x_ + lambda_))), n_sigma);
+    if (weights_mean_.size() > 0) weights_mean_.at(0) = lambda_ / (n_x_ + lambda_);
+    if (weights_cov_.size() > 0) weights_cov_.at(0) = lambda_ / (n_x_ + lambda_) + (1.0 - alpha_ * alpha_ + beta_);
 }
 
 void UnscentedKalmanFilter::generateSigmaPoints() {
@@ -59,15 +59,15 @@ void UnscentedKalmanFilter::generateSigmaPoints() {
     sigma_points_[0] = x_;
     for (int i = 0; i < n_x_; ++i) {
         // Extract column i from L
-        Vector col_i(n_x_, 0.0);
-        for (int r = 0; r < n_x_; ++r) col_i[r] = L.at(r, i);
+        Vector col_i(std::vector<double>(n_x_, 0.0), n_x_);
+        for (int r = 0; r < n_x_; ++r) col_i.at(r) = L.at(r, i);
         // x_ + col_i
         Vector x_plus = x_;
-        for (int j = 0; j < n_x_; ++j) x_plus[j] += col_i[j];
+        for (int j = 0; j < n_x_; ++j) x_plus.at(j) += col_i.at(j);
         sigma_points_[i + 1] = x_plus;
         // x_ - col_i
         Vector x_minus = x_;
-        for (int j = 0; j < n_x_; ++j) x_minus[j] -= col_i[j];
+        for (int j = 0; j < n_x_; ++j) x_minus.at(j) -= col_i.at(j);
         sigma_points_[n_x_ + i + 1] = x_minus;
     }
 }
@@ -83,10 +83,10 @@ void UnscentedKalmanFilter::predict() {
     }
 
     // Compute predicted mean using my_vector ops
-    x_ = Vector(n_x_, 0.0);
+    x_ = Vector(std::vector<double>(n_x_, 0.0), n_x_);
     for (int i = 0; i < n_sigma; ++i) {
         for (int j = 0; j < n_x_; ++j) {
-            x_[j] += transformed[i][j] * weights_mean_[i];
+            x_.at(j) += transformed[i].at(j) * weights_mean_.at(i);
         }
     }
 
@@ -95,10 +95,14 @@ void UnscentedKalmanFilter::predict() {
         for (size_t c = 0; c < P_.cols(); ++c)
             P_.at(r, c) = Q_.at(r, c);
     for (int i = 0; i < n_sigma; ++i) {
-        Vector diff = transformed[i] - x_;
+        // Manual vector subtraction: diff = transformed[i] - x_
+        std::vector<double> diff_vec(n_x_);
+        for (int j = 0; j < n_x_; ++j) {
+            diff_vec[j] = transformed[i].at(j) - x_.at(j);
+        }
         for (size_t r = 0; r < P_.rows(); ++r) {
             for (size_t c = 0; c < P_.cols(); ++c) {
-                P_.at(r, c) += weights_cov_[i] * diff[r] * diff[c];
+                P_.at(r, c) += weights_cov_.at(i) * diff_vec[r] * diff_vec[c];
             }
         }
     }
@@ -117,22 +121,22 @@ void UnscentedKalmanFilter::update(const Vector& z) {
     }
 
     // Predicted measurement mean
-    Vector z_pred(n_z_, 0.0);
+    Vector z_pred(std::vector<double>(n_z_, 0.0), n_z_);
     for (int i = 0; i < n_sigma; ++i) {
         for (int j = 0; j < n_z_; ++j) {
-            z_pred[j] += weights_mean_[i] * z_sigma[i][j];
+            z_pred.at(j) += weights_mean_.at(i) * z_sigma[i].at(j);
         }
     }
 
     // Innovation covariance
     Matrix S = R_;
     for (int i = 0; i < n_sigma; ++i) {
-        Vector diff(n_z_, 0.0);
-        for (int j = 0; j < n_z_; ++j) diff[j] = z_sigma[i][j] - z_pred[j];
+        Vector diff(std::vector<double>(n_z_, 0.0), n_z_);
+        for (int j = 0; j < n_z_; ++j) diff.at(j) = z_sigma[i].at(j) - z_pred.at(j);
         // Outer product and scale, then add to S
         for (int r = 0; r < n_z_; ++r) {
             for (int c = 0; c < n_z_; ++c) {
-                S.at(r, c) += weights_cov_[i] * diff[r] * diff[c];
+                S.at(r, c) += weights_cov_.at(i) * diff.at(r) * diff.at(c);
             }
         }
     }
@@ -140,13 +144,13 @@ void UnscentedKalmanFilter::update(const Vector& z) {
     // Cross-covariance
     Matrix Pxz = Matrix::Zero(n_x_, n_z_);
     for (int i = 0; i < n_sigma; ++i) {
-        Vector x_diff(n_x_, 0.0);
-        Vector z_diff(n_z_, 0.0);
-        for (int j = 0; j < n_x_; ++j) x_diff[j] = sigma_points_[i][j] - x_[j];
-        for (int j = 0; j < n_z_; ++j) z_diff[j] = z_sigma[i][j] - z_pred[j];
+        Vector x_diff(std::vector<double>(n_x_, 0.0), n_x_);
+        Vector z_diff(std::vector<double>(n_z_, 0.0), n_z_);
+        for (int j = 0; j < n_x_; ++j) x_diff.at(j) = sigma_points_[i].at(j) - x_.at(j);
+        for (int j = 0; j < n_z_; ++j) z_diff.at(j) = z_sigma[i].at(j) - z_pred.at(j);
         for (int r = 0; r < n_x_; ++r) {
             for (int c = 0; c < n_z_; ++c) {
-                Pxz.at(r, c) += weights_cov_[i] * x_diff[r] * z_diff[c];
+                Pxz.at(r, c) += weights_cov_.at(i) * x_diff.at(r) * z_diff.at(c);
             }
         }
     }
@@ -165,14 +169,14 @@ void UnscentedKalmanFilter::update(const Vector& z) {
     }
 
     // x_ = x_ + K * (z - z_pred)
-    Vector innovation(n_z_, 0.0);
-    for (int j = 0; j < n_z_; ++j) innovation[j] = z[j] - z_pred[j];
+    Vector innovation(std::vector<double>(n_z_, 0.0), n_z_);
+    for (int j = 0; j < n_z_; ++j) innovation.at(j) = z.at(j) - z_pred.at(j);
     for (int r = 0; r < n_x_; ++r) {
         double update = 0.0;
         for (int c = 0; c < n_z_; ++c) {
-            update += K.at(r, c) * innovation[c];
+            update += K.at(r, c) * innovation.at(c);
         }
-        x_[r] += update;
+        x_.at(r) += update;
     }
 
     // P_ = P_ - K * S * K.transpose(); (approximate, since S_inv is identity)

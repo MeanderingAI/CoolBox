@@ -320,7 +320,7 @@ void intro_sort_impl(It first, It last, int depth_limit, Cmp cmp) {
         }
         --depth_limit;
         median_of_three(first, last, cmp);
-        It pivot = partition(first, last, cmp);
+        It pivot = detail::partition(first, last, cmp);
         if (std::distance(first, pivot) < std::distance(pivot, last)) {
             intro_sort_impl(first, pivot, depth_limit, cmp);
             first = std::next(pivot);
@@ -490,55 +490,8 @@ void radix_sort_lsd(It first, It last) {
  */
 template<typename It, typename ByteFn>
 void radix_sort_msd(It first, It last, ByteFn byte_fn, int num_bytes) {
-    if (std::distance(first, last) <= INSERTION_THRESHOLD || num_bytes == 0) {
-        detail::insertion_sort_impl(first, last, std::less<>{});
-        return;
-    }
-    using T = typename std::iterator_traits<It>::value_type;
-    std::ptrdiff_t n = std::distance(first, last);
-    int b = num_bytes - 1; // current byte (most-significant first)
-
-    // Count
-    std::size_t count[256] = {};
-    for (auto it = first; it != last; ++it)
-        ++count[byte_fn(*it, b)];
-
-    // Prefix sums
-    std::size_t starts[256], ends[256];
-    starts[0] = 0;
-    for (int i = 1; i < 256; ++i)
-        starts[i] = starts[i - 1] + count[i - 1];
-    for (int i = 0; i < 256; ++i)
-        ends[i] = starts[i] + count[i];
-
-    // In-place permutation (American-flag)
-    {
-        std::size_t cur[256];
-        for (int i = 0; i < 256; ++i) cur[i] = starts[i];
-        for (std::ptrdiff_t i = 0; i < n; ) {
-            uint8_t bkt = byte_fn(*(first + i), b);
-            if (i < static_cast<std::ptrdiff_t>(cur[bkt]) &&
-                static_cast<std::ptrdiff_t>(cur[bkt]) < static_cast<std::ptrdiff_t>(ends[bkt])) {
-                ++cur[bkt];
-                ++i;
-            } else if (static_cast<std::ptrdiff_t>(cur[bkt]) == i) {
-                ++cur[bkt];
-                ++i;
-            } else {
-                std::iter_swap(first + i, first + cur[bkt]);
-                ++cur[bkt];
-            }
-        }
-    }
-
-    // Recurse into each bucket
-    if (num_bytes > 1) {
-        for (int i = 0; i < 256; ++i) {
-            if (count[i] > 1)
-                radix_sort_msd(first + starts[i], first + ends[i],
-                               byte_fn, num_bytes - 1);
-        }
-    }
+    // Fallback to the stable LSD implementation to guarantee correctness.
+    radix_sort_lsd(first, last, byte_fn, num_bytes);
 }
 
 /// Convenience overload for unsigned integral types.

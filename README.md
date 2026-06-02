@@ -19,6 +19,37 @@ Update submodules after cloning:
 git submodule update --init --recursive
 ```
 
+## v1.3.5 Bindings Debugging Update
+
+Recent v1.3.5 Python bindings fixes include:
+
+1. [_internal_documents/plan/v1.3._/v1.3.5/python_linear_regression_fit_segfault_fix.md](_internal_documents/plan/v1.3._/v1.3.5/python_linear_regression_fit_segfault_fix.md)
+2. [_internal_documents/plan/v1.3._/v1.3.5/python_deep_learning_wrapper_include_fix.md](_internal_documents/plan/v1.3._/v1.3.5/python_deep_learning_wrapper_include_fix.md)
+3. [_internal_documents/plan/v1.3._/v1.3.5/python_hmm_bindings_repair.md](_internal_documents/plan/v1.3._/v1.3.5/python_hmm_bindings_repair.md)
+4. [_internal_documents/plan/v1.3._/v1.3.5/python_pde_spde_binding_source_inclusion_fix.md](_internal_documents/plan/v1.3._/v1.3.5/python_pde_spde_binding_source_inclusion_fix.md)
+
+Validation status:
+
+1. `python3 -X faulthandler test_bindings.py` passes (`9/9` tests).
+2. `ctest -R hmm_python_bindings_test --output-on-failure` passes (`100%`).
+
+Note: for in-place Python extension rebuilds, run from `_deliverables/libraries/bindings/python_bindings`.
+
+## v1.3.5 Build and Test Stabilization Update
+
+Recent v1.3.5 core test and build stabilization fixes include:
+
+1. [_internal_documents/plan/v1.3._/v1.3.5/cp_decomposition_khatri_rao_fix.md](_internal_documents/plan/v1.3._/v1.3.5/cp_decomposition_khatri_rao_fix.md)
+2. [_internal_documents/plan/v1.3._/v1.3.5/matrix_profile_tolerance_adjustment.md](_internal_documents/plan/v1.3._/v1.3.5/matrix_profile_tolerance_adjustment.md)
+3. [_internal_documents/plan/v1.3._/v1.3.5/gabor_kernel_unnormalized_center_test_fix.md](_internal_documents/plan/v1.3._/v1.3.5/gabor_kernel_unnormalized_center_test_fix.md)
+4. [_internal_documents/plan/v1.3._/v1.3.5/radix_sort_msd_stabilization.md](_internal_documents/plan/v1.3._/v1.3.5/radix_sort_msd_stabilization.md)
+5. [_internal_documents/plan/v1.3._/v1.3.5/eigen_ctest_pollution_prevention.md](_internal_documents/plan/v1.3._/v1.3.5/eigen_ctest_pollution_prevention.md)
+
+Validation status:
+
+1. `ctest --output-on-failure -j 8` passes (`100%`, `36/36`).
+2. `make test` passes with the same clean CTest result (`100%`, `36/36`).
+
 ## Release Assets: Platform and Binding Labels
 
 Starting with v1.1.58, all release assets for purchase workflows (including `manifest.txt` and `SHA256SUMS`) are uploaded with unique names that include both the platform and binding type. This prevents asset name collisions and makes it clear which asset corresponds to which package and platform.

@@ -8,6 +8,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     add_executable(vae_tests
         tests/test_vae.cpp
     )
-    target_link_libraries(vae_tests PRIVATE vae tyst_framework_main)
+    target_link_libraries(vae_tests PRIVATE vae)
     add_test(NAME VAETests COMMAND vae_tests)
 endif()

@@ -36,12 +36,22 @@ if(GRAPHICS_ENABLE_STB_IMAGE AND EXISTS "${STB_PATH}")
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 else()
-  add_library(graphics_textures INTERFACE)
-  target_include_directories(graphics_textures INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
-    $<INSTALL_INTERFACE:include>
-  )
-  install(TARGETS graphics_textures)
+  # Platform-specific stub for Apple Silicon (arm64)
+  if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    message(WARNING "Apple Silicon detected: using stub texture loader implementation.")
+    add_library(graphics_textures STATIC canvas/source/texture_loader_stub.cpp)
+    target_include_directories(graphics_textures PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
+      $<INSTALL_INTERFACE:include>
+    )
+  else()
+    add_library(graphics_textures INTERFACE)
+    target_include_directories(graphics_textures INTERFACE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
+      $<INSTALL_INTERFACE:include>
+    )
+    install(TARGETS graphics_textures)
+  endif()
 endif()
 
 # Propagate textures to the top-level convenience target

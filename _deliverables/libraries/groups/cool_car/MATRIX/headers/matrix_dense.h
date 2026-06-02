@@ -1,16 +1,30 @@
+// Always include headers outside the namespace!
 #pragma once
+#include <complex>
+#include <type_traits>
 #include "matrix_base.h"
 #include <Eigen/Dense>
 #include <memory>
-#include <stdexcept>
 #include <vector>
-#include <initializer_list>
 
 namespace mytrix {
 
-class DenseMatrix : public MatrixBase {
+class DenseVector;
+
+
+// --- DenseMatrix definition first ---
+
+class DenseMatrix : public mytrix::MatrixBase {
 public:
+    // Set all elements to random values (Eigen API compatibility)
+    void setRandom() { data.setRandom(); }
     Eigen::MatrixXd data;
+
+    // Static methods for Eigen-like API
+    static DenseMatrix Ones(int r, int c);
+    static DenseMatrix Ones(std::size_t r, std::size_t c);
+    static DenseMatrix Random(int r, int c);
+    static DenseMatrix Random(std::size_t r, std::size_t c);
 
     DenseMatrix() : data(0, 0) {}
     DenseMatrix(int r, int c) : data(r, c) { data.setZero(); }
@@ -32,10 +46,8 @@ public:
     int rows() const override { return static_cast<int>(data.rows()); }
     int cols() const override { return static_cast<int>(data.cols()); }
 
-    double& at(int i, int j) { return data(i, j); }
-    const double& at(int i, int j) const { return data(i, j); }
-    double& at(std::size_t i, std::size_t j) { return data(static_cast<int>(i), static_cast<int>(j)); }
-    const double& at(std::size_t i, std::size_t j) const { return data(static_cast<int>(i), static_cast<int>(j)); }
+    double& at(std::size_t i, std::size_t j) { return data(i, j); }
+    const double& at(std::size_t i, std::size_t j) const { return data(i, j); }
 
     // Eigen-style operator() for test/interop compatibility
     double& operator()(int i, int j) { return data(i, j); }
@@ -57,23 +69,9 @@ public:
         return Identity(static_cast<int>(n));
     }
 
-    std::unique_ptr<MatrixBase> multiply(const DenseMatrix& other) const {
-        auto result = std::make_unique<DenseMatrix>(rows(), other.cols());
-        result->data = data * other.data;
-        return result;
-    }
-
-    std::unique_ptr<MatrixBase> transpose() const {
-        auto result = std::make_unique<DenseMatrix>(cols(), rows());
-        result->data = data.transpose();
-        return result;
-    }
-
-    std::unique_ptr<MatrixBase> add(const DenseMatrix& other) const {
-        auto result = std::make_unique<DenseMatrix>(rows(), cols());
-        result->data = data + other.data;
-        return result;
-    }
+    std::unique_ptr<mytrix::MatrixBase> multiply(const DenseMatrix& other) const;
+    std::unique_ptr<mytrix::MatrixBase> transpose() const;
+    std::unique_ptr<mytrix::MatrixBase> add(const DenseMatrix& other) const;
 
     DenseMatrix operator+(const DenseMatrix& other) const {
         DenseMatrix result(rows(), cols());
@@ -99,72 +97,124 @@ public:
     // Eigen array proxy for element-wise operations (e.g. .array().isFinite().all())
     auto array() const { return data.array(); }
     auto array() { return data.array(); }
+
+    // Extract a row as a DenseVector
+    mytrix::DenseVector row(int i) const;
+
+    // Broadcast vector addition across rows: mat.rowwise() + vec.transpose()
+    mytrix::DenseMatrix rowwise_add(const mytrix::DenseVector& vec) const;
 };
 
-class DenseVector : public VectorBase {
+class DenseVector {
 public:
     Eigen::VectorXd data;
 
     DenseVector() : data(0) {}
-    explicit DenseVector(int n) : data(Eigen::VectorXd::Zero(n)) {}
-    DenseVector(int n, double val) : data(Eigen::VectorXd::Constant(n, val)) {}
-    DenseVector(std::size_t n, double val) : data(Eigen::VectorXd::Constant(static_cast<int>(n), val)) {}
-    // Implicit conversion from Eigen for test/interop compatibility
+    DenseVector(int n) : data(n) { data.setZero(); }
     DenseVector(const Eigen::VectorXd& v) : data(v) {}
     DenseVector(Eigen::VectorXd&& v) : data(std::move(v)) {}
+    DenseVector(const std::vector<double>& flat, int n) : data(n) {
+        for (int i = 0; i < n; ++i)
+            data(i) = flat[static_cast<std::size_t>(i)];
+    }
+    DenseVector(const std::vector<double>& flat, std::size_t n)
+        : DenseVector(flat, static_cast<int>(n)) {}
 
-    // Conversion to Eigen for test/interop compatibility
     operator Eigen::VectorXd() const { return data; }
-    DenseVector(std::initializer_list<double> il) : data(static_cast<int>(il.size())) {
-        int i = 0; for (double v : il) data(i++) = v;
-    }
-    template<typename InputIt>
-    DenseVector(InputIt first, InputIt last) {
-        std::vector<double> tmp(first, last);
-        data.resize(static_cast<int>(tmp.size()));
-        for (int i = 0; i < static_cast<int>(tmp.size()); ++i) data(i) = tmp[i];
-    }
 
-    int size() const override { return static_cast<int>(data.size()); }
-    bool empty() const { return data.size() == 0; }
+    int size() const { return static_cast<int>(data.size()); }
 
-    // Iterators (raw pointer iterators over Eigen storage)
-    double* begin() { return data.data(); }
-    double* end()   { return data.data() + data.size(); }
-    const double* begin() const { return data.data(); }
-    const double* end()   const { return data.data() + data.size(); }
+    double& at(std::size_t i) { return data(i); }
+    const double& at(std::size_t i) const { return data(i); }
 
-    double& operator[](int i) { return data(i); }
-    const double& operator[](int i) const { return data(i); }
-    double& operator[](std::size_t i) { return data(static_cast<int>(i)); }
-    const double& operator[](std::size_t i) const { return data(static_cast<int>(i)); }
-
-    double& at(int i) { return data(i); }
-    const double& at(int i) const { return data(i); }
-    double& at(std::size_t i) { return data(static_cast<int>(i)); }
-    const double& at(std::size_t i) const { return data(static_cast<int>(i)); }
-
-    // Eigen-style operator() for test/interop compatibility
     double& operator()(int i) { return data(i); }
     const double& operator()(int i) const { return data(i); }
 
-    DenseVector operator-(const DenseVector& other) const {
-        DenseVector result(static_cast<int>(data.size()), 0.0);
-        result.data = data - other.data;
-        return result;
+    static DenseVector Zero(int n) {
+        DenseVector v(n);
+        v.data.setZero();
+        return v;
     }
 
-    DenseVector operator+(const DenseVector& other) const {
-        DenseVector result(static_cast<int>(data.size()), 0.0);
-        result.data = data + other.data;
-        return result;
+    static DenseVector Ones(int n) {
+        DenseVector v(n);
+        v.data.setOnes();
+        return v;
     }
+
+    static DenseVector Random(int n) {
+        DenseVector v(n);
+        v.data.setRandom();
+        return v;
+    }
+
+    double norm() const { return data.norm(); }
+
+    auto array() const { return data.array(); }
+    auto array() { return data.array(); }
+
+    // Return as a row vector (1 x n matrix)
+    mytrix::DenseMatrix transpose() const;
 };
 
-using Matrix = DenseMatrix;
-using Vector = DenseVector;
+// ...existing DenseVector class definition...
+
+// Implementations must be after both classes are defined
+inline mytrix::DenseMatrix mytrix::DenseVector::transpose() const {
+    mytrix::DenseMatrix m(1, size());
+    for (int i = 0; i < size(); ++i) m.data(0, i) = data(i);
+    return m;
+}
+
+inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::multiply(const mytrix::DenseMatrix& other) const {
+    auto result = std::make_unique<mytrix::DenseMatrix>(rows(), other.cols());
+    result->data = data * other.data;
+    return result;
+}
+
+inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose() const {
+    auto result = std::make_unique<mytrix::DenseMatrix>(cols(), rows());
+    result->data = data.transpose();
+    return result;
+}
+
+inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::add(const mytrix::DenseMatrix& other) const {
+    auto result = std::make_unique<mytrix::DenseMatrix>(rows(), cols());
+    result->data = data + other.data;
+    return result;
+}
+
+inline mytrix::DenseVector mytrix::DenseMatrix::row(int i) const {
+    return mytrix::DenseVector(data.row(i));
+}
+
+inline mytrix::DenseMatrix mytrix::DenseMatrix::rowwise_add(const mytrix::DenseVector& vec) const {
+    if (vec.size() != cols()) throw std::invalid_argument("rowwise_add: vector size mismatch");
+    mytrix::DenseMatrix result(rows(), cols());
+    for (int i = 0; i < rows(); ++i)
+        for (int j = 0; j < cols(); ++j)
+            result.data(i, j) = data(i, j) + vec.data(j);
+    return result;
+}
+
+using Matrix = mytrix::DenseMatrix;
+// using Vector = mytrix::DenseVector; // Disabled to use class-based Vector
+
+inline mytrix::DenseMatrix mytrix::DenseMatrix::Ones(int r, int c) {
+    mytrix::DenseMatrix m(r, c);
+    m.data.setOnes();
+    return m;
+}
+inline mytrix::DenseMatrix mytrix::DenseMatrix::Ones(std::size_t r, std::size_t c) {
+    return Ones(static_cast<int>(r), static_cast<int>(c));
+}
+inline mytrix::DenseMatrix mytrix::DenseMatrix::Random(int r, int c) {
+    mytrix::DenseMatrix m(r, c);
+    m.data.setRandom();
+    return m;
+}
+inline mytrix::DenseMatrix mytrix::DenseMatrix::Random(std::size_t r, std::size_t c) {
+    return Random(static_cast<int>(r), static_cast<int>(c));
+}
 
 } // namespace mytrix
-
-// Backward-compatibility alias: code using matrix::DenseMatrix resolves to mytrix::DenseMatrix
-namespace matrix = mytrix;

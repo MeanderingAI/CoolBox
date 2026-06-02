@@ -27,16 +27,17 @@ target_compile_features(algorithm_headers INTERFACE cxx_std_17)
 if(BUILD_TESTING)
     add_executable(sorts_tests
         lists/sorts/test_sorts.cpp
+        ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
     )
 
     target_link_libraries(sorts_tests
         PRIVATE
             algorithm_headers
-            tyst_framework_main
     )
 
     target_include_directories(sorts_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/lists/sorts
+        ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
     )
 
     add_test(NAME SortsTests COMMAND sorts_tests)

@@ -43,6 +43,8 @@ float MixerBus::bpm() const { std::lock_guard<std::mutex> lk(mtx_); return bpm_;
 
 // ── Sequencer ─────────────────────────────────────────────────────────────────
 
+Sequencer::Sequencer() : Sequencer(Config{}) {}
+
 Sequencer::Sequencer(Config cfg)
     : cfg_(cfg)
     , bus_(cfg.num_tracks)
@@ -52,7 +54,7 @@ Sequencer::Sequencer(Config cfg)
     for (std::size_t i = 0; i < cfg.num_tracks; ++i)
         patterns_.emplace_back(cfg.steps_per_track, cfg.beats_per_step);
     current_step_.assign(cfg.num_tracks, 0);
-    active_notes_.resize(cfg.num_tracks, nullptr);
+    active_notes_.resize(cfg.num_tracks);
 }
 
 float Sequencer::samples_per_step() const {

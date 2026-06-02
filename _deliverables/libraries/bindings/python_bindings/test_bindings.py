@@ -10,36 +10,28 @@ def test_imports():
     """Test if all modules can be imported"""
     print("Testing imports...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
-        print("✓ ml_core imported successfully")
-        
-        # Test submodules
-        import ml_core.decision_tree
-        print("✓ decision_tree module available")
-        
-        import ml_core.svm
-        print("✓ svm module available")
-        
-        import ml_core.bayesian_network
-        print("✓ bayesian_network module available")
-        
-        import ml_core.hmm
-        print("✓ hmm module available")
-        
-        import ml_core.glm
-        print("✓ glm module available")
-        
-        import ml_core.multi_arm_bandit
-        print("✓ multi_arm_bandit module available")
+        import sys
+        sys.path.insert(0, ".")
+        import ml_toolbox.ml_core as ml_core
+        print("✓ ml_toolbox.ml_core imported successfully")
 
-        import ml_core.graphics
-        print("✓ graphics module available")
-
-        import ml_core.misc.wave_generator
-        print("✓ misc.wave_generator module available")
-        
+        # Test submodules (if available)
+        for submodule in [
+            "decision_tree",
+            "svm",
+            "bayesian_network",
+            "hmm",
+            "glm",
+            "multi_arm_bandit",
+            "graphics",
+            "misc.wave_generator"
+        ]:
+            try:
+                __import__(f"ml_toolbox.ml_core.{submodule}")
+                print(f"✓ {submodule} module available")
+            except ImportError:
+                print(f"✗ {submodule} module not available")
         return True
-        
     except ImportError as e:
         print(f"✗ Import failed: {e}")
         return False
@@ -48,7 +40,9 @@ def test_decision_tree():
     """Test decision tree functionality"""
     print("\nTesting Decision Tree...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_toolbox.ml_core as ml_core
         
         # Simple XOR problem
         X = [[0, 0], [0, 1], [1, 0], [1, 1]]
@@ -73,7 +67,9 @@ def test_svm():
     """Test SVM functionality"""
     print("\nTesting SVM...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_toolbox.ml_core as ml_core
         
         # Simple linearly separable data
         X = np.array([[1.0, 1.0], [2.0, 2.0], [5.0, 5.0], [6.0, 6.0]])
@@ -107,7 +103,9 @@ def test_hmm():
     """Test HMM functionality"""
     print("\nTesting HMM...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_core
         
         # Create 2-state, 2-observation HMM
         hmm = ml_core.hmm.HMM(2, 2)
@@ -141,7 +139,9 @@ def test_linear_regression():
     """Test Linear Regression functionality"""
     print("\nTesting Linear Regression...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_core
         
         # Simple linear data: y = 2*x + 1
         X = [[1.0], [2.0], [3.0], [4.0]]
@@ -172,7 +172,9 @@ def test_bayesian_network():
     """Test Bayesian Network functionality"""
     print("\nTesting Bayesian Network...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_core
         
         bn = ml_core.bayesian_network.BayesianNetwork()
         
@@ -212,7 +214,9 @@ def test_bandit():
     """Test Multi-arm Bandit functionality"""
     print("\nTesting Multi-arm Bandit...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_core
         
         # Create bandit arm with 0.7 true reward probability
         arm = ml_core.multi_arm_bandit.BanditArm(0.7)
@@ -244,7 +248,9 @@ def test_graphics():
     """Test graphics bindings"""
     print("\nTesting Graphics...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_core
 
         graph = ml_core.graphics.Graph(320, 240, ml_core.graphics.GraphType.LINE)
         graph.set_title("Demo")
@@ -281,7 +287,9 @@ def test_wave_generator():
     """Test wave generator bindings"""
     print("\nTesting Wave Generator...")
     try:
-        import deliverables._libraries.bindings.python_bindings.ml_core as ml_core
+        import sys
+        sys.path.insert(0, ".")
+        import ml_core
 
         config = ml_core.misc.wave_generator.WaveConfig()
         config.amplitude = 2.0

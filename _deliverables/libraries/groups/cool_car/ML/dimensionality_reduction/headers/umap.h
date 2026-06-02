@@ -25,10 +25,10 @@ public:
     UMAP(int n_components = 2, int n_neighbors = 15, double min_dist = 0.1,
          const std::string& metric = "euclidean", double learning_rate = 1.0,
          int n_epochs = 200, int random_state = 42);
-    void fit(const matrix::DenseMatrix& X);
-    matrix::DenseMatrix transform(const matrix::DenseMatrix& X) const;
-    matrix::DenseMatrix fit_transform(const matrix::DenseMatrix& X);
-    matrix::DenseMatrix get_embedding() const;
+    void fit(const mytrix::DenseMatrix& X);
+    mytrix::DenseMatrix transform(const mytrix::DenseMatrix& X) const;
+    mytrix::DenseMatrix fit_transform(const mytrix::DenseMatrix& X);
+    mytrix::DenseMatrix get_embedding() const;
     bool is_fitted() const { return fitted_; }
     int get_n_components() const { return n_components_; }
     
@@ -47,8 +47,8 @@ private:
 
     // State
     bool fitted_;
-    matrix::DenseMatrix X_train_;
-    matrix::DenseMatrix embedding_;
+    mytrix::DenseMatrix X_train_;
+    mytrix::DenseMatrix embedding_;
     KNN knn_;
 
     // Random number generator
@@ -59,24 +59,24 @@ private:
     double b_;  // Curve parameter
 
     // Compute fuzzy simplicial set (high-dimensional graph)
-    std::pair<std::vector<std::vector<int>>, matrix::DenseMatrix> compute_membership_strengths(
+    std::pair<std::vector<std::vector<int>>, mytrix::DenseMatrix> compute_membership_strengths(
         const std::vector<std::vector<int>>& knn_indices,
-        const matrix::DenseMatrix& knn_distances);
+        const mytrix::DenseMatrix& knn_distances);
 
     // Compute smooth kNN distances (local connectivity)
     std::vector<double> smooth_knn_dist(
-        const matrix::DenseMatrix& distances,
+        const mytrix::DenseMatrix& distances,
         int k,
         int n_iter = 64,
         double local_connectivity = 1.0,
         double bandwidth = 1.0);
 
     // Initialize embedding using spectral method or random
-    matrix::DenseMatrix initialize_embedding(int n_samples);
+    mytrix::DenseMatrix initialize_embedding(int n_samples);
 
     // Optimize embedding using stochastic gradient descent
     void optimize_embedding(
-        const matrix::DenseMatrix& graph_weights,
+        const mytrix::DenseMatrix& graph_weights,
         const std::vector<std::vector<int>>& graph_edges);
 
     // Compute a and b parameters from min_dist

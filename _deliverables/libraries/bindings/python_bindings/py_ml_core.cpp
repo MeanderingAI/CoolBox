@@ -42,52 +42,20 @@
 #include "distributed/distributed_trainer.h"
 #include "rest_api/server.h"
 
-#include "graphics_misc/bindings.hpp"
-#include "decision_tree/decision_tree.h"
-#include "decision_tree/random_forest.h"
-#include "support_vector_machine/support_vector_machine.h"
-#include "support_vector_machine/linear_kernel.h"
-#include "support_vector_machine/rbf_kernel.h"
-#include "support_vector_machine/polynomial_kernel.h"
-#include "support_vector_machine/sigmoid_kernel.h"
-#include "bayesian_network/bayesian_network.h"
-#include "hidden_markov_model/hidden_markov_model.h"
-#include "generalized_linear_model/linear_regression.h"
-#include "multi_arm_bandit/bandit_arm.h"
-#include "multi_arm_bandit/decaying_epsilon_agent.h"
-#include "tracker/kalman_filter.h"
-#include "tracker/unscented_kalman_filter.h"
-#include "dimensionality_reduction/svd.h"
-#include "dimensionality_reduction/pca.h"
-#include "dimensionality_reduction/knn.h"
-#include "dimensionality_reduction/umap.h"
-#include "DL/layers/include/tensor.h"
-#include "DL/layers/include/layer.h"
-#include "DL/loss/include/loss.h"
-#include "DL/optimizer/include/optimizer.h"
-#include "DL/wrapper/include/neural_network.h"
-#include "computer_vision/image.h"
-#include "computer_vision/transforms.h"
-#include "computer_vision/pipeline.h"
-#include "computer_vision/layers.h"
-#include "time_series/time_series.h"
-#include "nlp/text_processor.h"
-#include "nlp/embeddings.h"
-#include "rest_api/server.h"
-#include "distributed/message_passing.h"
-#include "distributed/distributed_trainer.h"
+#include "include/pde_spde_bindings.hpp"
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
 
-     bind_graphics(m);
-     bind_misc(m);
+    bind_graphics(m);
+    bind_misc(m);
+    bind_pde_spde(m);
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");
-    
+
     // SplitCriterion enum
     py::enum_<SplitCriterion>(dt_module, "SplitCriterion")
         .value("GINI", SplitCriterion::GINI)
@@ -112,31 +80,31 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Support Vector Machine Module
     py::module_ svm_module = m.def_submodule("svm", "Support Vector Machine algorithms");
-    
+
     // Kernel base class
     py::class_<Kernel>(svm_module, "Kernel");
-    
+
     // Linear Kernel
     py::class_<LinearKernel, Kernel>(svm_module, "LinearKernel")
         .def(py::init<>())
         .def("calculate", &LinearKernel::calculate);
-    
+
     // RBF Kernel
     py::class_<RBFKernel, Kernel>(svm_module, "RBFKernel")
         .def(py::init<double>(), py::arg("gamma"))
         .def("calculate", &RBFKernel::calculate);
-    
+
     // Polynomial Kernel
     py::class_<PolynomialKernel, Kernel>(svm_module, "PolynomialKernel")
         .def(py::init<int, double, double>(), 
              py::arg("degree"), py::arg("gamma"), py::arg("coef0"))
         .def("calculate", &PolynomialKernel::calculate);
-    
+
     // Sigmoid Kernel
     py::class_<SigmoidKernel, Kernel>(svm_module, "SigmoidKernel")
         .def(py::init<double, double>(), py::arg("gamma"), py::arg("coef0"))
         .def("calculate", &SigmoidKernel::calculate);
-    
+
     // SVM class
     py::class_<SVM>(svm_module, "SVM")
         .def(py::init<const Kernel&>(), py::arg("kernel"))
@@ -149,14 +117,14 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Bayesian Network Module
     py::module_ bn_module = m.def_submodule("bayesian_network", "Bayesian Network algorithms");
-    
+
     // BayesianNetwork::Node struct
     py::class_<BayesianNetwork::Node>(bn_module, "Node")
         .def(py::init<>())
         .def_readwrite("name", &BayesianNetwork::Node::name)
         .def_readwrite("states", &BayesianNetwork::Node::states)
         .def_readwrite("index", &BayesianNetwork::Node::index);
-    
+
     // BayesianNetwork class
     py::class_<BayesianNetwork>(bn_module, "BayesianNetwork")
         .def(py::init<>())
@@ -178,7 +146,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Hidden Markov Model Module
     py::module_ hmm_module = m.def_submodule("hmm", "Hidden Markov Model algorithms");
-    
+
     py::class_<HMM>(hmm_module, "HMM")
         .def(py::init<int, int>(), py::arg("states"), py::arg("observations"))
         .def("set_initial_probabilities", &HMM::set_initial_probabilities,
@@ -212,15 +180,15 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Generalized Linear Model Module
     py::module_ glm_module = m.def_submodule("glm", "Generalized Linear Model algorithms");
-    
+
     // FitMethod base class
     py::class_<FitMethod>(glm_module, "FitMethod");
-    
+
     // LinearRegressionFitMethod
     py::enum_<LinearRegressionFitMethod::Type>(glm_module, "LinearRegressionType")
         .value("GRADIENT_DESCENT", LinearRegressionFitMethod::Type::GRADIENT_DESCENT)
         .value("CLOSED_FORM", LinearRegressionFitMethod::Type::CLOSED_FORM);
-    
+
     py::class_<LinearRegressionFitMethod, FitMethod>(glm_module, "LinearRegressionFitMethod")
         .def(py::init<unsigned int, double, LinearRegressionFitMethod::Type>(),
              py::arg("num_iterations") = 10000,
@@ -229,7 +197,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("get_num_iterations", &LinearRegressionFitMethod::get_num_iterations)
         .def("get_learning_rate", &LinearRegressionFitMethod::get_learning_rate)
         .def("get_type", &LinearRegressionFitMethod::get_type);
-    
+
     // GLM base class
     py::class_<GLM>(glm_module, "GLM")
         .def("fit", &GLM::fit,
@@ -253,7 +221,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Multi-arm Bandit Module
     py::module_ mab_module = m.def_submodule("multi_arm_bandit", "Multi-arm Bandit algorithms");
-    
+
     py::class_<BanditArm>(mab_module, "BanditArm")
         .def(py::init<double>(), py::arg("true_reward_prob"))
         .def("pull", &BanditArm::pull,
@@ -270,7 +238,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Tracker Module (Kalman Filters)
     py::module_ tracker_module = m.def_submodule("tracker", "State estimation and tracking algorithms");
-    
+
     // Note: Kalman Filter bindings would need to be implemented based on the actual interface
     // This is a placeholder - you'll need to check the actual KalmanFilter class interface
     /*
@@ -499,7 +467,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Deep Learning Module
     py::module_ dl_module = m.def_submodule("deep_learning", "Deep Learning neural networks");
-    
+
     // Tensor class
     py::class_<ml::deep_learning::Tensor>(dl_module, "Tensor")
         .def(py::init<const std::vector<size_t>&>())
@@ -530,69 +498,69 @@ PYBIND11_MODULE(ml_core, m) {
             oss << "], size=" << t.size() << ")";
             return oss.str();
         });
-    
+
     // Layer base class
     py::class_<ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::Layer>>(dl_module, "Layer")
         .def("forward", &ml::deep_learning::Layer::forward)
         .def("backward", &ml::deep_learning::Layer::backward)
         .def("name", &ml::deep_learning::Layer::name)
         .def("has_parameters", &ml::deep_learning::Layer::has_parameters);
-    
+
     // DenseLayer
     py::class_<ml::deep_learning::DenseLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::DenseLayer>>(dl_module, "DenseLayer")
         .def(py::init<size_t, size_t>())
         .def("weights", &ml::deep_learning::DenseLayer::weights)
         .def("bias", &ml::deep_learning::DenseLayer::bias);
-    
+
     // ReLULayer
     py::class_<ml::deep_learning::ReLULayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::ReLULayer>>(dl_module, "ReLULayer")
         .def(py::init<>());
-    
+
     // SigmoidLayer
     py::class_<ml::deep_learning::SigmoidLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::SigmoidLayer>>(dl_module, "SigmoidLayer")
         .def(py::init<>());
-    
+
     // TanhLayer
     py::class_<ml::deep_learning::TanhLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::TanhLayer>>(dl_module, "TanhLayer")
         .def(py::init<>());
-    
+
     // SoftmaxLayer
     py::class_<ml::deep_learning::SoftmaxLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::SoftmaxLayer>>(dl_module, "SoftmaxLayer")
         .def(py::init<>());
-    
+
     // DropoutLayer
     py::class_<ml::deep_learning::DropoutLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::DropoutLayer>>(dl_module, "DropoutLayer")
         .def(py::init<double>())
         .def("set_training", &ml::deep_learning::DropoutLayer::set_training);
-    
+
     // Loss base class
     py::class_<ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::Loss>>(dl_module, "Loss")
         .def("compute", &ml::deep_learning::Loss::compute)
         .def("gradient", &ml::deep_learning::Loss::gradient)
         .def("name", &ml::deep_learning::Loss::name);
-    
+
     // MSELoss
     py::class_<ml::deep_learning::MSELoss, ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::MSELoss>>(dl_module, "MSELoss")
         .def(py::init<>());
-    
+
     // BCELoss
     py::class_<ml::deep_learning::BCELoss, ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::BCELoss>>(dl_module, "BCELoss")
         .def(py::init<>());
-    
+
     // CategoricalCrossEntropyLoss
     py::class_<ml::deep_learning::CategoricalCrossEntropyLoss, ml::deep_learning::Loss, std::shared_ptr<ml::deep_learning::CategoricalCrossEntropyLoss>>(dl_module, "CategoricalCrossEntropyLoss")
         .def(py::init<>());
-    
+
     // Optimizer base class
     py::class_<ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::Optimizer>>(dl_module, "Optimizer")
         .def("step", &ml::deep_learning::Optimizer::step)
         .def("name", &ml::deep_learning::Optimizer::name)
         .def("reset", &ml::deep_learning::Optimizer::reset);
-    
+
     // SGD
     py::class_<ml::deep_learning::SGD, ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::SGD>>(dl_module, "SGD")
         .def(py::init<double, double>(), py::arg("learning_rate"), py::arg("momentum") = 0.0);
-    
+
     // Adam
     py::class_<ml::deep_learning::Adam, ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::Adam>>(dl_module, "Adam")
         .def(py::init<double, double, double, double>(),
@@ -600,14 +568,14 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("beta1") = 0.9,
              py::arg("beta2") = 0.999,
              py::arg("epsilon") = 1e-8);
-    
+
     // RMSprop
     py::class_<ml::deep_learning::RMSprop, ml::deep_learning::Optimizer, std::shared_ptr<ml::deep_learning::RMSprop>>(dl_module, "RMSprop")
         .def(py::init<double, double, double>(),
              py::arg("learning_rate") = 0.001,
              py::arg("decay") = 0.9,
              py::arg("epsilon") = 1e-8);
-    
+
     // NeuralNetwork
     py::class_<ml::deep_learning::NeuralNetwork>(dl_module, "NeuralNetwork")
         .def(py::init<>())
@@ -623,7 +591,7 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("batch_size") = 32,
              py::arg("verbose") = true);
 
-     dl_module.def("binary_classifier",
+    dl_module.def("binary_classifier",
                      [](int input_dim, const std::vector<int>& hidden_dims) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -642,7 +610,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("hidden_dims") = std::vector<int>{64, 32},
                      "Create a simple binary classification network.");
 
-     dl_module.def("multiclass_classifier",
+    dl_module.def("multiclass_classifier",
                      [](int input_dim, int num_classes, const std::vector<int>& hidden_dims) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -662,7 +630,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("hidden_dims") = std::vector<int>{128, 64},
                      "Create a simple multi-class classification network.");
 
-     dl_module.def("image_classifier",
+    dl_module.def("image_classifier",
                      [](int num_classes, int channels, int height, int width, const std::string& arch) {
                           (void)arch;
                           ml::deep_learning::NeuralNetwork net;
@@ -685,7 +653,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("arch") = "simple",
                      "Create an example image-classification network.");
 
-     dl_module.def("regressor",
+    dl_module.def("regressor",
                      [](int input_dim, int output_dim, const std::vector<int>& hidden_dims) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -704,7 +672,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("hidden_dims") = std::vector<int>{64, 32},
                      "Create a simple regression network.");
 
-     dl_module.def("embedding_network",
+    dl_module.def("embedding_network",
                      [](int input_dim, int embedding_dim, const std::vector<int>& hidden_dims) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -721,7 +689,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("hidden_dims") = std::vector<int>{128, 64},
                      "Create an example embedding network.");
 
-     dl_module.def("sequence_classifier",
+    dl_module.def("sequence_classifier",
                      [](int input_dim, int num_classes, int hidden_dim, int num_layers) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -742,7 +710,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("num_layers") = 2,
                      "Create an example sequence-classification network.");
 
-     dl_module.def("simple_autoencoder",
+    dl_module.def("simple_autoencoder",
                      [](int input_dim, int latent_dim, const std::vector<int>& hidden_dims) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -769,7 +737,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("hidden_dims") = std::vector<int>{128, 64},
                      "Create a simple autoencoder network.");
 
-     dl_module.def("variational_autoencoder",
+    dl_module.def("variational_autoencoder",
                      [](int input_dim, int latent_dim, const std::vector<int>& encoder_dims) {
                           ml::deep_learning::NeuralNetwork net;
                           int prev_dim = input_dim;
@@ -795,7 +763,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("encoder_dims") = std::vector<int>{256, 128},
                      "Create an example variational-autoencoder-style network.");
 
-     dl_module.def("simple_gan",
+    dl_module.def("simple_gan",
                      [](int latent_dim, int output_dim, const std::vector<int>& generator_dims, const std::vector<int>& discriminator_dims) {
                           (void)discriminator_dims;
                           ml::deep_learning::NeuralNetwork net;
@@ -815,7 +783,7 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("discriminator_dims") = std::vector<int>{256, 128},
                      "Create an example GAN generator network.");
 
-     dl_module.def("language_model",
+    dl_module.def("language_model",
                      [](int vocab_size, int context_length, int embed_dim, int num_heads, int num_layers, int ff_dim) {
                           (void)context_length;
                           (void)num_heads;
@@ -841,22 +809,22 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("num_layers") = 6,
                      py::arg("ff_dim") = 2048,
                      "Create an example language-model network.");
-    
+
     // Computer Vision Module
     py::module_ cv_module = m.def_submodule("computer_vision", "Computer Vision algorithms");
-    
+
     // ImageFormat enum
     py::enum_<ml::cv::ImageFormat>(cv_module, "ImageFormat")
         .value("GRAYSCALE", ml::cv::ImageFormat::GRAYSCALE)
         .value("RGB", ml::cv::ImageFormat::RGB)
         .value("RGBA", ml::cv::ImageFormat::RGBA);
-    
+
     // InterpolationMode enum
     py::enum_<ml::cv::InterpolationMode>(cv_module, "InterpolationMode")
         .value("NEAREST", ml::cv::InterpolationMode::NEAREST)
         .value("BILINEAR", ml::cv::InterpolationMode::BILINEAR)
         .value("BICUBIC", ml::cv::InterpolationMode::BICUBIC);
-    
+
     // Image class
     py::class_<ml::cv::Image>(cv_module, "Image")
         .def(py::init<>())
@@ -882,79 +850,79 @@ PYBIND11_MODULE(ml_core, m) {
         .def("mean", &ml::cv::Image::mean)
         .def("std", &ml::cv::Image::std)
         .def("min_max", &ml::cv::Image::min_max);
-    
+
     // Transform base class
     py::class_<ml::cv::Transform, std::shared_ptr<ml::cv::Transform>>(cv_module, "Transform")
         .def("apply", &ml::cv::Transform::apply);
-    
+
     // Resize transform
     py::class_<ml::cv::Resize, ml::cv::Transform, std::shared_ptr<ml::cv::Resize>>(cv_module, "Resize")
         .def(py::init<int, int, ml::cv::InterpolationMode>(),
              py::arg("height"), py::arg("width"),
              py::arg("mode") = ml::cv::InterpolationMode::BILINEAR);
-    
+
     // CenterCrop transform
     py::class_<ml::cv::CenterCrop, ml::cv::Transform, std::shared_ptr<ml::cv::CenterCrop>>(cv_module, "CenterCrop")
         .def(py::init<int, int>(), py::arg("height"), py::arg("width"));
-    
+
     // RandomCrop transform
     py::class_<ml::cv::RandomCrop, ml::cv::Transform, std::shared_ptr<ml::cv::RandomCrop>>(cv_module, "RandomCrop")
         .def(py::init<int, int, unsigned int>(),
              py::arg("height"), py::arg("width"), py::arg("seed") = 0);
-    
+
     // HorizontalFlip transform
     py::class_<ml::cv::HorizontalFlip, ml::cv::Transform, std::shared_ptr<ml::cv::HorizontalFlip>>(cv_module, "HorizontalFlip")
         .def(py::init<>());
-    
+
     // VerticalFlip transform
     py::class_<ml::cv::VerticalFlip, ml::cv::Transform, std::shared_ptr<ml::cv::VerticalFlip>>(cv_module, "VerticalFlip")
         .def(py::init<>());
-    
+
     // RandomHorizontalFlip transform
     py::class_<ml::cv::RandomHorizontalFlip, ml::cv::Transform, std::shared_ptr<ml::cv::RandomHorizontalFlip>>(cv_module, "RandomHorizontalFlip")
         .def(py::init<float, unsigned int>(),
              py::arg("probability") = 0.5f, py::arg("seed") = 0);
-    
+
     // Normalize transform
     py::class_<ml::cv::Normalize, ml::cv::Transform, std::shared_ptr<ml::cv::Normalize>>(cv_module, "Normalize")
         .def(py::init<const std::vector<float>&, const std::vector<float>&>(),
              py::arg("mean"), py::arg("std"));
-    
+
     // Standardize transform
     py::class_<ml::cv::Standardize, ml::cv::Transform, std::shared_ptr<ml::cv::Standardize>>(cv_module, "Standardize")
         .def(py::init<>());
-    
+
     // Rotate transform
     py::class_<ml::cv::Rotate, ml::cv::Transform, std::shared_ptr<ml::cv::Rotate>>(cv_module, "Rotate")
         .def(py::init<float, ml::cv::InterpolationMode>(),
              py::arg("angle_degrees"),
              py::arg("mode") = ml::cv::InterpolationMode::BILINEAR);
-    
+
     // RandomRotation transform
     py::class_<ml::cv::RandomRotation, ml::cv::Transform, std::shared_ptr<ml::cv::RandomRotation>>(cv_module, "RandomRotation")
         .def(py::init<float, float, ml::cv::InterpolationMode, unsigned int>(),
              py::arg("min_angle"), py::arg("max_angle"),
              py::arg("mode") = ml::cv::InterpolationMode::BILINEAR,
              py::arg("seed") = 0);
-    
+
     // AdjustBrightness transform
     py::class_<ml::cv::AdjustBrightness, ml::cv::Transform, std::shared_ptr<ml::cv::AdjustBrightness>>(cv_module, "AdjustBrightness")
         .def(py::init<float>(), py::arg("factor"));
-    
+
     // AdjustContrast transform
     py::class_<ml::cv::AdjustContrast, ml::cv::Transform, std::shared_ptr<ml::cv::AdjustContrast>>(cv_module, "AdjustContrast")
         .def(py::init<float>(), py::arg("factor"));
-    
+
     // GaussianBlur transform
     py::class_<ml::cv::GaussianBlur, ml::cv::Transform, std::shared_ptr<ml::cv::GaussianBlur>>(cv_module, "GaussianBlur")
         .def(py::init<int, float>(), py::arg("kernel_size"), py::arg("sigma"));
-    
+
     // Pad transform
     py::class_<ml::cv::Pad, ml::cv::Transform, std::shared_ptr<ml::cv::Pad>>(cv_module, "Pad")
         .def(py::init<int, int, int, int, float>(),
              py::arg("top"), py::arg("bottom"), py::arg("left"), py::arg("right"),
              py::arg("fill_value") = 0.0f);
-    
+
     // TransformPipeline class
     py::class_<ml::cv::TransformPipeline>(cv_module, "TransformPipeline")
         .def(py::init<>())
@@ -966,7 +934,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("size", &ml::cv::TransformPipeline::size)
         .def("clear", &ml::cv::TransformPipeline::clear)
         .def("clone", &ml::cv::TransformPipeline::clone);
-    
+
     // Predefined pipelines
     cv_module.def("create_imagenet_pipeline", &ml::cv::create_imagenet_pipeline,
                   py::arg("image_size") = 224);
@@ -980,13 +948,13 @@ PYBIND11_MODULE(ml_core, m) {
                   py::arg("image_size"),
                   py::arg("mean") = std::vector<float>{0.485f, 0.456f, 0.406f},
                   py::arg("std") = std::vector<float>{0.229f, 0.224f, 0.225f});
-    
+
     // Utility functions
     cv_module.def("image_to_tensor", &ml::cv::image_to_tensor);
     cv_module.def("tensor_to_image", &ml::cv::tensor_to_image,
                   py::arg("tensor"),
                   py::arg("format") = ml::cv::ImageFormat::RGB);
-    
+
     // CV Layers
     py::class_<ml::cv::Conv2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::Conv2DLayer>>(cv_module, "Conv2DLayer")
         .def(py::init<int, int, int, int, int>(),
@@ -997,29 +965,29 @@ PYBIND11_MODULE(ml_core, m) {
         .def("kernel_size", &ml::cv::Conv2DLayer::kernel_size)
         .def("stride", &ml::cv::Conv2DLayer::stride)
         .def("padding", &ml::cv::Conv2DLayer::padding);
-    
+
     py::class_<ml::cv::MaxPool2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::MaxPool2DLayer>>(cv_module, "MaxPool2DLayer")
         .def(py::init<int, int>(), py::arg("kernel_size"), py::arg("stride") = -1)
         .def("kernel_size", &ml::cv::MaxPool2DLayer::kernel_size)
         .def("stride", &ml::cv::MaxPool2DLayer::stride);
-    
+
     py::class_<ml::cv::AvgPool2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::AvgPool2DLayer>>(cv_module, "AvgPool2DLayer")
         .def(py::init<int, int>(), py::arg("kernel_size"), py::arg("stride") = -1)
         .def("kernel_size", &ml::cv::AvgPool2DLayer::kernel_size)
         .def("stride", &ml::cv::AvgPool2DLayer::stride);
-    
+
     py::class_<ml::cv::BatchNorm2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::BatchNorm2DLayer>>(cv_module, "BatchNorm2DLayer")
         .def(py::init<int, float, float>(),
              py::arg("num_features"), py::arg("eps") = 1e-5f, py::arg("momentum") = 0.1f)
         .def("set_training", &ml::cv::BatchNorm2DLayer::set_training)
         .def("is_training", &ml::cv::BatchNorm2DLayer::is_training);
-    
+
     py::class_<ml::cv::FlattenLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::FlattenLayer>>(cv_module, "FlattenLayer")
         .def(py::init<>());
-    
+
     py::class_<ml::cv::GlobalAvgPool2DLayer, ml::deep_learning::Layer, std::shared_ptr<ml::cv::GlobalAvgPool2DLayer>>(cv_module, "GlobalAvgPool2DLayer")
         .def(py::init<>());
-    
+
     // ========== Time Series Module ==========
     py::module_ ts_module = m.def_submodule("time_series", "Time Series Analysis");
 
@@ -1097,7 +1065,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     // ========== NLP Module ==========
     py::module_ nlp_module = m.def_submodule("nlp", "Natural Language Processing");
-    
+
     // TextProcessor class
     py::class_<ml::nlp::TextProcessor>(nlp_module, "TextProcessor")
         .def(py::init<>())
@@ -1120,7 +1088,7 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("text"), py::arg("lowercase") = true, py::arg("remove_punct") = true,
              py::arg("remove_nums") = false, py::arg("remove_stops") = true,
              py::arg("apply_stemming") = false);
-    
+
     // Vocabulary class
     py::class_<ml::nlp::Vocabulary, std::shared_ptr<ml::nlp::Vocabulary>>(nlp_module, "Vocabulary")
         .def(py::init<size_t, size_t>(), py::arg("min_freq") = 1, py::arg("max_size") = 0)
@@ -1138,7 +1106,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def_readonly_static("UNK_IDX", &ml::nlp::Vocabulary::UNK_IDX)
         .def_readonly_static("BOS_IDX", &ml::nlp::Vocabulary::BOS_IDX)
         .def_readonly_static("EOS_IDX", &ml::nlp::Vocabulary::EOS_IDX);
-    
+
     // BagOfWords class
     py::class_<ml::nlp::BagOfWords>(nlp_module, "BagOfWords")
         .def(py::init<std::shared_ptr<ml::nlp::Vocabulary>>(),
@@ -1147,7 +1115,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("transform", &ml::nlp::BagOfWords::transform)
         .def("transform_batch", &ml::nlp::BagOfWords::transform_batch)
         .def("vocabulary", &ml::nlp::BagOfWords::vocabulary);
-    
+
     // TFIDF class
     py::class_<ml::nlp::TFIDF>(nlp_module, "TFIDF")
         .def(py::init<std::shared_ptr<ml::nlp::Vocabulary>>(),
@@ -1156,7 +1124,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("transform", &ml::nlp::TFIDF::transform)
         .def("transform_batch", &ml::nlp::TFIDF::transform_batch)
         .def("vocabulary", &ml::nlp::TFIDF::vocabulary);
-    
+
     // SequenceEncoder class
     py::class_<ml::nlp::SequenceEncoder>(nlp_module, "SequenceEncoder")
         .def(py::init<std::shared_ptr<ml::nlp::Vocabulary>, size_t, bool, bool>(),
@@ -1166,7 +1134,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("encode_batch", &ml::nlp::SequenceEncoder::encode_batch)
         .def("decode", &ml::nlp::SequenceEncoder::decode,
              py::arg("indices"), py::arg("skip_special") = true);
-    
+
     // CharacterEncoder class
     py::class_<ml::nlp::CharacterEncoder>(nlp_module, "CharacterEncoder")
         .def(py::init<>())
@@ -1174,7 +1142,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("encode", &ml::nlp::CharacterEncoder::encode)
         .def("decode", &ml::nlp::CharacterEncoder::decode)
         .def("vocab_size", &ml::nlp::CharacterEncoder::vocab_size);
-    
+
     // WordEmbedding class
     py::class_<ml::nlp::WordEmbedding>(nlp_module, "WordEmbedding")
         .def(py::init<size_t>(), py::arg("embedding_dim"))
@@ -1189,7 +1157,7 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("word"), py::arg("top_k") = 10)
         .def("vocab_size", &ml::nlp::WordEmbedding::vocab_size)
         .def("embedding_dim", &ml::nlp::WordEmbedding::embedding_dim);
-    
+
     // OneHotEncoder class
     py::class_<ml::nlp::OneHotEncoder>(nlp_module, "OneHotEncoder")
         .def(py::init<>())
@@ -1197,18 +1165,18 @@ PYBIND11_MODULE(ml_core, m) {
         .def("encode", &ml::nlp::OneHotEncoder::encode)
         .def("encode_batch", &ml::nlp::OneHotEncoder::encode_batch)
         .def("vocab_size", &ml::nlp::OneHotEncoder::vocab_size);
-    
+
     // NLP utility functions
     nlp_module.def("cosine_similarity", &ml::nlp::cosine_similarity);
     nlp_module.def("jaccard_similarity", &ml::nlp::jaccard_similarity);
     nlp_module.def("levenshtein_distance", &ml::nlp::levenshtein_distance);
     nlp_module.def("create_positional_encoding", &ml::nlp::create_positional_encoding);
-    
+
     // =========================================================================
     // DISTRIBUTED COMPUTING MODULE
     // =========================================================================
     py::module_ dist_module = m.def_submodule("distributed", "Distributed computing for ML");
-    
+
     // MessageType enum
     py::enum_<distributed::MessageType>(dist_module, "MessageType")
         .value("DATA", distributed::MessageType::DATA)
@@ -1219,7 +1187,7 @@ PYBIND11_MODULE(ml_core, m) {
         .value("HEARTBEAT", distributed::MessageType::HEARTBEAT)
         .value("BARRIER", distributed::MessageType::BARRIER)
         .value("REDUCE", distributed::MessageType::REDUCE);
-    
+
     // CommPattern enum
     py::enum_<distributed::CommPattern>(dist_module, "CommPattern")
         .value("POINT_TO_POINT", distributed::CommPattern::POINT_TO_POINT)
@@ -1228,7 +1196,7 @@ PYBIND11_MODULE(ml_core, m) {
         .value("GATHER", distributed::CommPattern::GATHER)
         .value("ALL_REDUCE", distributed::CommPattern::ALL_REDUCE)
         .value("RING_ALL_REDUCE", distributed::CommPattern::RING_ALL_REDUCE);
-    
+
     // ReduceOp enum
     py::enum_<distributed::ReduceOp>(dist_module, "ReduceOp")
         .value("SUM", distributed::ReduceOp::SUM)
@@ -1236,7 +1204,7 @@ PYBIND11_MODULE(ml_core, m) {
         .value("MIN", distributed::ReduceOp::MIN)
         .value("MAX", distributed::ReduceOp::MAX)
         .value("PRODUCT", distributed::ReduceOp::PRODUCT);
-    
+
     // TrainingStrategy enum
     py::enum_<distributed::TrainingStrategy>(dist_module, "TrainingStrategy")
         .value("DATA_PARALLEL", distributed::TrainingStrategy::DATA_PARALLEL)
@@ -1244,13 +1212,13 @@ PYBIND11_MODULE(ml_core, m) {
         .value("PARAMETER_SERVER", distributed::TrainingStrategy::PARAMETER_SERVER)
         .value("DECENTRALIZED", distributed::TrainingStrategy::DECENTRALIZED)
         .value("FEDERATED", distributed::TrainingStrategy::FEDERATED);
-    
+
     // AggregationMethod enum
     py::enum_<distributed::AggregationMethod>(dist_module, "AggregationMethod")
         .value("SYNCHRONOUS", distributed::AggregationMethod::SYNCHRONOUS)
         .value("ASYNCHRONOUS", distributed::AggregationMethod::ASYNCHRONOUS)
         .value("ELASTIC_AVERAGING", distributed::AggregationMethod::ELASTIC_AVERAGING);
-    
+
     // Message class
     py::class_<distributed::Message>(dist_module, "Message")
         .def(py::init<distributed::MessageType, int, int>(),
@@ -1262,7 +1230,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def_readwrite("dest_rank", &distributed::Message::dest_rank)
         .def_readwrite("data", &distributed::Message::data)
         .def_readwrite("metadata", &distributed::Message::metadata);
-    
+
     // DistributedContext class
     py::class_<distributed::DistributedContext, std::shared_ptr<distributed::DistributedContext>>(
         dist_module, "DistributedContext")
@@ -1279,14 +1247,14 @@ PYBIND11_MODULE(ml_core, m) {
         .def("rank", &distributed::DistributedContext::rank)
         .def("world_size", &distributed::DistributedContext::world_size)
         .def("is_master", &distributed::DistributedContext::is_master);
-    
+
     // DataPartitioner class
     py::class_<distributed::DataPartitioner>(dist_module, "DataPartitioner")
         .def(py::init<size_t, int>())
         .def("get_partition", &distributed::DataPartitioner::get_partition)
         .def("get_indices", &distributed::DataPartitioner::get_indices)
         .def("partition_size", &distributed::DataPartitioner::partition_size);
-    
+
     // ParameterServer class
     py::class_<distributed::ParameterServer>(dist_module, "ParameterServer")
         .def(py::init<int>())
@@ -1296,7 +1264,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("accumulate_gradient", &distributed::ParameterServer::accumulate_gradient)
         .def("apply_gradients", &distributed::ParameterServer::apply_gradients)
         .def("clear_gradients", &distributed::ParameterServer::clear_gradients);
-    
+
     // DistributedTrainer base class
     py::class_<distributed::DistributedTrainer, std::shared_ptr<distributed::DistributedTrainer>>(
         dist_module, "DistributedTrainer")
@@ -1308,13 +1276,13 @@ PYBIND11_MODULE(ml_core, m) {
         .def("aggregate_gradients", &distributed::DistributedTrainer::aggregate_gradients,
              py::arg("local_gradient"),
              py::arg("method") = distributed::AggregationMethod::SYNCHRONOUS);
-    
+
     // =========================================================================
     // REST API MODULE
     // =========================================================================
-    
+
     py::module_ rest_module = m.def_submodule("rest_api", "REST API for model serving");
-    
+
     // HTTP Method enum
     py::enum_<ml::rest_api::HttpMethod>(rest_module, "HttpMethod")
         .value("GET", ml::rest_api::HttpMethod::GET)
@@ -1323,7 +1291,7 @@ PYBIND11_MODULE(ml_core, m) {
         .value("DELETE", ml::rest_api::HttpMethod::DELETE)
         .value("PATCH", ml::rest_api::HttpMethod::PATCH)
         .value("OPTIONS", ml::rest_api::HttpMethod::OPTIONS);
-    
+
     // HTTP Status enum
     py::enum_<ml::rest_api::HttpStatus>(rest_module, "HttpStatus")
         .value("OK", ml::rest_api::HttpStatus::OK)
@@ -1338,7 +1306,7 @@ PYBIND11_MODULE(ml_core, m) {
         .value("INTERNAL_SERVER_ERROR", ml::rest_api::HttpStatus::INTERNAL_SERVER_ERROR)
         .value("NOT_IMPLEMENTED", ml::rest_api::HttpStatus::NOT_IMPLEMENTED)
         .value("SERVICE_UNAVAILABLE", ml::rest_api::HttpStatus::SERVICE_UNAVAILABLE);
-    
+
     // Request class
     py::class_<ml::rest_api::Request>(rest_module, "Request")
         .def(py::init<ml::rest_api::HttpMethod, const std::string&,
@@ -1355,7 +1323,7 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("key"), py::arg("default_val") = "")
         .def("get_path_param", &ml::rest_api::Request::get_path_param,
              py::arg("key"), py::arg("default_val") = "");
-    
+
     // Response class
     py::class_<ml::rest_api::Response>(rest_module, "Response")
         .def(py::init<>())
@@ -1368,7 +1336,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def("set_header", &ml::rest_api::Response::set_header)
         .def("set_json", &ml::rest_api::Response::set_json)
         .def("to_string", &ml::rest_api::Response::to_string);
-    
+
     // Server class
     py::class_<ml::rest_api::Server>(rest_module, "Server")
         .def(py::init<int>(), py::arg("port") = 8080)
@@ -1384,9 +1352,9 @@ PYBIND11_MODULE(ml_core, m) {
         .def("is_running", &ml::rest_api::Server::is_running)
         .def("handle_request", &ml::rest_api::Server::handle_request)
         .def("port", &ml::rest_api::Server::port);
-    
+
     // ModelServer bindings removed for HTTP2-only build
-    
+
     // JSON utilities
     rest_module.def("json_encode", &ml::rest_api::json::encode,
                    "Encode a dictionary to JSON string");
@@ -1396,7 +1364,7 @@ PYBIND11_MODULE(ml_core, m) {
                    "Encode an array to JSON string");
     rest_module.def("json_decode_array", &ml::rest_api::json::decode_array,
                    "Decode a JSON array string");
-    
+
     // DistributedNeuralNetTrainer class
     py::class_<distributed::DistributedNeuralNetTrainer, distributed::DistributedTrainer,
                std::shared_ptr<distributed::DistributedNeuralNetTrainer>>(
@@ -1406,7 +1374,7 @@ PYBIND11_MODULE(ml_core, m) {
                       int, std::vector<int>, int, double>())
         .def("get_local_loss", &distributed::DistributedNeuralNetTrainer::get_local_loss)
         .def("get_global_loss", &distributed::DistributedNeuralNetTrainer::get_global_loss);
-    
+
     // DistributedKMeansTrainer class
     py::class_<distributed::DistributedKMeansTrainer, distributed::DistributedTrainer,
                std::shared_ptr<distributed::DistributedKMeansTrainer>>(
@@ -1414,7 +1382,7 @@ PYBIND11_MODULE(ml_core, m) {
         .def(py::init<std::shared_ptr<distributed::DistributedContext>,
                       int, int>())
         .def("get_centroids", &distributed::DistributedKMeansTrainer::get_centroids);
-    
+
     // Utility functions
     dist_module.def("partition_data", &distributed::utils::partition_data);
     dist_module.def("compute_distributed_accuracy", &distributed::utils::compute_distributed_accuracy);
