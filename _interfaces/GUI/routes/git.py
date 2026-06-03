@@ -3,18 +3,24 @@ from fastapi.responses import JSONResponse
 import os
 import subprocess
 import re
-from __init__ import REPO_ROOT
+_repo_root: str = ""
+try:
+    from .. import REPO_ROOT as _repo_root
+except ImportError:
+    import __init__ as _gui_root
+    _repo_root = str(getattr(_gui_root, "REPO_ROOT", ""))
+
+REPO_ROOT: str = _repo_root
 
 p1 = APIRouter()
 
 @p1.post("/git/sub-repos/pull")
 async def git_sub_repos_pull(background_tasks: BackgroundTasks):
-    repo_root = REPO_ROOT
     sub_repos_dir = os.path.join(REPO_ROOT, "_sub_repos")
     if not os.path.isdir(sub_repos_dir):
         return JSONResponse({"success": False, "error": "_sub_repos/ directory not found"}, status_code=404)
-    results = {}
-    errors = {}
+    results: dict[str, str] = {}
+    errors: dict[str, str] = {}
     for name in sorted(os.listdir(sub_repos_dir)):
         path = os.path.join(sub_repos_dir, name)
         if not os.path.exists(os.path.join(path, ".git")):
@@ -74,7 +80,7 @@ def git_log(n: int = 60, branch: str = ""):
     except FileNotFoundError:
         return JSONResponse({"success": False, "commits": [], "error": "git not found"})
 
-    commits = []
+    commits: list[dict[str, object]] = []
     for record in out.strip().split("\x1e"):
         record = record.strip()
         if not record:
@@ -152,7 +158,7 @@ def git_stash_list():
     except (subprocess.CalledProcessError, FileNotFoundError):
         return JSONResponse({"success": False, "entries": [], "error": "git stash list failed"})
 
-    entries = []
+    entries: list[dict[str, str]] = []
     for line in raw.splitlines():
         parts = line.split("\x1f")
         ref = parts[0].strip() if len(parts) > 0 else ""
@@ -192,7 +198,7 @@ def git_remotes():
     except (subprocess.CalledProcessError, FileNotFoundError):
         return JSONResponse({"success": False, "remotes": [], "error": "git remote failed"})
 
-    seen: dict = {}
+    seen: dict[str, dict[str, str]] = {}
     for line in raw.splitlines():
         parts = line.split()
         if len(parts) < 3:
@@ -200,7 +206,8 @@ def git_remotes():
         name, url, kind = parts[0], parts[1], parts[2].strip("()")
         if name not in seen:
             seen[name] = {"name": name, "fetch": "", "push": ""}
-        seen[name][kind] = url
+        if kind in ("fetch", "push"):
+            seen[name][kind] = url
 
     return JSONResponse({"success": True, "remotes": list(seen.values())})
 
@@ -312,14 +319,14 @@ async def git_sub_repos():
     """Return status of each repo inside _sub_repos/."""
     repo_root = REPO_ROOT
     sub_repos_dir = os.path.join(repo_root, "_sub_repos")
-    results = []
+    results: list[dict[str, object]] = []
     if not os.path.isdir(sub_repos_dir):
         return JSONResponse({"success": True, "repos": []})
     for name in sorted(os.listdir(sub_repos_dir)):
         path = os.path.join(sub_repos_dir, name)
         if not os.path.exists(os.path.join(path, ".git")):
             continue
-        entry = {"name": name, "path": os.path.join("_sub_repos", name)}
+        entry: dict[str, object] = {"name": name, "path": os.path.join("_sub_repos", name)}
         try:
             entry["branch"] = subprocess.check_output(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],

@@ -22,7 +22,68 @@ Usage:
 Each installer streams output line-by-line and exits with the sentinel
 """
 
-TOOLS["install_dep"] = {"label": "Install missing dependencies (GSL, Doxygen)", "fn": install_dep, "check": tuple()}
+import argparse
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import urllib.request
+import zipfile
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+
+def _repo_root() -> Path:
+    # _scripts/install_scripts/master_installer.py -> repo root (two levels up)
+    return Path(__file__).resolve().parents[2]
+
+
+def _tmp_dir() -> Path:
+    path = _repo_root() / "_local_build_pipeline" / "tmp" / "installers"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _os() -> str:
+    return platform.system()
+
+
+def _arch() -> str:
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        return "amd64"
+    if machine in ("aarch64", "arm64"):
+        return "arm64"
+    return machine
+
+
+def _which(name: str, extra_paths: Optional[list[str]] = None) -> Optional[str]:
+    resolved = shutil.which(name)
+    if resolved:
+        return resolved
+    for p in (extra_paths or []):
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def install_dep() -> bool:
+    _banner("Install missing dependencies (GSL, Doxygen)")
+    system = _os()
+    if system == "Darwin" and shutil.which("brew"):
+        return _run_shell("brew install gsl doxygen") == 0
+    if system == "Linux":
+        if shutil.which("apt-get"):
+            return _run_shell("apt-get install -y libgsl-dev doxygen") == 0
+        if shutil.which("dnf"):
+            return _run_shell("dnf install -y gsl-devel doxygen") == 0
+        if shutil.which("pacman"):
+            return _run_shell("pacman -Sy --noconfirm gsl doxygen") == 0
+    print("  Unsupported platform or package manager for automatic dependency install.", flush=True)
+    return False
 
 def _download(url: str, dest: Path) -> None:
     print(f"  Downloading {url}", flush=True)
@@ -59,27 +120,29 @@ def _extract(archive: Path, dest: Path) -> None:
     else:
         raise ValueError(f"Unsupported archive format: {archive.name}")
 
-def _run(cmd: list[str], cwd: Path | None = None) -> int:
+def _run(cmd: list[str], cwd: Optional[Path] = None) -> int:
     print(f"  Running: {' '.join(str(c) for c in cmd)}", flush=True)
     proc = subprocess.Popen(
         cmd, cwd=str(cwd) if cwd else None,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         text=True, encoding="utf-8", errors="replace",
     )
-    for line in proc.stdout:
-        print(line, end="", flush=True)
+    if proc.stdout is not None:
+        for line in proc.stdout:
+            print(line, end="", flush=True)
     proc.wait()
     return proc.returncode
 
-def _run_shell(cmd: str, cwd: Path | None = None) -> int:
+def _run_shell(cmd: str, cwd: Optional[Path] = None) -> int:
     print(f"  Shell: {cmd}", flush=True)
     proc = subprocess.Popen(
         cmd, shell=True, cwd=str(cwd) if cwd else None,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         text=True, encoding="utf-8", errors="replace",
     )
-    for line in proc.stdout:
-        print(line, end="", flush=True)
+    if proc.stdout is not None:
+        for line in proc.stdout:
+            print(line, end="", flush=True)
     proc.wait()
     return proc.returncode
 
@@ -163,7 +226,6 @@ MAVEN_VERSION_FALLBACK = "3.9.15"
 def _maven_latest_version() -> str:
     """Fetch the latest Maven 3.x version from the Apache CDN listing."""
     try:
-        import html
         req = urllib.request.Request(
             "https://dlcdn.apache.org/maven/maven-3/",
             headers={"User-Agent": "CoolBox-Installer/1.0"}
@@ -185,9 +247,6 @@ def _maven_url() -> str:
         f"https://dlcdn.apache.org/maven/maven-3/{v}/binaries/"
         f"apache-maven-{v}-bin.tar.gz"
     )
-
-def _maven_archive_name(url: str) -> str:
-    return url.rsplit("/", 1)[-1]
 
 def _maven_install_dir() -> Path:
     return _tmp_dir() / "maven_install"
@@ -260,7 +319,6 @@ C3C_VERSION = "0.6.5"
 
 def _c3c_url() -> str:
     system = _os()
-    arch = _arch()
     if system == "Windows":
         return f"https://github.com/c3lang/c3c/releases/download/v{C3C_VERSION}/c3-windows.zip"
     elif system == "Darwin":
@@ -392,6 +450,81 @@ def install_vlang() -> bool:
 
     return True
 
+# ── D (dlang) ────────────────────────────────────────────────────────────────
+
+def install_dlang() -> bool:
+    _banner("D compiler / dub")
+    if _which("dmd") or _which("ldc2"):
+        print("  D compiler already installed.", flush=True)
+        if shutil.which("dmd"):
+            _run(["dmd", "--version"])
+        elif shutil.which("ldc2"):
+            _run(["ldc2", "--version"])
+        if shutil.which("dub"):
+            _run(["dub", "--version"])
+        return True
+
+    system = _os()
+    if system == "Darwin" and shutil.which("brew"):
+        # Homebrew package includes dmd and dub.
+        rc = _run_shell("brew install dmd")
+        if rc != 0:
+            return False
+        return bool(shutil.which("dmd") or shutil.which("ldc2"))
+
+    if system == "Linux":
+        if shutil.which("apt-get"):
+            # Prefer ldc + dub on Debian/Ubuntu for broad compatibility.
+            return _run_shell("apt-get install -y ldc dub") == 0
+        if shutil.which("dnf"):
+            return _run_shell("dnf install -y ldc dub") == 0
+        if shutil.which("pacman"):
+            return _run_shell("pacman -Sy --noconfirm ldc dub") == 0
+
+    if system == "Windows" and shutil.which("winget"):
+        rc = _run([
+            "winget", "install", "--id", "Dlang.DMD", "-e",
+            "--accept-package-agreements", "--accept-source-agreements",
+        ])
+        return rc == 0
+
+    print("  Automatic D install unavailable on this host.", flush=True)
+    print("  Install manually: https://dlang.org/download.html", flush=True)
+    return False
+
+
+# ── Zig ──────────────────────────────────────────────────────────────────────
+
+def install_zig() -> bool:
+    _banner("Zig compiler")
+    if _which("zig"):
+        print(f"  Zig is already installed: {shutil.which('zig')}", flush=True)
+        _run(["zig", "version"])
+        return True
+
+    system = _os()
+    if system == "Darwin" and shutil.which("brew"):
+        return _run_shell("brew install zig") == 0
+
+    if system == "Linux":
+        if shutil.which("apt-get"):
+            return _run_shell("apt-get install -y zig") == 0
+        if shutil.which("dnf"):
+            return _run_shell("dnf install -y zig") == 0
+        if shutil.which("pacman"):
+            return _run_shell("pacman -Sy --noconfirm zig") == 0
+
+    if system == "Windows" and shutil.which("winget"):
+        rc = _run([
+            "winget", "install", "--id", "zig.zig", "-e",
+            "--accept-package-agreements", "--accept-source-agreements",
+        ])
+        return rc == 0
+
+    print("  Automatic Zig install unavailable on this host.", flush=True)
+    print("  Install manually: https://ziglang.org/download/", flush=True)
+    return False
+
 # ── R ─────────────────────────────────────────────────────────────────────────
 
 R_VERSION_FALLBACK = "4.6.0"
@@ -491,9 +624,11 @@ def install_r() -> bool:
         installer.unlink(missing_ok=True)
         return rc == 0
 
+    return False
+
 # ── Rtools (Windows C++ toolchain for R packages) ───────────────────────────
 
-def _rtools_dir() -> Path | None:
+def _rtools_dir() -> Optional[Path]:
     """Return the Rtools bin dir if found in standard or managed locations."""
     for d in [
         r"C:\rtools45\x86_64-w64-mingw32.static.posix\bin",
@@ -551,7 +686,7 @@ def _emsdk_dir() -> Path:
     """Canonical install location used by both installer and build scripts."""
     return _tmp_dir() / "emsdk"
 
-def _emcc_exe() -> Path | None:
+def _emcc_exe() -> Optional[Path]:
     """Return the emcc executable inside the managed emsdk install, if present."""
     emsdk = _emsdk_dir()
     # emsdk activates into upstream/emscripten/
@@ -680,7 +815,7 @@ def install_emsdk() -> bool:
 def _jdk_install_dir() -> Path:
     return _tmp_dir() / "jdk_install"
 
-def _jdk_java_exe() -> Path | None:
+def _jdk_java_exe() -> Optional[Path]:
     """Return the java.exe path inside the managed JDK install, if present."""
     import glob as _glob
     managed = _jdk_install_dir()
@@ -769,12 +904,15 @@ def install_jdk() -> bool:
 
 # ── Registry ─────────────────────────────────────────────────────────────────
 
-TOOLS: dict[str, dict] = {
+TOOLS: Dict[str, Dict[str, Any]] = {
+    "install_dep": {"label": "Install dependencies", "fn": install_dep, "check": tuple()},
     "go":     {"label": "Go compiler",        "fn": install_go,     "check": ("go",)},
     "maven":  {"label": "Apache Maven",       "fn": install_maven,  "check": ("mvn", "mvn.cmd")},
     "jdk":    {"label": "JDK 21 (Temurin)",   "fn": install_jdk,    "check": ("java",)},
     "c3c":    {"label": "C3 compiler",        "fn": install_c3c,    "check": ("c3c",)},
     "vlang":  {"label": "V compiler",         "fn": install_vlang,  "check": ("v",)},
+    "dlang":  {"label": "D compiler / dub",   "fn": install_dlang,  "check": ("dmd", "ldc2", "dub")},
+    "zig":    {"label": "Zig compiler",       "fn": install_zig,    "check": ("zig",)},
     "r":      {"label": "R / Rscript",        "fn": install_r,      "check": ("R", "Rscript")},
     "rtools": {"label": "Rtools (gcc for R)",  "fn": install_rtools, "check": ("gcc",)},
     "emsdk":  {"label": "Emscripten (emcc)",  "fn": install_emsdk,  "check": ("emcc",)},
@@ -803,6 +941,21 @@ def _is_installed(tool_key: str) -> bool:
         emcc = _emcc_exe()
         if emcc and emcc.exists():
             return True
+    if tool_key == "dlang":
+        for p in [
+            r"C:\D\dmd2\windows\bin64\dmd.exe",
+            r"C:\D\ldc2\bin\ldc2.exe",
+            r"C:\D\dmd2\windows\bin64\dub.exe",
+        ]:
+            if os.path.isfile(p):
+                return True
+    if tool_key == "zig":
+        for p in [
+            r"C:\zig\zig.exe",
+            r"C:\tools\zig\zig.exe",
+        ]:
+            if os.path.isfile(p):
+                return True
     return False
 
 def check_all() -> None:
@@ -820,8 +973,7 @@ def main() -> int:
     )
     parser.add_argument(
         "tools", nargs="*",
-        choices=list(TOOLS.keys()) + ["all", "install_dep"],
-        help="Tool(s) to install: go | maven | c3c | vlang | r | install_dep | all",
+        help="Tool(s) to install: install_dep | go | maven | jdk | c3c | vlang | dlang | zig | r | rtools | emsdk | all",
     )
     parser.add_argument("--all",   action="store_true", help="Install all tools")
     parser.add_argument("--check", action="store_true", help="Check which tools are installed")
@@ -842,7 +994,7 @@ def main() -> int:
         check_all()
         return 0
 
-    results = {}
+    results: Dict[str, bool] = {}
     for key in targets:
         if key not in TOOLS:
             print(f"Unknown tool: {key}", flush=True)

@@ -4,8 +4,14 @@ from fastapi.responses import JSONResponse
 from starlette.responses import FileResponse as StarletteFileResponse
 import os
 import re
-import makefile_manager as mm
-from __init__ import REPO_ROOT
+import importlib
+from typing import Any, cast
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
+
+mm = cast(Any, importlib.import_module("makefile_manager"))
 
 app = APIRouter()
 
@@ -40,7 +46,7 @@ def serve_fourier_demo_module_asset(asset_name: str):
 @app.post("/demo-assets/fourier_fft_demo/module/build")
 def build_fourier_demo_module_assets():
     """Build Fourier transform Emscripten assets for the Fourier FFT demo."""
-    result = mm.build_target("fourier_tranforms_js", timeout=1200)
+    result: Any = mm.build_target("fourier_tranforms_js", timeout=1200)
 
     repo_root = REPO_ROOT
     js_path = os.path.realpath(os.path.join(
@@ -104,7 +110,7 @@ def list_demos():
     demos_dir = os.path.join(repo_root, "_internal_workspace", "demo_workspaces")
     if not os.path.isdir(demos_dir):
         return JSONResponse({"demos": []})
-    demos = []
+    demos: list[dict[str, object]] = []
     for entry in sorted(os.listdir(demos_dir)):
         demo_path = os.path.join(demos_dir, entry)
         if not os.path.isdir(demo_path):
@@ -141,7 +147,6 @@ def list_demos():
 async def create_demo(request: Request):
     """Create a new blank demo workspace folder.
     Body: { name: str }  — used as the folder name (sanitised)."""
-    import uuid as _uuid_mod
     import json as _json
     body = await request.json()
     raw_name = str(body.get("name", "")).strip()

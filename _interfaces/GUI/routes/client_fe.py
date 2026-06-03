@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 import os
-from __init__ import REPO_ROOT
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
 
 p1 = APIRouter()
 
@@ -12,7 +15,7 @@ def list_client_fe():
     client_fe_dir = os.path.join(repo_root, "_interfaces", "business_suite", "client_fe")
     if not os.path.isdir(client_fe_dir):
         return JSONResponse({"portals": []})
-    portals = []
+    portals: list[dict[str, object]] = []
     for entry in sorted(os.listdir(client_fe_dir)):
         portal_path = os.path.join(client_fe_dir, entry)
         if not os.path.isdir(portal_path):

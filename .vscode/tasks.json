@@ -626,6 +626,22 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "build-secret-gen-cli-macos",
+			"type": "shell",
+			"command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"isBackground": false,
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"focus": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "build-cad-builder-debug",
 			"type": "shell",
 			"command": "cmake",

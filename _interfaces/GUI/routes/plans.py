@@ -1,19 +1,22 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 import os
-import re
-from ._utils import _repo_root
 
 p1 = APIRouter()
 
 
-def _scan_plans() -> dict:
+def _repo_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+
+def _scan_plans() -> dict[str, object]:
     """Recursively scan plan/ and return a JSON tree of folders and .md files."""
     repo_root = _repo_root()
     plan_dir = os.path.join(repo_root, "_internal_documents", "plan")
 
-    def walk(path: str, rel: str) -> dict:
-        node = {"name": os.path.basename(path), "path": rel, "type": "dir", "children": []}
+    def walk(path: str, rel: str) -> dict[str, object]:
+        children: list[dict[str, object]] = []
+        node: dict[str, object] = {"name": os.path.basename(path), "path": rel, "type": "dir", "children": children}
         try:
             entries = sorted(os.listdir(path))
         except PermissionError:
@@ -24,9 +27,9 @@ def _scan_plans() -> dict:
             full = os.path.join(path, entry)
             child_rel = f"{rel}/{entry}" if rel else entry
             if os.path.isdir(full):
-                node["children"].append(walk(full, child_rel))
+                children.append(walk(full, child_rel))
             elif entry.lower().endswith('.md'):
-                node["children"].append({"name": entry, "path": child_rel, "type": "file"})
+                children.append({"name": entry, "path": child_rel, "type": "file"})
         return node
 
     if not os.path.isdir(plan_dir):

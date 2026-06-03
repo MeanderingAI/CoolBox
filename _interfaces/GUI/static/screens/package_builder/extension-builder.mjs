@@ -305,6 +305,7 @@ const STYLE = `
 const LANG_ICONS = {
     c:          '⚙️',
     c3:         '🔩',
+    d:          '🎯',
     emscripten: '🌐',
     go:         '🐹',
     java:       '☕',
@@ -315,6 +316,7 @@ const LANG_ICONS = {
     rust:       '🦀',
     swift:      '🕊️',
     v:          '🔷',
+    zig:        '⚡',
 };
 
 const BUILD_TYPE_LABEL = {
@@ -329,6 +331,8 @@ const BUILD_TYPE_LABEL = {
     swift:       'swift build',
     vlang:       'v build',
     c3:          'c3c compile',
+    dlang:       'dub build',
+    zig:         'zig build',
     r:           'R CMD build',
     unknown:     'unknown',
 };
@@ -339,6 +343,8 @@ function _toolchainOk(binding) {
     if (binding.build_type === 'maven')      return binding.has_mvn_exec !== false;
     if (binding.build_type === 'vlang')      return binding.has_v_exec !== false;
     if (binding.build_type === 'c3')         return binding.has_c3c_exec !== false;
+    if (binding.build_type === 'dlang')      return binding.has_d_exec !== false;
+    if (binding.build_type === 'zig')        return binding.has_zig_exec !== false;
     if (binding.build_type === 'r')          return binding.has_r_exec !== false;
     if (binding.build_type === 'swift')      return binding.has_swift_exec !== false;
     return true;
@@ -357,6 +363,10 @@ function _toolchainHint(binding) {
         return '⚠️ V compiler not found — use Install Tools or https://vlang.io';
     if (binding.build_type === 'c3' && binding.has_c3c_exec === false)
         return '⚠️ c3c not found — use Install Tools or https://c3-lang.org';
+    if (binding.build_type === 'dlang' && binding.has_d_exec === false)
+        return '⚠️ D toolchain not found — use Install Tools or https://dlang.org';
+    if (binding.build_type === 'zig' && binding.has_zig_exec === false)
+        return '⚠️ Zig compiler not found — use Install Tools or https://ziglang.org/download/';
     if (binding.build_type === 'r' && binding.has_r_exec === false)
         return '⚠️ R not found — use Install Tools or https://cran.r-project.org';
     if (binding.build_type === 'r' && binding.has_rtools === false)

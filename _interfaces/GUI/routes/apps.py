@@ -6,17 +6,33 @@ import re
 import sys
 import platform
 import subprocess
-import makefile_manager as mm
-from __init__ import REPO_ROOT
-from routes.products import _find_product_exe
+import importlib
+from typing import Any, cast
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
+
+mm = cast(Any, importlib.import_module("makefile_manager"))
 
 p1 = APIRouter()
 
-def _scan_apps() -> list:
+def _find_product_exe(exe_name: str, build_dir: str) -> str:
+    """Find a built product exe in build/. Returns absolute path or empty string."""
+    exe_variants = [exe_name, exe_name + ".exe"]
+    for dirpath, dirs, files in os.walk(build_dir):
+        dirs[:] = [d for d in dirs if d not in {"CMakeFiles", ".cmake"}]
+        for fname in files:
+            if fname in exe_variants:
+                return os.path.join(dirpath, fname)
+    return ""
+
+
+def _scan_apps() -> list[dict[str, object]]:
     """Scan _deliverables/apps/ subdirectories. Returns list of app descriptors."""
     repo_root = REPO_ROOT
     apps_dir = os.path.join(repo_root, "_deliverables", "apps")
-    apps = []
+    apps: list[dict[str, object]] = []
     if not os.path.isdir(apps_dir):
         return apps
     for entry in sorted(os.listdir(apps_dir)):
@@ -25,8 +41,8 @@ def _scan_apps() -> list:
             continue
         # Determine type and targets
         cmake = os.path.join(sub, "CMakeLists.txt")
-        executables: list = []
-        scripts: list = []
+        executables: list[str] = []
+        scripts: list[str] = []
         app_type = "other"
         if os.path.isfile(cmake):
             app_type = "cmake"
@@ -88,7 +104,6 @@ async def launch_app(request: Request):
                              "output": f"'{exe_name}' not found in build/. Build it first."})
     try:
         if platform.system() == "Windows":
-            import ctypes
             DETACHED_PROCESS = 0x00000008
             CREATE_NEW_PROCESS_GROUP = 0x00000200
             subprocess.Popen(

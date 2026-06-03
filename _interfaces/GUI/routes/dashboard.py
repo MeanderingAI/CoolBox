@@ -5,20 +5,24 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 import getpass
 import subprocess
-from __init__ import REPO_ROOT
-
-import makefile_manager as mm
+import importlib
+from typing import Any, cast
+mm = cast(Any, importlib.import_module("makefile_manager"))
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
 
 
 router = APIRouter()
 
 
-def scan_groups() -> list:
+def scan_groups() -> list[dict[str, object]]:
     groups_root = os.path.join(REPO_ROOT, "_deliverables", "libraries", "groups")
     if not os.path.isdir(groups_root):
         return []
 
-    groups = []
+    groups: list[dict[str, object]] = []
     for group_name in sorted(os.listdir(groups_root)):
         if group_name.startswith((".", "_")):
             continue
@@ -26,7 +30,7 @@ def scan_groups() -> list:
         if not os.path.isdir(group_dir):
             continue
 
-        libs = set()
+        libs: set[str] = set()
         for root, dirs, files in os.walk(group_dir):
             dirs[:] = [d for d in dirs if not d.startswith((".", "_"))]
             if root == group_dir:
@@ -52,7 +56,7 @@ def scan_groups() -> list:
 def dashboard(request: Request):
     groups = scan_groups()
     try:
-        tests = mm.scan_tests() if mm else []
+        tests: list[dict[str, object]] = mm.scan_tests() if mm else []
     except Exception:
         tests = []
     server_url = str(request.base_url).rstrip("/")

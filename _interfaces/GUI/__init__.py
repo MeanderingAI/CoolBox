@@ -1,12 +1,15 @@
 
 import os
 
-def _repo_root():
+from fastapi import FastAPI
+from starlette.staticfiles import StaticFiles
+
+def _repo_root() -> str:
     # This file lives at _interfaces/GUI/__init__.py
     # Two levels up: GUI/ → _interfaces/ → CoolBox/ (repo root)
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def mount_gif_third_party(app, NoCacheStaticFiles):
+def mount_gif_third_party(app: FastAPI, NoCacheStaticFiles: type[StaticFiles]) -> None:
     """Mount the /third_party/js_libs/gif static directory if it exists."""
     if os.path.isdir(GIF_THIRD_PARTY_DIR):
         app.mount(

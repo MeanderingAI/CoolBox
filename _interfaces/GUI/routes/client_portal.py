@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from starlette.responses import FileResponse as StarletteFileResponse
 import re
 import os
-from __init__ import REPO_ROOT
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
 
 p1 = APIRouter()
 

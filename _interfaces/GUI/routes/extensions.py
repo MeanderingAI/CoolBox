@@ -6,7 +6,11 @@ import re
 import sys
 import asyncio
 import subprocess
-from __init__ import REPO_ROOT
+from typing import AsyncIterator, Optional, cast
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
 
 p1 = APIRouter()
 
@@ -22,6 +26,7 @@ def list_extensions():
     _LANG_MAP = {
         "c_bindings":          "C",
         "c3_bindings":         "C3",
+        "d_bindings":          "D",
         "emscripten_bindings": "Emscripten",
         "go_bindings":         "Go",
         "java_bindings":       "Java",
@@ -31,9 +36,10 @@ def list_extensions():
         "rust_bindings":       "Rust",
         "swift_bindings":      "Swift",
         "vlang_bindings":      "V",
+        "zig_bindings":        "Zig",
     }
 
-    bindings = []
+    bindings: list[dict[str, object]] = []
     for entry in sorted(os.listdir(bindings_dir)):
         entry_path = os.path.join(bindings_dir, entry)
         if not os.path.isdir(entry_path) or entry.startswith(('.', '_')):
@@ -50,6 +56,12 @@ def list_extensions():
         has_v_mod   = (os.path.isfile(os.path.join(entry_path, "v.mod")) or
                        bool(list(__import__("glob").glob(os.path.join(entry_path, "*.v")))))
         has_c3      = bool(list(__import__("glob").glob(os.path.join(entry_path, "**", "*.c3"), recursive=True)))
+        has_d       = (os.path.isfile(os.path.join(entry_path, "dub.json")) or
+                   os.path.isfile(os.path.join(entry_path, "dub.sdl")) or
+                   bool(list(__import__("glob").glob(os.path.join(entry_path, "**", "*.d"), recursive=True))))
+        has_zig     = (os.path.isfile(os.path.join(entry_path, "build.zig")) or
+                   os.path.isfile(os.path.join(entry_path, "build.zig.zon")) or
+                   bool(list(__import__("glob").glob(os.path.join(entry_path, "**", "*.zig"), recursive=True))))
         has_r       = os.path.isfile(os.path.join(entry_path, "DESCRIPTION"))
 
         # Emscripten needs its own cmake+emcc toolchain build
@@ -81,6 +93,8 @@ def list_extensions():
                 "postgres"   if has_postgres_sql and "postgres" in entry.lower() else
                 "vlang"      if has_v_mod   else
                 "c3"         if has_c3      else
+                "dlang"      if has_d       else
+                "zig"        if has_zig     else
                 "r"          if has_r       else
                 "unknown"
             )
@@ -183,6 +197,42 @@ def list_extensions():
                 _c3c_managed
             )
 
+        # D compiler / package manager: check if dmd|ldc2 and dub are installed
+        has_d_exec = None
+        if has_d:
+            import shutil as _shutil
+            import glob as _glob
+            _repo_root = REPO_ROOT
+            _dmd_exe = "dmd.exe" if os.name == "nt" else "dmd"
+            _ldc2_exe = "ldc2.exe" if os.name == "nt" else "ldc2"
+            _dub_exe = "dub.exe" if os.name == "nt" else "dub"
+            _d_managed = _glob.glob(
+                os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                             "dlang_install", "**", "*"), recursive=True)
+            has_d_exec = bool(
+                _shutil.which("dmd") or _shutil.which("ldc2") or _shutil.which("dub") or
+                any(os.path.basename(p).lower() in {_dmd_exe, _ldc2_exe, _dub_exe} for p in _d_managed if os.path.isfile(p))
+            )
+
+        # Zig compiler: check if zig is installed (including managed install dir)
+        has_zig_exec = None
+        if has_zig:
+            import shutil as _shutil
+            import glob as _glob
+            _repo_root = REPO_ROOT
+            _zig_exe = "zig.exe" if os.name == "nt" else "zig"
+            _zig_managed = _glob.glob(
+                os.path.join(_repo_root, "_local_build_pipeline", "tmp", "installers",
+                             "zig_install", "**", _zig_exe), recursive=True)
+            has_zig_exec = bool(
+                _shutil.which("zig") or
+                any(os.path.isfile(p) for p in _zig_managed) or
+                any(os.path.isfile(p) for p in [
+                    r"C:\zig\zig.exe",
+                    r"C:\tools\zig\zig.exe",
+                ])
+            )
+
         # R: check if R/Rscript is installed
         has_r_exec = None
         has_rtools = None
@@ -268,6 +318,8 @@ def list_extensions():
             "has_java_exec": has_java_exec,
             "has_v_exec":   has_v_exec,
             "has_c3c_exec": has_c3c_exec,
+            "has_d_exec":   has_d_exec,
+            "has_zig_exec": has_zig_exec,
             "has_r_exec":   has_r_exec,
             "has_rtools":   has_rtools,
             "has_swift_exec": has_swift_exec,
@@ -286,11 +338,11 @@ def list_tools():
     _ext = ".exe" if os.name == "nt" else ""
     _bat = ".bat" if os.name == "nt" else ""
 
-    def _managed(*rel):
+    def _managed(*rel: str) -> str:
         """Return a path inside the managed installers dir."""
         return os.path.join(_tmp, *rel)
 
-    def _glob_managed(*pattern):
+    def _glob_managed(*pattern: str) -> bool:
         """Return True if any file matching glob exists inside managed installers dir."""
         return bool(_glob.glob(os.path.join(_tmp, *pattern), recursive=True))
 
@@ -308,7 +360,7 @@ def list_tools():
     _emsdk_managed = _managed("emsdk")
     _emcc_managed = _managed("emsdk", "upstream", "emscripten", f"emcc{_bat}")
 
-    TOOLS = {
+    TOOLS: dict[str, dict[str, object]] = {
         "go":    {"label": "Go compiler",       "check": ["go"],
                   "extra": [_go_managed,
                              r"C:\Program Files\Go\bin\go.exe", r"C:\Go\bin\go.exe"]},
@@ -325,6 +377,14 @@ def list_tools():
         "vlang": {"label": "V compiler",        "check": ["v"],
                   "extra": [r"C:\V\v.exe", r"C:\tools\vlang\v.exe"],
                   "glob":  _v_pattern},
+        "dlang": {"label": "D compiler / dub",  "check": ["dmd", "ldc2", "dub"],
+              "extra": [r"C:\D\dmd2\windows\bin64\dmd.exe",
+                     r"C:\D\ldc2\bin\ldc2.exe",
+                     r"C:\D\dmd2\windows\bin64\dub.exe"],
+              "glob":  ("dlang_install", "**", f"dub{_ext}")},
+        "zig":   {"label": "Zig compiler",      "check": ["zig"],
+              "extra": [r"C:\zig\zig.exe", r"C:\tools\zig\zig.exe"],
+              "glob":  ("zig_install", "**", f"zig{_ext}")},
         "r":     {"label": "R / Rscript",       "check": ["Rscript", "R"],
                   "extra": [r"C:\Program Files\R\R-4.6.0\bin\Rscript.exe",
                              r"C:\Program Files\R\R-4.5.0\bin\Rscript.exe",
@@ -342,14 +402,17 @@ def list_tools():
                   "extra": [_emcc_managed,
                              r"C:\emsdk\upstream\emscripten\emcc.bat"]},
     }
-    result = []
+    result: list[dict[str, object]] = []
     for key, meta in TOOLS.items():
+        check = cast(list[str], meta["check"])
+        extra = cast(list[str], meta.get("extra", []))
+        glob_pattern = cast(Optional[tuple[str, ...]], meta.get("glob"))
         installed = (
-            any(_shutil.which(n) for n in meta["check"]) or
-            any(os.path.isfile(p) for p in meta.get("extra", [])) or
-            ("glob" in meta and _glob_managed(*meta["glob"]))
+            any(_shutil.which(n) for n in check) or
+            any(os.path.isfile(p) for p in extra) or
+            (glob_pattern is not None and _glob_managed(*glob_pattern))
         )
-        result.append({"tool": key, "label": meta["label"], "installed": installed})
+        result.append({"tool": key, "label": cast(str, meta["label"]), "installed": installed})
     return JSONResponse({"tools": result})
 
 
@@ -361,7 +424,7 @@ async def install_tool(request: Request):
     """
     body = await request.json()
     tool = body.get("tool", "").strip()
-    VALID_TOOLS = {"go", "maven", "jdk", "c3c", "vlang", "r", "rtools", "emsdk", "all"}
+    VALID_TOOLS = {"go", "maven", "jdk", "c3c", "vlang", "dlang", "zig", "r", "rtools", "emsdk", "all"}
     if tool not in VALID_TOOLS:
         return JSONResponse({"success": False, "output": f"Unknown tool: {tool}"}, status_code=400)
 
@@ -370,11 +433,12 @@ async def install_tool(request: Request):
     if not os.path.isfile(script):
         return JSONResponse({"success": False, "output": "master_installer.py not found."}, status_code=500)
 
-    cmd = [sys.executable, "-u", script, tool if tool != "all" else "--all"]
+    selected_tool: str = tool if tool != "all" else "--all"
+    cmd: list[str] = [sys.executable, "-u", script, selected_tool]
 
-    async def _stream():
+    async def _stream() -> AsyncIterator[str]:
         loop = asyncio.get_event_loop()
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
 
         def _run_proc():
             try:
@@ -383,8 +447,9 @@ async def install_tool(request: Request):
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     text=True, encoding="utf-8", errors="replace",
                 )
-                for line in proc.stdout:
-                    loop.call_soon_threadsafe(queue.put_nowait, line)
+                if proc.stdout is not None:
+                    for line in proc.stdout:
+                        loop.call_soon_threadsafe(queue.put_nowait, line)
                 proc.wait()
                 loop.call_soon_threadsafe(
                     queue.put_nowait, f"\n__EXIT_CODE__:{proc.returncode}\n"
@@ -399,7 +464,7 @@ async def install_tool(request: Request):
         loop.run_in_executor(None, _run_proc)
 
         while True:
-            item = await queue.get()
+            item: Optional[str] = await queue.get()
             if item is None:
                 break
             yield item
@@ -424,16 +489,16 @@ async def build_extension(request: Request):
     if not os.path.isfile(script):
         return JSONResponse({"success": False, "output": "build_extensions.py not found."}, status_code=500)
 
-    cmd = [sys.executable, "-u", script]
+    cmd: list[str] = [sys.executable, "-u", script]
     if binding:
         cmd.append(binding)
 
-    async def _stream():
+    async def _stream() -> AsyncIterator[str]:
         # asyncio.create_subprocess_exec requires ProactorEventLoop on Windows,
         # which uvicorn doesn't use. Run the blocking Popen in a thread pool and
         # forward lines via an asyncio.Queue with call_soon_threadsafe.
         loop = asyncio.get_event_loop()
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
 
         def _run_proc():
             try:
@@ -442,8 +507,9 @@ async def build_extension(request: Request):
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     text=True, encoding='utf-8', errors='replace',
                 )
-                for line in proc.stdout:
-                    loop.call_soon_threadsafe(queue.put_nowait, line)
+                if proc.stdout is not None:
+                    for line in proc.stdout:
+                        loop.call_soon_threadsafe(queue.put_nowait, line)
                 proc.wait()
                 loop.call_soon_threadsafe(
                     queue.put_nowait, f"\n__EXIT_CODE__:{proc.returncode}\n"
@@ -458,7 +524,7 @@ async def build_extension(request: Request):
         loop.run_in_executor(None, _run_proc)
 
         while True:
-            item = await queue.get()
+            item: Optional[str] = await queue.get()
             if item is None:
                 break
             yield item
@@ -479,8 +545,8 @@ def list_extension_artifacts(binding: str):
     ARTIFACT_EXTS = {".dll", ".so", ".dylib", ".wasm", ".js", ".a", ".lib",
                      ".jar", ".pyd", ".exe", ".rlib"}
 
-    artifacts = []
-    seen: set = set()
+    artifacts: list[dict[str, object]] = []
+    seen: set[str] = set()
 
     def _scan(directory: str):
         if not os.path.isdir(directory):

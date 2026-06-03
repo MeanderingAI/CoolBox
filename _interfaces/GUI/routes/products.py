@@ -5,8 +5,13 @@ import os
 import re
 import platform
 import subprocess
-import makefile_manager as mm
-from __init__ import REPO_ROOT
+import importlib
+from typing import Any, cast
+mm = cast(Any, importlib.import_module("makefile_manager"))
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
 #from ._utils import _repo_root
 
 p1 = APIRouter()
@@ -36,11 +41,11 @@ p1 = APIRouter()
 #                         "has_page": has_page})
 #    return JSONResponse({"products": products})
 
-def _scan_products() -> list:
+def _scan_products() -> list[dict[str, object]]:
     """Scan _deliverables/Product/ subdirectories and parse cmake exe targets from CMakeLists.txt."""
     repo_root = REPO_ROOT
     product_dir = os.path.join(repo_root, "_deliverables", "Product")
-    products = []
+    products: list[dict[str, object]] = []
     if not os.path.isdir(product_dir):
         return products
     for entry in sorted(os.listdir(product_dir)):
@@ -55,7 +60,7 @@ def _scan_products() -> list:
                 content = fh.read()
         except Exception:
             content = ""
-        executables = re.findall(r'add_executable\s*\(\s*(\w+)', content)
+        executables: list[str] = re.findall(r'add_executable\s*\(\s*(\w+)', content)
         has_page = os.path.isfile(os.path.join(sub, "product_page.html"))
         products.append({"name": entry, "folder": entry, "executables": executables,
                          "has_page": has_page})
@@ -108,7 +113,6 @@ async def launch_product(request: Request):
                              "output": f"'{exe_name}' not found in build/. Build it first."})
     try:
         if platform.system() == "Windows":
-            import ctypes
             DETACHED_PROCESS = 0x00000008
             CREATE_NEW_PROCESS_GROUP = 0x00000200
             subprocess.Popen(

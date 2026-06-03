@@ -4,8 +4,9 @@
 
 The following repositories are tracked as git submodules for v1.3.5:
 
-1. `business_site` at `_sub_repos/business_site` from `https://github.com/MeanderingAI/business_site.git`
+1. `GH-7` at `_sub_repos/GH-7` from `https://github.com/MeanderingAI/GH-7`
 2. `Teniky` at `_sub_repos/Teniky` from `https://github.com/AIMeandering/Teniky.git`
+3. `bookish-meme` at `_sub_repos/bookish-meme` from `https://github.com/MeanderingAI/bookish-meme`
 
 Clone with submodules:
 
@@ -44,6 +45,7 @@ Recent v1.3.5 core test and build stabilization fixes include:
 3. [_internal_documents/plan/v1.3._/v1.3.5/gabor_kernel_unnormalized_center_test_fix.md](_internal_documents/plan/v1.3._/v1.3.5/gabor_kernel_unnormalized_center_test_fix.md)
 4. [_internal_documents/plan/v1.3._/v1.3.5/radix_sort_msd_stabilization.md](_internal_documents/plan/v1.3._/v1.3.5/radix_sort_msd_stabilization.md)
 5. [_internal_documents/plan/v1.3._/v1.3.5/eigen_ctest_pollution_prevention.md](_internal_documents/plan/v1.3._/v1.3.5/eigen_ctest_pollution_prevention.md)
+6. [_internal_documents/plan/v1.3._/v1.3.5/macos_run_debug_terminal_profiles.md](_internal_documents/plan/v1.3._/v1.3.5/macos_run_debug_terminal_profiles.md)
 
 Validation status:
 

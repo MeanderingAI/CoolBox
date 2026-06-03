@@ -3,7 +3,10 @@ import sys
 import subprocess
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse, JSONResponse
-from __init__ import REPO_ROOT, DSN_PATH, SCRIPT_PATH
+try:
+    from .. import REPO_ROOT, DSN_PATH, SCRIPT_PATH
+except ImportError:
+    from __init__ import REPO_ROOT, DSN_PATH, SCRIPT_PATH
 
 router = APIRouter()
 

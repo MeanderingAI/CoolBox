@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from starlette.responses import FileResponse as StarletteFileResponse
 import re
 import os
-import makefile_manager as mm
-from __init__ import REPO_ROOT
+import importlib
+from typing import Any, cast
+mm = cast(Any, importlib.import_module("makefile_manager"))
+try:
+    from .. import REPO_ROOT
+except ImportError:
+    from __init__ import REPO_ROOT
 
 p1 = APIRouter()
 
@@ -18,7 +23,7 @@ def list_middle_wear():
     mw_dir = os.path.join(repo_root, "_interfaces", "business_suite", "middle_wear")
     if not os.path.isdir(mw_dir):
         return JSONResponse({"tools": []})
-    tools = []
+    tools: list[dict[str, object]] = []
     for entry in sorted(os.listdir(mw_dir)):
         tool_path = os.path.join(mw_dir, entry)
         if not os.path.isdir(tool_path):
@@ -76,7 +81,7 @@ def serve_uuid_generation_asset(asset_name: str):
 @p1.post("/middle-portal-assets/uuid_generation/build")
 def build_uuid_generation_assets():
     """Build uuid_generation Emscripten assets and report generated file status."""
-    result = mm.build_target("uuid_generation_js", timeout=1200)
+    result: Any = mm.build_target("uuid_generation_js", timeout=1200)
 
     repo_root = REPO_ROOT
     js_path = os.path.realpath(os.path.join(

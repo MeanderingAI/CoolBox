@@ -3,7 +3,14 @@ import subprocess
 import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
-from __init__ import GITHUB_WORKFLOWS, REPO_ROOT
+_github_workflows: str = ""
+try:
+    from .. import GITHUB_WORKFLOWS as _github_workflows
+except ImportError:
+    import __init__ as _gui_root
+    _github_workflows = str(getattr(_gui_root, "GITHUB_WORKFLOWS", ""))
+
+GITHUB_WORKFLOWS: str = _github_workflows
 
 router = APIRouter()
 
@@ -54,7 +61,7 @@ def docker_start():
 
 @router.get("/api/pipeline/workflows")
 def list_workflows():
-    workflows = []
+    workflows: list[str] = []
     if not os.path.isdir(GITHUB_WORKFLOWS):
         return JSONResponse({"workflows": workflows})
     for fname in os.listdir(GITHUB_WORKFLOWS):
@@ -66,8 +73,8 @@ def list_workflows():
 @router.post("/api/pipeline/act")
 async def run_act(request: Request):
     data = await request.json()
-    workflow = data.get("workflow")
-    event = data.get("event", "push")
+    workflow = str(data.get("workflow", "")).strip()
+    event = str(data.get("event", "push")).strip()
     if not workflow or not workflow.endswith((".yml", ".yaml")):
         return PlainTextResponse("Invalid workflow filename", status_code=400)
     workflow_path = os.path.join(GITHUB_WORKFLOWS, workflow)

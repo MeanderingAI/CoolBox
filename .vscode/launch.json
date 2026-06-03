@@ -5,6 +5,34 @@
     "version": "0.2.0",
         "configurations": [
                 {
+                    "name": "Run secret_gen_cli (Terminal, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version v7 --batch 10"
+                },
+                {
+                    "name": "Run secret_gen_cli (Terminal Prompt Args, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version ${input:secretGenUuidVersion} --batch ${input:secretGenBatchSize}"
+                },
+                {
+                    "name": "Launch GUI Dashboard (Terminal, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "make dashboard"
+                },
+                {
+                    "name": "Stop GUI Dashboard :8000 (Terminal, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "make dashboard-kill"
+                },
+                {
                     "name": "Launch GUI from _interfaces",
                     "type": "cppvsdbg",
                     "request": "launch",
@@ -64,6 +92,13 @@
                 "preLaunchTask": "build-secret-gen-cli-debug"
             },
             {
+                "name": "Run secret_gen_cli (v7 x 10, macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version v7 --batch 10"
+            },
+            {
                 "name": "Run secret_gen_cli (Prompt Args)",
                 "type": "cppvsdbg",
                 "request": "launch",
@@ -77,6 +112,13 @@
                 "cwd": "${workspaceFolder}",
                 "console": "integratedTerminal",
                 "preLaunchTask": "build-secret-gen-cli-debug"
+            },
+            {
+                "name": "Run secret_gen_cli (Prompt Args, macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version ${input:secretGenUuidVersion} --batch ${input:secretGenBatchSize}"
             },
             {
                 "name": "Run cad_builder (--launch-gui)",
