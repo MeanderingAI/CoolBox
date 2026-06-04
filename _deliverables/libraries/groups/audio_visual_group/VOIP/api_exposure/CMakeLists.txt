@@ -1,0 +1,9 @@
+cmake_minimum_required(VERSION 3.16)
+
+add_library(voip_api_exposure SHARED
+    source/api_exposure.cpp
+)
+
+target_compile_features(voip_api_exposure PUBLIC cxx_std_17)
+target_include_directories(voip_api_exposure PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_link_libraries(voip_api_exposure PUBLIC http_server servlets)

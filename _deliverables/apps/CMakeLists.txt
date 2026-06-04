@@ -28,3 +28,11 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/screen_builder/CMakeLists.txt")
     add_subdirectory(screen_builder)
 endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/call_center_api/CMakeLists.txt")
+    add_subdirectory(call_center_api)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/email_center_api/CMakeLists.txt")
+    add_subdirectory(email_center_api)
+endif()

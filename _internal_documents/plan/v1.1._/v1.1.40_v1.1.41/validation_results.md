@@ -154,3 +154,13 @@
 ### Remaining Note
 - This execution attempt did not complete the intended include-guard migration.
 - A non-terminal edit path is still required if the repository-wide conversion should be applied reliably.
+
+## Call Center and Email Center README Files
+
+### Static Validation
+- Validation was re-run after adding the per-app and per-library README files under `plan/v1.1.40_v1.1.41/`.
+- `call_center_api.md`, `email_center_api.md`, `email_center.md`, `email_smtp_server.md`, `email_imap_server.md`, `email_mailbox.md`, and `email_api_exposure.md` reported no diagnostics after creation.
+- The new plan notes were cross-checked against the current interface paths and EMAIL package layout already present in the repository.
+
+### Remaining Note
+- This change is documentation-only and did not require a runtime build or CI rerun.

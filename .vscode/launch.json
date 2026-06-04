@@ -33,6 +33,69 @@
                     "command": "make dashboard-kill"
                 },
                 {
+                    "name": "Launch Call Center (Vite, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/call_center",
+                    "command": "cd ${workspaceFolder} && (lsof -nP -iTCP:8011 -sTCP:LISTEN >/dev/null 2>&1 || (cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target call_center_api && ./build/_deliverables/apps/call_center_api/call_center_api --port 8011 >/tmp/call_center_api.log 2>&1 &)) && cd ${workspaceFolder}/_interfaces/call_center && npm install && npm run dev"
+                },
+                {
+                    "name": "Launch Call Center API (macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target call_center_api && ./build/_deliverables/apps/call_center_api/call_center_api --port 8011"
+                },
+                {
+                    "name": "Launch Email Center (Vite, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/email_center",
+                    "command": "cd ${workspaceFolder} && (lsof -nP -iTCP:8022 -sTCP:LISTEN >/dev/null 2>&1 || (cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target email_center_api && ./build/_deliverables/apps/email_center_api/email_center_api --port 8022 >/tmp/email_center_api.log 2>&1 &)) && cd ${workspaceFolder}/_interfaces/email_center && npm install && npm run dev"
+                },
+                {
+                    "name": "Launch Email Center API (macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target email_center_api && ./build/_deliverables/apps/email_center_api/email_center_api --port 8022"
+                },
+                {
+                    "name": "Launch GUI Dashboard (Terminal, Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ./launch_gui.ps1"
+                },
+                {
+                    "name": "Launch Call Center (Vite, Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/call_center",
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location '${workspaceFolder}'; if (-not (Get-NetTCPConnection -LocalPort 8011 -State Listen -ErrorAction SilentlyContinue)) { cmake -S . -B build -DBUILD_PRODUCTS=ON; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build --config Debug --target call_center_api; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Start-Process -FilePath '.\\build\\_deliverables\\apps\\call_center_api\\Debug\\call_center_api.exe' -ArgumentList '--port 8011' -WorkingDirectory '${workspaceFolder}' | Out-Null }; Set-Location '${workspaceFolder}\\_interfaces\\call_center'; npm install; npm run dev\""
+                },
+                {
+                    "name": "Launch Call Center API (Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --config Debug --target call_center_api && ./build/_deliverables/apps/call_center_api/Debug/call_center_api.exe --port 8011"
+                },
+                {
+                    "name": "Launch Email Center (Vite, Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/email_center",
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location '${workspaceFolder}'; if (-not (Get-NetTCPConnection -LocalPort 8022 -State Listen -ErrorAction SilentlyContinue)) { cmake -S . -B build -DBUILD_PRODUCTS=ON; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build --config Debug --target email_center_api; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Start-Process -FilePath '.\\build\\_deliverables\\apps\\email_center_api\\Debug\\email_center_api.exe' -ArgumentList '--port 8022' -WorkingDirectory '${workspaceFolder}' | Out-Null }; Set-Location '${workspaceFolder}\\_interfaces\\email_center'; npm install; npm run dev\""
+                },
+                {
+                    "name": "Launch Email Center API (Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --config Debug --target email_center_api && ./build/_deliverables/apps/email_center_api/Debug/email_center_api.exe --port 8022"
+                },
+                {
                     "name": "Launch GUI from _interfaces",
                     "type": "cppvsdbg",
                     "request": "launch",
@@ -175,6 +238,36 @@
                 "preLaunchTask": "build-screen-builder-debug"
             }
         ],
+        "compounds": [
+            {
+                "name": "Launch Call Center Stack (macOS/Linux)",
+                "configurations": [
+                    "Launch Call Center API (macOS/Linux)",
+                    "Launch Call Center (Vite, macOS/Linux)"
+                ]
+            },
+            {
+                "name": "Launch Call Center Stack (Windows)",
+                "configurations": [
+                    "Launch Call Center API (Windows)",
+                    "Launch Call Center (Vite, Windows)"
+                ]
+            },
+            {
+                "name": "Launch Email Center Stack (macOS/Linux)",
+                "configurations": [
+                    "Launch Email Center API (macOS/Linux)",
+                    "Launch Email Center (Vite, macOS/Linux)"
+                ]
+            },
+            {
+                "name": "Launch Email Center Stack (Windows)",
+                "configurations": [
+                    "Launch Email Center API (Windows)",
+                    "Launch Email Center (Vite, Windows)"
+                ]
+            }
+        ],
         "inputs": [
             // Build all libraries (mac/linux)
             {
@@ -231,7 +324,7 @@
                 "cwd": "${workspaceFolder}",
                 "console": "integratedTerminal",
                 "preLaunchTask": "test_all-windows"
-            }
+            },
             {
                 "id": "secretGenUuidVersion",
                 "type": "promptString",

@@ -306,6 +306,15 @@ add_emscripten_module(audio_processing_js createAudioProcessingModule
     "${AUDIO_PROC_SRC_DIR}/headers"
 )
 
+# ── VOIP API Exposure ───────────────────────────────────────────
+set(VOIP_API_EXPOSURE_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/audio_visual_group/VOIP/api_exposure")
+
+add_emscripten_module(voip_api_exposure_js createVoipApiExposureModule
+    voip_api_exposure_bindings.cpp
+    "${VOIP_API_EXPOSURE_SRC_DIR}/source/api_exposure.cpp"
+    "${VOIP_API_EXPOSURE_SRC_DIR}/headers"
+)
+
 # ── PDE/SPDE (MATH) ─────────────────────────────────────────────
 set(MATH_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/cool_car/MATH")
 
