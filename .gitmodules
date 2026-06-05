@@ -7,15 +7,12 @@
 [submodule "_sub_repos/Stallholder"]
 	path = _sub_repos/Stallholder
 	url = https://github.com/MeanderingAI/Stallholder
-[submodule "_sub_repos/SyngCoin"]
-	path = _sub_repos/SyngCoin
-	url = https://github.com/MeanderingAI/SyngCoin.git
-[submodule "_sub_repos/Teniky"]
-	path = _sub_repos/Teniky
-	url = https://github.com/AIMeandering/Teniky.git
 [submodule "_sub_repos/bookish-meme"]
 	path = _sub_repos/bookish-meme
 	url = https://github.com/MeanderingAI/bookish-meme
 [submodule "_sub_repos/GH-7"]
 	path = _sub_repos/GH-7
 	url = https://github.com/MeanderingAI/GH-7
+[submodule "_sub_repos/BH-2"]
+	path = _sub_repos/BH-2
+	url = https://github.com/MeanderingAI/BH-2.git

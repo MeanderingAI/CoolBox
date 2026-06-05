@@ -5,7 +5,7 @@
 The following repositories are tracked as git submodules for v1.3.5:
 
 1. `GH-7` at `_sub_repos/GH-7` from `https://github.com/MeanderingAI/GH-7`
-2. `Teniky` at `_sub_repos/Teniky` from `https://github.com/AIMeandering/Teniky.git`
+2. `BH-2` at `_sub_repos/BH-2` from `https://github.com/MeanderingAI/BH-2.git`
 3. `bookish-meme` at `_sub_repos/bookish-meme` from `https://github.com/MeanderingAI/bookish-meme`
 
 Clone with submodules:
