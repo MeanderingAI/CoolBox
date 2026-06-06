@@ -236,6 +236,13 @@
                 "cwd": "${workspaceFolder}",
                 "console": "integratedTerminal",
                 "preLaunchTask": "build-screen-builder-debug"
+            },
+            {
+                "name": "Run recording_studio (macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake --build build --target recording_studio && ./build/_deliverables/apps/recording_studio/recording_studio"
             }
         ],
         "compounds": [

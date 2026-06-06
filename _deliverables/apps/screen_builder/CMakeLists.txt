@@ -9,6 +9,7 @@ target_link_libraries(screen_builder PRIVATE
     full_application_window
     components
     file_editor_lib
+    ios_chrome_lib
     xml_screen_descriptor_parser
 )
 

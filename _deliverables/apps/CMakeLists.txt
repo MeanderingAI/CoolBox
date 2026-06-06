@@ -17,6 +17,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/database/CMakeLists.txt")
     add_subdirectory(database)
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/database_driver/CMakeLists.txt")
+    add_subdirectory(database_driver)
+endif()
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/secret_gen_cli/CMakeLists.txt")
     add_subdirectory(secret_gen_cli)
 endif()
@@ -27,6 +31,10 @@ endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/screen_builder/CMakeLists.txt")
     add_subdirectory(screen_builder)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/recording_studio/CMakeLists.txt")
+    add_subdirectory(recording_studio)
 endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/call_center_api/CMakeLists.txt")

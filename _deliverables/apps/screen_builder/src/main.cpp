@@ -1,6 +1,7 @@
 #include "components.hpp"
 #include "file_editor.hpp"
 #include "full_application_window.hpp"
+#include "ios_chrome.hpp"
 #include "xml_screen_descriptor_parser.hpp"
 
 #include <algorithm>
@@ -481,8 +482,8 @@ int run_gui_editor(const Options& options, app_assets::file_editor::TextFileEdit
         {20, 24, 30}, {56, 68, 86}, {80, 120, 180}, {180, 80, 80}, {80, 160, 110},
         {220, 220, 220}, {255, 255, 255}, {255, 196, 92}, {136, 86, 246}, {25, 25, 25}
     };
-    const std::vector<int> font_sizes = {12, 14, 16, 18, 20, 24, 28};
-    const std::vector<std::string> font_labels = {"Default", "Monospace", "Sans"};
+    const std::vector<int>& font_sizes = app_assets::ios_chrome::typography::standard_font_sizes();
+    const std::vector<std::string>& font_labels = app_assets::ios_chrome::typography::standard_font_families();
     const std::vector<std::string> border_style_labels = {"None", "Solid", "Dashed", "Double"};
     const std::vector<int> border_thicknesses = {0, 1, 2, 3, 4};
 

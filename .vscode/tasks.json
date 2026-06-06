@@ -674,6 +674,32 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "build-recording-studio",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--target",
+				"recording_studio"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "run-recording-studio",
+			"type": "shell",
+			"command": "${workspaceFolder}/build/_deliverables/apps/recording_studio/recording_studio",
+			"dependsOn": [
+				"build-recording-studio"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"group": "run",
+			"problemMatcher": []
+		},
+		{
 			"label": "launch-gui-from-interfaces",
 			"type": "shell",
 			"command": "powershell",

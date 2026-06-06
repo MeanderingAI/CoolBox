@@ -14,6 +14,7 @@
 #include <gl/GL.h>
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
 #include <CoreGraphics/CoreGraphics.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <objc/message.h>
 #include <objc/runtime.h>
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
@@ -77,6 +78,131 @@ struct FullApplicationWindow::Impl {
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     void* application = nullptr;
     void* window = nullptr;
+
+    // Software pixel backbuffer: RGBA 8-bit packed rows.
+    mutable std::vector<unsigned char> mac_pixels;
+    mutable int mac_buf_w = 0;
+    mutable int mac_buf_h = 0;
+
+    bool mac_ensure_buf(int w, int h) const {
+        if (w <= 0 || h <= 0) return false;
+        if (w == mac_buf_w && h == mac_buf_h) return true;
+        mac_buf_w = w;
+        mac_buf_h = h;
+        mac_pixels.assign(static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4u, 0);
+        return true;
+    }
+
+    void mac_fill_rect(int x0, int y0, int x1, int y1,
+                       unsigned char r, unsigned char g, unsigned char b) const {
+        if (!mac_ensure_buf(mac_buf_w, mac_buf_h)) return;
+        x0 = std::max(0, x0); y0 = std::max(0, y0);
+        x1 = std::min(mac_buf_w, x1); y1 = std::min(mac_buf_h, y1);
+        for (int y = y0; y < y1; ++y) {
+            unsigned char* row = mac_pixels.data() + (y * mac_buf_w + x0) * 4;
+            for (int x = x0; x < x1; ++x, row += 4) {
+                row[0] = r; row[1] = g; row[2] = b; row[3] = 255;
+            }
+        }
+    }
+
+    // Minimal 5x7 ASCII bitmap font (printable chars 32-126).
+    static const unsigned char k_font_5x7[95][7];
+
+    void mac_draw_text(int x, int y,
+                       const std::string& text,
+                       unsigned char r, unsigned char g, unsigned char b) const {
+        if (!mac_ensure_buf(mac_buf_w, mac_buf_h)) return;
+        int cx = x;
+        for (unsigned char ch : text) {
+            if (ch < 32 || ch > 126) { cx += 6; continue; }
+            const unsigned char* glyph = k_font_5x7[ch - 32];
+            for (int row = 0; row < 7; ++row) {
+                const int py = y + row;
+                if (py < 0 || py >= mac_buf_h) continue;
+                for (int col = 0; col < 5; ++col) {
+                    const int px = cx + col;
+                    if (px < 0 || px >= mac_buf_w) continue;
+                    if (glyph[row] & (0x10u >> col)) {
+                        unsigned char* p = mac_pixels.data() + (py * mac_buf_w + px) * 4;
+                        p[0] = r; p[1] = g; p[2] = b; p[3] = 255;
+                    }
+                }
+            }
+            cx += 6;
+        }
+    }
+
+    void mac_blit_to_window() const {
+        if (!window || mac_pixels.empty() || mac_buf_w <= 0 || mac_buf_h <= 0) return;
+
+        using IdFn   = id   (*)(id, SEL);
+        using VoidFn = void (*)(id, SEL);
+
+        // Build a CGImage from our RGBA pixel buffer.
+        CGColorSpaceRef csp = CGColorSpaceCreateDeviceRGB();
+        CGDataProviderRef provider = CGDataProviderCreateWithData(
+            nullptr,
+            mac_pixels.data(),
+            mac_pixels.size(),
+            nullptr);
+        CGImageRef img = CGImageCreate(
+            static_cast<std::size_t>(mac_buf_w),
+            static_cast<std::size_t>(mac_buf_h),
+            8, 32,
+            static_cast<std::size_t>(mac_buf_w) * 4,
+            csp,
+            kCGBitmapByteOrderDefault | kCGImageAlphaNoneSkipLast,
+            provider,
+            nullptr, false, kCGRenderingIntentDefault);
+        CGColorSpaceRelease(csp);
+        CGDataProviderRelease(provider);
+        if (!img) return;
+
+        // Get the contentView and ensure it is layer-backed.
+        auto* content_view = reinterpret_cast<IdFn>(objc_msgSend)(
+            reinterpret_cast<id>(window), sel_registerName("contentView"));
+        if (!content_view) { CGImageRelease(img); return; }
+
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(
+            content_view, sel_registerName("setWantsLayer:"), YES);
+
+        auto* layer = reinterpret_cast<IdFn>(objc_msgSend)(
+            content_view, sel_registerName("layer"));
+        if (!layer) { CGImageRelease(img); return; }
+
+        // Disable the default implicit CALayer animation on content changes.
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(
+            layer, sel_registerName("setActions:"),
+            reinterpret_cast<id>(objc_getClass("NSDictionary")));
+
+        // contentsGravity = "resize" stretches the image to fill the entire layer.
+        auto* gravity_str = reinterpret_cast<id (*)(id, SEL, const char*)>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSString")),
+            sel_registerName("stringWithUTF8String:"),
+            "resize");
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(
+            layer, sel_registerName("setContentsGravity:"), gravity_str);
+
+        // contentsScale = 1.0 so our pixel buffer maps 1:1 to layer points
+        // (prevents Retina halving the apparent size).
+        reinterpret_cast<void (*)(id, SEL, double)>(objc_msgSend)(
+            layer, sel_registerName("setContentsScale:"), 1.0);
+
+        // Set the CGImage as the layer content directly — fastest path.
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(
+            layer, sel_registerName("setContents:"),
+            reinterpret_cast<id>(img));
+
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(
+            layer, sel_registerName("setNeedsDisplayOnBoundsChange:"), YES);
+
+        // Trigger an immediate redisplay.
+        reinterpret_cast<VoidFn>(objc_msgSend)(
+            reinterpret_cast<id>(window), sel_registerName("display"));
+
+        CGImageRelease(img);
+    }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
     Display* display = nullptr;
     ::Window window = 0;
@@ -388,6 +514,204 @@ struct FullApplicationWindow::Impl {
 #endif
 };
 
+// ─── 5×7 pixel font (printable ASCII 32–126) ──────────────────────────────
+// Each entry is 7 rows; each row is a 5-bit mask stored in the low 5 bits
+// (bit 4 = leftmost pixel).
+// clang-format off
+const unsigned char FullApplicationWindow::Impl::k_font_5x7[95][7] = {
+// ' '
+{0x00,{0x00},{0x00},{0x00},{0x00},{0x00},{0x00}},
+// '!'
+{0x04,{0x04},{0x04},{0x04},{0x00},{0x04},{0x00}},
+// '"'
+{0x0a,{0x0a},{0x00},{0x00},{0x00},{0x00},{0x00}},
+// '#'
+{0x0a,{0x1f},{0x0a},{0x0a},{0x1f},{0x0a},{0x00}},
+// '$'
+{0x04,{0x0f},{0x14},{0x0e},{0x05},{0x1e},{0x04}},
+// '%'
+{0x18,{0x19},{0x02},{0x04},{0x13},{0x03},{0x00}},
+// '&'
+{0x0c,{0x12},{0x14},{0x08},{0x15},{0x12},{0x0d}},
+// '\''
+{0x04,{0x04},{0x00},{0x00},{0x00},{0x00},{0x00}},
+// '('
+{0x02,{0x04},{0x08},{0x08},{0x08},{0x04},{0x02}},
+// ')'
+{0x08,{0x04},{0x02},{0x02},{0x02},{0x04},{0x08}},
+// '*'
+{0x00,{0x04},{0x15},{0x0e},{0x15},{0x04},{0x00}},
+// '+'
+{0x00,{0x04},{0x04},{0x1f},{0x04},{0x04},{0x00}},
+// ','
+{0x00,{0x00},{0x00},{0x00},{0x06},{0x04},{0x08}},
+// '-'
+{0x00,{0x00},{0x00},{0x1f},{0x00},{0x00},{0x00}},
+// '.'
+{0x00,{0x00},{0x00},{0x00},{0x00},{0x06},{0x00}},
+// '/'
+{0x01,{0x01},{0x02},{0x04},{0x08},{0x10},{0x10}},
+// '0'
+{0x0e,{0x11},{0x13},{0x15},{0x19},{0x11},{0x0e}},
+// '1'
+{0x04,{0x0c},{0x04},{0x04},{0x04},{0x04},{0x0e}},
+// '2'
+{0x0e,{0x11},{0x01},{0x06},{0x08},{0x10},{0x1f}},
+// '3'
+{0x1f,{0x02},{0x04},{0x02},{0x01},{0x11},{0x0e}},
+// '4'
+{0x02,{0x06},{0x0a},{0x12},{0x1f},{0x02},{0x02}},
+// '5'
+{0x1f,{0x10},{0x1e},{0x01},{0x01},{0x11},{0x0e}},
+// '6'
+{0x06,{0x08},{0x10},{0x1e},{0x11},{0x11},{0x0e}},
+// '7'
+{0x1f,{0x01},{0x02},{0x04},{0x08},{0x08},{0x08}},
+// '8'
+{0x0e,{0x11},{0x11},{0x0e},{0x11},{0x11},{0x0e}},
+// '9'
+{0x0e,{0x11},{0x11},{0x0f},{0x01},{0x02},{0x0c}},
+// ':'
+{0x00,{0x06},{0x00},{0x00},{0x06},{0x00},{0x00}},
+// ';'
+{0x00,{0x06},{0x00},{0x00},{0x06},{0x04},{0x08}},
+// '<'
+{0x02,{0x04},{0x08},{0x10},{0x08},{0x04},{0x02}},
+// '='
+{0x00,{0x1f},{0x00},{0x00},{0x1f},{0x00},{0x00}},
+// '>'
+{0x08,{0x04},{0x02},{0x01},{0x02},{0x04},{0x08}},
+// '?'
+{0x0e,{0x11},{0x01},{0x06},{0x04},{0x00},{0x04}},
+// '@'
+{0x0e,{0x11},{0x17},{0x15},{0x17},{0x10},{0x0e}},
+// 'A'
+{0x04,{0x0a},{0x11},{0x11},{0x1f},{0x11},{0x11}},
+// 'B'
+{0x1e,{0x11},{0x11},{0x1e},{0x11},{0x11},{0x1e}},
+// 'C'
+{0x0e,{0x11},{0x10},{0x10},{0x10},{0x11},{0x0e}},
+// 'D'
+{0x1c,{0x12},{0x11},{0x11},{0x11},{0x12},{0x1c}},
+// 'E'
+{0x1f,{0x10},{0x10},{0x1e},{0x10},{0x10},{0x1f}},
+// 'F'
+{0x1f,{0x10},{0x10},{0x1e},{0x10},{0x10},{0x10}},
+// 'G'
+{0x0e,{0x11},{0x10},{0x17},{0x11},{0x11},{0x0f}},
+// 'H'
+{0x11,{0x11},{0x11},{0x1f},{0x11},{0x11},{0x11}},
+// 'I'
+{0x0e,{0x04},{0x04},{0x04},{0x04},{0x04},{0x0e}},
+// 'J'
+{0x07,{0x02},{0x02},{0x02},{0x02},{0x12},{0x0c}},
+// 'K'
+{0x11,{0x12},{0x14},{0x18},{0x14},{0x12},{0x11}},
+// 'L'
+{0x10,{0x10},{0x10},{0x10},{0x10},{0x10},{0x1f}},
+// 'M'
+{0x11,{0x1b},{0x15},{0x15},{0x11},{0x11},{0x11}},
+// 'N'
+{0x11,{0x11},{0x19},{0x15},{0x13},{0x11},{0x11}},
+// 'O'
+{0x0e,{0x11},{0x11},{0x11},{0x11},{0x11},{0x0e}},
+// 'P'
+{0x1e,{0x11},{0x11},{0x1e},{0x10},{0x10},{0x10}},
+// 'Q'
+{0x0e,{0x11},{0x11},{0x11},{0x15},{0x12},{0x0d}},
+// 'R'
+{0x1e,{0x11},{0x11},{0x1e},{0x14},{0x12},{0x11}},
+// 'S'
+{0x0f,{0x10},{0x10},{0x0e},{0x01},{0x01},{0x1e}},
+// 'T'
+{0x1f,{0x04},{0x04},{0x04},{0x04},{0x04},{0x04}},
+// 'U'
+{0x11,{0x11},{0x11},{0x11},{0x11},{0x11},{0x0e}},
+// 'V'
+{0x11,{0x11},{0x11},{0x11},{0x0a},{0x0a},{0x04}},
+// 'W'
+{0x11,{0x11},{0x15},{0x15},{0x15},{0x0a},{0x0a}},
+// 'X'
+{0x11,{0x11},{0x0a},{0x04},{0x0a},{0x11},{0x11}},
+// 'Y'
+{0x11,{0x11},{0x0a},{0x04},{0x04},{0x04},{0x04}},
+// 'Z'
+{0x1f,{0x01},{0x02},{0x04},{0x08},{0x10},{0x1f}},
+// '['
+{0x0e,{0x08},{0x08},{0x08},{0x08},{0x08},{0x0e}},
+// '\\'
+{0x10,{0x10},{0x08},{0x04},{0x02},{0x01},{0x01}},
+// ']'
+{0x0e,{0x02},{0x02},{0x02},{0x02},{0x02},{0x0e}},
+// '^'
+{0x04,{0x0a},{0x11},{0x00},{0x00},{0x00},{0x00}},
+// '_'
+{0x00,{0x00},{0x00},{0x00},{0x00},{0x00},{0x1f}},
+// '`'
+{0x08,{0x04},{0x00},{0x00},{0x00},{0x00},{0x00}},
+// 'a'
+{0x00,{0x00},{0x0e},{0x01},{0x0f},{0x11},{0x0f}},
+// 'b'
+{0x10,{0x10},{0x1e},{0x11},{0x11},{0x11},{0x1e}},
+// 'c'
+{0x00,{0x00},{0x0e},{0x10},{0x10},{0x11},{0x0e}},
+// 'd'
+{0x01,{0x01},{0x0f},{0x11},{0x11},{0x11},{0x0f}},
+// 'e'
+{0x00,{0x00},{0x0e},{0x11},{0x1f},{0x10},{0x0e}},
+// 'f'
+{0x06,{0x09},{0x08},{0x1e},{0x08},{0x08},{0x08}},
+// 'g'
+{0x00,{0x0f},{0x11},{0x11},{0x0f},{0x01},{0x0e}},
+// 'h'
+{0x10,{0x10},{0x1e},{0x11},{0x11},{0x11},{0x11}},
+// 'i'
+{0x04,{0x00},{0x0c},{0x04},{0x04},{0x04},{0x0e}},
+// 'j'
+{0x02,{0x00},{0x06},{0x02},{0x02},{0x12},{0x0c}},
+// 'k'
+{0x10,{0x10},{0x12},{0x14},{0x18},{0x14},{0x12}},
+// 'l'
+{0x0c,{0x04},{0x04},{0x04},{0x04},{0x04},{0x0e}},
+// 'm'
+{0x00,{0x00},{0x1a},{0x15},{0x15},{0x11},{0x11}},
+// 'n'
+{0x00,{0x00},{0x16},{0x19},{0x11},{0x11},{0x11}},
+// 'o'
+{0x00,{0x00},{0x0e},{0x11},{0x11},{0x11},{0x0e}},
+// 'p'
+{0x00,{0x1e},{0x11},{0x11},{0x1e},{0x10},{0x10}},
+// 'q'
+{0x00,{0x0f},{0x11},{0x11},{0x0f},{0x01},{0x01}},
+// 'r'
+{0x00,{0x00},{0x16},{0x19},{0x10},{0x10},{0x10}},
+// 's'
+{0x00,{0x00},{0x0e},{0x10},{0x0e},{0x01},{0x1e}},
+// 't'
+{0x08,{0x08},{0x1e},{0x08},{0x08},{0x09},{0x06}},
+// 'u'
+{0x00,{0x00},{0x11},{0x11},{0x11},{0x13},{0x0d}},
+// 'v'
+{0x00,{0x00},{0x11},{0x11},{0x11},{0x0a},{0x04}},
+// 'w'
+{0x00,{0x00},{0x11},{0x15},{0x15},{0x15},{0x0a}},
+// 'x'
+{0x00,{0x00},{0x11},{0x0a},{0x04},{0x0a},{0x11}},
+// 'y'
+{0x00,{0x00},{0x11},{0x11},{0x0f},{0x01},{0x0e}},
+// 'z'
+{0x00,{0x00},{0x1f},{0x02},{0x04},{0x08},{0x1f}},
+// '{'
+{0x06,{0x08},{0x08},{0x10},{0x08},{0x08},{0x06}},
+// '|'
+{0x04,{0x04},{0x04},{0x00},{0x04},{0x04},{0x04}},
+// '}'
+{0x0c,{0x02},{0x02},{0x01},{0x02},{0x02},{0x0c}},
+// '~'
+{0x00,{0x08},{0x15},{0x02},{0x00},{0x00},{0x00}},
+};
+// clang-format on
+
 std::string backend_name(Backend backend) {
     switch (backend) {
     case Backend::Win32:
@@ -462,51 +786,86 @@ bool FullApplicationWindow::create() {
     }
     return impl_->open;
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
-    using MsgSend = id (*)(id, SEL, ...);
-    using CocoaInteger = long;
-    using CocoaUnsignedInteger = unsigned long;
-    auto* ns_application = reinterpret_cast<MsgSend>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSApplication")), sel_registerName("sharedApplication"));
-    reinterpret_cast<void (*)(id, SEL, CocoaInteger)>(objc_msgSend)(ns_application, sel_registerName("setActivationPolicy:"), 0);
+    {
+        using CocoaInteger = long;
+        using CocoaUnsignedInteger = unsigned long;
+        using AppSharedFn               = id   (*)(id, SEL);
+        using SetActivationPolicyFn     = void (*)(id, SEL, CocoaInteger);
+        using AllocFn                   = id   (*)(id, SEL);
+        using InitWindowFn              = id   (*)(id, SEL, CGRect, CocoaUnsignedInteger, CocoaUnsignedInteger, BOOL);
+        using StringWithUtf8Fn          = id   (*)(id, SEL, const char*);
+        using SetTitleFn                = void (*)(id, SEL, id);
+        using VoidIdFn                  = void (*)(id, SEL, id);
+        using VoidBoolFn                = void (*)(id, SEL, BOOL);
+        using VoidVoidFn                = void (*)(id, SEL);
 
-    const CGRect rect = CGRectMake(0.0, 0.0, static_cast<double>(impl_->config.width), static_cast<double>(impl_->config.height));
-    const CocoaUnsignedInteger style = (1UL << 0U) | (1UL << 1U) | (1UL << 3U);
-    auto* window = reinterpret_cast<MsgSend>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSWindow")), sel_registerName("alloc"));
-    window = reinterpret_cast<MsgSend>(objc_msgSend)(window,
-                                                     sel_registerName("initWithContentRect:styleMask:backing:defer:"),
-                                                     rect,
-                                                     style,
-                                                     2UL,
-                                                     false);
+        fprintf(stderr, "[FAW] create(): sharedApplication\n");
+        auto* ns_app = reinterpret_cast<AppSharedFn>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSApplication")),
+            sel_registerName("sharedApplication"));
+        if (!ns_app) {
+            fprintf(stderr, "[FAW] ERROR: sharedApplication returned nil\n");
+            return false;
+        }
 
-    if (!impl_->config.title.c_str()) {
-#ifdef __OBJC__
-        NSLog(@"[DEBUG] Window title is null pointer! Setting to default title.");
-#endif
-    }
-    else if (strlen(impl_->config.title.c_str()) == 0) {
-#ifdef __OBJC__
-        NSLog(@"[DEBUG] Window title is empty string! Setting to default title.");
-#endif
-    }
-    else {
-#ifdef __OBJC__
-        NSLog(@"[DEBUG] Window title: %s", impl_->config.title.c_str());
-#endif
-    }
-    auto* title_string = reinterpret_cast<MsgSend>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSString")),
-                                                                 sel_registerName("stringWithUTF8String:"),
-                                                                 impl_->config.title.c_str() ? impl_->config.title.c_str() : "Untitled");
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(window, sel_registerName("setTitle:"), title_string);
-    if (impl_->config.visible) {
-        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(window, sel_registerName("makeKeyAndOrderFront:"), nil);
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(ns_application, sel_registerName("activateIgnoringOtherApps:"), YES);
+        fprintf(stderr, "[FAW] create(): setActivationPolicy -> 0 (regular)\n");
+        reinterpret_cast<SetActivationPolicyFn>(objc_msgSend)(
+            ns_app, sel_registerName("setActivationPolicy:"), 0);
+
+        // Drain any pending launch events before creating the window so
+        // finishLaunching (called implicitly by makeKeyAndOrderFront:) does
+        // not block waiting for run-loop sources.
+        fprintf(stderr, "[FAW] create(): draining run loop before window init\n");
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.05, false);
+
+        fprintf(stderr, "[FAW] create(): creating NSWindow\n");
+        const CGRect rect = CGRectMake(0.0, 0.0,
+            static_cast<double>(impl_->config.width),
+            static_cast<double>(impl_->config.height));
+        // Titled | Closable | Resizable
+        const CocoaUnsignedInteger style = (1UL << 0U) | (1UL << 1U) | (1UL << 3U);
+        auto* window = reinterpret_cast<AllocFn>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSWindow")), sel_registerName("alloc"));
+        window = reinterpret_cast<InitWindowFn>(objc_msgSend)(window,
+            sel_registerName("initWithContentRect:styleMask:backing:defer:"),
+            rect, style, 2UL, (BOOL)0);
+        if (!window) {
+            fprintf(stderr, "[FAW] ERROR: NSWindow init returned nil\n");
+            return false;
+        }
+        fprintf(stderr, "[FAW] create(): NSWindow ok\n");
+
+        const std::string safe_title = impl_->config.title.empty()
+            ? std::string("Untitled") : impl_->config.title;
+        auto* title_ns = reinterpret_cast<StringWithUtf8Fn>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSString")),
+            sel_registerName("stringWithUTF8String:"),
+            safe_title.c_str());
+        reinterpret_cast<SetTitleFn>(objc_msgSend)(window, sel_registerName("setTitle:"), title_ns);
+
+        // Center before showing.
+        reinterpret_cast<VoidVoidFn>(objc_msgSend)(window, sel_registerName("center"));
+
+        // Order the window front; this also triggers finishLaunching internally
+        // without blocking because we already drained the run loop above.
+        fprintf(stderr, "[FAW] create(): makeKeyAndOrderFront:\n");
+        reinterpret_cast<VoidIdFn>(objc_msgSend)(window, sel_registerName("makeKeyAndOrderFront:"), nil);
+
+        fprintf(stderr, "[FAW] create(): activateIgnoringOtherApps:\n");
+        reinterpret_cast<VoidBoolFn>(objc_msgSend)(ns_app, sel_registerName("activateIgnoringOtherApps:"), YES);
+
+        // Give the window server a moment to composite the first frame.
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.05, false);
+        fprintf(stderr, "[FAW] create(): done, window=%p\n", static_cast<void*>(window));
+
+        impl_->application = ns_app;
+        impl_->window = window;
+        impl_->open = true;
     }
 
-    impl_->application = ns_application;
-    impl_->window = window;
-    impl_->open = window != nullptr;
-    if (impl_->open && impl_->hooks.on_create) {
-        impl_->hooks.on_create(impl_->make_render_event(reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
+    if (impl_->hooks.on_create) {
+        impl_->hooks.on_create(impl_->make_render_event(
+            reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
     }
     return impl_->open;
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
@@ -559,7 +918,11 @@ void FullApplicationWindow::show() {
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->window) {
-        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(reinterpret_cast<id>(impl_->window), sel_registerName("makeKeyAndOrderFront:"), nil);
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(
+            reinterpret_cast<id>(impl_->window), sel_registerName("makeKeyAndOrderFront:"), nil);
+        // Re-activate the app so the window comes to the foreground.
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(
+            reinterpret_cast<id>(impl_->application), sel_registerName("activateIgnoringOtherApps:"), YES);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
     if (impl_->display && impl_->window) {
@@ -619,11 +982,72 @@ bool FullApplicationWindow::pump_events() {
     }
     return impl_->open;
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    {
+        using AppSharedFn = id   (*)(id, SEL);
+        using NextEventFn = id   (*)(id, SEL, unsigned long, id, id, BOOL);
+        using SendEventFn = void (*)(id, SEL, id);
+        using IsVisibleFn = BOOL (*)(id, SEL);
+
+        auto* ns_app = reinterpret_cast<AppSharedFn>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSApplication")),
+            sel_registerName("sharedApplication"));
+
+        auto* distant_past = reinterpret_cast<AppSharedFn>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSDate")),
+            sel_registerName("distantPast"));
+
+        // Use kCFRunLoopDefaultMode string equivalent for NSDefaultRunLoopMode.
+        auto* default_mode = reinterpret_cast<id (*)(id, SEL, const char*)>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSString")),
+            sel_registerName("stringWithUTF8String:"),
+            "NSDefaultRunLoopMode");
+
+        // Also drain the CF run loop sources (timers, port messages, etc.)
+        // that Cocoa defers but that NSApplication's event pump doesn't handle.
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.0, true);
+
+        constexpr unsigned long k_any_event_mask = ~0UL;
+        id event = nullptr;
+        int drained = 0;
+        while ((event = reinterpret_cast<NextEventFn>(objc_msgSend)(
+                    ns_app,
+                    sel_registerName("nextEventMatchingMask:untilDate:inMode:dequeue:"),
+                    k_any_event_mask,
+                    distant_past,
+                    default_mode,
+                    YES)) != nullptr) {
+            reinterpret_cast<SendEventFn>(objc_msgSend)(
+                ns_app, sel_registerName("sendEvent:"), event);
+            ++drained;
+        }
+        if (drained > 0) {
+            fprintf(stderr, "[FAW] pump_events: drained %d NS events\n", drained);
+        }
+
+        // Detect window close.
+        if (impl_->window) {
+            const BOOL visible = reinterpret_cast<IsVisibleFn>(objc_msgSend)(
+                reinterpret_cast<id>(impl_->window), sel_registerName("isVisible"));
+            if (!visible) {
+                fprintf(stderr, "[FAW] pump_events: window not visible → closing\n");
+                impl_->open = false;
+                if (impl_->hooks.on_close) {
+                    impl_->hooks.on_close(impl_->make_render_event(
+                        reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
+                }
+                return false;
+            }
+        }
+    }
+
     if (impl_->hooks.on_tick) {
-        impl_->hooks.on_tick(impl_->make_render_event(reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
+        impl_->hooks.on_tick(impl_->make_render_event(
+            reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
     }
     if (impl_->hooks.on_render) {
-        impl_->hooks.on_render(impl_->make_render_event(reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
+        impl_->hooks.on_render(impl_->make_render_event(
+            reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
+        impl_->mac_blit_to_window();
     }
     return impl_->open;
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
@@ -703,24 +1127,10 @@ void FullApplicationWindow::set_title(const std::string& title) {
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->window) {
-        if (!title.c_str()) {
-    #ifdef __OBJC__
-            NSLog(@"[DEBUG] set_title: title is null pointer! Setting to default title.");
-    #endif
-        }
-        else if (strlen(title.c_str()) == 0) {
-    #ifdef __OBJC__
-            NSLog(@"[DEBUG] set_title: title is empty string! Setting to default title.");
-    #endif
-        }
-        else {
-    #ifdef __OBJC__
-            NSLog(@"[DEBUG] set_title: title = %s", title.c_str());
-    #endif
-        }
+        const std::string safe_title = title.empty() ? std::string("Untitled") : title;
         auto* title_string = reinterpret_cast<id (*)(id, SEL, const char*)>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSString")),
                                                                                             sel_registerName("stringWithUTF8String:"),
-                                                                                            title.c_str() ? title.c_str() : "Untitled");
+                                                                                            safe_title.c_str());
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(reinterpret_cast<id>(impl_->window), sel_registerName("setTitle:"), title_string);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
@@ -819,7 +1229,9 @@ void FullApplicationWindow::request_redraw() {
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->hooks.on_render) {
-        impl_->hooks.on_render(impl_->make_render_event(reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
+        impl_->hooks.on_render(impl_->make_render_event(
+            reinterpret_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
+        impl_->mac_blit_to_window();
     }
 #else
     if (impl_->hooks.on_render) {
@@ -829,7 +1241,44 @@ void FullApplicationWindow::request_redraw() {
 }
 
 bool FullApplicationWindow::query_pointer_state(PointerState& state) const {
-#if defined(_WIN32)
+#if defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    if (!impl_->window) {
+        state = PointerState{};
+        return false;
+    }
+    {
+        // Mouse location in NSWindow base coordinates (origin = bottom-left).
+        using CGPointFn = CGPoint (*)(id, SEL);
+        using CGRectFn  = CGRect  (*)(id, SEL);
+        using ULongFn   = unsigned long (*)(id, SEL);
+        using IdFn      = id (*)(id, SEL);
+
+        const CGPoint mouse_loc = reinterpret_cast<CGPointFn>(objc_msgSend)(
+            reinterpret_cast<id>(impl_->window),
+            sel_registerName("mouseLocationOutsideOfEventStream"));
+
+        auto* content_view = reinterpret_cast<IdFn>(objc_msgSend)(
+            reinterpret_cast<id>(impl_->window), sel_registerName("contentView"));
+
+        const CGRect bounds = reinterpret_cast<CGRectFn>(objc_msgSend)(
+            content_view, sel_registerName("bounds"));
+
+        // Flip y: NSWindow has origin at bottom-left, UI expects top-left origin.
+        state.client_width  = static_cast<int>(bounds.size.width);
+        state.client_height = static_cast<int>(bounds.size.height);
+        state.x = static_cast<int>(mouse_loc.x);
+        state.y = state.client_height - static_cast<int>(mouse_loc.y);
+        state.inside = mouse_loc.x >= 0.0 && mouse_loc.x <= bounds.size.width
+                    && mouse_loc.y >= 0.0 && mouse_loc.y <= bounds.size.height;
+
+        const unsigned long pressed = reinterpret_cast<ULongFn>(objc_msgSend)(
+            reinterpret_cast<id>(objc_getClass("NSEvent")),
+            sel_registerName("pressedMouseButtons"));
+        state.left_button_down  = (pressed & 1U) != 0;
+        state.right_button_down = (pressed & 2U) != 0;
+    }
+    return true;
+#elif defined(_WIN32)
     if (!impl_->hwnd || !IsWindow(impl_->hwnd)) {
         return false;
     }
@@ -882,6 +1331,23 @@ bool FullApplicationWindow::client_size(int& width, int& height) const {
     width = std::max(0, static_cast<int>(rc.right - rc.left));
     height = std::max(0, static_cast<int>(rc.bottom - rc.top));
     return true;
+#elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    if (!impl_->window) {
+        width = 0;
+        height = 0;
+        return false;
+    }
+    {
+        using IdFn     = id     (*)(id, SEL);
+        using CGRectFn = CGRect (*)(id, SEL);
+        auto* content_view = reinterpret_cast<IdFn>(objc_msgSend)(
+            reinterpret_cast<id>(impl_->window), sel_registerName("contentView"));
+        const CGRect bounds = reinterpret_cast<CGRectFn>(objc_msgSend)(
+            content_view, sel_registerName("bounds"));
+        width  = static_cast<int>(bounds.size.width);
+        height = static_cast<int>(bounds.size.height);
+    }
+    return true;
 #else
     width = 0;
     height = 0;
@@ -891,7 +1357,6 @@ bool FullApplicationWindow::client_size(int& width, int& height) const {
 
 void FullApplicationWindow::clear_background(unsigned char r, unsigned char g, unsigned char b) const {
 #if defined(_WIN32)
-    if (!impl_->hwnd || !IsWindow(impl_->hwnd)) {
         return;
     }
     RECT rc{};
@@ -907,6 +1372,13 @@ void FullApplicationWindow::clear_background(unsigned char r, unsigned char g, u
     FillRect(dc, &rc, bg);
     DeleteObject(bg);
     impl_->ui_backbuffer_used_this_frame = true;
+#elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    {
+        int w = 0, h = 0;
+        client_size(w, h);
+        impl_->mac_ensure_buf(w, h);
+        impl_->mac_fill_rect(0, 0, w, h, r, g, b);
+    }
 #else
     (void)r;
     (void)g;
@@ -934,6 +1406,8 @@ void FullApplicationWindow::fill_rect(int left, int top, int right, int bottom,
     FillRect(dc, &rect, brush);
     DeleteObject(brush);
     impl_->ui_backbuffer_used_this_frame = true;
+#elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    impl_->mac_fill_rect(left, top, right, bottom, r, g, b);
 #else
     (void)left;
     (void)top;
@@ -1089,6 +1563,8 @@ void FullApplicationWindow::draw_text_line(int x, int y, const std::string& text
     SetTextColor(dc, RGB(r, g, b));
     TextOutA(dc, x, y, text.c_str(), static_cast<int>(text.size()));
     impl_->ui_backbuffer_used_this_frame = true;
+#elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    impl_->mac_draw_text(x, y, text, r, g, b);
 #else
     (void)x;
     (void)y;
