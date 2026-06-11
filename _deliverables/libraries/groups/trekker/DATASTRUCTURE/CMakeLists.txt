@@ -41,6 +41,8 @@ if(BUILD_TESTING)
 	add_executable(data_structures_tests
 		trees/tests/test_binary_search_tree.cpp
 		trees/tests/test_btree.cpp
+		trees/tests/test_cover_tree.cpp
+		trees/tests/test_faster_cover_tree.cpp
 		trees/tests/test_splay_tree.cpp
 		trees/tests/test_heap.cpp
 		trees/tests/test_log_structured_merge_tree.cpp

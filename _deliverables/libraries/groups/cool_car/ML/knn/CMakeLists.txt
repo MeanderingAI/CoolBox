@@ -1,6 +1,9 @@
 # knn is header-only
 add_library(knn INTERFACE)
-target_include_directories(knn INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_include_directories(knn INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/headers
+)
 target_link_libraries(knn INTERFACE mytrix)
 
 # Tests

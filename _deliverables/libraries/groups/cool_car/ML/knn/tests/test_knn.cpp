@@ -11,6 +11,51 @@ using KNNd = KNN<double>;
 using MatrixT = KNNd::MatrixT;
 using VectorT = KNNd::VectorT;
 
+static std::vector<Neighbour> brute_force_neighbours(
+    const MatrixT& X,
+    const VectorT& query,
+    int k,
+    DistanceMetric metric,
+    double minkowski_p = 2.0)
+{
+    auto distance = [metric, minkowski_p](const Eigen::VectorXd& lhs, const Eigen::VectorXd& rhs) {
+        switch (metric) {
+            case DistanceMetric::EUCLIDEAN:
+                return std::sqrt((lhs - rhs).squaredNorm());
+            case DistanceMetric::MANHATTAN:
+                return (lhs - rhs).cwiseAbs().sum();
+            case DistanceMetric::MINKOWSKI: {
+                double sum = 0.0;
+                for (int index = 0; index < lhs.size(); ++index) {
+                    sum += std::pow(std::abs(lhs(index) - rhs(index)), minkowski_p);
+                }
+                return std::pow(sum, 1.0 / minkowski_p);
+            }
+            case DistanceMetric::CHEBYSHEV:
+                return (lhs - rhs).cwiseAbs().maxCoeff();
+            default:
+                return std::sqrt((lhs - rhs).squaredNorm());
+        }
+    };
+
+    std::vector<Neighbour> neighbours;
+    neighbours.reserve(static_cast<size_t>(X.rows()));
+    for (int row = 0; row < X.rows(); ++row) {
+        neighbours.push_back({row, distance(query, X.row(row).transpose())});
+    }
+
+    const int effective_k = std::min(k, static_cast<int>(neighbours.size()));
+    std::partial_sort(neighbours.begin(), neighbours.begin() + effective_k, neighbours.end(),
+        [](const Neighbour& lhs, const Neighbour& rhs) {
+            if (lhs.distance == rhs.distance) {
+                return lhs.index < rhs.index;
+            }
+            return lhs.distance < rhs.distance;
+        });
+    neighbours.resize(static_cast<size_t>(effective_k));
+    return neighbours;
+}
+
 // ===================================================================
 // Helper: simple 2D classification dataset (two classes)
 // ===================================================================
@@ -61,17 +106,20 @@ TEST(KNNTest, ConstructionDefaults) {
     EXPECT_EQ(knn.metric(), DistanceMetric::EUCLIDEAN);
     EXPECT_EQ(knn.task(), TaskType::CLASSIFICATION);
     EXPECT_EQ(knn.weight(), WeightType::UNIFORM);
+    EXPECT_EQ(knn.backend(), SearchBackend::BRUTE_FORCE);
     EXPECT_FALSE(knn.is_fitted());
     EXPECT_EQ(knn.n_samples(), 0);
     EXPECT_EQ(knn.n_features(), 0);
 }
 
 TEST(KNNTest, ConstructionCustom) {
-    KNNd knn(3, DistanceMetric::MANHATTAN, TaskType::REGRESSION, WeightType::DISTANCE);
+    KNNd knn(3, DistanceMetric::MANHATTAN, TaskType::REGRESSION, WeightType::DISTANCE,
+             2.0, SearchBackend::BRUTE_FORCE);
     EXPECT_EQ(knn.k(), 3);
     EXPECT_EQ(knn.metric(), DistanceMetric::MANHATTAN);
     EXPECT_EQ(knn.task(), TaskType::REGRESSION);
     EXPECT_EQ(knn.weight(), WeightType::DISTANCE);
+    EXPECT_EQ(knn.backend(), SearchBackend::BRUTE_FORCE);
 }
 
 TEST(KNNTest, ConstructionInvalidK) {
@@ -313,6 +361,9 @@ TEST(KNNTest, Setters) {
     knn.set_weight(WeightType::DISTANCE);
     EXPECT_EQ(knn.weight(), WeightType::DISTANCE);
 
+    knn.set_backend(SearchBackend::COVER_TREE);
+    EXPECT_EQ(knn.backend(), SearchBackend::COVER_TREE);
+
     knn.set_minkowski_p(3.0);
     EXPECT_DOUBLE_EQ(knn.minkowski_p(), 3.0);
     EXPECT_THROW(knn.set_minkowski_p(0.5), std::invalid_argument);
@@ -328,7 +379,216 @@ TEST(KNNTest, Summary) {
     EXPECT_NE(s.find("k=3"), std::string::npos);
     EXPECT_NE(s.find("euclidean"), std::string::npos);
     EXPECT_NE(s.find("classification"), std::string::npos);
+    EXPECT_NE(s.find("backend=brute_force"), std::string::npos);
     EXPECT_NE(s.find("fitted=false"), std::string::npos);
+}
+
+TEST(KNNTest, SummaryShowsAutoActiveBackend) {
+    MatrixT X(20, 2);
+    VectorT y(20);
+    X.setRandom();
+    y.setZero();
+
+    KNNd knn(3, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::AUTO);
+    knn.fit(X, y);
+
+    std::string s = knn.summary();
+    EXPECT_NE(s.find("backend=auto(active="), std::string::npos);
+}
+
+TEST(KNNTest, AlternateBackendKeepsCurrentResults) {
+    MatrixT X(4, 2);
+    X << 0, 0,
+         1, 0,
+         0, 1,
+         10, 10;
+    VectorT y(4);
+    y << 0, 0, 0, 1;
+
+    KNNd knn(3, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::COVER_TREE);
+    knn.fit(X, y);
+
+    VectorT query(2);
+    query << 0.1, 0.1;
+
+    auto neighbours = knn.kneighbours(query);
+    EXPECT_EQ(static_cast<int>(neighbours.size()), 3);
+    EXPECT_EQ(neighbours[0].index, 0);
+    EXPECT_DOUBLE_EQ(knn.predict_one(query), 0.0);
+}
+
+TEST(KNNTest, SwitchingBackendAfterFitKeepsResults) {
+    MatrixT X(4, 2);
+    X << 0, 0,
+         1, 0,
+         0, 1,
+         10, 10;
+    VectorT y(4);
+    y << 0, 0, 0, 1;
+
+    KNNd knn(3);
+    knn.fit(X, y);
+    knn.set_backend(SearchBackend::FASTER_COVER_TREE);
+
+    VectorT query(2);
+    query << 0.1, 0.1;
+
+    auto neighbours = knn.kneighbours(query);
+    EXPECT_EQ(static_cast<int>(neighbours.size()), 3);
+    EXPECT_EQ(neighbours[0].index, 0);
+    EXPECT_DOUBLE_EQ(knn.predict_one(query), 0.0);
+}
+
+TEST(KNNTest, FullSortBackendMatchesBruteForceNeighbours) {
+    MatrixT X(6, 2);
+    X << 0, 0,
+         1, 0,
+         0, 1,
+         2, 2,
+         3, 3,
+         10, 10;
+    VectorT y(6);
+    y << 0, 0, 0, 1, 1, 1;
+
+    VectorT query(2);
+    query << 0.25, 0.2;
+
+    const auto expected = brute_force_neighbours(X, query, 4, DistanceMetric::EUCLIDEAN);
+
+    KNNd knn(4, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::BRUTE_FORCE_FULL_SORT);
+    knn.fit(X, y);
+
+    const auto actual = knn.kneighbours(query);
+    ASSERT_EQ(actual.size(), expected.size());
+    for (size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_EQ(actual[index].index, expected[index].index);
+        EXPECT_DOUBLE_EQ(actual[index].distance, expected[index].distance);
+    }
+}
+
+TEST(KNNTest, HeapBackendMatchesBruteForceNeighbours) {
+    MatrixT X(6, 2);
+    X << 0, 0,
+         1, 0,
+         0, 1,
+         2, 2,
+         3, 3,
+         10, 10;
+    VectorT y(6);
+    y << 0, 0, 0, 1, 1, 1;
+
+    VectorT query(2);
+    query << 0.25, 0.2;
+
+    const auto expected = brute_force_neighbours(X, query, 4, DistanceMetric::EUCLIDEAN);
+
+    KNNd knn(4, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::BRUTE_FORCE_HEAP);
+    knn.fit(X, y);
+
+    const auto actual = knn.kneighbours(query);
+    ASSERT_EQ(actual.size(), expected.size());
+    for (size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_EQ(actual[index].index, expected[index].index);
+        EXPECT_DOUBLE_EQ(actual[index].distance, expected[index].distance);
+    }
+}
+
+TEST(KNNTest, CoverTreeBackendMatchesBruteForceNeighbours) {
+    MatrixT X(5, 2);
+    X << 0, 0,
+         1, 0,
+         0, 1,
+         2, 2,
+         10, 10;
+    VectorT y(5);
+    y << 0, 0, 0, 1, 1;
+
+    VectorT query(2);
+    query << 0.25, 0.2;
+
+    const auto expected = brute_force_neighbours(X, query, 4, DistanceMetric::EUCLIDEAN);
+
+    KNNd knn(4, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::COVER_TREE);
+    knn.fit(X, y);
+
+    const auto actual = knn.kneighbours(query);
+    ASSERT_EQ(actual.size(), expected.size());
+    for (size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_EQ(actual[index].index, expected[index].index);
+        EXPECT_DOUBLE_EQ(actual[index].distance, expected[index].distance);
+    }
+}
+
+TEST(KNNTest, FasterCoverTreeBackendMatchesBruteForceWithManhattan) {
+    MatrixT X(5, 2);
+    X << 0, 0,
+         1, 0,
+         0, 1,
+         2, 2,
+         10, 10;
+    VectorT y(5);
+    y << 0, 0, 0, 1, 1;
+
+    VectorT query(2);
+    query << 0.25, 0.2;
+
+    const auto expected = brute_force_neighbours(X, query, 4, DistanceMetric::MANHATTAN);
+
+    KNNd knn(4, DistanceMetric::MANHATTAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::FASTER_COVER_TREE);
+    knn.fit(X, y);
+
+    const auto actual = knn.kneighbours(query);
+    ASSERT_EQ(actual.size(), expected.size());
+    for (size_t index = 0; index < actual.size(); ++index) {
+        EXPECT_EQ(actual[index].index, expected[index].index);
+        EXPECT_DOUBLE_EQ(actual[index].distance, expected[index].distance);
+    }
+}
+
+TEST(KNNTest, AutoBackendResolvesToFullSortForSmallDatasets) {
+    MatrixT X(40, 4);
+    X.setRandom();
+    VectorT y(40);
+    y.setZero();
+
+    KNNd knn(3, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::AUTO);
+    knn.fit(X, y);
+
+    EXPECT_EQ(knn.backend(), SearchBackend::AUTO);
+    EXPECT_EQ(knn.active_backend(), SearchBackend::BRUTE_FORCE_FULL_SORT);
+}
+
+TEST(KNNTest, AutoBackendResolvesToHeapForHighDimensionalData) {
+    MatrixT X(200, 128);
+    X.setRandom();
+    VectorT y(200);
+    y.setZero();
+
+    KNNd knn(3, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::AUTO);
+    knn.fit(X, y);
+
+    EXPECT_EQ(knn.active_backend(), SearchBackend::BRUTE_FORCE_HEAP);
+}
+
+TEST(KNNTest, AutoBackendResolvesToCoverTreeForLargerLowDimensionalData) {
+    MatrixT X(1100, 8);
+    X.setRandom();
+    VectorT y(1100);
+    y.setZero();
+
+    KNNd knn(3, DistanceMetric::EUCLIDEAN, TaskType::CLASSIFICATION,
+             WeightType::UNIFORM, 2.0, SearchBackend::AUTO);
+    knn.fit(X, y);
+
+    EXPECT_EQ(knn.active_backend(), SearchBackend::COVER_TREE);
 }
 
 // ===================================================================

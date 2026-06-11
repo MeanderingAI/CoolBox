@@ -25,6 +25,8 @@
  */
 #pragma once
 
+#include "cover_tree.h"
+#include "faster_cover_tree.h"
 #include "mytrix_eigen_compat.hpp"
 #include <vector>
 #include <algorithm>
@@ -37,6 +39,8 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <memory>
+#include <queue>
 
 namespace ml {
 
@@ -70,6 +74,18 @@ enum class WeightType {
     DISTANCE   ///< Closer neighbours contribute more (1/d)
 };
 
+/**
+ * @brief Backend used for neighbour lookup.
+ */
+enum class SearchBackend {
+    BRUTE_FORCE,
+    BRUTE_FORCE_FULL_SORT,
+    BRUTE_FORCE_HEAP,
+    COVER_TREE,
+    FASTER_COVER_TREE,
+    AUTO
+};
+
 // ===================================================================
 // Neighbour result
 // ===================================================================
@@ -96,6 +112,7 @@ class KNN {
 public:
     using VectorT = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
     using MatrixT = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+    using RowVectorT = Eigen::Matrix<Scalar, 1, Eigen::Dynamic>;
 
     // ---------------------------------------------------------------
     // Construction
@@ -114,13 +131,17 @@ public:
                  DistanceMetric metric = DistanceMetric::EUCLIDEAN,
                  TaskType task = TaskType::CLASSIFICATION,
                  WeightType weight = WeightType::UNIFORM,
-                 Scalar minkowski_p = 2.0)
+                 Scalar minkowski_p = 2.0,
+                 SearchBackend backend = SearchBackend::BRUTE_FORCE)
         : k_(k)
         , metric_(metric)
         , task_(task)
         , weight_(weight)
         , minkowski_p_(minkowski_p)
+        , backend_(backend)
+        , active_backend_(resolve_backend(backend))
         , fitted_(false)
+        , provider_(make_provider(active_backend_))
     {
         if (k_ < 1) {
             throw std::invalid_argument("KNN: k must be >= 1, got " + std::to_string(k_));
@@ -152,6 +173,7 @@ public:
         X_train_ = X;
         y_train_ = y;
         fitted_ = true;
+        rebuild_provider_if_fitted();
     }
 
     // ---------------------------------------------------------------
@@ -198,7 +220,7 @@ public:
         if (query.size() != X_train_.cols()) {
             throw std::invalid_argument("KNN::predict_one: feature dimension mismatch");
         }
-        auto neighbours = find_neighbours(query.transpose());
+        auto neighbours = find_neighbours(query);
         if (task_ == TaskType::CLASSIFICATION) {
             return classify(neighbours);
         }
@@ -217,7 +239,10 @@ public:
      */
     std::vector<Neighbour> kneighbours(const VectorT& query) const {
         check_fitted();
-        return find_neighbours(query.transpose());
+        if (query.size() != X_train_.cols()) {
+            throw std::invalid_argument("KNN::kneighbours: feature dimension mismatch");
+        }
+        return find_neighbours(query);
     }
 
     // ---------------------------------------------------------------
@@ -266,7 +291,10 @@ public:
     }
 
     DistanceMetric metric() const { return metric_; }
-    void set_metric(DistanceMetric m) { metric_ = m; }
+    void set_metric(DistanceMetric m) {
+        metric_ = m;
+        rebuild_provider_if_fitted();
+    }
 
     TaskType task() const { return task_; }
     void set_task(TaskType t) { task_ = t; }
@@ -274,10 +302,18 @@ public:
     WeightType weight() const { return weight_; }
     void set_weight(WeightType w) { weight_ = w; }
 
+    SearchBackend backend() const { return backend_; }
+    SearchBackend active_backend() const { return active_backend_; }
+    void set_backend(SearchBackend backend) {
+        backend_ = backend;
+        rebuild_provider_if_fitted();
+    }
+
     Scalar minkowski_p() const { return minkowski_p_; }
     void set_minkowski_p(Scalar p) {
         if (p < 1.0) throw std::invalid_argument("KNN: Minkowski p must be >= 1.0");
         minkowski_p_ = p;
+        rebuild_provider_if_fitted();
     }
 
     bool is_fitted() const { return fitted_; }
@@ -296,7 +332,11 @@ public:
         oss << "KNN(k=" << k_
             << ", metric=" << metric_name()
             << ", task=" << (task_ == TaskType::CLASSIFICATION ? "classification" : "regression")
-            << ", weight=" << (weight_ == WeightType::UNIFORM ? "uniform" : "distance");
+            << ", weight=" << (weight_ == WeightType::UNIFORM ? "uniform" : "distance")
+            << ", backend=" << backend_name(backend_);
+        if (backend_ == SearchBackend::AUTO) {
+            oss << "(active=" << backend_name(active_backend_) << ")";
+        }
         if (metric_ == DistanceMetric::MINKOWSKI) {
             oss << ", p=" << minkowski_p_;
         }
@@ -315,10 +355,201 @@ private:
     TaskType task_;
     WeightType weight_;
     Scalar minkowski_p_;
+    SearchBackend backend_;
+    SearchBackend active_backend_;
     bool fitted_;
 
     MatrixT X_train_;
     VectorT y_train_;
+
+    class NeighbourSearchProvider {
+    public:
+        using SampleDistanceFn = std::function<Scalar(int, int)>;
+        using QueryDistanceFn = std::function<Scalar(const VectorT&, int)>;
+        using VectorDistanceFn = std::function<Scalar(const VectorT&, const VectorT&)>;
+
+        virtual ~NeighbourSearchProvider() = default;
+
+        virtual void fit(
+            const MatrixT& X,
+            const SampleDistanceFn& sample_distance,
+            const VectorDistanceFn& vector_distance)
+        {
+            (void)X;
+            (void)sample_distance;
+            (void)vector_distance;
+        }
+
+        virtual std::vector<Neighbour> find_neighbours(
+            const VectorT& query,
+            int k,
+            int n_samples,
+            const QueryDistanceFn& query_distance) const = 0;
+    };
+
+    class BruteForceProvider final : public NeighbourSearchProvider {
+    public:
+        std::vector<Neighbour> find_neighbours(
+            const VectorT& query,
+            int k,
+            int n_samples,
+            const typename NeighbourSearchProvider::QueryDistanceFn& query_distance) const override
+        {
+            (void)query;
+            const int effective_k = std::min(k, n_samples);
+            std::vector<Neighbour> all(n_samples);
+            for (int i = 0; i < n_samples; ++i) {
+                const Scalar distance = query_distance(query, i);
+                all[i] = {i, static_cast<double>(distance)};
+            }
+
+            std::partial_sort(all.begin(), all.begin() + effective_k, all.end(),
+                [](const Neighbour& lhs, const Neighbour& rhs) {
+                    return lhs.distance < rhs.distance;
+                });
+
+            return std::vector<Neighbour>(all.begin(), all.begin() + effective_k);
+        }
+    };
+
+    class BruteForceFullSortProvider final : public NeighbourSearchProvider {
+    public:
+        std::vector<Neighbour> find_neighbours(
+            const VectorT& query,
+            int k,
+            int n_samples,
+            const typename NeighbourSearchProvider::QueryDistanceFn& query_distance) const override
+        {
+            (void)query;
+            const int effective_k = std::min(k, n_samples);
+            std::vector<Neighbour> all(n_samples);
+            for (int i = 0; i < n_samples; ++i) {
+                const Scalar distance = query_distance(query, i);
+                all[i] = {i, static_cast<double>(distance)};
+            }
+
+            std::stable_sort(all.begin(), all.end(), [](const Neighbour& lhs, const Neighbour& rhs) {
+                if (lhs.distance == rhs.distance) {
+                    return lhs.index < rhs.index;
+                }
+                return lhs.distance < rhs.distance;
+            });
+
+            return std::vector<Neighbour>(all.begin(), all.begin() + effective_k);
+        }
+    };
+
+    class BruteForceHeapProvider final : public NeighbourSearchProvider {
+    public:
+        std::vector<Neighbour> find_neighbours(
+            const VectorT& query,
+            int k,
+            int n_samples,
+            const typename NeighbourSearchProvider::QueryDistanceFn& query_distance) const override
+        {
+            const int effective_k = std::min(k, n_samples);
+            if (effective_k <= 0) {
+                return {};
+            }
+
+            auto worse_first = [](const Neighbour& lhs, const Neighbour& rhs) {
+                if (lhs.distance == rhs.distance) {
+                    return lhs.index < rhs.index;
+                }
+                return lhs.distance < rhs.distance;
+            };
+
+            std::priority_queue<Neighbour, std::vector<Neighbour>, decltype(worse_first)> heap(worse_first);
+
+            for (int i = 0; i < n_samples; ++i) {
+                const Scalar distance = query_distance(query, i);
+                Neighbour current{i, static_cast<double>(distance)};
+
+                if (static_cast<int>(heap.size()) < effective_k) {
+                    heap.push(current);
+                    continue;
+                }
+
+                const auto& worst = heap.top();
+                if (current.distance < worst.distance ||
+                    (current.distance == worst.distance && current.index < worst.index)) {
+                    heap.pop();
+                    heap.push(current);
+                }
+            }
+
+            std::vector<Neighbour> neighbours;
+            neighbours.reserve(static_cast<size_t>(effective_k));
+            while (!heap.empty()) {
+                neighbours.push_back(heap.top());
+                heap.pop();
+            }
+
+            std::stable_sort(neighbours.begin(), neighbours.end(), [](const Neighbour& lhs, const Neighbour& rhs) {
+                if (lhs.distance == rhs.distance) {
+                    return lhs.index < rhs.index;
+                }
+                return lhs.distance < rhs.distance;
+            });
+            return neighbours;
+        }
+    };
+
+    struct IndexedSample {
+        int index;
+        VectorT values;
+    };
+
+    template <typename TreeType>
+    class TreeBackedProvider final : public NeighbourSearchProvider {
+    public:
+        void fit(
+            const MatrixT& X,
+            const typename NeighbourSearchProvider::SampleDistanceFn& sample_distance,
+            const typename NeighbourSearchProvider::VectorDistanceFn& vector_distance) override
+        {
+            (void)sample_distance;
+            vector_distance_ = vector_distance;
+            samples_.clear();
+            samples_.reserve(static_cast<std::size_t>(X.rows()));
+            for (int row = 0; row < X.rows(); ++row) {
+                samples_.push_back(IndexedSample{row, X.row(row).transpose()});
+            }
+
+            tree_ = std::make_unique<TreeType>([this](const IndexedSample& lhs, const IndexedSample& rhs) {
+                return static_cast<double>(vector_distance_(lhs.values, rhs.values));
+            });
+            tree_->build(samples_);
+        }
+
+        std::vector<Neighbour> find_neighbours(
+            const VectorT& query,
+            int k,
+            int n_samples,
+            const typename NeighbourSearchProvider::QueryDistanceFn& query_distance) const override
+        {
+            (void)n_samples;
+            (void)query_distance;
+            if (!tree_) {
+                return {};
+            }
+
+            const auto results = tree_->k_nearest(IndexedSample{-1, query}, static_cast<std::size_t>(k));
+            std::vector<Neighbour> neighbours;
+            neighbours.reserve(results.size());
+            for (const auto& result : results) {
+                neighbours.push_back({result.item.index, result.distance});
+            }
+            return neighbours;
+        }
+
+    private:
+        std::vector<IndexedSample> samples_;
+        typename NeighbourSearchProvider::VectorDistanceFn vector_distance_;
+        std::unique_ptr<TreeType> tree_;
+    };
+
+    std::shared_ptr<NeighbourSearchProvider> provider_;
 
     // ---------------------------------------------------------------
     // Internal helpers
@@ -333,9 +564,7 @@ private:
     /**
      * @brief Compute distance between two row vectors.
      */
-    Scalar compute_distance(
-        const Eigen::Block<const MatrixT, 1, Eigen::Dynamic, false>& a,
-        const Eigen::Block<const MatrixT, 1, Eigen::Dynamic, false>& b) const
+    Scalar compute_distance_between_rows(const RowVectorT& a, const RowVectorT& b) const
     {
         switch (metric_) {
             case DistanceMetric::EUCLIDEAN:
@@ -366,7 +595,7 @@ private:
     template <typename Derived>
     Scalar compute_distance_generic(
         const Eigen::MatrixBase<Derived>& a,
-        const Eigen::Block<const MatrixT, 1, Eigen::Dynamic, false>& b) const
+        const RowVectorT& b) const
     {
         switch (metric_) {
             case DistanceMetric::EUCLIDEAN:
@@ -396,22 +625,14 @@ private:
      */
     template <typename Derived>
     std::vector<Neighbour> find_neighbours(const Eigen::MatrixBase<Derived>& query_row) const {
-        const int n = static_cast<int>(X_train_.rows());
-        const int effective_k = std::min(k_, n);
-
-        std::vector<Neighbour> all(n);
-        for (int i = 0; i < n; ++i) {
-            Scalar d = compute_distance_generic(query_row, X_train_.row(i));
-            all[i] = {i, static_cast<double>(d)};
-        }
-
-        // Partial sort to get the k smallest
-        std::partial_sort(all.begin(), all.begin() + effective_k, all.end(),
-            [](const Neighbour& a, const Neighbour& b) {
-                return a.distance < b.distance;
+        const VectorT query = query_row.transpose();
+        return provider_->find_neighbours(
+            query,
+            k_,
+            static_cast<int>(X_train_.rows()),
+            [this](const VectorT& current_query, int sample_index) {
+                return compute_distance_to_sample(current_query, sample_index);
             });
-
-        return std::vector<Neighbour>(all.begin(), all.begin() + effective_k);
     }
 
     /**
@@ -483,6 +704,116 @@ private:
             case DistanceMetric::CHEBYSHEV: return "chebyshev";
             default: return "unknown";
         }
+    }
+
+    std::string backend_name(SearchBackend backend) const {
+        switch (backend) {
+            case SearchBackend::AUTO: return "auto";
+            case SearchBackend::BRUTE_FORCE: return "brute_force";
+            case SearchBackend::BRUTE_FORCE_FULL_SORT: return "brute_force_full_sort";
+            case SearchBackend::BRUTE_FORCE_HEAP: return "brute_force_heap";
+            case SearchBackend::COVER_TREE: return "cover_tree";
+            case SearchBackend::FASTER_COVER_TREE: return "faster_cover_tree";
+            default: return "unknown";
+        }
+    }
+
+    std::shared_ptr<NeighbourSearchProvider> make_provider(SearchBackend backend) const {
+        switch (backend) {
+            case SearchBackend::AUTO:
+                return std::shared_ptr<NeighbourSearchProvider>(new BruteForceHeapProvider());
+            case SearchBackend::BRUTE_FORCE:
+                return std::shared_ptr<NeighbourSearchProvider>(new BruteForceProvider());
+            case SearchBackend::BRUTE_FORCE_FULL_SORT:
+                return std::shared_ptr<NeighbourSearchProvider>(new BruteForceFullSortProvider());
+            case SearchBackend::BRUTE_FORCE_HEAP:
+                return std::shared_ptr<NeighbourSearchProvider>(new BruteForceHeapProvider());
+            case SearchBackend::COVER_TREE:
+                return std::shared_ptr<NeighbourSearchProvider>(
+                    new TreeBackedProvider<data_structures::CoverTree<IndexedSample>>());
+            case SearchBackend::FASTER_COVER_TREE:
+                return std::shared_ptr<NeighbourSearchProvider>(
+                    new TreeBackedProvider<data_structures::FasterCoverTree<IndexedSample>>());
+            default:
+                return std::shared_ptr<NeighbourSearchProvider>(new BruteForceProvider());
+        }
+    }
+
+    SearchBackend resolve_backend(SearchBackend requested) const {
+        if (requested != SearchBackend::AUTO) {
+            return requested;
+        }
+
+        if (!fitted_) {
+            return SearchBackend::BRUTE_FORCE_HEAP;
+        }
+
+        const int samples = static_cast<int>(X_train_.rows());
+        const int features = static_cast<int>(X_train_.cols());
+
+        if (samples <= 64) {
+            return SearchBackend::BRUTE_FORCE_FULL_SORT;
+        }
+        if (samples >= 3000 && features <= 24) {
+            return SearchBackend::FASTER_COVER_TREE;
+        }
+        if (samples >= 1000 && features <= 12) {
+            return SearchBackend::COVER_TREE;
+        }
+        if (features >= 128) {
+            return SearchBackend::BRUTE_FORCE_HEAP;
+        }
+        return SearchBackend::BRUTE_FORCE;
+    }
+
+    void rebuild_provider_if_fitted() {
+        active_backend_ = resolve_backend(backend_);
+        provider_ = make_provider(active_backend_);
+        if (fitted_) {
+            provider_->fit(
+                X_train_,
+                [this](int lhs, int rhs) {
+                    return compute_distance_between_samples(lhs, rhs);
+                },
+                build_vector_distance());
+        }
+    }
+
+    typename NeighbourSearchProvider::VectorDistanceFn build_vector_distance() const {
+        const DistanceMetric metric = metric_;
+        const Scalar minkowski_p = minkowski_p_;
+
+        return [metric, minkowski_p](const VectorT& lhs, const VectorT& rhs) {
+            switch (metric) {
+                case DistanceMetric::EUCLIDEAN:
+                    return std::sqrt((lhs - rhs).squaredNorm());
+
+                case DistanceMetric::MANHATTAN:
+                    return (lhs - rhs).cwiseAbs().sum();
+
+                case DistanceMetric::MINKOWSKI: {
+                    Scalar sum = 0;
+                    for (int index = 0; index < lhs.size(); ++index) {
+                        sum += std::pow(std::abs(lhs(index) - rhs(index)), minkowski_p);
+                    }
+                    return std::pow(sum, static_cast<Scalar>(1.0) / minkowski_p);
+                }
+
+                case DistanceMetric::CHEBYSHEV:
+                    return (lhs - rhs).cwiseAbs().maxCoeff();
+
+                default:
+                    return std::sqrt((lhs - rhs).squaredNorm());
+            }
+        };
+    }
+
+    Scalar compute_distance_to_sample(const VectorT& query, int sample_index) const {
+        return compute_distance_generic(query.transpose(), X_train_.row(sample_index));
+    }
+
+    Scalar compute_distance_between_samples(int lhs, int rhs) const {
+        return compute_distance_between_rows(X_train_.row(lhs), X_train_.row(rhs));
     }
 };
 

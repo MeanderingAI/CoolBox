@@ -2,12 +2,41 @@
 #pragma once
 #include <complex>
 #include <type_traits>
+#include "backend_config_templated.h"
 #include "matrix_base.h"
 #include <Eigen/Dense>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
+// Conditionally include platform-specific backends
+#ifdef MYTRIX_ENABLE_METAL
+#include "metal_backend.h"
+#endif
+
+#ifdef MYTRIX_ENABLE_CUDA
+#include "cuda_backend.h"
+#endif
+
+#ifdef MYTRIX_ENABLE_OPENCL
+#include "opencl_backend.h"
+#endif
+
 namespace mytrix {
+
+namespace detail {
+
+inline mytrix::ComputeBackend resolve_operation_backend() {
+    const mytrix::ComputeBackend active = mytrix::BackendConfig::resolve_backend();
+    mytrix::BackendConfig::set_active_backend(active);
+    return active;
+}
+
+inline bool uses_cpu_fallback(mytrix::ComputeBackend backend) {
+    return backend == mytrix::ComputeBackend::CPU;
+}
+
+} // namespace detail
 
 class DenseVector;
 
@@ -167,19 +196,111 @@ inline mytrix::DenseMatrix mytrix::DenseVector::transpose() const {
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::multiply(const mytrix::DenseMatrix& other) const {
+    if (cols() != other.rows()) {
+        throw std::invalid_argument("multiply: matrix dimension mismatch");
+    }
+
+    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend();
     auto result = std::make_unique<mytrix::DenseMatrix>(rows(), other.cols());
+
+    // Template-based compile-time dispatch to platform-specific backends
+#ifdef MYTRIX_ENABLE_METAL
+    if (backend == mytrix::ComputeBackend::GPU_METAL) {
+        DenseMatrix temp = mytrix::metal::MetalBackend::multiply(*this, other);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+#ifdef MYTRIX_ENABLE_CUDA
+    if (backend == mytrix::ComputeBackend::GPU_CUDA) {
+        DenseMatrix temp = mytrix::cuda::CudaBackend::multiply(*this, other);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+#ifdef MYTRIX_ENABLE_OPENCL
+    if (backend == mytrix::ComputeBackend::GPU_OPENCL) {
+        DenseMatrix temp = mytrix::opencl::OpenCLBackend::multiply(*this, other);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+    // CPU fallback (default path, always available)
     result->data = data * other.data;
     return result;
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose() const {
+    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend();
     auto result = std::make_unique<mytrix::DenseMatrix>(cols(), rows());
+
+    // Template-based compile-time dispatch to platform-specific backends
+#ifdef MYTRIX_ENABLE_METAL
+    if (backend == mytrix::ComputeBackend::GPU_METAL) {
+        DenseMatrix temp = mytrix::metal::MetalBackend::transpose(*this);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+#ifdef MYTRIX_ENABLE_CUDA
+    if (backend == mytrix::ComputeBackend::GPU_CUDA) {
+        DenseMatrix temp = mytrix::cuda::CudaBackend::transpose(*this);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+#ifdef MYTRIX_ENABLE_OPENCL
+    if (backend == mytrix::ComputeBackend::GPU_OPENCL) {
+        DenseMatrix temp = mytrix::opencl::OpenCLBackend::transpose(*this);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+    // CPU fallback (default path, always available)
     result->data = data.transpose();
     return result;
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::add(const mytrix::DenseMatrix& other) const {
+    if (rows() != other.rows() || cols() != other.cols()) {
+        throw std::invalid_argument("add: matrix dimension mismatch");
+    }
+
+    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend();
     auto result = std::make_unique<mytrix::DenseMatrix>(rows(), cols());
+
+    // Template-based compile-time dispatch to platform-specific backends
+#ifdef MYTRIX_ENABLE_METAL
+    if (backend == mytrix::ComputeBackend::GPU_METAL) {
+        DenseMatrix temp = mytrix::metal::MetalBackend::add(*this, other);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+#ifdef MYTRIX_ENABLE_CUDA
+    if (backend == mytrix::ComputeBackend::GPU_CUDA) {
+        DenseMatrix temp = mytrix::cuda::CudaBackend::add(*this, other);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+#ifdef MYTRIX_ENABLE_OPENCL
+    if (backend == mytrix::ComputeBackend::GPU_OPENCL) {
+        DenseMatrix temp = mytrix::opencl::OpenCLBackend::add(*this, other);
+        result->data = temp.data;
+        return result;
+    }
+#endif
+
+    // CPU fallback (default path, always available)
     result->data = data + other.data;
     return result;
 }
