@@ -44,3 +44,7 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/email_center_api/CMakeLists.txt")
     add_subdirectory(email_center_api)
 endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_simulator/CMakeLists.txt")
+    add_subdirectory(battery_simulator)
+endif()

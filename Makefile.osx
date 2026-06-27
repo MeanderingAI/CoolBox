@@ -20,6 +20,7 @@ help:
 	@echo "make configure            Configure CMake for macOS (Unix Makefiles)"
 	@echo "make build                Build all targets"
 	@echo "make build_libraries      Build all libraries"
+	@echo "make build_apps           Build all apps"
 	@echo "make test                 Run all tests"
 	@echo "make install_system_deps  Install system dependencies via Homebrew"
 	@echo "make clean                Remove build artifacts"
@@ -34,6 +35,10 @@ build: configure
 
 build_libraries: configure
 	@echo "[Makefile.osx] Building all libraries..."
+	@cmake --build build
+
+build_apps: configure
+	@echo "[Makefile.osx] Building all apps..."
 	@cmake --build build
 
 # Run all tests

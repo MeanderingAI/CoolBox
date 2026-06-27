@@ -16,6 +16,7 @@ target_include_directories(algorithm_headers INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/bfs
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/dfs
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/dijkstra
+    ${CMAKE_CURRENT_SOURCE_DIR}/graphs/tsp
 )
 
 target_compile_features(algorithm_headers INTERFACE cxx_std_17)
