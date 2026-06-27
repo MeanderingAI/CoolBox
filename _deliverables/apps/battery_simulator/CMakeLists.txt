@@ -5,10 +5,13 @@ add_executable(battery_simulator
     cnc/main.cpp
 )
 
-set(sim_group_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../libraries/groups/sim_group")
-find_package(sim_group REQUIRED)
-
 target_link_libraries(battery_simulator PRIVATE
-    CHEMISTRY
-    ELECTRONICS
+    battery
+    cli_tools
 )
+
+target_include_directories(battery_simulator PRIVATE
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/sim_group/ELECTRONICS/battery/include
+)
+
+target_compile_features(battery_simulator PRIVATE cxx_std_17)

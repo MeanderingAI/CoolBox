@@ -369,8 +369,7 @@ class AppLauncher extends HTMLElement {
         actions.className = 'ac-target-actions';
         actions.append(buildBtn, launchBtn, status);
         row.append(name, actions);
-
-        row._console = console_;
+        row.appendChild(console_);
         return row;
     }
 
