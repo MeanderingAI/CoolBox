@@ -2,6 +2,7 @@
 #define COOLBOX_APP_ASSETS_AUDIO_MIXER_HPP
 
 #include <algorithm>
+#include <memory>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
