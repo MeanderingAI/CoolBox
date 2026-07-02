@@ -1,30 +1,47 @@
 
+# DD
 template<typename S>
-using ucla = std::vector<S>;
+using ucla = v<S>;
 
 template<typename S>
-using ucla2 = std::vector<S>;
+using ucla2 = v<S>;
 
 template<typename S>
-using ucr = std::vector<S>;
+using ucr = v<S>;
 
 template<typename S>
-using ucr2 = std::vector<S>;
+using ucr2 = v<S>;
 
 template<typename S>
-using ucsb = std::vector<S>;
+using ucsb = v<S>;
 
 template<typename S>
-using ucsb2 = std::vector<S>;
+using ucsb2 = v<S>;
 
 template<typename S>
-using uci = std::vector<S>;
+using uci = v<S>;
 
 template<typename S>
-using uci2 = std::vector<S>;
+using uci2 = v<S>;
 
 template<typename S>
-using ucd = std::vector<S>;
+using ucd = v<S>;
 
 template<typename S>
-using ucd2 = std::vector<S>;
+using ucd2 = v<S>;
+
+template<typename S>
+using ucm = v<S>;
+
+template<typename S>
+using ucm2 = v<S>;
+
+template<typename S>
+using ucsd = v<S>;
+
+template<typename S>
+using ucsd2 = v<S>;
+# DD
+
+template<typename F>
+using UNI = ucsd<F>;

@@ -1,36 +1,36 @@
 ## DD
 template<typename LJ>
-using lj = std::vector<LJ>;
+using lj = v<LJ>;
 
 template<typename LJ>
-using lj2 = std::vector<LJ>;
+using lj2 = v<LJ>;
 
 template<typename M>
-using sv = std::vector<M>;
+using sv = v<M>;
 
 template<typename M>
-using la = std::vector<M>;
+using la = v<M>;
 
 template<typename M>
-using chicago = std::vector<M>;
+using chicago = v<M>;
 
 template<typename M>
-using nyc = std::vector<M>;
+using nyc = v<M>;
 
 template<typename M>
-using boston = std::vector<M>;
+using boston = v<M>;
 
 template<typename M>
-using sf = std::vector<M>;
+using sf = v<M>;
 
 template<typename M>
-using la2 = std::vector<M>;
+using la2 = v<M>;
 
 template<typename M>
-using chicago2 = std::vector<M>;
+using chicago2 = v<M>;
 
 template<typename M>
-using nyc2 = std::vector<M>;
+using nyc2 = v<M>;
 
 template<typename M>
 using boston2 = std::vector<M>;

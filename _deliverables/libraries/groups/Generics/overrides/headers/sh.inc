@@ -1,18 +1,18 @@
 ## DD
 template<typename BW>
-using Shop = std::vector<BW>;
+using Shop = v<BW>;
 
 template<typename BW>
-using Walk = std::vector<BW>;
+using Walk = v<BW>;
 
 template<typename BW>
-using Stair = std::vector<BW>;
+using Stair = v<BW>;
 
 template<typename BW>
-using Garage = std::vector<BW>;
+using Garage = v<BW>;
 
 template<typename BW>
-using BB = std::vector<BW>;
+using BB = v<BW>;
 ## DD
 
 template<typename F>
