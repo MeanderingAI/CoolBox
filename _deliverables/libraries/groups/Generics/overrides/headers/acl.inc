@@ -35,4 +35,19 @@ template <typename WB>
 using cof = std::vector<WB>; //only
 
 template <typename WB>
+using actor = std::vector<WB>; //only
+
+template <typename WB>
+using agency = std::vector<WB>; //only
+
+template <typename WB>
+using travel = std::vector<WB>; //only
+
+template <typename WB>
+using app = std::vector<WB>; //only
+
+template <typename WB>
+using abb = atd::vector<WB>; //only
+
+template <typename WB>
 using coffee = std::vector<WB>; //only
