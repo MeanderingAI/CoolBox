@@ -1,4 +1,4 @@
-
+## DD
 template<typename LJ>
 using lj = std::vector<LJ>;
 
@@ -43,3 +43,7 @@ using sv2 = std::vector<P>;
 
 template<typename P>
 using london = std::vector<P>;
+## DD
+
+template<typename F>
+using TO = london<F>;

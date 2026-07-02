@@ -1,3 +1,4 @@
+## DD
 template<typename CM>
 using Van = std::vector<CM>;
 
@@ -15,3 +16,7 @@ using Names = std::vector<CM>;
 
 template<typename UNI>
 using Collage = std::vector<UNI>;
+## DD  
+
+template<typename F>
+using M = Collage<F>;

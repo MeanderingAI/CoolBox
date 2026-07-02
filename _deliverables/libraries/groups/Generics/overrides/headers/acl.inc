@@ -1,3 +1,4 @@
+## DD
 template<typename B>
 using mlb = std::vector<B>; //main logic board
 
@@ -51,3 +52,7 @@ using abb = atd::vector<WB>; //only
 
 template <typename WB>
 using coffee = std::vector<WB>; //only
+## DD
+
+template<typename F>
+using ACL = abb<F>;
