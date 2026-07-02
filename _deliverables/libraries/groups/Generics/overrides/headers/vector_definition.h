@@ -2,6 +2,12 @@
 
 #include <vector>
 
+template<typename LJ>
+using lj = std::vector<LJ>;
+
+template<typename LJ>
+using lj2 = std::vector<LJ>;
+
 template<typename M>
 using sv = std::vector<M>;
 
