@@ -1,0 +1,12 @@
+# Run CMake configure/build for macOS
+steps:
+name: 'run-cmake-macos'
+description: 'Composite action for run-cmake-macos'
+runs:
+  using: 'composite'
+  steps:
+  - name: Configure CMake (macOS)
+    if: runner.os == 'macOS'
+    run: |
+      cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+      cmake --build build --parallel

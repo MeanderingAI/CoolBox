@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taylor Series & Signal Processing · Analysis Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a; --border: #2e3348;
+      --text: #e2e8f0; --muted: #64748b; --brand: #3b82f6; --brand2: #10b981;
+      --brand-pale: #1e3a5f; --warn: #f59e0b; --code-bg: #161b2e;
+      --accent-red: #ef4444; --accent-purple: #a855f7;
+    }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      height: 44px;
+      flex-shrink: 0;
+    }
+    .tb-icon { font-size: 1.2rem; }
+    .tb-title { font-size: 0.92rem; font-weight: 800; letter-spacing: -0.02em; }
+    .tb-sub { font-size: 0.7rem; color: var(--muted); }
+    .tb-badge {
+      margin-left: auto;
+      background: #1a2a4a;
+      color: var(--brand);
+      border: 1px solid var(--brand);
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 0.12em 0.6em;
+      letter-spacing: 0.07em;
+    }
+    .main {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    /* ── Left Panel: Controls ───────────────────────────────────── */
+    .control-panel {
+      width: 300px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .ctrl-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .ctrl-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border: none;
+      background: var(--surface2);
+      border-radius: 2px;
+      accent-color: var(--brand);
+      cursor: pointer;
+      flex: 1;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 0.3rem 0.5rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.7rem;
+    }
+    .value-display {
+      font-size: 0.7rem;
+      color: var(--brand);
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      min-width: 45px;
+      text-align: right;
+    }
+    .btn-group {
+      display: flex;
+      gap: 0.4rem;
+    }
+    button {
+      flex: 1;
+      padding: 0.5rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 700;
+      transition: all 0.1s;
+    }
+    button:hover {
+      background: var(--brand-pale);
+      border-color: var(--brand);
+      color: var(--brand);
+    }
+    button.active {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: white;
+    }
+    /* ── Right Panel: Visualization ────────────────────────────── */
+    .viz-panel {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .viz-tabs {
+      display: flex;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .viz-tab {
+      flex: 1;
+      padding: 0.6rem;
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      transition: all 0.1s;
+    }
+    .viz-tab.active {
+      color: var(--brand);
+      border-bottom-color: var(--brand);
+    }
+    .viz-container {
+      flex: 1 1 0%;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      background: #0a0d14;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      aspect-ratio: unset;
+    }
+    /* ── Legend & Info ─────────────────────────────────────────── */
+    .info-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem;
+      font-size: 0.7rem;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      color: var(--muted);
+      line-height: 1.4;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .info-title {
+      color: var(--brand);
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.65rem;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="tb-icon">📊</span>
+    <div>
+      <div class="tb-title">Taylor Series & Signal Processing</div>
+      <div class="tb-sub">Interactive Analysis with Fourier Transform</div>
+    </div>
+    <div class="tb-badge">Emscripten Demo</div>
+  </div>
+
+  <div class="main">
+    <!-- Left Control Panel -->
+    <div class="control-panel">
+      <!-- Function Selection -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Function</div>
+        <div class="btn-group">
+          <button id="btnSin" class="active">sin(x)</button>
+          <button id="btnCos">cos(x)</button>
+          <button id="btnExp">e^x</button>
+        </div>
+      </div>
+
+      <!-- Taylor Series Order -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Taylor Order</div>
+        <div class="ctrl-row">
+          <input type="range" id="taylorOrder" min="1" max="20" value="5" />
+          <input type="number" id="taylorOrderValue" min="1" max="20" value="5" />
+        </div>
+      </div>
+
+      <!-- X-axis Range -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">X Range</div>
+        <div class="ctrl-row">
+          <input type="range" id="xRange" min="1" max="10" value="5" />
+          <span class="value-display" id="xRangeValue">±5.0</span>
+        </div>
+      </div>
+
+      <!-- Sampling Rate -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Sample Rate</div>
+        <div class="ctrl-row">
+          <input type="range" id="sampleRate" min="10" max="200" value="100" />
+          <span class="value-display" id="sampleRateValue">100</span>
+        </div>
+      </div>
+
+      <!-- Window Type -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">FFT Window</div>
+        <div class="btn-group">
+          <button id="btnRect">Rect</button>
+          <button id="btnHann" class="active">Hann</button>
+          <button id="btnHamm">Hamm</button>
+        </div>
+      </div>
+
+      <!-- Display Options -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Display</div>
+        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.7rem;">
+            <input type="checkbox" id="showExact" checked />
+            Exact Function
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.7rem;">
+            <input type="checkbox" id="showTaylor" checked />
+            Taylor Approx.
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.7rem;">
+            <input type="checkbox" id="showError" checked />
+            Error Band
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="ctrl-section" style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <button id="btnReset" style="width: 100%; padding: 0.6rem;">Reset All</button>
+        <button id="btnExport" style="width: 100%; padding: 0.6rem;">Export Data</button>
+        <button id="btnExportPng" style="width: 100%; padding: 0.6rem;">Export PNG</button>
+      </div>
+
+      <!-- Info Box -->
+      <div class="info-box">
+        <div class="info-title">Legend</div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #3b82f6;"></div>
+            <span>Exact function</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #10b981;"></div>
+            <span>Taylor series</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #a855f7;"></div>
+            <span>Approximation error</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #f59e0b;"></div>
+            <span>FFT magnitude</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Visualization Panel -->
+    <div class="viz-panel">
+      <div class="viz-tabs">
+        <div class="viz-tab active" data-tab="time">Time Domain</div>
+        <div class="viz-tab" data-tab="freq">Frequency Domain</div>
+        <div class="viz-tab" data-tab="error">Error Analysis</div>
+      </div>
+      <div class="viz-container">
+        <canvas id="vizCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced equation formatting for better aesthetics -->
+  <div id="equationDisplay" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); color: white; padding: 10px; border-radius: 8px; font-family: Cascadia Code, Consolas, monospace; font-size: 0.9rem; z-index: 1000;">
+    Taylor Series: <span style="color: var(--brand);">f(x) = Σ (aₙ xⁿ)</span>
+  </div>
+
+  <script type="module">
+    // ════════════════════════════════════════════════════════════════
+    // Taylor Series & Signal Processing Demo
+    // Demonstrates Taylor series approximation with FFT analysis
+    // ════════════════════════════════════════════════════════════════
+
+    class TaylorFourierDemo {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.setupResizeObserver();
+
+        // State
+        this.function = 'sin'; // 'sin', 'cos', 'exp'
+        this.taylorOrder = 5;
+        this.xRange = 5;
+        this.sampleRate = 100;
+        this.windowType = 'hann'; // 'rect', 'hann', 'hamm'
+        this.currentTab = 'time';
+
+        // Display flags
+        this.showExact = true;
+        this.showTaylor = true;
+        this.showError = true;
+
+        // Data
+        this.data = {
+          x: [],
+          exact: [],
+          taylor: [],
+          error: [],
+          fftMagnitude: [],
+          fftPhase: []
+        };
+
+        this.updateData();
+      }
+
+      setupResizeObserver() {
+        const resizeCanvas = () => {
+          const rect = this.canvas.parentElement.getBoundingClientRect();
+          this.canvas.width = rect.width;
+          this.canvas.height = rect.height;
+          this.render();
+        };
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+      }
+
+      // Taylor series implementations
+      taylorSin(x, order) {
+        let result = 0;
+        for (let n = 0; n < order; n++) {
+          const sign = n % 2 === 0 ? 1 : -1;
+          const coeff = sign / this.factorial(2 * n + 1);
+          result += coeff * Math.pow(x, 2 * n + 1);
+        }
+        return result;
+      }
+
+      taylorCos(x, order) {
+        let result = 0;
+        for (let n = 0; n < order; n++) {
+          const sign = n % 2 === 0 ? 1 : -1;
+          const coeff = sign / this.factorial(2 * n);
+          result += coeff * Math.pow(x, 2 * n);
+        }
+        return result;
+      }
+
+      taylorExp(x, order) {
+        let result = 0;
+        for (let n = 0; n < order; n++) {
+          result += Math.pow(x, n) / this.factorial(n);
+        }
+        return result;
+      }
+
+      factorial(n) {
+        if (n <= 1) return 1;
+        let result = 1;
+        for (let i = 2; i <= n; i++) result *= i;
+        return result;
+      }
+
+      getExactValue(x) {
+        switch (this.function) {
+          case 'sin': return Math.sin(x);
+          case 'cos': return Math.cos(x);
+          case 'exp': return Math.exp(Math.min(x, 10)); // Clamp exp to prevent overflow
+          default: return 0;
+        }
+      }
+
+      getTaylorValue(x) {
+        switch (this.function) {
+          case 'sin': return this.taylorSin(x, this.taylorOrder);
+          case 'cos': return this.taylorCos(x, this.taylorOrder);
+          case 'exp': return this.taylorExp(x, this.taylorOrder);
+          default: return 0;
+        }
+      }
+
+      getWindowCoeff(n, N) {
+        const normalized = n / (N - 1);
+        switch (this.windowType) {
+          case 'rect':
+            return 1.0;
+          case 'hann':
+            return 0.5 * (1 - Math.cos(2 * Math.PI * normalized));
+          case 'hamm':
+            return 0.54 - 0.46 * Math.cos(2 * Math.PI * normalized);
+          default:
+            return 1.0;
+        }
+      }
+
+      computeFFT(signal) {
+        // Simple DFT (not FFT, but works for demo purposes)
+        const N = signal.length;
+        const magnitude = [];
+        const phase = [];
+
+        for (let k = 0; k < N / 2; k++) {
+          let real = 0, imag = 0;
+          for (let n = 0; n < N; n++) {
+            const angle = (-2 * Math.PI * k * n) / N;
+            real += signal[n] * Math.cos(angle);
+            imag += signal[n] * Math.sin(angle);
+          }
+          magnitude[k] = Math.sqrt(real * real + imag * imag) / N;
+          phase[k] = Math.atan2(imag, real);
+        }
+        return { magnitude, phase };
+      }
+
+      updateData() {
+        const numSamples = Math.max(32, Math.floor(this.sampleRate));
+        this.data = {
+          x: [],
+          exact: [],
+          taylor: [],
+          error: [],
+          fftMagnitude: [],
+          fftPhase: []
+        };
+
+        // Generate sample data
+        for (let i = 0; i < numSamples; i++) {
+          const x = (-this.xRange + (2 * this.xRange * i) / (numSamples - 1));
+          const exact = this.getExactValue(x);
+          const taylor = this.getTaylorValue(x);
+          const error = Math.abs(exact - taylor);
+
+          this.data.x.push(x);
+          this.data.exact.push(exact);
+          this.data.taylor.push(taylor);
+          this.data.error.push(error);
+        }
+
+        // Apply windowing to exact signal for FFT
+        const windowedSignal = this.data.exact.map((val, idx) => {
+          return val * this.getWindowCoeff(idx, this.data.exact.length);
+        });
+
+        // Compute FFT
+        const fft = this.computeFFT(windowedSignal);
+        this.data.fftMagnitude = fft.magnitude;
+        this.data.fftPhase = fft.phase;
+      }
+
+      render() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        this.ctx.fillStyle = '#0a0d14';
+        this.ctx.fillRect(0, 0, w, h);
+
+        if (this.currentTab === 'time') {
+          this.renderTimeDomain();
+        } else if (this.currentTab === 'freq') {
+          this.renderFrequencyDomain();
+        } else if (this.currentTab === 'error') {
+          this.renderErrorAnalysis();
+        }
+      }
+
+      renderTimeDomain() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const padding = 40;
+        const plotW = w - 2 * padding;
+        const plotH = h - 2 * padding;
+
+        // Draw axes
+        this.ctx.strokeStyle = '#2e3348';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, h - padding);
+        this.ctx.lineTo(w - padding, h - padding);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, padding);
+        this.ctx.lineTo(padding, h - padding);
+        this.ctx.stroke();
+
+        // Labels
+        this.ctx.fillStyle = '#64748b';
+        this.ctx.font = '11px Cascadia Code';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('x', w - 20, h - 20);
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('y', padding - 20, padding);
+
+        // Draw grid
+        this.ctx.strokeStyle = '#1a2a3a';
+        this.ctx.lineWidth = 0.5;
+        for (let i = -5; i <= 5; i++) {
+          const px = padding + ((i + this.xRange) / (2 * this.xRange)) * plotW;
+          this.ctx.beginPath();
+          this.ctx.moveTo(px, h - padding - 3);
+          this.ctx.lineTo(px, h - padding + 3);
+          this.ctx.stroke();
+        }
+
+        // Find min/max for y-axis scaling
+        let minY = Infinity, maxY = -Infinity;
+        if (this.showExact) {
+          minY = Math.min(minY, ...this.data.exact);
+          maxY = Math.max(maxY, ...this.data.exact);
+        }
+        if (this.showTaylor) {
+          minY = Math.min(minY, ...this.data.taylor);
+          maxY = Math.max(maxY, ...this.data.taylor);
+        }
+        const yPadding = Math.max(1, (maxY - minY) * 0.1);
+        minY -= yPadding;
+        maxY += yPadding;
+
+        // Scale to plot
+        const scaleX = (x) => padding + ((x + this.xRange) / (2 * this.xRange)) * plotW;
+        const scaleY = (y) => h - padding - ((y - minY) / (maxY - minY)) * plotH;
+
+        // Draw exact function
+        if (this.showExact) {
+          this.ctx.strokeStyle = '#3b82f6';
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          for (let i = 0; i < this.data.x.length; i++) {
+            const px = scaleX(this.data.x[i]);
+            const py = scaleY(this.data.exact[i]);
+            if (i === 0) this.ctx.moveTo(px, py);
+            else this.ctx.lineTo(px, py);
+          }
+          this.ctx.stroke();
+        }
+
+        // Draw Taylor approximation
+        if (this.showTaylor) {
+          this.ctx.strokeStyle = '#10b981';
+          this.ctx.lineWidth = 2;
+          this.ctx.setLineDash([5, 5]);
+          this.ctx.beginPath();
+          for (let i = 0; i < this.data.x.length; i++) {
+            const px = scaleX(this.data.x[i]);
+            const py = scaleY(this.data.taylor[i]);
+            if (i === 0) this.ctx.moveTo(px, py);
+            else this.ctx.lineTo(px, py);
+          }
+          this.ctx.stroke();
+          this.ctx.setLineDash([]);
+        }
+
+        // Draw error band
+        if (this.showError) {
+          this.ctx.fillStyle = 'rgba(168, 85, 247, 0.15)';
+          this.ctx.beginPath();
+          for (let i = 0; i < this.data.x.length; i++) {
+            const px = scaleX(this.data.x[i]);
+            const py = scaleY(this.data.exact[i]);
+            const errorBand = (this.data.error[i] / (maxY - minY)) * plotH;
+            if (i === 0) {
+              this.ctx.moveTo(px, py - errorBand);
+              this.ctx.lineTo(px, py + errorBand);
+            } else {
+              this.ctx.lineTo(px, py + errorBand);
+            }
+          }
+          for (let i = this.data.x.length - 1; i >= 0; i--) {
+            const px = scaleX(this.data.x[i]);
+            const py = scaleY(this.data.exact[i]);
+            const errorBand = (this.data.error[i] / (maxY - minY)) * plotH;
+            this.ctx.lineTo(px, py - errorBand);
+          }
+          this.ctx.closePath();
+          this.ctx.fill();
+        }
+      }
+
+      renderFrequencyDomain() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const padding = 40;
+        const plotW = w - 2 * padding;
+        const plotH = h - 2 * padding;
+
+        // Draw axes
+        this.ctx.strokeStyle = '#2e3348';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, h - padding);
+        this.ctx.lineTo(w - padding, h - padding);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, padding);
+        this.ctx.lineTo(padding, h - padding);
+        this.ctx.stroke();
+
+        // Labels
+        this.ctx.fillStyle = '#64748b';
+        this.ctx.font = '11px Cascadia Code';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Frequency (bin)', w - 20, h - 20);
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('Magnitude', padding - 50, padding);
+
+        const maxMag = Math.max(...this.data.fftMagnitude.slice(0, Math.floor(this.data.fftMagnitude.length / 4)));
+        const binWidth = plotW / this.data.fftMagnitude.length;
+
+        this.ctx.strokeStyle = '#f59e0b';
+        this.ctx.lineWidth = 2;
+        this.ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+
+        for (let i = 0; i < Math.min(this.data.fftMagnitude.length, 32); i++) {
+          const px = padding + i * binWidth;
+          const mag = this.data.fftMagnitude[i];
+          const barHeight = (mag / maxMag) * plotH;
+          const py = h - padding - barHeight;
+
+          this.ctx.fillRect(px, py, binWidth - 1, barHeight);
+          this.ctx.strokeRect(px, py, binWidth - 1, barHeight);
+        }
+      }
+
+      renderErrorAnalysis() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const padding = 40;
+        const plotW = w - 2 * padding;
+        const plotH = h - 2 * padding;
+
+        // Draw axes
+        this.ctx.strokeStyle = '#2e3348';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, h - padding);
+        this.ctx.lineTo(w - padding, h - padding);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(padding, padding);
+        this.ctx.lineTo(padding, h - padding);
+        this.ctx.stroke();
+
+        const scaleX = (x) => padding + ((x + this.xRange) / (2 * this.xRange)) * plotW;
+        const maxError = Math.max(...this.data.error, 0.001);
+        const scaleY = (y) => h - padding - (y / maxError) * plotH;
+
+        // Draw error
+        this.ctx.strokeStyle = '#a855f7';
+        this.ctx.lineWidth = 2;
+        this.ctx.fillStyle = 'rgba(168, 85, 247, 0.2)';
+        this.ctx.beginPath();
+        for (let i = 0; i < this.data.x.length; i++) {
+          const px = scaleX(this.data.x[i]);
+          const py = scaleY(this.data.error[i]);
+          if (i === 0) this.ctx.moveTo(px, py);
+          else this.ctx.lineTo(px, py);
+        }
+        this.ctx.stroke();
+
+        // Fill under curve
+        this.ctx.lineTo(scaleX(this.data.x[this.data.x.length - 1]), h - padding);
+        this.ctx.lineTo(scaleX(this.data.x[0]), h - padding);
+        this.ctx.closePath();
+        this.ctx.fill();
+      }
+
+      setFunction(fn) {
+        this.function = fn;
+        this.updateData();
+        this.render();
+      }
+
+      setTaylorOrder(order) {
+        this.taylorOrder = Math.max(1, Math.min(20, order));
+        this.updateData();
+        this.render();
+      }
+
+      setXRange(range) {
+        this.xRange = Math.max(0.5, Math.min(10, range));
+        this.updateData();
+        this.render();
+      }
+
+      setSampleRate(rate) {
+        this.sampleRate = rate;
+        this.updateData();
+        this.render();
+      }
+
+      setWindowType(type) {
+        this.windowType = type;
+        this.updateData();
+        this.render();
+      }
+
+      setCurrentTab(tab) {
+        this.currentTab = tab;
+        this.render();
+      }
+
+      resetAll() {
+        this.function = 'sin';
+        this.taylorOrder = 5;
+        this.xRange = 5;
+        this.sampleRate = 100;
+        this.windowType = 'hann';
+        this.showExact = true;
+        this.showTaylor = true;
+        this.showError = true;
+        this.updateData();
+        this.render();
+      }
+
+      exportData() {
+        const csv = `x,exact,taylor,error\n${this.data.x
+          .map(
+            (x, i) =>
+              `${x.toFixed(4)},${this.data.exact[i].toFixed(6)},${this.data.taylor[i].toFixed(6)},${this.data.error[i].toFixed(6)}`
+          )
+          .join('\n')}`;
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `taylor_series_${this.function}_${this.taylorOrder}.csv`;
+        a.click();
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Initialize and bind controls
+    // ════════════════════════════════════════════════════════════════
+
+    const demo = new TaylorFourierDemo('vizCanvas');
+
+    // Function selection
+    document.getElementById('btnSin').addEventListener('click', () => {
+      document.querySelectorAll('.control-panel .btn-group button')[0].classList.remove('active');
+      document.querySelectorAll('.control-panel .btn-group button')[1].classList.remove('active');
+      document.querySelectorAll('.control-panel .btn-group button')[2].classList.remove('active');
+      event.target.classList.add('active');
+      demo.setFunction('sin');
+    });
+
+    document.getElementById('btnCos').addEventListener('click', () => {
+      document.querySelectorAll('.control-panel .btn-group button')[0].classList.remove('active');
+      document.querySelectorAll('.control-panel .btn-group button')[1].classList.remove('active');
+      document.querySelectorAll('.control-panel .btn-group button')[2].classList.remove('active');
+      event.target.classList.add('active');
+      demo.setFunction('cos');
+    });
+
+    document.getElementById('btnExp').addEventListener('click', () => {
+      document.querySelectorAll('.control-panel .btn-group button')[0].classList.remove('active');
+      document.querySelectorAll('.control-panel .btn-group button')[1].classList.remove('active');
+      document.querySelectorAll('.control-panel .btn-group button')[2].classList.remove('active');
+      event.target.classList.add('active');
+      demo.setFunction('exp');
+    });
+
+    // Taylor order
+    document.getElementById('taylorOrder').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById('taylorOrderValue').value = val;
+      demo.setTaylorOrder(val);
+    });
+    document.getElementById('taylorOrderValue').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value) || 1;
+      document.getElementById('taylorOrder').value = val;
+      demo.setTaylorOrder(val);
+    });
+
+    // X range
+    document.getElementById('xRange').addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      document.getElementById('xRangeValue').textContent = `±${val.toFixed(1)}`;
+      demo.setXRange(val);
+    });
+
+    // Sample rate
+    document.getElementById('sampleRate').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById('sampleRateValue').textContent = val;
+      demo.setSampleRate(val);
+    });
+
+    // Window type
+    document.getElementById('btnRect').addEventListener('click', (e) => {
+      document.querySelectorAll('.ctrl-section:nth-child(5) .btn-group button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      demo.setWindowType('rect');
+    });
+
+    document.getElementById('btnHann').addEventListener('click', (e) => {
+      document.querySelectorAll('.ctrl-section:nth-child(5) .btn-group button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      demo.setWindowType('hann');
+    });
+
+    document.getElementById('btnHamm').addEventListener('click', (e) => {
+      document.querySelectorAll('.ctrl-section:nth-child(5) .btn-group button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      demo.setWindowType('hamm');
+    });
+
+    // Display options
+    document.getElementById('showExact').addEventListener('change', (e) => {
+      demo.showExact = e.target.checked;
+      demo.render();
+    });
+
+    document.getElementById('showTaylor').addEventListener('change', (e) => {
+      demo.showTaylor = e.target.checked;
+      demo.render();
+    });
+
+    document.getElementById('showError').addEventListener('change', (e) => {
+      demo.showError = e.target.checked;
+      demo.render();
+    });
+
+    // Tabs
+    document.querySelectorAll('.viz-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        demo.setCurrentTab(e.target.dataset.tab);
+      });
+    });
+
+    // Action buttons
+    document.getElementById('btnReset').addEventListener('click', () => {
+      demo.resetAll();
+      // Reset UI
+      document.getElementById('taylorOrder').value = 5;
+      document.getElementById('taylorOrderValue').value = 5;
+      document.getElementById('xRange').value = 5;
+      document.getElementById('xRangeValue').textContent = '±5.0';
+      document.getElementById('sampleRate').value = 100;
+      document.getElementById('sampleRateValue').textContent = '100';
+      document.getElementById('showExact').checked = true;
+      document.getElementById('showTaylor').checked = true;
+      document.getElementById('showError').checked = true;
+    });
+
+    document.getElementById('btnExport').addEventListener('click', () => {
+      demo.exportData();
+    });
+
+    document.getElementById('btnExportPng').addEventListener('click', () => {
+      // Export the canvas as PNG
+      const link = document.createElement('a');
+      link.download = `taylor_series_${demo.function}_${demo.taylorOrder}.png`;
+      link.href = demo.canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>

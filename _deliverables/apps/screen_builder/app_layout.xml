@@ -1,0 +1,38 @@
+<screen title="Screen Builder Layout" width="1240" height="780" platform="windows">
+  <vertical>
+    <layout label="Screen Builder Main">
+      <menu_bar>
+        <menu title="File">
+          <item label="Open Editor" shortcut="Ctrl+O" />
+          <item label="Reload" shortcut="Ctrl+R" />
+          <item label="Save" shortcut="Ctrl+S" />
+          <item separator="true" />
+          <item label="Exit" shortcut="Alt+F4" />
+        </menu>
+        <menu title="Preview">
+          <item label="Open Preview" shortcut="Ctrl+P" />
+          <item label="Scroll Up" />
+          <item label="Scroll Down" />
+        </menu>
+      </menu_bar>
+
+      <toolbar actions="Open Editor,Reload,Save,Up,Down" />
+
+      <text text="Screen builder should render a split view: XML examples on left, preview on right." width="88" />
+    </layout>
+
+    <layout label="Left XML Examples Panel">
+      <dropdown title="Example Selector">
+        <item label="basic_toolbar.xml" />
+        <item label="inspector_and_ai.xml" />
+        <item label="split_layout.xml" />
+      </dropdown>
+      <text text="Left half: show XML source text for selected example file." width="88" />
+    </layout>
+
+    <layout label="Right Preview Panel">
+      <toolbar actions="Select,Rectangle,Line,Arc" />
+      <text text="Right half: show resulting screen preview with active toolbar context." width="88" />
+    </layout>
+  </vertical>
+</screen>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distributed Setup · Middleware</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand:  #2563eb; --brand-d: #1d4ed8;
+      --text:   #1e293b; --muted:   #64748b;
+      --border: #e2e8f0; --surface: #f8fafc;
+      --green:  #16a34a; --red:     #dc2626; --amber: #d97706;
+    }
+    body { font-family: system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--surface); color:var(--text); min-height:100vh; }
+
+    nav { background:#0f172a; display:flex; align-items:center; padding:0 1.5rem; height:54px; gap:1rem; }
+    .nav-brand { font-weight:800; color:#f8fafc; font-size:.95rem; }
+    .nav-brand span { color:#60a5fa; }
+    .nav-sep { color:#334155; }
+    .nav-title { font-size:.85rem; color:#94a3b8; }
+    .mock-badge { background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:.65rem; font-weight:700; padding:.1em .45em; border-radius:999px; letter-spacing:.06em; text-transform:uppercase; }
+
+    .page { max-width:1100px; margin:0 auto; padding:1.75rem 1.5rem; }
+
+    /* ── Page header ── */
+    .page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:.75rem; }
+    .page-title { font-size:1.35rem; font-weight:800; letter-spacing:-.02em; }
+    .page-sub { font-size:.82rem; color:var(--muted); margin-top:.15rem; }
+    .btn { padding:.4em .9em; font-size:.8rem; font-weight:600; font-family:inherit; border-radius:6px; cursor:pointer; border:1.5px solid transparent; transition:background .12s; }
+    .btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    .btn-primary:hover { background:var(--brand-d); }
+    .btn-ghost { background:#fff; border-color:var(--border); color:var(--text); }
+    .btn-ghost:hover { background:var(--surface); }
+    .btn-danger { background:#fff; border-color:#fca5a5; color:var(--red); }
+    .btn-danger:hover { background:#fee2e2; }
+    .btn-success { background:#15803d; color:#fff; border-color:#15803d; }
+    .btn-success:hover { background:#166534; }
+
+    /* ── Status strip ── */
+    .status-strip { display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:1rem; margin-bottom:1.75rem; }
+    .sc { background:#fff; border:1px solid var(--border); border-radius:10px; padding:.9rem 1rem; }
+    .sc-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+    .sc-val { font-size:1.45rem; font-weight:900; color:var(--text); margin-top:.1rem; letter-spacing:-.02em; }
+    .sc.ok { border-color:#bbf7d0; background:#f0fdf4; }
+    .sc.ok .sc-val { color:var(--green); }
+    .sc.warn { border-color:#fde68a; background:#fefce8; }
+    .sc.warn .sc-val { color:var(--amber); }
+
+    /* ── Two-column layout ── */
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem; }
+
+    /* ── App cards ── */
+    .app-card { background:#fff; border:1.5px solid var(--border); border-radius:10px; overflow:hidden; }
+    .app-card.running { border-color:#86efac; }
+    .app-card.error   { border-color:#fca5a5; }
+
+    .ac-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.1rem .75rem; }
+    .ac-icon { font-size:1.4rem; }
+    .ac-info { flex:1; }
+    .ac-name { font-weight:700; font-size:.95rem; }
+    .ac-type { font-size:.73rem; color:var(--muted); margin-top:.1rem; }
+    .badge { display:inline-block; padding:.18em .55em; border-radius:999px; font-size:.68rem; font-weight:700; }
+    .badge-running { background:#dcfce7; color:var(--green); }
+    .badge-stopped { background:#f1f5f9; color:var(--muted); }
+    .badge-error   { background:#fee2e2; color:var(--red); }
+    .badge-starting { background:#fef3c7; color:var(--amber); }
+
+    .ac-body { padding:0 1.1rem .75rem; display:flex; flex-direction:column; gap:.6rem; }
+    .ac-config { background:var(--surface); border:1px solid var(--border); border-radius:7px; padding:.7rem; }
+    .ac-config-title { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:.5rem; }
+
+    label { display:block; font-size:.76rem; font-weight:700; color:var(--text); margin-bottom:.25rem; margin-top:.5rem; }
+    label:first-of-type { margin-top:0; }
+    input[type=text], input[type=number], select {
+      width:100%; padding:.4em .65em; font-size:.82rem; font-family:inherit;
+      border:1.5px solid var(--border); border-radius:5px; background:#fff;
+      color:var(--text); outline:none; transition:border-color .15s;
+    }
+    input:focus, select:focus { border-color:var(--brand); }
+
+    .ac-actions { display:flex; gap:.4rem; padding:.75rem 1.1rem; border-top:1px solid var(--border); background:var(--surface); flex-wrap:wrap; }
+
+    /* ── Metrics row ── */
+    .metrics-row { display:flex; gap:.75rem; flex-wrap:wrap; }
+    .metric { flex:1; min-width:80px; }
+    .metric-label { font-size:.65rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+    .metric-val { font-size:1.05rem; font-weight:800; color:var(--text); margin-top:.1rem; }
+    .metric-val.green { color:var(--green); }
+    .metric-val.red   { color:var(--red); }
+    .metric-val.amber { color:var(--amber); }
+
+    /* ── Host URL bar ── */
+    .host-url-bar {
+      display:flex; align-items:center; gap:.5rem;
+      background:#fff; border:1.5px solid var(--border); border-radius:8px;
+      padding:.5rem .85rem; margin-bottom:1.25rem; flex-wrap:wrap;
+    }
+    .host-url-label { font-size:.73rem; font-weight:700; color:var(--muted); white-space:nowrap; }
+    .host-url-input {
+      flex:1; min-width:220px; padding:.4em .65em; font-size:.84rem; font-family:'Cascadia Code','Consolas',monospace;
+      border:1.5px solid var(--border); border-radius:5px; background:var(--surface); color:var(--text);
+      outline:none; transition:border-color .15s;
+    }
+    .host-url-input:focus { border-color:var(--brand); background:#fff; }
+    .host-fetch-btn {
+      padding:.4em .9em; font-size:.8rem; font-weight:700; font-family:inherit;
+      border-radius:6px; cursor:pointer; border:1.5px solid var(--brand);
+      background:var(--brand); color:#fff; transition:background .12s;
+    }
+    .host-fetch-btn:hover { background:var(--brand-d); }
+    .host-fetch-btn:disabled { opacity:.55; cursor:not-allowed; }
+    .host-status { font-size:.73rem; font-weight:600; padding:.2em .55em; border-radius:999px; }
+    .host-status.ok   { background:#dcfce7; color:#15803d; }
+    .host-status.err  { background:#fee2e2; color:#dc2626; }
+    .host-status.idle { background:#f1f5f9; color:var(--muted); }
+
+    /* ── Topology ── */
+    .topology-title { font-size:.85rem; font-weight:700; margin-bottom:1rem; }
+    .topo-grid { display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; }
+    .topo-node {
+      display:flex; flex-direction:column; align-items:center; gap:.3rem;
+      font-size:.75rem; font-weight:600; text-align:center;
+    }
+    .topo-box {
+      width:80px; height:64px; border-radius:8px; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:.2rem;
+      font-size:.7rem; font-weight:700; border:2px solid;
+    }
+    .topo-box.master { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+    .topo-box.worker { background:#f0fdf4; border-color:#86efac; color:#15803d; }
+    .topo-box.worker.off { background:#f8fafc; border-color:#cbd5e1; color:#94a3b8; }
+    .topo-box.primitive { background:#fdf4ff; border-color:#d8b4fe; color:#7c3aed; }
+    .topo-arrow { font-size:1.2rem; color:#94a3b8; align-self:center; }
+    .topo-label { font-size:.68rem; color:var(--muted); margin-top:.1rem; }
+
+    /* ── Log ── */
+    .log-card { background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .log-header { display:flex; align-items:center; gap:.5rem; padding:.7rem 1rem; border-bottom:1px solid var(--border); }
+    .log-title { font-size:.85rem; font-weight:700; flex:1; }
+    .log-area { background:#1e1e2e; padding:.75rem 1rem; font-family:'Cascadia Code','Consolas',monospace; font-size:.75rem; color:#d4d4d4; min-height:140px; max-height:220px; overflow-y:auto; white-space:pre-wrap; line-height:1.5; }
+    .l-ok  { color:#4ade80; }
+    .l-err { color:#f87171; }
+    .l-inf { color:#60a5fa; }
+    .l-warn { color:#fbbf24; }
+
+    @media(max-width:720px) { .two-col { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Meandering<span>LLC</span></span>
+  <span class="nav-sep">›</span>
+  <span class="nav-title">⚙️ Distributed Setup <span class="mock-badge">Mock</span></span>
+</nav>
+
+<div class="page">
+  <!-- Host server URL bar -->
+  <div class="host-url-bar">
+    <span class="host-url-label">🔗 Cluster host URL</span>
+    <input class="host-url-input" id="host-url" type="text"
+           placeholder="http://192.168.1.10:7700/cluster/topology"
+           value="http://127.0.0.1:7700/cluster/topology" />
+    <button class="host-fetch-btn" id="fetch-btn" onclick="fetchTopology()">&#x21bb; Fetch Topology</button>
+    <span class="host-status idle" id="host-status">Not fetched</span>
+  </div>
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Distributed Systems Setup</div>
+      <div class="page-sub">Configure and launch distribution_tag master + workers on this host</div>
+    </div>
+    <div style="display:flex;gap:.4rem">
+      <button class="btn btn-ghost" onclick="refreshAll()">↻ Refresh</button>
+      <button class="btn btn-primary" onclick="launchAll()">▶ Launch All</button>
+    </div>
+  </div>
+
+  <!-- Status strip -->
+  <div class="status-strip">
+    <div class="sc ok" id="sc-master">
+      <div class="sc-label">Master</div>
+      <div class="sc-val">Running</div>
+    </div>
+    <div class="sc ok" id="sc-workers">
+      <div class="sc-label">Workers online</div>
+      <div class="sc-val">3 / 4</div>
+    </div>
+    <div class="sc" id="sc-jobs">
+      <div class="sc-label">Jobs processed</div>
+      <div class="sc-val">1 204</div>
+    </div>
+    <div class="sc" id="sc-uptime">
+      <div class="sc-label">Uptime</div>
+      <div class="sc-val">2h 17m</div>
+    </div>
+    <div class="sc warn" id="sc-failures">
+      <div class="sc-label">Circuit trips</div>
+      <div class="sc-val">2</div>
+    </div>
+  </div>
+
+  <!-- Topology diagram -->
+  <div class="topology-card">
+    <div class="topology-title">🗺️ Cluster Topology</div>
+    <div class="topo-grid">
+      <div class="topo-node">
+        <div class="topo-box primitive">🗃️<br>TaskQueue</div>
+        <div class="topo-label">Shared</div>
+      </div>
+      <div class="topo-arrow">→</div>
+      <div class="topo-node">
+        <div class="topo-box master">🏛️<br>Master</div>
+        <div class="topo-label">PID 4812</div>
+      </div>
+      <div class="topo-arrow">→</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <div class="topo-node"><div class="topo-box worker">⚙️ W-1</div><div class="topo-label">Running</div></div>
+        <div class="topo-node"><div class="topo-box worker">⚙️ W-2</div><div class="topo-label">Running</div></div>
+        <div class="topo-node"><div class="topo-box worker">⚙️ W-3</div><div class="topo-label">Running</div></div>
+        <div class="topo-node"><div class="topo-box worker off">⚙️ W-4</div><div class="topo-label">Stopped</div></div>
+      </div>
+      <div class="topo-arrow">↔</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <div class="topo-node"><div class="topo-box primitive">📢<br>MessageBus</div></div>
+        <div class="topo-node"><div class="topo-box primitive">📋<br>Registry</div></div>
+        <div class="topo-node"><div class="topo-box primitive">🔒<br>Lock</div></div>
+        <div class="topo-node"><div class="topo-box primitive">⚡<br>Breaker</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App cards -->
+  <div class="two-col">
+    <!-- Master card -->
+    <div class="app-card running" id="card-master">
+      <div class="ac-header">
+        <span class="ac-icon">🏛️</span>
+        <div class="ac-info">
+          <div class="ac-name">Distribution Tag · Master</div>
+          <div class="ac-type">Orchestrator process</div>
+        </div>
+        <span class="badge badge-running" id="master-badge">● Running</span>
+      </div>
+      <div class="ac-body">
+        <div class="metrics-row">
+          <div class="metric"><div class="metric-label">PID</div><div class="metric-val" id="master-pid">4812</div></div>
+          <div class="metric"><div class="metric-label">Workers</div><div class="metric-val green" id="master-workers">4</div></div>
+          <div class="metric"><div class="metric-label">Jobs/s</div><div class="metric-val" id="master-jps">8.4</div></div>
+          <div class="metric"><div class="metric-label">Queue depth</div><div class="metric-val" id="master-q">12</div></div>
+        </div>
+        <div class="ac-config">
+          <div class="ac-config-title">Launch configuration</div>
+          <label>Executable path</label>
+          <input type="text" value=".\build\Debug\distribution_tag_master.exe" id="master-exe" />
+          <label>Number of workers</label>
+          <input type="number" value="4" min="1" max="32" id="master-nw" />
+          <label>Job types (comma-separated)</label>
+          <input type="text" value="IMAGE,DOCUMENT,VIDEO,AUDIO" id="master-types" />
+          <label>Log level</label>
+          <select id="master-log"><option>DEBUG</option><option selected>INFO</option><option>WARN</option><option>ERROR</option></select>
+        </div>
+      </div>
+      <div class="ac-actions">
+        <button class="btn btn-ghost" onclick="mockAction('master','restart')">🔄 Restart</button>
+        <button class="btn btn-danger" onclick="mockAction('master','stop')">⏹ Stop</button>
+        <button class="btn btn-ghost" style="margin-left:auto" onclick="showLogs('master')">📋 Logs</button>
+      </div>
+    </div>
+
+    <!-- Worker card -->
+    <div class="app-card" id="card-worker">
+      <div class="ac-header">
+        <span class="ac-icon">⚙️</span>
+        <div class="ac-info">
+          <div class="ac-name">Distribution Tag · Worker</div>
+          <div class="ac-type">Standalone worker instance</div>
+        </div>
+        <span class="badge badge-stopped" id="worker-badge">○ Stopped</span>
+      </div>
+      <div class="ac-body">
+        <div class="metrics-row">
+          <div class="metric"><div class="metric-label">PID</div><div class="metric-val" id="worker-pid">—</div></div>
+          <div class="metric"><div class="metric-label">ID</div><div class="metric-val" id="worker-id">—</div></div>
+          <div class="metric"><div class="metric-label">Jobs done</div><div class="metric-val" id="worker-done">—</div></div>
+          <div class="metric"><div class="metric-label">Errors</div><div class="metric-val red" id="worker-err">—</div></div>
+        </div>
+        <div class="ac-config">
+          <div class="ac-config-title">Launch configuration</div>
+          <label>Executable path</label>
+          <input type="text" value=".\build\Debug\distribution_tag_worker.exe" id="worker-exe" />
+          <label>Worker ID</label>
+          <input type="text" value="worker-standalone" id="worker-wid" />
+          <label>Number of jobs to process (0 = infinite)</label>
+          <input type="number" value="0" min="0" id="worker-jobs" />
+          <label>Job types to accept</label>
+          <input type="text" value="IMAGE,DOCUMENT,VIDEO,AUDIO" id="worker-types" />
+        </div>
+      </div>
+      <div class="ac-actions">
+        <button class="btn btn-success" onclick="mockAction('worker','launch')">▶ Launch Worker</button>
+        <button class="btn btn-ghost" style="margin-left:auto" onclick="showLogs('worker')">📋 Logs</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Primitives status -->
+  <div style="font-size:.9rem;font-weight:700;margin-bottom:.75rem">DISTRIBUTED Primitives</div>
+  <div class="two-col" style="margin-bottom:1.25rem">
+    <div class="topology-card" style="margin-bottom:0">
+      <div class="topology-title" style="font-size:.78rem;margin-bottom:.75rem">Runtime State</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead><tr style="background:#f1f5f9"><th style="padding:.45em .75em;text-align:left;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border)">Primitive</th><th style="padding:.45em .75em;text-align:left;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border)">Status</th><th style="padding:.45em .75em;text-align:left;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border)">Detail</th></tr></thead>
+        <tbody id="prim-tbody"></tbody>
+      </table>
+    </div>
+    <div class="topology-card" style="margin-bottom:0">
+      <div class="topology-title" style="font-size:.78rem;margin-bottom:.75rem">Environment Variables</div>
+      <div class="field-row" style="margin-bottom:.5rem">
+        <label style="margin:0;flex-shrink:0;line-height:2;font-size:.75rem;min-width:120px">CB_MASTER_HOST</label>
+        <input type="text" value="127.0.0.1" style="font-size:.8rem" />
+      </div>
+      <div class="field-row" style="margin-bottom:.5rem">
+        <label style="margin:0;flex-shrink:0;line-height:2;font-size:.75rem;min-width:120px">CB_MASTER_PORT</label>
+        <input type="text" value="7700" style="font-size:.8rem" />
+      </div>
+      <div class="field-row" style="margin-bottom:.5rem">
+        <label style="margin:0;flex-shrink:0;line-height:2;font-size:.75rem;min-width:120px">CB_LOG_LEVEL</label>
+        <select style="font-size:.8rem"><option>DEBUG</option><option selected>INFO</option><option>WARN</option></select>
+      </div>
+      <div class="field-row" style="margin-bottom:.5rem">
+        <label style="margin:0;flex-shrink:0;line-height:2;font-size:.75rem;min-width:120px">CB_BUILD_DIR</label>
+        <input type="text" value=".\build\Debug" style="font-size:.8rem" />
+      </div>
+      <div class="field-row">
+        <label style="margin:0;flex-shrink:0;line-height:2;font-size:.75rem;min-width:120px">CB_WORKERS</label>
+        <input type="number" value="4" style="font-size:.8rem" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-card">
+    <div class="log-header">
+      <div class="log-title" id="log-title">📋 Master Logs</div>
+      <button class="btn btn-ghost" style="font-size:.75rem" onclick="addMockLine()">＋ Simulate</button>
+      <button class="btn btn-ghost" style="font-size:.75rem" onclick="clearLog()">🗑 Clear</button>
+    </div>
+    <div class="log-area" id="log-area"></div>
+  </div>
+</div>
+
+<script>
+  const PRIMS = [
+    { name:'TaskQueue',       status:'ok',   detail:'depth: 12, throughput: 8.4/s' },
+    { name:'MessageBus',      status:'ok',   detail:'3 subscribers, 0 dead letters' },
+    { name:'ServiceRegistry', status:'ok',   detail:'3 nodes registered' },
+    { name:'DistributedLock', status:'ok',   detail:'0 contended, 0 deadlocks' },
+    { name:'CircuitBreaker',  status:'warn', detail:'2 trips (VIDEO channel)' },
+    { name:'RaftConsensus',   status:'ok',   detail:'leader: master, term: 4' },
+  ];
+  const tbody = document.getElementById('prim-tbody');
+  PRIMS.forEach(p => {
+    const tr = document.createElement('tr');
+    const color = p.status==='ok' ? '#dcfce7' : '#fef3c7';
+    const tcolor = p.status==='ok' ? '#15803d' : '#92400e';
+    const dot = p.status==='ok' ? '●' : '⚠';
+    tr.innerHTML = `<td style="padding:.45em .75em;border-bottom:1px solid var(--border);font-weight:600;font-size:.8rem">${p.name}</td><td style="padding:.45em .75em;border-bottom:1px solid var(--border)"><span style="background:${color};color:${tcolor};padding:.15em .5em;border-radius:999px;font-size:.68rem;font-weight:700">${dot} ${p.status.toUpperCase()}</span></td><td style="padding:.45em .75em;border-bottom:1px solid var(--border);font-size:.76rem;color:var(--muted)">${p.detail}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const MASTER_LOG = [
+    { t:'ok',  m:'[INFO]  Master started with 4 workers' },
+    { t:'inf', m:'[INFO]  ServiceRegistry: 3 nodes registered' },
+    { t:'ok',  m:'[INFO]  Enqueued 20 jobs (IMAGE:5 DOC:5 VIDEO:5 AUDIO:5)' },
+    { t:'ok',  m:'[INFO]  worker-1 processed IMAGE job_0004 in 18ms' },
+    { t:'ok',  m:'[INFO]  worker-2 processed DOCUMENT job_0007 in 12ms' },
+    { t:'warn',m:'[WARN]  CircuitBreaker VIDEO: opened after 3 failures' },
+    { t:'inf', m:'[INFO]  CircuitBreaker VIDEO: HalfOpen — probing…' },
+    { t:'ok',  m:'[INFO]  CircuitBreaker VIDEO: closed — probe succeeded' },
+    { t:'ok',  m:'[INFO]  All 20 jobs completed. Result queue: 20 entries' },
+  ];
+  const WORKER_LOG = [
+    { t:'ok',  m:'[INFO]  worker-standalone starting' },
+    { t:'inf', m:'[INFO]  Registering with ServiceRegistry…' },
+    { t:'ok',  m:'[INFO]  Registered as worker-standalone' },
+    { t:'ok',  m:'[INFO]  Processing job 1/10 (IMAGE)…' },
+    { t:'ok',  m:'[INFO]  Completed in 14ms' },
+  ];
+  let logLines = [...MASTER_LOG];
+  let logTarget = 'master';
+
+  function renderLog() {
+    const el = document.getElementById('log-area');
+    el.innerHTML = logLines.map(l =>
+      `<span class="l-${l.t==='ok'?'ok':l.t==='err'?'err':l.t==='warn'?'warn':'inf'}">${l.m}</span>`
+    ).join('\n');
+    el.scrollTop = el.scrollHeight;
+  }
+  function showLogs(target) {
+    logTarget = target;
+    logLines = target==='master' ? [...MASTER_LOG] : [...WORKER_LOG];
+    document.getElementById('log-title').textContent = target==='master' ? '📋 Master Logs' : '📋 Worker Logs';
+    renderLog();
+  }
+  function clearLog() { logLines=[]; renderLog(); }
+  function addMockLine() {
+    const msgs = {
+      master:[
+        { t:'ok',  m:'[INFO]  worker-3 processed AUDIO job_0019 in 22ms' },
+        { t:'inf', m:'[INFO]  MessageBus: broadcast "job_complete" to 3 subscribers' },
+        { t:'warn',m:'[WARN]  Queue depth: 0 — workers idle' },
+        { t:'ok',  m:'[INFO]  Heartbeat: all workers healthy' },
+      ],
+      worker:[
+        { t:'ok', m:'[INFO]  Processing job ' + Math.floor(Math.random()*100) + ' (IMAGE)…' },
+        { t:'ok', m:'[INFO]  Completed in ' + Math.floor(Math.random()*50+5) + 'ms' },
+        { t:'inf',m:'[INFO]  Sending heartbeat to ServiceRegistry' },
+      ],
+    };
+    const pool = msgs[logTarget];
+    logLines.push(pool[Math.floor(Math.random()*pool.length)]);
+    renderLog();
+  }
+
+  let masterRunning = true;
+  let workerRunning = false;
+
+  function mockAction(which, action) {
+    if (which==='master') {
+      if (action==='stop') {
+        masterRunning = false;
+        document.getElementById('master-badge').className='badge badge-stopped';
+        document.getElementById('master-badge').textContent='○ Stopped';
+        document.getElementById('card-master').className='app-card';
+        document.getElementById('master-pid').textContent='—';
+        document.getElementById('master-jps').textContent='—';
+        logLines.push({ t:'warn', m:'[WARN]  Master stopped by user' });
+      } else {
+        logLines.push({ t:'inf', m:'[INFO]  Restarting master…' });
+        setTimeout(() => { logLines.push({ t:'ok', m:'[INFO]  Master restarted (PID 5021)' }); renderLog(); }, 500);
+      }
+      renderLog();
+    } else if (which==='worker') {
+      workerRunning = true;
+      document.getElementById('worker-badge').className='badge badge-starting';
+      document.getElementById('worker-badge').textContent='⟳ Starting';
+      setTimeout(() => {
+        document.getElementById('worker-badge').className='badge badge-running';
+        document.getElementById('worker-badge').textContent='● Running';
+        document.getElementById('card-worker').className='app-card running';
+        document.getElementById('worker-pid').textContent='6104';
+        document.getElementById('worker-id').textContent=document.getElementById('worker-wid').value||'worker-standalone';
+        document.getElementById('worker-done').textContent='0';
+        document.getElementById('worker-err').textContent='0';
+        logTarget='worker'; logLines=[]; showLogs('worker');
+      }, 800);
+    }
+  }
+
+  function refreshAll() {
+    document.getElementById('sc-jobs').querySelector('.sc-val').textContent=
+      (parseInt(document.getElementById('sc-jobs').querySelector('.sc-val').textContent.replace(/\s/g,''))||0)+Math.floor(Math.random()*20+5);
+    addMockLine();
+  }
+
+  function launchAll() {
+    if (!masterRunning) mockAction('master','restart');
+    if (!workerRunning) mockAction('worker','launch');
+  }
+
+  renderLog();
+
+  // ── Fetch Topology from host server ─────────────────────────────────────────────
+  // Expected JSON shape from host server:
+  // {
+  //   "master": { "status": "running"|"stopped", "pid": 4812, "jobs_per_sec": 8.4, "queue_depth": 12 },
+  //   "workers": [
+  //     { "id": "W-1", "status": "running"|"stopped", "jobs_done": 120, "errors": 0 }, ...
+  //   ],
+  //   "primitives": [
+  //     { "name": "TaskQueue", "status": "ok"|"warn"|"error", "detail": "depth: 12" }, ...
+  //   ],
+  //   "stats": { "jobs_processed": 1204, "uptime_seconds": 8220, "circuit_trips": 2 }
+  // }
+  async function fetchTopology() {
+    const url = document.getElementById('host-url').value.trim();
+    if (!url) return;
+    const btn = document.getElementById('fetch-btn');
+    const statusEl = document.getElementById('host-status');
+    btn.disabled = true;
+    btn.textContent = 'Fetching…';
+    statusEl.className = 'host-status idle';
+    statusEl.textContent = 'Fetching…';
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      applyTopology(data);
+      statusEl.className = 'host-status ok';
+      statusEl.textContent = `✓ OK — ${new Date().toLocaleTimeString()}`;
+      logLines.push({ t:'ok', m:`[INFO]  Topology fetched from ${url}` });
+      renderLog();
+    } catch (err) {
+      statusEl.className = 'host-status err';
+      statusEl.textContent = `✗ ${err.message}`;
+      logLines.push({ t:'err', m:`[ERROR] Fetch failed: ${err.message}` });
+      renderLog();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '\u21bb Fetch Topology';
+    }
+  }
+
+  function applyTopology(d) {
+    // Master status
+    if (d.master) {
+      const m = d.master;
+      const running = (m.status || '').toLowerCase() === 'running';
+      document.getElementById('master-badge').className = 'badge ' + (running ? 'badge-running' : 'badge-stopped');
+      document.getElementById('master-badge').textContent = running ? '● Running' : '○ Stopped';
+      document.getElementById('card-master').className = 'app-card ' + (running ? 'running' : '');
+      document.getElementById('sc-master').className = 'sc ' + (running ? 'ok' : '');
+      document.getElementById('sc-master').querySelector('.sc-val').textContent = running ? 'Running' : 'Stopped';
+      if (m.pid != null) document.getElementById('master-pid').textContent = m.pid;
+      if (m.jobs_per_sec != null) document.getElementById('master-jps').textContent = m.jobs_per_sec.toFixed(1);
+      if (m.queue_depth != null) document.getElementById('master-q').textContent = m.queue_depth;
+    }
+
+    // Workers
+    if (Array.isArray(d.workers)) {
+      const online = d.workers.filter(w => (w.status||'').toLowerCase() === 'running').length;
+      document.getElementById('sc-workers').querySelector('.sc-val').textContent = `${online} / ${d.workers.length}`;
+      document.getElementById('master-workers').textContent = d.workers.length;
+      // Rebuild topology worker nodes
+      const workerCol = document.querySelector('.topo-grid > div:nth-child(5)');
+      if (workerCol) {
+        workerCol.innerHTML = d.workers.map(w => {
+          const running = (w.status||'').toLowerCase() === 'running';
+          return `<div class="topo-node"><div class="topo-box worker${running ? '' : ' off'}">⚙️ ${w.id || 'W'}</div><div class="topo-label">${running ? 'Running' : 'Stopped'}</div></div>`;
+        }).join('');
+      }
+    }
+
+    // Primitives
+    if (Array.isArray(d.primitives)) {
+      const tbody = document.getElementById('prim-tbody');
+      tbody.innerHTML = '';
+      d.primitives.forEach(p => {
+        const color  = p.status==='ok' ? '#dcfce7' : p.status==='error' ? '#fee2e2' : '#fef3c7';
+        const tcolor = p.status==='ok' ? '#15803d' : p.status==='error' ? '#dc2626' : '#92400e';
+        const dot    = p.status==='ok' ? '●' : p.status==='error' ? '✕' : '⚠';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="padding:.45em .75em;border-bottom:1px solid var(--border);font-weight:600;font-size:.8rem">${p.name}</td><td style="padding:.45em .75em;border-bottom:1px solid var(--border)"><span style="background:${color};color:${tcolor};padding:.15em .5em;border-radius:999px;font-size:.68rem;font-weight:700">${dot} ${(p.status||'ok').toUpperCase()}</span></td><td style="padding:.45em .75em;border-bottom:1px solid var(--border);font-size:.76rem;color:var(--muted)">${p.detail||''}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Stats
+    if (d.stats) {
+      const s = d.stats;
+      if (s.jobs_processed != null) document.getElementById('sc-jobs').querySelector('.sc-val').textContent = s.jobs_processed.toLocaleString();
+      if (s.circuit_trips != null) {
+        const el = document.getElementById('sc-failures');
+        el.className = 'sc ' + (s.circuit_trips > 0 ? 'warn' : 'ok');
+        el.querySelector('.sc-val').textContent = s.circuit_trips;
+      }
+      if (s.uptime_seconds != null) {
+        const h = Math.floor(s.uptime_seconds / 3600);
+        const m = Math.floor((s.uptime_seconds % 3600) / 60);
+        document.getElementById('sc-uptime').querySelector('.sc-val').textContent = `${h}h ${m}m`;
+      }
+    }
+  }
+</body>
+</html>

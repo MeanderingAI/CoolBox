@@ -51,43 +51,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup CMake 4.3.1
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.3.1'
-
-
       # Linux dependencies
       - name: Linux dependency setup
         if: runner.os == 'Linux'
-        uses: ./.github/workflows/fragments/deps-linux.yaml
+        uses: ./.github/workflows/fragments/deps-linux
 
       # Linux signing environment
       - name: Setup Linux signing environment
         if: runner.os == 'Linux'
-        uses: ./.github/workflows/fragments/setup-sign-linux.yaml
+        uses: ./.github/workflows/fragments/setup-sign-linux
+        with:
+          signing-key-base64: ${{ secrets.COOLBOX_SIGNING_KEY_BASE64 }}
+          signing-key-password: ${{ secrets.COOLBOX_SIGNING_KEY_PASSWORD }}
 
 
       # macOS dependencies
       - name: macOS dependency setup
         if: runner.os == 'macOS'
-        uses: ./.github/workflows/fragments/deps-macos.yaml
+        uses: ./.github/workflows/fragments/deps-macos
 
       # macOS signing environment
       - name: Setup macOS signing environment
         if: runner.os == 'macOS'
-        uses: ./.github/workflows/fragments/setup-sign-macosx.yaml
+        uses: ./.github/workflows/fragments/setup-sign-macosx
+        with:
+          signing-cert-base64: ${{ secrets.COOLBOX_SIGNING_CERT_BASE64 }}
+          signing-cert-password: ${{ secrets.COOLBOX_SIGNING_CERT_PASSWORD }}
 
 
       # Windows dependencies and signing environment
       - name: Windows dependency and signing setup
         if: runner.os == 'Windows'
-        uses: ./.github/workflows/fragments/deps-windows.yaml
+        uses: ./.github/workflows/fragments/deps-windows
 
       # Windows signing environment
       - name: Setup Windows signing environment
         if: runner.os == 'Windows'
-        uses: ./.github/workflows/fragments/setup-sign-windows.yaml
+        uses: ./.github/workflows/fragments/setup-sign-windows
+        with:
+          signing-cert-base64: ${{ secrets.COOLBOX_WINDOWS_SIGN_CERT_BASE64 }}
+          signing-cert-password: ${{ secrets.COOLBOX_WINDOWS_SIGN_CERT_PASSWORD }}
+          signing-timestamp-url: ${{ secrets.COOLBOX_WINDOWS_SIGN_TIMESTAMP_URL }}
 
 
       - name: Build all libraries

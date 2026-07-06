@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clients · Meandering LLC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #2563eb;
+      --brand-dark: #1d4ed8;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    nav {
+      background: #0f172a;
+      display: flex; align-items: center;
+      padding: 0 1.5rem; height: 54px; gap: 1rem;
+    }
+    .nav-brand { font-weight: 800; color: #f8fafc; font-size: 0.95rem; }
+    .nav-brand span { color: #60a5fa; }
+    .nav-sep { color: #334155; }
+    .nav-title { font-size: 0.85rem; color: #94a3b8; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+    .nav-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; color: #fff; font-weight: 700;
+    }
+    .nav-user { font-size: 0.8rem; color: #94a3b8; }
+    .mock-badge {
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+      font-size: 0.65rem; font-weight: 700; padding: 0.1em 0.45em;
+      border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    .page { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.5rem; }
+
+    .page-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .page-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+    .page-sub { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .btn {
+      padding: 0.45em 1em; font-size: 0.82rem; font-weight: 600;
+      font-family: inherit; border-radius: 7px; cursor: pointer;
+      border: 1.5px solid transparent; transition: background 0.12s;
+    }
+    .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-ghost { background: #fff; border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface); }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 1.25rem; flex-wrap: wrap;
+    }
+    .filter-input {
+      padding: 0.45em 0.75em; font-size: 0.82rem; font-family: inherit;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      background: #fff; color: var(--text); outline: none;
+    }
+    .filter-input:focus { border-color: var(--brand); }
+    .filter-select {
+      padding: 0.45em 0.65em; font-size: 0.82rem;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      background: #fff; color: var(--text); cursor: pointer;
+    }
+    .filter-count { font-size: 0.78rem; color: var(--muted); margin-left: auto; }
+
+    /* ── Summary strip ── */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .sc {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.9rem 1rem;
+    }
+    .sc-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .sc-val { font-size: 1.4rem; font-weight: 900; color: var(--text); margin-top: 0.1rem; letter-spacing: -0.02em; }
+    .sc.highlight { border-color: #bfdbfe; background: #eff6ff; }
+    .sc.highlight .sc-val { color: var(--brand); }
+
+    /* ── Client table ── */
+    .table-wrap {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; overflow: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 700px; }
+    thead tr { background: #f1f5f9; }
+    th {
+      padding: 0.65em 1em; text-align: left;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    td { padding: 0.7em 1em; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    /* ── Client avatar ── */
+    .client-row { display: flex; align-items: center; gap: 0.65rem; }
+    .client-avatar {
+      width: 34px; height: 34px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .client-name { font-weight: 700; color: var(--text); }
+    .client-country { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── Contact ── */
+    .contact-name { font-weight: 600; color: var(--text); font-size: 0.82rem; }
+    .contact-email { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── Revenue bar ── */
+    .rev-bar { display: flex; align-items: center; gap: 0.5rem; }
+    .rev-track { flex: 1; height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; min-width: 60px; }
+    .rev-fill { height: 100%; border-radius: 3px; background: var(--brand); }
+
+    /* ── Status ── */
+    .badge {
+      display: inline-block; padding: 0.18em 0.55em;
+      border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+    }
+    .badge-active   { background: #dcfce7; color: #15803d; }
+    .badge-prospect { background: #fef3c7; color: #92400e; }
+    .badge-inactive { background: #f1f5f9; color: var(--muted); }
+    .badge-churned  { background: #fee2e2; color: #b91c1c; }
+
+    /* ── Actions ── */
+    .act-btn {
+      padding: 0.2em 0.55em; font-size: 0.75rem; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: var(--surface); color: var(--text); cursor: pointer;
+      transition: background 0.12s; font-family: inherit;
+    }
+    .act-btn:hover { background: #e2e8f0; }
+
+    /* ── Detail drawer (mock) ── */
+    .drawer-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,23,42,0.35); z-index: 100;
+    }
+    .drawer-overlay.open { display: flex; justify-content: flex-end; }
+    .drawer {
+      background: #fff; width: 400px; max-width: 100vw;
+      height: 100vh; overflow-y: auto;
+      box-shadow: -8px 0 32px rgba(0,0,0,0.15);
+      padding: 1.5rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+    .drawer-header {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .drawer-title { font-size: 1.1rem; font-weight: 800; flex: 1; }
+    .drawer-close {
+      border: none; background: none; font-size: 1.2rem;
+      cursor: pointer; color: var(--muted); padding: 0.2em;
+    }
+    .drawer-close:hover { color: var(--text); }
+    .drawer-section { border-top: 1px solid var(--border); padding-top: 0.75rem; }
+    .drawer-section-title {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      font-weight: 700; color: var(--muted); margin-bottom: 0.5rem;
+    }
+    .drawer-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .kv-item {}
+    .kv-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+    .kv-val { font-size: 0.88rem; font-weight: 600; color: var(--text); margin-top: 0.1rem; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Meandering<span>LLC</span></span>
+  <span class="nav-sep">›</span>
+  <span class="nav-title">👥 Clients <span class="mock-badge">Mock</span></span>
+  <div class="nav-right">
+    <span class="nav-user">Jane Smith</span>
+    <div class="nav-avatar">JS</div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Clients</div>
+      <div class="page-sub">Manage your client relationships and accounts</div>
+    </div>
+    <div style="display:flex;gap:0.5rem">
+      <button class="btn btn-ghost">📤 Export</button>
+      <button class="btn btn-primary">＋ Add Client</button>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-strip">
+    <div class="sc highlight">
+      <div class="sc-label">Active Clients</div>
+      <div class="sc-val">5</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">Total Revenue</div>
+      <div class="sc-val">$436k</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">Prospects</div>
+      <div class="sc-val">3</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">Avg Tenure</div>
+      <div class="sc-val">2.4yr</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input class="filter-input" type="search" id="search-input" placeholder="🔍  Search clients…" style="min-width:200px" />
+    <select class="filter-select" id="status-filter">
+      <option value="">All statuses</option>
+      <option value="active">Active</option>
+      <option value="prospect">Prospect</option>
+      <option value="inactive">Inactive</option>
+    </select>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Primary Contact</th>
+          <th>Status</th>
+          <th>Active Contracts</th>
+          <th>Revenue (LTM)</th>
+          <th>Since</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="client-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div class="drawer-overlay" id="drawer-overlay">
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-avatar" id="d-avatar" style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:#fff;flex-shrink:0"></div>
+      <div class="drawer-title" id="d-title"></div>
+      <button class="drawer-close" id="drawer-close">✕</button>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Contact</div>
+      <div class="drawer-kv" id="d-contact"></div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Account Details</div>
+      <div class="drawer-kv" id="d-account"></div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Active Contracts</div>
+      <div id="d-contracts"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CLIENTS = [
+    {
+      name: 'Acme Dev Tools Ltd.',
+      country: '🇬🇧 United Kingdom',
+      contact: 'Marcus Webb',
+      email: 'm.webb@acmedev.io',
+      status: 'active',
+      contracts: 2,
+      revenue: '$148,500',
+      revenueRatio: 100,
+      since: 'Jan 2024',
+      color: '#2563eb',
+      initials: 'AD',
+      industry: 'Developer Tools',
+      size: '50–200 employees',
+    },
+    {
+      name: 'Prism Analytics Inc.',
+      country: '🇺🇸 United States',
+      contact: 'Sarah Okonkwo',
+      email: 's.okonkwo@prism.ai',
+      status: 'active',
+      contracts: 1,
+      revenue: '$95,000',
+      revenueRatio: 64,
+      since: 'Mar 2025',
+      color: '#7c3aed',
+      initials: 'PA',
+      industry: 'Analytics / Data',
+      size: '20–50 employees',
+    },
+    {
+      name: 'MediaFlow GmbH',
+      country: '🇩🇪 Germany',
+      contact: 'Lukas Bauer',
+      email: 'l.bauer@mediaflow.de',
+      status: 'prospect',
+      contracts: 1,
+      revenue: '—',
+      revenueRatio: 0,
+      since: 'Apr 2026',
+      color: '#d97706',
+      initials: 'MF',
+      industry: 'Media / Streaming',
+      size: '200–500 employees',
+    },
+    {
+      name: 'Spectra Research',
+      country: '🇨🇦 Canada',
+      contact: 'Dr. Amy Chen',
+      email: 'a.chen@spectra.research',
+      status: 'inactive',
+      contracts: 0,
+      revenue: '$32,500',
+      revenueRatio: 22,
+      since: 'Aug 2025',
+      color: '#0ea5e9',
+      initials: 'SR',
+      industry: 'Research / Academia',
+      size: '10–20 employees',
+    },
+    {
+      name: 'Vertex Cloud',
+      country: '🇸🇬 Singapore',
+      contact: 'Rohan Mehta',
+      email: 'r.mehta@vertex.cloud',
+      status: 'prospect',
+      contracts: 0,
+      revenue: '—',
+      revenueRatio: 0,
+      since: 'May 2026',
+      color: '#10b981',
+      initials: 'VC',
+      industry: 'Cloud Infrastructure',
+      size: '500+ employees',
+    },
+  ];
+
+  const BADGE_CLASS = { active:'badge-active', prospect:'badge-prospect', inactive:'badge-inactive', churned:'badge-churned' };
+  const BADGE_LABEL = { active:'Active', prospect:'Prospect', inactive:'Inactive', churned:'Churned' };
+
+  function render(list) {
+    const tbody = document.getElementById('client-body');
+    tbody.innerHTML = '';
+    document.getElementById('filter-count').textContent = `${list.length} client${list.length!==1?'s':''}`;
+    list.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.innerHTML = `
+        <td>
+          <div class="client-row">
+            <div class="client-avatar" style="background:${c.color}">${c.initials}</div>
+            <div>
+              <div class="client-name">${c.name}</div>
+              <div class="client-country">${c.country}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="contact-name">${c.contact}</div>
+          <div class="contact-email">${c.email}</div>
+        </td>
+        <td><span class="badge ${BADGE_CLASS[c.status]}">${BADGE_LABEL[c.status]}</span></td>
+        <td style="text-align:center;font-weight:700;color:${c.contracts>0?'var(--brand)':'var(--muted)'}">${c.contracts}</td>
+        <td>
+          <div class="rev-bar">
+            <span style="font-weight:600;font-size:0.82rem;min-width:60px">${c.revenue}</span>
+            <div class="rev-track"><div class="rev-fill" style="width:${c.revenueRatio}%"></div></div>
+          </div>
+        </td>
+        <td style="color:var(--muted);font-size:0.8rem">${c.since}</td>
+        <td><button class="act-btn" data-client="${c.name}">View →</button></td>
+      `;
+      tr.addEventListener('click', () => openDrawer(c));
+      tbody.appendChild(tr);
+    });
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const s = document.getElementById('status-filter').value;
+    return CLIENTS.filter(c =>
+      (!q || c.name.toLowerCase().includes(q) || c.contact.toLowerCase().includes(q) || c.country.toLowerCase().includes(q)) &&
+      (!s || c.status === s)
+    );
+  }
+
+  document.getElementById('search-input').addEventListener('input', () => render(getFiltered()));
+  document.getElementById('status-filter').addEventListener('change', () => render(getFiltered()));
+
+  // Drawer
+  function openDrawer(c) {
+    document.getElementById('d-title').textContent = c.name;
+    const av = document.getElementById('d-avatar');
+    av.textContent = c.initials;
+    av.style.background = c.color;
+
+    document.getElementById('d-contact').innerHTML = `
+      <div class="kv-item"><div class="kv-label">Contact</div><div class="kv-val">${c.contact}</div></div>
+      <div class="kv-item"><div class="kv-label">Email</div><div class="kv-val">${c.email}</div></div>
+      <div class="kv-item"><div class="kv-label">Country</div><div class="kv-val">${c.country}</div></div>
+    `;
+    document.getElementById('d-account').innerHTML = `
+      <div class="kv-item"><div class="kv-label">Status</div><div class="kv-val"><span class="badge ${BADGE_CLASS[c.status]}">${BADGE_LABEL[c.status]}</span></div></div>
+      <div class="kv-item"><div class="kv-label">Industry</div><div class="kv-val">${c.industry}</div></div>
+      <div class="kv-item"><div class="kv-label">Size</div><div class="kv-val">${c.size}</div></div>
+      <div class="kv-item"><div class="kv-label">Revenue LTM</div><div class="kv-val">${c.revenue}</div></div>
+      <div class="kv-item"><div class="kv-label">Client since</div><div class="kv-val">${c.since}</div></div>
+    `;
+    const dc = document.getElementById('d-contracts');
+    dc.innerHTML = c.contracts > 0
+      ? `<p style="font-size:0.82rem;color:var(--muted)">${c.contracts} active contract${c.contracts>1?'s':''} — see Contracts section for details.</p>`
+      : `<p style="font-size:0.82rem;color:var(--muted)">No active contracts.</p>`;
+
+    document.getElementById('drawer-overlay').classList.add('open');
+  }
+
+  document.getElementById('drawer-close').addEventListener('click', () =>
+    document.getElementById('drawer-overlay').classList.remove('open'));
+  document.getElementById('drawer-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('drawer-overlay'))
+      document.getElementById('drawer-overlay').classList.remove('open');
+  });
+
+  render(CLIENTS);
+</script>
+
+</body>
+</html>

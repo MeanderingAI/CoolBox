@@ -1,0 +1,303 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K-Means Clustering · ML Demo</title>
+  <script type="module" src="/static/extensions/graphics-chart.mjs"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3348;
+      --text:#e2e8f0; --muted:#64748b; --brand:#3b82f6; --brand2:#10b981;
+      --brand-pale:#1e3a5f; --code-bg:#161b2e;
+    }
+    body { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+    .topbar { background:var(--surface); border-bottom:1px solid var(--border); padding:0 1.2rem; display:flex; align-items:center; gap:.75rem; height:44px; flex-shrink:0; }
+    .tb-icon { font-size:1.2rem; }
+    .tb-title { font-size:.92rem; font-weight:800; letter-spacing:-.02em; }
+    .tb-sub { font-size:.7rem; color:var(--muted); }
+    .tb-badge { margin-left:auto; background:var(--brand-pale); color:var(--brand); border:1px solid var(--brand); border-radius:999px; font-size:.62rem; font-weight:700; padding:.12em .6em; letter-spacing:.07em; }
+    .tab-bar { display:flex; background:var(--surface2); border-bottom:1px solid var(--border); padding:0 1.2rem; gap:0; flex-shrink:0; }
+    .tab { padding:.5rem 1.2rem; font-size:.76rem; font-weight:700; cursor:pointer; border-bottom:2px solid transparent; color:var(--muted); transition:color .12s,border-color .12s; user-select:none; }
+    .tab.active { color:var(--brand); border-bottom-color:var(--brand); }
+    .main { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+    .tab-panel { display:none; flex:1; overflow-y:auto; padding:1.4rem 1.6rem; flex-direction:column; gap:1.5rem; }
+    .tab-panel.active { display:flex; }
+    .section-title { font-size:.65rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.55rem; }
+    .pkg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; }
+    .pkg-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem; display:flex; flex-direction:column; gap:.35rem; position:relative; overflow:hidden; }
+    .pkg-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:3px 0 0 3px; }
+    .pkg-card.cpp::before { background:var(--brand); }
+    .pkg-card.js::before  { background:#f59e0b; }
+    .pkg-hdr { display:flex; align-items:center; gap:.45rem; }
+    .pkg-icon { font-size:1rem; }
+    .pkg-name { font-size:.82rem; font-weight:700; }
+    .pkg-lang { margin-left:auto; font-size:.6rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:.15em .45em; border-radius:4px; }
+    .lang-cpp { background:#1e3a5f; color:var(--brand); }
+    .lang-js  { background:#3b2a0a; color:#f59e0b; }
+    .pkg-path { font-family:'Cascadia Code','Consolas',monospace; font-size:.65rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pkg-desc { font-size:.72rem; color:#94a3b8; line-height:1.55; }
+    .chart-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .chart-panel-hdr { display:flex; align-items:center; gap:.6rem; padding:.6rem 1rem; background:var(--surface2); border-bottom:1px solid var(--border); }
+    .chart-panel-title { font-size:.82rem; font-weight:700; flex:1; }
+    .chart-panel-sub   { font-size:.65rem; color:var(--muted); }
+    .chart-controls { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem; padding:.65rem 1rem; border-bottom:1px solid var(--border); background:var(--surface); }
+    .ctrl-group { display:flex; align-items:center; gap:.35rem; }
+    .ctrl-group label { font-size:.7rem; color:var(--muted); white-space:nowrap; }
+    select,input[type=range] { background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:.74rem; }
+    select { padding:.25em .5em; cursor:pointer; }
+    input[type=range] { -webkit-appearance:none; height:4px; border:none; accent-color:var(--brand); cursor:pointer; width:90px; }
+    .run-btn { padding:.32em .9em; font-size:.76em; font-family:inherit; font-weight:700; background:var(--brand); color:#fff; border:none; border-radius:6px; cursor:pointer; transition:background .12s; }
+    .run-btn:hover { background:#2563eb; }
+    .lbl { font-size:.7rem; color:var(--text); min-width:1.5em; text-align:right; }
+    .chart-area { padding:1rem; overflow:auto; }
+    graphics-chart canvas { border-radius:8px; box-shadow:0 2px 12px rgba(0,0,0,.35); background:#fff; }
+    .two-charts { display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:0 1rem 1rem; }
+    .chart-sub-title { font-size:.62rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:.4rem; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="tb-icon">🤖</span>
+  <div><div class="tb-title">K-Means Clustering</div><div class="tb-sub">Unsupervised machine learning · interactive demo</div></div>
+  <span class="tb-badge">ML DEMO</span>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="demo">📈 Demo</div>
+  <div class="tab" data-tab="code">&lt;/&gt; Code</div>
+  <div class="tab" data-tab="setup">⚙ Setup</div>
+  <div class="tab" data-tab="libraries">📦 Libraries</div>
+</div>
+
+<div class="main">
+
+  <!-- Demo tab -->
+  <div class="tab-panel active" id="tab-demo">
+    <section>
+      <div class="chart-panel">
+        <div class="chart-panel-hdr">
+          <span class="chart-panel-title">Live K-Means Cluster Viewer</span>
+          <span class="chart-panel-sub">Uses &lt;graphics-chart&gt; — JS mirror of GRAPHICS/charts C++ API</span>
+        </div>
+        <div class="chart-controls">
+          <div class="ctrl-group"><label>Chart type</label>
+            <select id="sel-type">
+              <option value="scatter">Scatter (clusters)</option>
+              <option value="line">Line (inertia history)</option>
+              <option value="bar">Bar (points per cluster)</option>
+              <option value="histogram">Histogram (x-distribution)</option>
+            </select></div>
+          <div class="ctrl-group"><label>Dataset</label>
+            <select id="sel-dataset">
+              <option value="blobs">Gaussian Blobs</option>
+              <option value="rings">Concentric Rings</option>
+              <option value="moons">Half Moons</option>
+              <option value="uniform">Uniform Random</option>
+              <option value="diagonal">Diagonal Stripes</option>
+            </select></div>
+          <div class="ctrl-group"><label>k</label>
+            <input type="range" id="sl-k" min="2" max="7" value="3" />
+            <span class="lbl" id="lbl-k">3</span></div>
+          <div class="ctrl-group"><label>Points</label>
+            <input type="range" id="sl-n" min="50" max="500" step="50" value="200" />
+            <span class="lbl" id="lbl-n">200</span></div>
+          <button class="run-btn" id="btn-run">&#9654; Run</button>
+        </div>
+        <div class="chart-area">
+          <div class="chart-sub-title" id="main-title">Cluster scatter</div>
+          <graphics-chart id="main-chart" type="scatter" width="820" height="380"
+            title="K-Means Clusters" x-label="x" y-label="y" series="[]"></graphics-chart>
+        </div>
+        <div class="two-charts">
+          <div>
+            <div class="chart-sub-title">Inertia (SSE) per iteration</div>
+            <graphics-chart id="inertia-chart" type="line" width="380" height="200"
+              title="Inertia" x-label="Iteration" y-label="SSE" series="[]"></graphics-chart>
+          </div>
+          <div>
+            <div class="chart-sub-title">Intra-cluster variance</div>
+            <graphics-chart id="bar-chart" type="bar" width="380" height="200"
+              title="Intra-cluster variance" x-label="Cluster" y-label="Variance" series="[]"></graphics-chart>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Code tab -->
+  <div class="tab-panel" id="tab-code">
+    <div>
+      <div class="section-title">Example usage</div>
+      <div class="code-block">
+        <div class="code-hdr">
+          <span class="code-lang-badge">Python</span>
+          <span class="code-filename">kmeans_example.py</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">from</span> ml_toolbox <span class="kw">import</span> kmeans
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Generate 2D sample data (3 clusters)</span>
+rng = np.random.<span class="fn">default_rng</span>(<span class="num">42</span>)
+X = np.<span class="fn">vstack</span>([
+    rng.<span class="fn">normal</span>(loc=[<span class="num">0.2</span>, <span class="num">0.2</span>], scale=<span class="num">0.07</span>, size=(<span class="num">100</span>, <span class="num">2</span>)),
+    rng.<span class="fn">normal</span>(loc=[<span class="num">0.7</span>, <span class="num">0.3</span>], scale=<span class="num">0.07</span>, size=(<span class="num">100</span>, <span class="num">2</span>)),
+    rng.<span class="fn">normal</span>(loc=[<span class="num">0.5</span>, <span class="num">0.8</span>], scale=<span class="num">0.07</span>, size=(<span class="num">100</span>, <span class="num">2</span>)),
+])
+
+<span class="cm"># Fit K-Means with k=3 clusters</span>
+result = kmeans.<span class="fn">fit</span>(X, k=<span class="num">3</span>)
+
+<span class="fn">print</span>(<span class="str">"Centroids:\n"</span>, result.centroids)
+<span class="fn">print</span>(<span class="str">"Labels:    "</span>, result.labels[:<span class="num">10</span>], <span class="str">"..."</span>)
+<span class="fn">print</span>(<span class="str">"Inertia:   "</span>, <span class="fn">round</span>(result.inertia, <span class="num">4</span>))
+<span class="fn">print</span>(<span class="str">"Iterations:"</span>, result.n_iter)</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup tab -->
+  <div class="tab-panel" id="tab-setup">
+    <div style="display:flex;flex-direction:column;gap:1.2rem">
+      <div>
+        <div class="section-title">Install</div>
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang-badge" style="background:#1e2535;color:#94a3b8;">Shell</span>
+            <span class="code-filename">terminal</span>
+          </div>
+          <div class="code-body"><pre><span class="cm"># Install from PyPI</span>
+pip install ml_toolbox
+
+<span class="cm"># Or install in editable mode from source</span>
+git clone https://github.com/coolbox/ml_toolbox
+pip install -e ml_toolbox/</pre></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Requirements</div>
+        <div class="code-block">
+          <div class="code-hdr">
+            <span class="code-lang-badge" style="background:#1e2535;color:#94a3b8;">Text</span>
+            <span class="code-filename">requirements.txt</span>
+          </div>
+          <div class="code-body"><pre>numpy&gt;=1.24
+ml_toolbox&gt;=0.1</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Libraries tab -->
+  <div class="tab-panel" id="tab-libraries">
+    <div>
+      <div class="section-title">Libraries used in this demo</div>
+      <div class="pkg-grid">
+
+        <div class="pkg-card js">
+          <div class="pkg-hdr">
+            <span class="pkg-icon">📊</span>
+            <span class="pkg-name">graphics-chart.mjs</span>
+            <span class="pkg-lang lang-js">JS</span>
+          </div>
+          <div class="pkg-path">/static/extensions/graphics-chart.mjs</div>
+          <div class="pkg-desc">Browser-side &lt;graphics-chart&gt; custom element. Mirrors the GRAPHICS/charts C++ API — supports scatter, line, bar, and histogram chart types via HTML attributes.</div>
+        </div>
+
+        <div class="pkg-card cpp">
+          <div class="pkg-hdr">
+            <span class="pkg-icon">📈</span>
+            <span class="pkg-name">GRAPHICS::charts</span>
+            <span class="pkg-lang lang-cpp">C++</span>
+          </div>
+          <div class="pkg-path">trekker · GRAPHICS · charts</div>
+          <div class="pkg-desc">C++ charting library from the CoolBox trekker group. The graphics-chart.mjs JS module mirrors its API so demos run identically in the browser.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+document.querySelectorAll('.tab').forEach(function(t) {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(x) { x.classList.remove('active'); });
+    t.classList.add('active');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+  });
+});
+
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function generateData(type,n,k){
+  const pts=[];
+  if(type==='blobs'){const cs=Array.from({length:k},()=>({cx:Math.random()*.6+.2,cy:Math.random()*.6+.2}));for(let i=0;i<n;i++){const c=cs[i%k];pts.push({x:clamp(c.cx+randn()*.07,.02,.98),y:clamp(c.cy+randn()*.07,.02,.98)});}}
+  else if(type==='rings'){const r=Array.from({length:k},(_,i)=>.1+i*(.35/k));for(let i=0;i<n;i++){const ri=r[i%k]+randn()*.018,a=Math.random()*2*Math.PI;pts.push({x:clamp(.5+ri*Math.cos(a),.02,.98),y:clamp(.5+ri*Math.sin(a),.02,.98)});}}
+  else if(type==='moons'){for(let i=0;i<n;i++){const h=i<n/2,a=Math.random()*Math.PI+(h?0:Math.PI),ri=.28+randn()*.022,ox=h?.35:.65,oy=h?.45:.55;pts.push({x:clamp(ox+ri*Math.cos(a),.02,.98),y:clamp(oy+ri*Math.sin(a),.02,.98)});}}
+  else if(type==='diagonal'){for(let i=0;i<n;i++){const lane=(i%k)/k,t=Math.random();pts.push({x:clamp(t*.9+.05+randn()*.04,.02,.98),y:clamp(lane*.8+.1+t*.1+randn()*.03,.02,.98)});}}
+  else{for(let i=0;i<n;i++)pts.push({x:Math.random()*.96+.02,y:Math.random()*.96+.02});}
+  return pts;
+}
+function initCentroids(pts,k){const ch=[pts[Math.floor(Math.random()*pts.length)]];while(ch.length<k){const d=pts.map(p=>Math.min(...ch.map(c=>(p.x-c.x)**2+(p.y-c.y)**2)));const t=d.reduce((a,b)=>a+b,0);let r=Math.random()*t;for(let i=0;i<pts.length;i++){r-=d[i];if(r<=0){ch.push(pts[i]);break;}}if(ch.length<k)ch.push(pts[pts.length-1]);}return ch.map(c=>({x:c.x,y:c.y}));}
+function doAssign(pts,cents){return pts.map(p=>{let b=0,bd=Infinity;for(let i=0;i<cents.length;i++){const d=(p.x-cents[i].x)**2+(p.y-cents[i].y)**2;if(d<bd){bd=d;b=i;}}return b;});}
+function updateC(pts,asgn,k){const s=Array.from({length:k},()=>({x:0,y:0,n:0}));for(let i=0;i<pts.length;i++){const si=s[asgn[i]];si.x+=pts[i].x;si.y+=pts[i].y;si.n++;}return s.map(si=>si.n?{x:si.x/si.n,y:si.y/si.n}:{x:.5,y:.5});}
+function calcInertia(pts,cents,asgn){return pts.reduce((acc,p,i)=>acc+(p.x-cents[asgn[i]].x)**2+(p.y-cents[asgn[i]].y)**2,0);}
+function runKMeans(pts,k){let cents=initCentroids(pts,k);const hist=[];let asgn;for(let it=0;it<60;it++){asgn=doAssign(pts,cents);hist.push(calcInertia(pts,cents,asgn));const nc=updateC(pts,asgn,k);if(nc.every((c,i)=>Math.abs(c.x-cents[i].x)<1e-9&&Math.abs(c.y-cents[i].y)<1e-9)){cents=nc;break;}cents=nc;}return{centroids:cents,assignments:asgn,inertiaHistory:hist};}
+
+const PALETTE=['Blue','Red','Green','Orange','Purple','Cyan','Gray'];
+
+function renderCharts(){
+  const k=parseInt(document.getElementById('sl-k').value,10);
+  const n=parseInt(document.getElementById('sl-n').value,10);
+  const ds=document.getElementById('sel-dataset').value;
+  const ct=document.getElementById('sel-type').value;
+  const pts=generateData(ds,n,k);
+  const{centroids,assignments,inertiaHistory}=runKMeans(pts,k);
+
+  const scatterS=Array.from({length:k},(_,ci)=>({label:`Cluster ${ci+1}`,x:pts.filter((_,i)=>assignments[i]===ci).map(p=>p.x),y:pts.filter((_,i)=>assignments[i]===ci).map(p=>p.y),color:PALETTE[ci%PALETTE.length]}));
+  scatterS.push({label:'\u2746 Centroids',x:centroids.map(c=>c.x),y:centroids.map(c=>c.y),color:'DarkGray'});
+
+  const iters=inertiaHistory.map((_,i)=>i+1);
+  const inertS=[{label:'SSE',x:iters,y:inertiaHistory,color:'Blue'}];
+
+  const variance=Array.from({length:k},(_,ci)=>{
+    const cpts=pts.filter((_,i)=>assignments[i]===ci);
+    if(!cpts.length)return 0;
+    const cx=centroids[ci].x,cy=centroids[ci].y;
+    return cpts.reduce((s,p)=>s+(p.x-cx)**2+(p.y-cy)**2,0)/cpts.length;
+  });
+  const varS=Array.from({length:k},(_,ci)=>({label:`Cluster ${ci+1}`,x:[ci],y:[+(variance[ci].toFixed(5))],color:PALETTE[ci%PALETTE.length]}));
+
+  const mc=document.getElementById('main-chart');
+  const ic=document.getElementById('inertia-chart');
+  const bc=document.getElementById('bar-chart');
+
+  if(ct==='scatter'){mc.setAttribute('type','scatter');mc.setAttribute('series',JSON.stringify(scatterS));mc.setAttribute('title','K-Means Clusters');mc.setAttribute('x-label','x');mc.setAttribute('y-label','y');}
+  else if(ct==='line'){mc.setAttribute('type','line');mc.setAttribute('series',JSON.stringify(inertS));mc.setAttribute('title','Inertia History');mc.setAttribute('x-label','Iteration');mc.setAttribute('y-label','SSE');}
+  else if(ct==='bar'){const szS=Array.from({length:k},(_,ci)=>({label:`Cluster ${ci+1}`,x:[ci],y:[pts.filter((_,i)=>assignments[i]===ci).length],color:PALETTE[ci%PALETTE.length]}));mc.setAttribute('type','bar');mc.setAttribute('series',JSON.stringify(szS));mc.setAttribute('title','Cluster Sizes');mc.setAttribute('x-label','Cluster');mc.setAttribute('y-label','Count');}
+  else if(ct==='histogram'){mc.setAttribute('type','histogram');mc.setAttribute('data',JSON.stringify(pts.map(p=>p.x)));mc.setAttribute('bins','25');mc.setAttribute('title','Distribution of x-values');mc.setAttribute('series','[]');}
+
+  ic.setAttribute('series',JSON.stringify(inertS));
+  ic.setAttribute('title',`Inertia (${inertiaHistory.length} iters)`);
+
+  bc.setAttribute('series',JSON.stringify(varS));
+  bc.setAttribute('title',`Intra-cluster variance (k=${k})`);
+  bc.setAttribute('y-label','Variance');
+}
+
+document.getElementById('sl-k').addEventListener('input',function(){document.getElementById('lbl-k').textContent=this.value;});
+document.getElementById('sl-n').addEventListener('input',function(){document.getElementById('lbl-n').textContent=this.value;});
+document.getElementById('btn-run').addEventListener('click',renderCharts);
+document.getElementById('sel-type').addEventListener('change',renderCharts);
+document.getElementById('sel-dataset').addEventListener('change',renderCharts);
+customElements.whenDefined('graphics-chart').then(renderCharts);
+</script>
+</body>
+</html>

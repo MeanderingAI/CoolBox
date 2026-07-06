@@ -1,0 +1,19 @@
+# Package C bindings test binaries for generate_purchase_c
+steps:
+name: 'purchase-package-c-bindings-tests'
+description: 'Composite action for purchase-package-c-bindings-tests'
+runs:
+  using: 'composite'
+  steps:
+  - name: Package c bindings test binaries
+    run: |
+      mkdir -p _libraries/c_bindings/build/test-binaries || true
+      for f in _libraries/c_bindings/build/**/*_tests _libraries/c_bindings/build/**/*_test _libraries/c_bindings/build/tests/*; do
+        if [ -f "$f" ] && [ -x "$f" ]; then
+          cp "$f" _libraries/c_bindings/build/test-binaries/ || true
+        fi
+      done
+      if [ -d _libraries/c_bindings/build/test-binaries ] && [ "$(ls -A _libraries/c_bindings/build/test-binaries 2>/dev/null)" ]; then
+        tar -czf _libraries/c_bindings/build/c_bindings_test_binaries.tar.gz -C _libraries/c_bindings/build test-binaries
+        ls -la _libraries/c_bindings/build/c_bindings_test_binaries.tar.gz || true
+      fi

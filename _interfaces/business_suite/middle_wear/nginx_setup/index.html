@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nginx Setup · Middleware</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand:  #2563eb; --brand-d: #1d4ed8;
+      --text:   #1e293b; --muted:   #64748b;
+      --border: #e2e8f0; --surface: #f8fafc;
+      --green:  #16a34a; --red:     #dc2626; --amber: #d97706;
+    }
+    body { font-family: system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--surface); color:var(--text); min-height:100vh; }
+
+    nav { background:#0f172a; display:flex; align-items:center; padding:0 1.5rem; height:54px; gap:1rem; }
+    .nav-brand { font-weight:800; color:#f8fafc; font-size:.95rem; }
+    .nav-brand span { color:#60a5fa; }
+    .nav-sep { color:#334155; }
+    .nav-title { font-size:.85rem; color:#94a3b8; }
+    .mock-badge { background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:.65rem; font-weight:700; padding:.1em .45em; border-radius:999px; letter-spacing:.06em; text-transform:uppercase; }
+
+    .layout { display:grid; grid-template-columns:260px 1fr; max-width:1200px; margin:0 auto; gap:0; min-height:calc(100vh - 54px); }
+
+    /* ── Sidebar ── */
+    .sidebar { background:#fff; border-right:1px solid var(--border); padding:1rem; }
+    .sidebar-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:.25rem .5rem; margin-bottom:.3rem; }
+    .vhost-item {
+      display:flex; align-items:center; gap:.6rem;
+      padding:.5rem .6rem; border-radius:6px; cursor:pointer;
+      font-size:.84rem; transition:background .12s;
+    }
+    .vhost-item:hover { background:#f1f5f9; }
+    .vhost-item.active { background:#eff6ff; color:var(--brand); font-weight:700; }
+    .vhost-icon { font-size:1rem; }
+    .vhost-name { flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .dot-green { background:#22c55e; }
+    .dot-amber { background:#f59e0b; }
+    .dot-gray  { background:#94a3b8; }
+    .sidebar-divider { height:1px; background:var(--border); margin:.75rem 0; }
+    .add-btn {
+      width:100%; display:flex; align-items:center; justify-content:center; gap:.4em;
+      padding:.45em; border:1.5px dashed var(--border); border-radius:6px;
+      background:transparent; color:var(--muted); font-size:.78rem; font-weight:600;
+      cursor:pointer; transition:background .12s; font-family:inherit;
+    }
+    .add-btn:hover { background:#f0f4f8; border-color:#94a3b8; }
+
+    /* ── Main ── */
+    .main { padding:1.5rem; }
+    .tab-bar { display:flex; gap:.3rem; border-bottom:2px solid var(--border); margin-bottom:1.25rem; }
+    .tab-btn {
+      padding:.4em .9em; font-size:.82rem; font-weight:600; font-family:inherit;
+      border:none; border-bottom:3px solid transparent; margin-bottom:-2px;
+      background:transparent; color:var(--muted); cursor:pointer; border-radius:4px 4px 0 0;
+      transition:color .12s;
+    }
+    .tab-btn.active { color:var(--brand); border-bottom-color:var(--brand); }
+    .tab-btn:hover { color:var(--text); }
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* ── Header row ── */
+    .panel-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+    .panel-title { font-size:1.1rem; font-weight:800; }
+    .badge { display:inline-block; padding:.18em .55em; border-radius:999px; font-size:.7rem; font-weight:700; }
+    .badge-up   { background:#dcfce7; color:var(--green); }
+    .badge-off  { background:#fee2e2; color:var(--red); }
+    .badge-warn { background:#fef3c7; color:var(--amber); }
+    .btn { padding:.38em .85em; font-size:.8rem; font-weight:600; font-family:inherit; border-radius:6px; cursor:pointer; border:1.5px solid transparent; transition:background .12s; }
+    .btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    .btn-primary:hover { background:var(--brand-d); }
+    .btn-ghost { background:#fff; border-color:var(--border); color:var(--text); }
+    .btn-ghost:hover { background:var(--surface); }
+    .btn-danger { background:#fff; border-color:#fca5a5; color:var(--red); }
+    .btn-danger:hover { background:#fee2e2; }
+
+    /* ── Config sections ── */
+    .cfg-section { background:#fff; border:1px solid var(--border); border-radius:10px; padding:1.1rem; margin-bottom:1rem; }
+    .cfg-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:.85rem; display:flex; align-items:center; gap:.5rem; }
+    .cfg-toggle { margin-left:auto; display:flex; align-items:center; gap:.4rem; font-size:.78rem; color:var(--text); font-weight:normal; text-transform:none; letter-spacing:0; }
+    .toggle-sw { position:relative; width:34px; height:18px; }
+    .toggle-sw input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#cbd5e1; border-radius:18px; cursor:pointer; transition:background .2s; }
+    .slider::before { content:''; position:absolute; width:14px; height:14px; left:2px; top:2px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .toggle-sw input:checked + .slider { background:var(--brand); }
+    .toggle-sw input:checked + .slider::before { transform:translateX(16px); }
+
+    .field { margin-bottom:.75rem; }
+    .field:last-child { margin-bottom:0; }
+    label { display:block; font-size:.78rem; font-weight:700; color:var(--text); margin-bottom:.3rem; }
+    input[type=text], input[type=number], select, textarea {
+      width:100%; padding:.45em .7em; font-size:.84rem; font-family:inherit;
+      border:1.5px solid var(--border); border-radius:6px; background:var(--surface);
+      color:var(--text); outline:none; transition:border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color:var(--brand); background:#fff; }
+    .field-row { display:flex; gap:.5rem; }
+    .field-row .field { flex:1; }
+    .help-text { font-size:.72rem; color:var(--muted); margin-top:.25rem; }
+
+    /* ── Upstream table ── */
+    .upstream-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+    .upstream-table th { padding:.5em .75em; text-align:left; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); border-bottom:1px solid var(--border); }
+    .upstream-table td { padding:.5em .75em; border-bottom:1px solid var(--border); }
+    .upstream-table tr:last-child td { border-bottom:none; }
+    .up-server { font-family:'Cascadia Code','Consolas',monospace; font-size:.78rem; color:var(--text); }
+    .up-weight { color:var(--muted); }
+    .rm-btn { padding:.1em .4em; font-size:.72rem; border:1px solid #fca5a5; border-radius:3px; background:transparent; color:var(--red); cursor:pointer; }
+    .rm-btn:hover { background:#fee2e2; }
+
+    /* ── Nginx config raw view ── */
+    .config-raw {
+      background:#1e1e2e; border-radius:8px; padding:1rem;
+      font-family:'Cascadia Code','Consolas',monospace; font-size:.8rem;
+      color:#d4d4d4; white-space:pre; overflow-x:auto; line-height:1.55;
+    }
+    .kw  { color:#569cd6; }
+    .str { color:#ce9178; }
+    .cmt { color:#6a9955; }
+    .num { color:#b5cea8; }
+    /* ── Config export panel ── */
+    .cfg-export { background:#1e1e2e; border-radius:10px; overflow:hidden; }
+    .cfg-export-hdr {
+      display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+      padding:.55rem .9rem; background:#12121f; border-bottom:1px solid #313244;
+    }
+    .cfg-export-title { font-size:.75rem; font-weight:700; color:#94a3b8; flex:1; }
+    .cfg-export-action-bar { display:flex; gap:.3rem; }
+    .cfg-copy-btn  { padding:.22em .65em; font-size:.72rem; font-weight:700; font-family:inherit; border-radius:4px; cursor:pointer; background:#313244; border:1px solid #45475a; color:#cdd6f4; }
+    .cfg-copy-btn:hover  { background:#45475a; }
+    .cfg-dl-btn    { padding:.22em .65em; font-size:.72rem; font-weight:700; font-family:inherit; border-radius:4px; cursor:pointer; background:#2563eb; border:1px solid #2563eb; color:#fff; }
+    .cfg-dl-btn:hover    { background:#1d4ed8; }
+    .cfg-regen-btn { padding:.22em .65em; font-size:.72rem; font-weight:700; font-family:inherit; border-radius:4px; cursor:pointer; background:#313244; border:1px solid #45475a; color:#cdd6f4; }
+    .cfg-regen-btn:hover { background:#45475a; }
+    #cfg-output {
+      margin:0; padding:.85rem 1.1rem;
+      font-family:'Cascadia Code','Fira Code','Consolas',monospace;
+      font-size:.78rem; line-height:1.65; color:#d4d4d4;
+      white-space:pre; overflow-x:auto; overflow-y:auto;
+      max-height:520px; background:#1e1e2e;
+    }
+
+    /* ── Logs ── */
+    .log-area {
+      background:#1e1e2e; border-radius:8px; padding:.75rem 1rem;
+      font-family:'Cascadia Code','Consolas',monospace; font-size:.75rem;
+      color:#d4d4d4; min-height:160px; max-height:300px; overflow-y:auto;
+      white-space:pre-wrap; line-height:1.5;
+    }
+    .log-ok  { color:#4ade80; }
+    .log-err { color:#f87171; }
+    .log-inf { color:#60a5fa; }
+
+    @media(max-width:700px) {
+      .layout { grid-template-columns:1fr; }
+      .sidebar { border-right:none; border-bottom:1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Meandering<span>LLC</span></span>
+  <span class="nav-sep">›</span>
+  <span class="nav-title">🌐 Nginx Setup <span class="mock-badge">Mock</span></span>
+</nav>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-label">Virtual Hosts</div>
+    <div class="vhost-item active" data-i="0">
+      <span class="vhost-icon">🏠</span>
+      <span class="vhost-name">coolbox.local</span>
+      <span class="status-dot dot-green"></span>
+    </div>
+    <div class="vhost-item" data-i="1">
+      <span class="vhost-icon">🔌</span>
+      <span class="vhost-name">api.coolbox.local</span>
+      <span class="status-dot dot-green"></span>
+    </div>
+    <div class="vhost-item" data-i="2">
+      <span class="vhost-icon">🏢</span>
+      <span class="vhost-name">portal.meandering.llc</span>
+      <span class="status-dot dot-amber"></span>
+    </div>
+    <div class="vhost-item" data-i="3">
+      <span class="vhost-icon">📁</span>
+      <span class="vhost-name">static.coolbox.local</span>
+      <span class="status-dot dot-gray"></span>
+    </div>
+    <div class="sidebar-divider"></div>
+    <button class="add-btn">＋ New Virtual Host</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="tab-bar" id="tab-bar">
+      <button class="tab-btn active" data-panel="general">General</button>
+      <button class="tab-btn" data-panel="proxy">Proxy / Upstream</button>
+      <button class="tab-btn" data-panel="ssl">SSL / TLS</button>
+      <button class="tab-btn" data-panel="headers">Headers</button>
+      <button class="tab-btn" data-panel="raw">Raw Config</button>
+      <button class="tab-btn" data-panel="logs">Logs</button>
+    </div>
+
+    <!-- General -->
+    <div class="panel active" id="panel-general">
+      <div class="panel-header">
+        <div class="panel-title">coolbox.local</div>
+        <span class="badge badge-up">● Active</span>
+        <div style="margin-left:auto;display:flex;gap:.4rem">
+          <button class="btn btn-ghost">🔄 Test Config</button>
+          <button class="btn btn-primary" onclick="mockReload()">↻ Reload nginx</button>
+          <button class="btn btn-danger">⏹ Disable</button>
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">Server Block</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Server name</label>
+            <input type="text" value="coolbox.local www.coolbox.local" />
+          </div>
+          <div class="field" style="flex:0 0 110px">
+            <label>Listen port</label>
+            <input type="number" value="80" />
+          </div>
+          <div class="field" style="flex:0 0 110px">
+            <label>HTTPS port</label>
+            <input type="number" value="443" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Root directory</label>
+          <input type="text" value="/var/www/coolbox" />
+        </div>
+        <div class="field">
+          <label>Index files</label>
+          <input type="text" value="index.html index.htm" />
+        </div>
+        <div class="field">
+          <label>Access log</label>
+          <input type="text" value="/var/log/nginx/coolbox.access.log combined" />
+        </div>
+        <div class="field">
+          <label>Error log</label>
+          <input type="text" value="/var/log/nginx/coolbox.error.log warn" />
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">
+          Gzip Compression
+          <span class="cfg-toggle">
+            Enable
+            <label class="toggle-sw"><input type="checkbox" checked /><span class="slider"></span></label>
+          </span>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Min length (bytes)</label><input type="number" value="256" /></div>
+          <div class="field"><label>Comp level (1–9)</label><input type="number" value="6" min="1" max="9" /></div>
+        </div>
+        <div class="field">
+          <label>MIME types</label>
+          <input type="text" value="text/plain text/css application/json application/javascript text/xml" />
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="mockSave()">💾 Save Configuration</button>
+      <span id="save-msg" style="font-size:.78rem;color:var(--green);margin-left:.75rem"></span>
+    </div>
+
+    <!-- Proxy / Upstream -->
+    <div class="panel" id="panel-proxy">
+      <div class="panel-header">
+        <div class="panel-title">Proxy &amp; Upstream</div>
+        <span class="badge badge-up">● Active</span>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">
+          Reverse Proxy
+          <span class="cfg-toggle">
+            Enable
+            <label class="toggle-sw"><input type="checkbox" checked /><span class="slider"></span></label>
+          </span>
+        </div>
+        <div class="field">
+          <label>Proxy pass (upstream group)</label>
+          <input type="text" value="http://coolbox_backend" />
+          <div class="help-text">Use upstream group name or direct URL e.g. http://127.0.0.1:8000</div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Proxy read timeout (s)</label><input type="number" value="60" /></div>
+          <div class="field"><label>Proxy connect timeout (s)</label><input type="number" value="10" /></div>
+          <div class="field"><label>Proxy send timeout (s)</label><input type="number" value="60" /></div>
+        </div>
+        <div class="field">
+          <label>Proxy buffer size</label>
+          <input type="text" value="128k" />
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">Upstream Group: coolbox_backend</div>
+        <div style="margin-bottom:.75rem">
+          <table class="upstream-table">
+            <thead><tr><th>Server</th><th>Weight</th><th>Max fails</th><th>Fail timeout</th><th></th></tr></thead>
+            <tbody id="upstream-body"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input type="text" placeholder="127.0.0.1:8000" style="flex:1;font-size:.8rem" id="new-server" />
+          <button class="btn btn-ghost" style="font-size:.78rem" onclick="addUpstream()">＋ Add</button>
+        </div>
+        <div style="margin-top:.75rem">
+          <label>Load balancing</label>
+          <select><option>round-robin</option><option>least_conn</option><option>ip_hash</option><option>random</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SSL -->
+    <div class="panel" id="panel-ssl">
+      <div class="panel-header">
+        <div class="panel-title">SSL / TLS</div>
+        <span class="badge badge-warn">⚠ Expiring in 12d</span>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">
+          HTTPS
+          <span class="cfg-toggle">Enable <label class="toggle-sw"><input type="checkbox" checked /><span class="slider"></span></label></span>
+        </div>
+        <div class="field"><label>Certificate file</label><input type="text" value="/etc/ssl/certs/coolbox.local.crt" /></div>
+        <div class="field"><label>Private key file</label><input type="text" value="/etc/ssl/private/coolbox.local.key" /></div>
+        <div class="field"><label>Certificate chain</label><input type="text" value="/etc/ssl/certs/chain.crt" /></div>
+        <div class="field"><label>SSL protocols</label><input type="text" value="TLSv1.2 TLSv1.3" /></div>
+        <div class="field"><label>SSL ciphers</label><input type="text" value="ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256" /></div>
+        <div class="field-row">
+          <div class="field">
+            <label>Session timeout</label>
+            <input type="text" value="1d" />
+          </div>
+          <div class="field">
+            <label>Session cache</label>
+            <input type="text" value="shared:SSL:10m" />
+          </div>
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">
+          HSTS
+          <span class="cfg-toggle">Enable <label class="toggle-sw"><input type="checkbox" checked /><span class="slider"></span></label></span>
+        </div>
+        <div class="field"><label>Max age (seconds)</label><input type="number" value="31536000" /></div>
+        <div class="field">
+          <label><input type="checkbox" checked style="width:auto;margin-right:.4em" />Include subdomains</label>
+          <label style="margin-top:.4rem"><input type="checkbox" style="width:auto;margin-right:.4em" />Preload</label>
+        </div>
+      </div>
+      <button class="btn btn-primary">🔄 Generate Self-Signed (mock)</button>
+    </div>
+
+    <!-- Headers -->
+    <div class="panel" id="panel-headers">
+      <div class="panel-header"><div class="panel-title">Response Headers</div></div>
+      <div class="cfg-section">
+        <div class="cfg-title">Security Headers</div>
+        <div class="field"><label>X-Frame-Options</label><select><option>DENY</option><option selected>SAMEORIGIN</option><option>ALLOW-FROM</option></select></div>
+        <div class="field"><label>X-Content-Type-Options</label><input type="text" value="nosniff" /></div>
+        <div class="field"><label>Referrer-Policy</label><select><option>no-referrer</option><option>no-referrer-when-downgrade</option><option selected>strict-origin-when-cross-origin</option></select></div>
+        <div class="field"><label>Permissions-Policy</label><input type="text" value="camera=(), microphone=(), geolocation=()" /></div>
+        <div class="field"><label>Content-Security-Policy</label><textarea>default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;</textarea></div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-title">CORS</div>
+        <div class="field"><label>Access-Control-Allow-Origin</label><input type="text" value="https://coolbox.local" /></div>
+        <div class="field"><label>Access-Control-Allow-Methods</label><input type="text" value="GET, POST, PUT, DELETE, OPTIONS" /></div>
+        <div class="field"><label>Access-Control-Allow-Headers</label><input type="text" value="Authorization, Content-Type, X-Requested-With" /></div>
+      </div>
+      <button class="btn btn-primary">💾 Apply Headers</button>
+    </div>
+
+    <!-- Raw config -->
+    <div class="panel" id="panel-raw">
+      <div class="panel-header">
+        <div class="panel-title">Raw nginx.conf Block</div>
+        <div style="margin-left:auto;display:flex;gap:.4rem">
+          <button class="btn btn-ghost" onclick="cfgRegen()">↻ Regenerate</button>
+          <button class="btn btn-ghost" onclick="cfgCopy()">📋 Copy</button>
+          <button class="btn btn-primary" onclick="cfgDownload()">⬇ Download .conf</button>
+        </div>
+      </div>
+      <div class="cfg-export">
+        <div class="cfg-export-hdr">
+          <span class="cfg-export-title" id="cfg-export-title">📄 coolbox.local — nginx server block</span>
+          <div class="cfg-export-action-bar">
+            <button class="cfg-regen-btn" onclick="cfgRegen()">↻ Rebuild from form</button>
+            <button class="cfg-copy-btn" onclick="cfgCopy()">⎘ Copy</button>
+            <button class="cfg-dl-btn" onclick="cfgDownload()">⬇ .conf</button>
+          </div>
+        </div>
+        <pre id="cfg-output"></pre>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="panel" id="panel-logs">
+      <div class="panel-header">
+        <div class="panel-title">Access &amp; Error Logs</div>
+        <button class="btn btn-ghost" onclick="clearLogs()">🗑 Clear</button>
+        <button class="btn btn-ghost" onclick="addMockLog()">＋ Simulate request</button>
+      </div>
+      <div class="log-area" id="log-area"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  document.getElementById('tab-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+  });
+
+  // Upstream rows
+  const upstreams = [
+    { server:'127.0.0.1:8000', weight:3, maxFails:3, failTimeout:'30s' },
+    { server:'127.0.0.1:8001', weight:1, maxFails:3, failTimeout:'30s' },
+  ];
+  function renderUpstreams() {
+    const tbody = document.getElementById('upstream-body');
+    tbody.innerHTML = '';
+    upstreams.forEach((u, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="up-server">${u.server}</td><td class="up-weight">${u.weight}</td><td class="up-weight">${u.maxFails}</td><td class="up-weight">${u.failTimeout}</td><td><button class="rm-btn" onclick="removeUpstream(${i})">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  function addUpstream() {
+    const val = document.getElementById('new-server').value.trim();
+    if (!val) return;
+    upstreams.push({ server:val, weight:1, maxFails:3, failTimeout:'30s' });
+    document.getElementById('new-server').value = '';
+    renderUpstreams();
+  }
+  function removeUpstream(i) { upstreams.splice(i,1); renderUpstreams(); }
+  renderUpstreams();
+
+  // ── Vhost data model (mirrors sidebar) ──────────────────────────────────────
+  const VHOSTS = [
+    {
+      name: 'coolbox.local',
+      serverName: 'coolbox.local www.coolbox.local',
+      port: 80, httpsPort: 443,
+      root: '/var/www/coolbox', index: 'index.html index.htm',
+      accessLog: '/var/log/nginx/coolbox.access.log combined',
+      errorLog: '/var/log/nginx/coolbox.error.log warn',
+      gzip: true, gzipMinLen: 256, gzipLevel: 6,
+      gzipTypes: 'text/plain text/css application/json application/javascript text/xml',
+      ssl: true,
+      sslCert: '/etc/ssl/certs/coolbox.local.crt',
+      sslKey: '/etc/ssl/private/coolbox.local.key',
+      sslProto: 'TLSv1.2 TLSv1.3',
+      hsts: true, hstsAge: 31536000, hstsSubdomains: true,
+      proxy: true, proxyPass: 'http://coolbox_backend',
+      proxyReadTimeout: 60, proxyConnectTimeout: 10, proxySendTimeout: 60,
+      proxyBufferSize: '128k',
+      upstreamGroup: 'coolbox_backend', lbMethod: 'least_conn',
+      xFrameOptions: 'SAMEORIGIN',
+      xcto: 'nosniff',
+      csp: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;",
+      corsOrigin: 'https://coolbox.local',
+    },
+    {
+      name: 'api.coolbox.local',
+      serverName: 'api.coolbox.local',
+      port: 80, httpsPort: 443,
+      root: '/var/www/api', index: 'index.html',
+      accessLog: '/var/log/nginx/api.access.log combined',
+      errorLog: '/var/log/nginx/api.error.log warn',
+      gzip: true, gzipMinLen: 512, gzipLevel: 5,
+      gzipTypes: 'application/json application/javascript text/plain',
+      ssl: true,
+      sslCert: '/etc/ssl/certs/api.coolbox.local.crt',
+      sslKey: '/etc/ssl/private/api.coolbox.local.key',
+      sslProto: 'TLSv1.2 TLSv1.3',
+      hsts: true, hstsAge: 31536000, hstsSubdomains: false,
+      proxy: true, proxyPass: 'http://api_backend',
+      proxyReadTimeout: 30, proxyConnectTimeout: 5, proxySendTimeout: 30,
+      proxyBufferSize: '64k',
+      upstreamGroup: 'api_backend', lbMethod: 'round-robin',
+      xFrameOptions: 'DENY', xcto: 'nosniff',
+      csp: "default-src 'none'; script-src 'self';",
+      corsOrigin: 'https://coolbox.local',
+    },
+    {
+      name: 'portal.meandering.llc',
+      serverName: 'portal.meandering.llc',
+      port: 80, httpsPort: 443,
+      root: '/var/www/portal', index: 'index.html',
+      accessLog: '/var/log/nginx/portal.access.log combined',
+      errorLog: '/var/log/nginx/portal.error.log warn',
+      gzip: true, gzipMinLen: 256, gzipLevel: 6,
+      gzipTypes: 'text/plain text/css application/json',
+      ssl: false,
+      sslCert: '', sslKey: '', sslProto: 'TLSv1.2 TLSv1.3',
+      hsts: false, hstsAge: 0, hstsSubdomains: false,
+      proxy: true, proxyPass: 'http://portal_backend',
+      proxyReadTimeout: 60, proxyConnectTimeout: 10, proxySendTimeout: 60,
+      proxyBufferSize: '128k',
+      upstreamGroup: 'portal_backend', lbMethod: 'ip_hash',
+      xFrameOptions: 'SAMEORIGIN', xcto: 'nosniff',
+      csp: "default-src 'self';",
+      corsOrigin: '*',
+    },
+    {
+      name: 'static.coolbox.local',
+      serverName: 'static.coolbox.local',
+      port: 80, httpsPort: 443,
+      root: '/var/www/static', index: 'index.html',
+      accessLog: '/var/log/nginx/static.access.log combined',
+      errorLog: '/var/log/nginx/static.error.log warn',
+      gzip: true, gzipMinLen: 256, gzipLevel: 9,
+      gzipTypes: 'text/plain text/css application/javascript image/svg+xml',
+      ssl: true,
+      sslCert: '/etc/ssl/certs/static.coolbox.local.crt',
+      sslKey: '/etc/ssl/private/static.coolbox.local.key',
+      sslProto: 'TLSv1.2 TLSv1.3',
+      hsts: false, hstsAge: 0, hstsSubdomains: false,
+      proxy: false, proxyPass: '',
+      proxyReadTimeout: 30, proxyConnectTimeout: 5, proxySendTimeout: 30,
+      proxyBufferSize: '32k',
+      upstreamGroup: '', lbMethod: 'round-robin',
+      xFrameOptions: 'SAMEORIGIN', xcto: 'nosniff',
+      csp: "default-src 'self'; img-src 'self' data:;",
+      corsOrigin: '*',
+    },
+  ];
+
+  let activeVhostIdx = 0;
+
+  // Sync sidebar clicks to update active vhost index and regenerate config when Raw tab is visible
+  document.querySelectorAll('.vhost-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.vhost-item').forEach(v => v.classList.remove('active'));
+      item.classList.add('active');
+      activeVhostIdx = parseInt(item.dataset.i) || 0;
+      // update panel title
+      const vh = VHOSTS[activeVhostIdx];
+      if (vh) {
+        document.querySelectorAll('.panel-title').forEach((el, i) => { if (i === 0) el.textContent = vh.name; });
+      }
+      // if raw tab is open, regenerate
+      if (document.getElementById('panel-raw').classList.contains('active')) cfgRender();
+    });
+  });
+
+  // ── Config generator ────────────────────────────────────────────────────────
+  function cfgGenerate(vh, ups) {
+    const lines = [];
+    const lb = vh.lbMethod === 'round-robin' ? '' : vh.lbMethod + ';\n    ';
+    lines.push(`# /etc/nginx/sites-available/${vh.name}`);
+    lines.push(`# Generated by CoolBox Dashboard — ${new Date().toISOString().slice(0,10)}`);
+    lines.push('');
+
+    if (vh.proxy && vh.upstreamGroup) {
+      lines.push(`upstream ${vh.upstreamGroup} {`);
+      if (lb) lines.push(`    ${vh.lbMethod};`);
+      ups.forEach(u => lines.push(`    server ${u.server} weight=${u.weight} max_fails=${u.maxFails} fail_timeout=${u.failTimeout};`));
+      lines.push('}');
+      lines.push('');
+    }
+
+    // HTTP block (redirect if SSL, else plain)
+    if (vh.ssl) {
+      lines.push(`server {`);
+      lines.push(`    listen ${vh.port};`);
+      lines.push(`    server_name ${vh.serverName};`);
+      lines.push(`    return 301 https://$host$request_uri;`);
+      lines.push(`}`);
+      lines.push('');
+    }
+
+    const listenDirective = vh.ssl ? `${vh.httpsPort} ssl http2` : `${vh.port}`;
+    lines.push(`server {`);
+    lines.push(`    listen ${listenDirective};`);
+    lines.push(`    server_name ${vh.serverName};`);
+    lines.push('');
+
+    if (vh.ssl) {
+      lines.push(`    ssl_certificate      ${vh.sslCert};`);
+      lines.push(`    ssl_certificate_key  ${vh.sslKey};`);
+      lines.push(`    ssl_protocols        ${vh.sslProto};`);
+      lines.push(`    ssl_session_timeout  1d;`);
+      lines.push(`    ssl_session_cache    shared:SSL:10m;`);
+      lines.push('');
+    }
+
+    if (!vh.proxy) {
+      lines.push(`    root  ${vh.root};`);
+      lines.push(`    index ${vh.index};`);
+      lines.push('');
+    }
+
+    lines.push(`    access_log  ${vh.accessLog};`);
+    lines.push(`    error_log   ${vh.errorLog};`);
+    lines.push('');
+
+    if (vh.gzip) {
+      lines.push(`    gzip              on;`);
+      lines.push(`    gzip_min_length   ${vh.gzipMinLen};`);
+      lines.push(`    gzip_comp_level   ${vh.gzipLevel};`);
+      lines.push(`    gzip_types        ${vh.gzipTypes};`);
+      lines.push('');
+    }
+
+    // Security headers
+    lines.push(`    add_header  X-Frame-Options          ${vh.xFrameOptions} always;`);
+    lines.push(`    add_header  X-Content-Type-Options    ${vh.xcto} always;`);
+    if (vh.hsts) {
+      const hd = `max-age=${vh.hstsAge}${vh.hstsSubdomains ? '; includeSubDomains' : ''}`;
+      lines.push(`    add_header  Strict-Transport-Security "${hd}" always;`);
+    }
+    if (vh.csp) lines.push(`    add_header  Content-Security-Policy  "${vh.csp}" always;`);
+    if (vh.corsOrigin) lines.push(`    add_header  Access-Control-Allow-Origin  "${vh.corsOrigin}";`);
+    lines.push('');
+
+    if (vh.proxy) {
+      lines.push(`    location / {`);
+      lines.push(`        proxy_pass              ${vh.proxyPass};`);
+      lines.push(`        proxy_http_version      1.1;`);
+      lines.push(`        proxy_set_header        Upgrade $http_upgrade;`);
+      lines.push(`        proxy_set_header        Connection "upgrade";`);
+      lines.push(`        proxy_set_header        Host $host;`);
+      lines.push(`        proxy_set_header        X-Real-IP $remote_addr;`);
+      lines.push(`        proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;`);
+      lines.push(`        proxy_read_timeout      ${vh.proxyReadTimeout}s;`);
+      lines.push(`        proxy_connect_timeout   ${vh.proxyConnectTimeout}s;`);
+      lines.push(`        proxy_send_timeout      ${vh.proxySendTimeout}s;`);
+      lines.push(`        proxy_buffer_size       ${vh.proxyBufferSize};`);
+      lines.push(`        proxy_cache_bypass      $http_upgrade;`);
+      lines.push(`    }`);
+    } else {
+      lines.push(`    location / {`);
+      lines.push(`        try_files $uri $uri/ =404;`);
+      lines.push(`    }`);
+    }
+
+    lines.push(`}`);
+    return lines.join('\n');
+  }
+
+  function cfgHighlight(raw) {
+    const kwRe = /\b(server|upstream|listen|server_name|root|index|return|ssl_certificate|ssl_certificate_key|ssl_protocols|ssl_session_timeout|ssl_session_cache|gzip|gzip_min_length|gzip_comp_level|gzip_types|add_header|location|proxy_pass|proxy_http_version|proxy_set_header|proxy_read_timeout|proxy_connect_timeout|proxy_send_timeout|proxy_buffer_size|proxy_cache_bypass|access_log|error_log|try_files|least_conn|ip_hash|random|weight|max_fails|fail_timeout)\b/g;
+    const numRe = /\b(\d+)(s|ms|k|m)?\b/g;
+    return raw
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/(#[^\n]*)/g, '<span class="cmt">$1</span>')
+      .replace(/("[^"]*")/g, '<span class="str">$1</span>')
+      .replace(kwRe, '<span class="kw">$1</span>')
+      .replace(numRe, '<span class="num">$1$2</span>');
+  }
+
+  function cfgRender() {
+    const vh = VHOSTS[activeVhostIdx] || VHOSTS[0];
+    const raw = cfgGenerate(vh, upstreams);
+    const pre = document.getElementById('cfg-output');
+    pre.innerHTML = cfgHighlight(raw);
+    pre._raw = raw;
+    const title = document.getElementById('cfg-export-title');
+    if (title) title.textContent = `📄 ${vh.name} — nginx server block`;
+  }
+
+  function cfgRegen() { cfgRender(); }
+
+  function cfgCopy() {
+    const pre = document.getElementById('cfg-output');
+    navigator.clipboard.writeText(pre._raw || pre.textContent).then(() => {
+      const btn = document.querySelector('.cfg-copy-btn');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.style.background = '#16a34a';
+      setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1600);
+    });
+  }
+
+  function cfgDownload() {
+    const pre = document.getElementById('cfg-output');
+    const raw = pre._raw || pre.textContent;
+    const vh = VHOSTS[activeVhostIdx] || VHOSTS[0];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([raw], { type: 'text/plain' }));
+    a.download = `${vh.name}.conf`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // Render config immediately so Raw tab is populated on first open
+  cfgRender();
+
+  // Re-render when switching to raw tab
+  document.getElementById('tab-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.tab-btn');
+    if (btn && btn.dataset.panel === 'raw') cfgRender();
+  });
+
+  function mockSave() {
+    document.getElementById('save-msg').textContent = '✓ Saved — run "Reload nginx" to apply.';
+    setTimeout(() => { document.getElementById('save-msg').textContent = ''; }, 3000);
+  }
+  function mockReload() {
+    addLog('inf', 'Reloading nginx configuration…');
+    setTimeout(() => addLog('ok', 'nginx: the configuration file /etc/nginx/nginx.conf syntax is ok'), 400);
+    setTimeout(() => addLog('ok', 'nginx: configuration file /etc/nginx/nginx.conf test is successful'), 600);
+    setTimeout(() => addLog('ok', 'Sending HUP signal to master process … nginx reloaded.'), 900);
+  }
+
+  // Logs
+  const LOG_LINES = [
+    { t:'ok',  m:'127.0.0.1 - - [09/May/2026:14:31:02 +0000] "GET / HTTP/1.1" 200 4312 "-" "Mozilla/5.0"' },
+    { t:'ok',  m:'127.0.0.1 - - [09/May/2026:14:31:05 +0000] "GET /static/app.js HTTP/1.1" 304 0 "http://coolbox.local/" "Mozilla/5.0"' },
+    { t:'err', m:'127.0.0.1 - - [09/May/2026:14:30:58 +0000] "GET /favicon.ico HTTP/1.1" 404 153 "-" "Mozilla/5.0"' },
+    { t:'ok',  m:'127.0.0.1 - - [09/May/2026:14:30:45 +0000] "POST /api/apps/build HTTP/1.1" 200 87 "-" "XMLHttpRequest"' },
+  ];
+  let logLines = [...LOG_LINES];
+
+  function renderLogs() {
+    const el = document.getElementById('log-area');
+    el.innerHTML = logLines.map(l => `<span class="log-${l.t === 'ok' ? 'ok' : l.t === 'err' ? 'err' : 'inf'}">${l.m}</span>`).join('\n');
+    el.scrollTop = el.scrollHeight;
+  }
+  function addLog(t, m) { logLines.push({ t, m }); renderLogs(); }
+  function clearLogs() { logLines = []; renderLogs(); }
+  function addMockLog() {
+    const codes = [200, 200, 200, 301, 304, 404, 500];
+    const paths = ['/', '/static/app.js', '/api/apps', '/api/network/local-services', '/client-fe'];
+    const code = codes[Math.floor(Math.random() * codes.length)];
+    const path = paths[Math.floor(Math.random() * paths.length)];
+    const now = new Date().toISOString().replace('T',' ').replace(/\.\d+Z/,' +0000');
+    addLog(code >= 400 ? 'err' : 'ok', `127.0.0.1 - - [${now}] "GET ${path} HTTP/1.1" ${code} ${Math.floor(Math.random()*10000)} "-" "Mozilla/5.0"`);
+  }
+  renderLogs();
+</script>
+</body>
+</html>

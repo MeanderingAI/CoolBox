@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.16)
+get_filename_component(PACKAGE_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+project(${PACKAGE_NAME} NONE)
+message(STATUS "Configuring package: ${PACKAGE_NAME}")
+
+# Add any child folders that provide their own CMakeLists.txt
+file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*")
+foreach(child ${children})
+  if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${child}" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${child}/CMakeLists.txt")
+    if(child STREQUAL "http_server" OR child STREQUAL "servlets" OR child STREQUAL "quic_transport" OR child STREQUAL "EMAIL")
+      message(STATUS "  skipping ${child} (wired via audio_visual_group/COMMS or audio_visual_group/EMAIL)")
+      continue()
+    endif()
+    message(STATUS "  adding subdir ${child}")
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/${child}" "${CMAKE_BINARY_DIR}/${PACKAGE_NAME}_${child}_build")
+  endif()
+endforeach()

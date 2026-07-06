@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Database Setup · Middleware</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand:  #2563eb; --brand-d: #1d4ed8;
+      --text:   #1e293b; --muted:   #64748b;
+      --border: #e2e8f0; --surface: #f8fafc;
+      --green:  #16a34a; --red:     #dc2626;
+      --amber:  #d97706;
+    }
+    body { font-family: system-ui,-apple-system,'Segoe UI',sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+
+    nav { background:#0f172a; display:flex; align-items:center; padding:0 1.5rem; height:54px; gap:1rem; }
+    .nav-brand { font-weight:800; color:#f8fafc; font-size:.95rem; }
+    .nav-brand span { color:#60a5fa; }
+    .nav-sep { color:#334155; }
+    .nav-title { font-size:.85rem; color:#94a3b8; }
+    .mock-badge { background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:.65rem; font-weight:700; padding:.1em .45em; border-radius:999px; letter-spacing:.06em; text-transform:uppercase; }
+
+    .page { max-width:1100px; margin:0 auto; padding:1.75rem 1.5rem; display:grid; grid-template-columns:260px 1fr; gap:1.5rem; }
+
+    /* ── Sidebar ── */
+    .sidebar {}
+    .sidebar-section { margin-bottom:1.25rem; }
+    .sidebar-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:0 .75rem; margin-bottom:.4rem; }
+    .db-item {
+      display:flex; align-items:center; gap:.65rem;
+      padding:.55rem .75rem; border-radius:7px; cursor:pointer;
+      transition:background .12s; font-size:.86rem;
+    }
+    .db-item:hover { background:#e8edf5; }
+    .db-item.active { background:#eff6ff; color:var(--brand); font-weight:700; }
+    .db-icon { font-size:1.1rem; }
+    .db-info { flex:1; min-width:0; }
+    .db-name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .db-engine { font-size:.72rem; color:var(--muted); }
+    .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .dot-green  { background:#22c55e; }
+    .dot-amber  { background:#f59e0b; }
+    .dot-gray   { background:#94a3b8; }
+
+    .add-btn {
+      width:100%; display:flex; align-items:center; justify-content:center; gap:.4em;
+      padding:.5em; border:1.5px dashed var(--border); border-radius:7px;
+      background:transparent; color:var(--muted); font-size:.8rem; font-weight:600;
+      cursor:pointer; transition:background .12s, border-color .12s; font-family:inherit;
+    }
+    .add-btn:hover { background:#f0f4f8; border-color:#94a3b8; color:var(--text); }
+
+    /* ── Main area ── */
+    .main-area {}
+    .main-header { display:flex; align-items:center; gap:.75rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+    .main-title { font-size:1.25rem; font-weight:800; letter-spacing:-.02em; }
+    .main-sub { font-size:.82rem; color:var(--muted); }
+    .badge { display:inline-block; padding:.2em .6em; border-radius:999px; font-size:.7rem; font-weight:700; }
+    .badge-connected  { background:#dcfce7; color:var(--green); }
+    .badge-stopped    { background:#fef3c7; color:var(--amber); }
+    .badge-error      { background:#fee2e2; color:var(--red); }
+
+    /* ── Action bar ── */
+    .action-bar { display:flex; gap:.5rem; margin-left:auto; flex-wrap:wrap; }
+    .btn { padding:.4em .9em; font-size:.8rem; font-weight:600; font-family:inherit; border-radius:6px; cursor:pointer; border:1.5px solid transparent; transition:background .12s; }
+    .btn-primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    .btn-primary:hover { background:var(--brand-d); }
+    .btn-ghost { background:#fff; border-color:var(--border); color:var(--text); }
+    .btn-ghost:hover { background:var(--surface); }
+    .btn-danger { background:#fff; border-color:#fca5a5; color:var(--red); }
+    .btn-danger:hover { background:#fee2e2; }
+
+    /* ── Config grid ── */
+    .config-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
+    .config-card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:1.1rem; }
+    .config-card-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:.85rem; }
+    .field { margin-bottom:.75rem; }
+    .field:last-child { margin-bottom:0; }
+    label { display:block; font-size:.78rem; font-weight:700; color:var(--text); margin-bottom:.3rem; }
+    input[type=text], input[type=number], input[type=password], select, textarea {
+      width:100%; padding:.5em .7em; font-size:.84rem; font-family:inherit;
+      border:1.5px solid var(--border); border-radius:6px; background:var(--surface);
+      color:var(--text); outline:none; transition:border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color:var(--brand); background:#fff; }
+    textarea { resize:vertical; min-height:72px; }
+    .field-row { display:flex; gap:.5rem; }
+    .field-row .field { flex:1; }
+    .help-text { font-size:.72rem; color:var(--muted); margin-top:.25rem; }
+
+    /* ── Console / query area ── */
+    .console-wrap { background:#1e1e2e; border-radius:10px; overflow:hidden; }
+    .console-header { display:flex; align-items:center; gap:.5rem; padding:.55rem 1rem; background:#12121f; }
+    .console-title { font-size:.78rem; font-weight:700; color:#94a3b8; flex:1; }
+    .console-run-btn { padding:.25em .75em; font-size:.75rem; font-weight:700; border:none; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
+    .console-run-btn:hover { background:#1d4ed8; }
+    .console-clear-btn { padding:.25em .75em; font-size:.75rem; font-weight:700; border:1px solid #334155; border-radius:4px; background:transparent; color:#94a3b8; cursor:pointer; }
+    .console-clear-btn:hover { background:#1e293b; }
+    textarea.query-area {
+      background:#1e1e2e; border:none; color:#d4d4d4;
+      font-family:'Cascadia Code','Consolas',monospace; font-size:.82rem;
+      padding:.75rem 1rem; min-height:90px; resize:vertical;
+      border-radius:0;
+    }
+    textarea.query-area:focus { border-color:transparent; }
+    .console-output {
+      padding:.75rem 1rem; font-family:'Cascadia Code','Consolas',monospace;
+      font-size:.78rem; color:#d4d4d4; min-height:60px; white-space:pre-wrap;
+      border-top:1px solid #1a1a2e;
+    }
+    .out-ok  { color:#4ade80; }
+    .out-err { color:#f87171; }
+
+    /* ── Collections / tables list ── */
+    .table-list { background:#fff; border:1px solid var(--border); border-radius:10px; overflow:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.82rem; }
+    thead tr { background:#f1f5f9; }
+    th { padding:.6em 1em; text-align:left; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); border-bottom:1px solid var(--border); }
+    td { padding:.55em 1em; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:#f8fafc; }
+    .td-name { font-weight:700; color:var(--text); font-family:'Cascadia Code','Consolas',monospace; font-size:.8rem; }
+    .td-muted { color:var(--muted); font-size:.78rem; }
+
+    @media(max-width:740px) {
+      .page { grid-template-columns:1fr; }
+      .config-grid { grid-template-columns:1fr; }
+    }
+
+    /* ── Top-level page tabs ── */
+    .page-tabs { display:flex; gap:0; background:#0f172a; border-bottom:2px solid #1e40af; padding:0 1.5rem; }
+    .page-tab {
+      padding:.55em 1.4em; font-size:.82rem; font-family:inherit; font-weight:600;
+      background:transparent; border:none; color:#94a3b8; cursor:pointer;
+      border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .12s;
+      white-space:nowrap;
+    }
+    .page-tab:hover { color:#e2e8f0; }
+    .page-tab.active { color:#93c5fd; border-bottom-color:#3b82f6; }
+    .page-view { display:none !important; }
+    .page-view.active { display:block !important; }
+
+    /* ── Schema Builder ── */
+    #view-schema.active { padding:1.5rem; max-width:1400px; margin:0 auto; }
+    .sb-layout { display:grid; grid-template-columns:340px 1fr; gap:1.25rem; align-items:start; }
+    .sb-panel { background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .sb-panel-hdr {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.65rem 1rem; background:#f1f5f9; border-bottom:1px solid var(--border);
+      font-size:.78rem; font-weight:700; color:var(--text);
+    }
+    .sb-panel-hdr span { flex:1; }
+    .sb-table-list { list-style:none; padding:.3rem 0; max-height:220px; overflow-y:auto; }
+    .sb-table-item {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.4rem .9rem; cursor:pointer; font-size:.82rem; transition:background .1s;
+    }
+    .sb-table-item:hover { background:#f0f4f8; }
+    .sb-table-item.active { background:#eff6ff; color:var(--brand); font-weight:700; }
+    .sb-table-name { flex:1; font-family:'Cascadia Code','Consolas',monospace; }
+    .sb-del { background:none; border:none; color:#94a3b8; cursor:pointer; font-size:.9rem; padding:.1em .3em; border-radius:3px; }
+    .sb-del:hover { background:#fee2e2; color:var(--red); }
+    .sb-add-table { padding:.65rem 1rem; border-top:1px solid var(--border); display:flex; gap:.4rem; }
+    .sb-add-table input { flex:1; padding:.38em .6em; font-size:.8rem; font-family:'Cascadia Code','Consolas',monospace; border:1.5px solid var(--border); border-radius:5px; }
+    .sb-add-table input:focus { outline:none; border-color:var(--brand); }
+    .sb-add-table button { padding:.38em .8em; font-size:.78rem; font-weight:700; font-family:inherit; background:var(--brand); color:#fff; border:none; border-radius:5px; cursor:pointer; }
+    .sb-add-table button:hover { background:var(--brand-d); }
+    .sb-col-editor { border-top:1px solid var(--border); padding:.75rem 1rem; }
+    .sb-col-editor-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:.6rem; }
+    .sb-col-row { display:flex; gap:.35rem; margin-bottom:.35rem; align-items:center; }
+    .sb-col-row input, .sb-col-row select { font-size:.75rem; font-family:'Cascadia Code','Consolas',monospace; border:1.5px solid var(--border); border-radius:5px; padding:.3em .4em; background:var(--surface); }
+    .sb-col-row input:focus, .sb-col-row select:focus { outline:none; border-color:var(--brand); }
+    .sb-col-name { flex:1.5; min-width:0; }
+    .sb-col-type { flex:1; min-width:0; }
+    .sb-col-pk  { flex:0 0 auto; font-size:.7rem; display:flex; align-items:center; gap:.2em; color:var(--muted); cursor:pointer; }
+    .sb-col-pk input { width:13px; height:13px; }
+    .sb-col-nn  { flex:0 0 auto; font-size:.7rem; display:flex; align-items:center; gap:.2em; color:var(--muted); cursor:pointer; }
+    .sb-col-nn input { width:13px; height:13px; }
+    .sb-add-col { margin-top:.4rem; padding:.3em .7em; font-size:.75rem; font-weight:600; font-family:inherit; background:transparent; border:1.5px dashed var(--border); border-radius:5px; color:var(--muted); cursor:pointer; width:100%; }
+    .sb-add-col:hover { border-color:#94a3b8; color:var(--text); background:#f8fafc; }
+    .sb-fk-section { border-top:1px solid var(--border); padding:.65rem 1rem; }
+    .sb-fk-section .sb-col-editor-title { margin-bottom:.5rem; }
+    .sb-fk-row { display:flex; gap:.35rem; margin-bottom:.35rem; align-items:center; font-size:.75rem; }
+    .sb-fk-row select, .sb-fk-row input { flex:1; font-size:.75rem; font-family:'Cascadia Code','Consolas',monospace; border:1.5px solid var(--border); border-radius:5px; padding:.28em .4em; background:var(--surface); }
+    .sb-fk-row select:focus, .sb-fk-row input:focus { outline:none; border-color:var(--brand); }
+    /* SQL export panel */
+    .sql-export { background:#1e1e2e; border-radius:10px; overflow:hidden; margin-top:1rem; }
+    .sql-export-hdr {
+      display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+      padding:.5rem .9rem; background:#12121f; border-bottom:1px solid #313244;
+    }
+    .sql-export-title { font-size:.75rem; font-weight:700; color:#94a3b8; flex:1; min-width:0; }
+    .sql-dialect-bar { display:flex; gap:.3rem; flex-wrap:wrap; }
+    .sql-dialect-btn {
+      padding:.22em .65em; font-size:.72rem; font-weight:600; font-family:inherit;
+      border-radius:4px; cursor:pointer; border:1px solid #45475a;
+      background:#313244; color:#94a3b8; transition:background .1s,color .1s;
+    }
+    .sql-dialect-btn:hover { background:#45475a; color:#cdd6f4; }
+    .sql-dialect-btn.active { background:#1e66f5; border-color:#1e66f5; color:#fff; }
+    .sql-action-bar { display:flex; gap:.3rem; margin-left:.5rem; }
+    .sql-action-btn {
+      padding:.22em .65em; font-size:.72rem; font-weight:700; font-family:inherit;
+      border-radius:4px; cursor:pointer;
+    }
+    .sql-copy-btn { background:#313244; border:1px solid #45475a; color:#cdd6f4; }
+    .sql-copy-btn:hover { background:#45475a; }
+    .sql-dl-btn { background:#16a34a; border:1px solid #16a34a; color:#fff; }
+    .sql-dl-btn:hover { background:#15803d; }
+    #sql-output {
+      margin:0; padding:.85rem 1.1rem;
+      font-family:'Cascadia Code','Fira Code','Consolas',monospace;
+      font-size:.75rem; line-height:1.65; color:#d4d4d4;
+      white-space:pre; overflow-x:auto; overflow-y:auto;
+      max-height:320px; background:#1e1e2e;
+    }
+    .sql-kw  { color:#569cd6; }
+    .sql-cmt { color:#6a9955; font-style:italic; }
+    .er-wrap { background:#1e1e2e; border-radius:10px; overflow:hidden; position:relative; }
+    .er-toolbar {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.5rem .9rem; background:#12121f; border-bottom:1px solid #313244;
+    }
+    .er-title { font-size:.75rem; font-weight:700; color:#94a3b8; flex:1; }
+    .er-btn { padding:.25em .7em; font-size:.72rem; font-weight:600; font-family:inherit; border-radius:4px; cursor:pointer; }
+    .er-btn-fit { background:#313244; border:1px solid #45475a; color:#cdd6f4; }
+    .er-btn-fit:hover { background:#45475a; }
+    .er-btn-png { background:#1e66f5; border:1px solid #1e66f5; color:#fff; }
+    .er-btn-png:hover { background:#1558d8; }
+    #er-canvas { display:block; width:100%; cursor:grab; }
+    #er-canvas:active { cursor:grabbing; }
+    @media(max-width:740px) { .sb-layout { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Meandering<span>LLC</span></span>
+  <span class="nav-sep">›</span>
+  <span class="nav-title">🗄️ Database Setup <span class="mock-badge">Mock</span></span>
+</nav>
+
+<!-- Page-level tab bar -->
+<div class="page-tabs">
+  <button class="page-tab active" onclick="switchView('connections',this)">🔌 Connections</button>
+  <button class="page-tab" onclick="switchView('schema',this)">📐 Schema Builder</button>
+</div>
+
+<div id="view-connections" class="page-view active">
+<div class="page">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Connections</div>
+      <div class="db-item active" data-id="0">
+        <span class="db-icon">🐘</span>
+        <div class="db-info">
+          <div class="db-name">coolbox_dev</div>
+          <div class="db-engine">PostgreSQL 16</div>
+        </div>
+        <span class="status-dot dot-green"></span>
+      </div>
+      <div class="db-item" data-id="1">
+        <span class="db-icon">🪶</span>
+        <div class="db-info">
+          <div class="db-name">app_local.db</div>
+          <div class="db-engine">SQLite 3</div>
+        </div>
+        <span class="status-dot dot-green"></span>
+      </div>
+      <div class="db-item" data-id="2">
+        <span class="db-icon">🍃</span>
+        <div class="db-info">
+          <div class="db-name">dist_cache</div>
+          <div class="db-engine">Redis 7</div>
+        </div>
+        <span class="status-dot dot-amber"></span>
+      </div>
+      <div class="db-item" data-id="3">
+        <span class="db-icon">📋</span>
+        <div class="db-info">
+          <div class="db-name">metrics_store</div>
+          <div class="db-engine">InfluxDB</div>
+        </div>
+        <span class="status-dot dot-gray"></span>
+      </div>
+    </div>
+    <button class="add-btn">＋ Add Connection</button>
+  </div>
+
+  <!-- Main area -->
+  <div class="main-area">
+    <div class="main-header">
+      <div>
+        <div class="main-title" id="db-title">coolbox_dev</div>
+        <div class="main-sub" id="db-sub">PostgreSQL 16 · localhost:5432</div>
+      </div>
+      <span class="badge badge-connected" id="db-badge">● Connected</span>
+      <div class="action-bar">
+        <button class="btn btn-ghost">🔄 Test</button>
+        <button class="btn btn-ghost">📋 Schema</button>
+        <button class="btn btn-danger">⏹ Disconnect</button>
+      </div>
+    </div>
+
+    <!-- Config cards -->
+    <div class="config-grid">
+      <div class="config-card">
+        <div class="config-card-title">Connection Settings</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Host</label>
+            <input type="text" id="cfg-host" value="localhost" />
+          </div>
+          <div class="field" style="flex:0 0 80px">
+            <label>Port</label>
+            <input type="number" id="cfg-port" value="5432" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Database name</label>
+          <input type="text" id="cfg-db" value="coolbox_dev" />
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="cfg-user" value="coolbox_admin" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="cfg-pass" value="••••••••••" />
+        </div>
+        <div class="field">
+          <label>SSL mode</label>
+          <select id="cfg-ssl">
+            <option>disable</option>
+            <option selected>prefer</option>
+            <option>require</option>
+            <option>verify-ca</option>
+            <option>verify-full</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:.5rem" onclick="mockSave()">💾 Save &amp; Reconnect</button>
+      </div>
+
+      <div class="config-card">
+        <div class="config-card-title">Pool &amp; Performance</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Min connections</label>
+            <input type="number" value="2" />
+          </div>
+          <div class="field">
+            <label>Max connections</label>
+            <input type="number" value="20" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Connect timeout (s)</label>
+          <input type="number" value="10" />
+        </div>
+        <div class="field">
+          <label>Idle timeout (s)</label>
+          <input type="number" value="300" />
+        </div>
+        <div class="field">
+          <label>Statement timeout (ms)</label>
+          <input type="number" value="30000" />
+          <div class="help-text">0 = no limit</div>
+        </div>
+        <div class="field">
+          <label>Application name</label>
+          <input type="text" value="coolbox_gui" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Tables -->
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem">
+      <div style="font-size:.9rem;font-weight:700">Tables / Collections</div>
+      <span style="font-size:.75rem;color:var(--muted)" id="table-count">6 objects</span>
+      <button class="btn btn-ghost" style="margin-left:auto;font-size:.75rem">↻ Refresh</button>
+    </div>
+    <div class="table-list" style="margin-bottom:1.25rem">
+      <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Rows (est.)</th><th>Size</th><th>Last modified</th></tr></thead>
+        <tbody id="tables-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Query runner -->
+    <div class="console-wrap">
+      <div class="console-header">
+        <span class="console-title">🔍 Query Runner</span>
+        <button class="console-clear-btn" onclick="clearQuery()">Clear</button>
+        <button class="console-run-btn" onclick="runQuery()">▶ Run</button>
+      </div>
+      <textarea class="query-area" id="query-input" spellcheck="false">SELECT table_name, pg_size_pretty(pg_total_relation_size(table_name::regclass)) AS size
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;</textarea>
+      <div class="console-output" id="query-output">-- Results will appear here</div>
+    </div>
+  </div>
+</div><!-- /.page -->
+</div><!-- /#view-connections -->
+
+<!-- ── Schema Builder view ─────────────────────────────────────────────── -->
+<div id="view-schema" class="page-view">
+  <div class="sb-layout">
+
+    <!-- Left: table list + column editor -->
+    <div>
+      <div class="sb-panel">
+        <div class="sb-panel-hdr"><span>📋 Tables</span><span id="sb-table-count" style="color:var(--muted);font-weight:400"></span></div>
+        <ul class="sb-table-list" id="sb-table-list"></ul>
+        <div class="sb-add-table">
+          <input type="text" id="sb-new-table-name" placeholder="new_table" maxlength="60" />
+          <button onclick="sbAddTable()">＋ Add Table</button>
+        </div>
+      </div>
+
+      <div class="sb-panel" style="margin-top:.85rem" id="sb-col-panel">
+        <div class="sb-panel-hdr"><span id="sb-editing-title">Select a table</span></div>
+        <div class="sb-col-editor">
+          <div class="sb-col-editor-title">Columns</div>
+          <div id="sb-cols"></div>
+          <button class="sb-add-col" onclick="sbAddCol()">＋ Add column</button>
+        </div>
+        <div class="sb-fk-section">
+          <div class="sb-col-editor-title">Foreign Keys</div>
+          <div id="sb-fks"></div>
+          <button class="sb-add-col" onclick="sbAddFk()">＋ Add FK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: ER diagram canvas + SQL export -->
+    <div>
+      <div class="er-wrap">
+        <div class="er-toolbar">
+          <span class="er-title">🗺 ER Diagram <span style="font-weight:400;color:#6c7086">(auto-layout · drag to pan)</span></span>
+          <button class="er-btn er-btn-fit" onclick="erFit()">&#x229d; Fit</button>
+          <button class="er-btn er-btn-png" onclick="erExport()">⬇ PNG</button>
+        </div>
+        <canvas id="er-canvas" height="500"></canvas>
+      </div>
+
+      <!-- SQL export -->
+      <div class="sql-export">
+        <div class="sql-export-hdr">
+          <span class="sql-export-title">📄 Export SQL</span>
+          <div class="sql-dialect-bar">
+            <button class="sql-dialect-btn active" onclick="sqlSetDialect('postgres',this)">PostgreSQL</button>
+            <button class="sql-dialect-btn" onclick="sqlSetDialect('mysql',this)">MySQL</button>
+            <button class="sql-dialect-btn" onclick="sqlSetDialect('mariadb',this)">MariaDB</button>
+            <button class="sql-dialect-btn" onclick="sqlSetDialect('sqlite',this)">SQLite</button>
+          </div>
+          <div class="sql-action-bar">
+            <button class="sql-action-btn sql-copy-btn" onclick="sqlCopy()">&#x2398; Copy</button>
+            <button class="sql-action-btn sql-dl-btn" onclick="sqlDownload()">⬇ .sql</button>
+          </div>
+        </div>
+        <pre id="sql-output"></pre>
+      </div>
+    </div>
+  </div>
+</div><!-- /#view-schema -->
+
+<script>
+  const CONNECTIONS = [
+    { title:'coolbox_dev', sub:'PostgreSQL 16 · localhost:5432', badge:'badge-connected', badgeText:'● Connected' },
+    { title:'app_local.db', sub:'SQLite 3 · /var/data/app_local.db', badge:'badge-connected', badgeText:'● Connected' },
+    { title:'dist_cache', sub:'Redis 7 · localhost:6379', badge:'badge-stopped', badgeText:'⏸ Degraded' },
+    { title:'metrics_store', sub:'InfluxDB · localhost:8086', badge:'badge-stopped', badgeText:'○ Not running' },
+  ];
+
+  const TABLES = [
+    { name:'apps',             type:'TABLE',    rows:'—',      size:'48 kB',  mod:'2026-05-08' },
+    { name:'service_registry', type:'TABLE',    rows:'12',     size:'24 kB',  mod:'2026-05-09' },
+    { name:'job_results',      type:'TABLE',    rows:'4 821',  size:'2.3 MB', mod:'2026-05-09' },
+    { name:'network_services', type:'TABLE',    rows:'8',      size:'16 kB',  mod:'2026-05-07' },
+    { name:'users',            type:'TABLE',    rows:'3',      size:'8 kB',   mod:'2026-04-28' },
+    { name:'v_active_jobs',    type:'VIEW',     rows:'—',      size:'—',      mod:'2026-05-01' },
+  ];
+
+  const tbody = document.getElementById('tables-body');
+  TABLES.forEach(t => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="td-name">${t.name}</td><td class="td-muted">${t.type}</td><td class="td-muted">${t.rows}</td><td class="td-muted">${t.size}</td><td class="td-muted">${t.mod}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('.db-item').forEach((el, i) => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.db-item').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+      const c = CONNECTIONS[i];
+      document.getElementById('db-title').textContent = c.title;
+      document.getElementById('db-sub').textContent = c.sub;
+      const b = document.getElementById('db-badge');
+      b.className = 'badge ' + c.badge;
+      b.textContent = c.badgeText;
+    });
+  });
+
+  function switchView(viewId, btn) {
+    document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + viewId).classList.add('active');
+    if (viewId === 'schema') { try { erDraw(); } catch(e) { console.error('erDraw:', e); } }
+  }
+
+  // ── Schema Builder ─────────────────────────────────────────────────────────
+  // Data model: { tables: { [name]: { cols: [{name,type,pk,nn}], fks: [{col,refTable,refCol}] } }, positions: {} }
+  const SB = {
+    tables: {
+      users:       { cols:[{name:'id',type:'SERIAL',pk:true,nn:true},{name:'username',type:'VARCHAR(100)',pk:false,nn:true},{name:'email',type:'VARCHAR(255)',pk:false,nn:true},{name:'created_at',type:'TIMESTAMPTZ',pk:false,nn:false}], fks:[] },
+      apps:        { cols:[{name:'id',type:'SERIAL',pk:true,nn:true},{name:'name',type:'VARCHAR(100)',pk:false,nn:true},{name:'owner_id',type:'INTEGER',pk:false,nn:true},{name:'status',type:'VARCHAR(20)',pk:false,nn:false}], fks:[{col:'owner_id',refTable:'users',refCol:'id'}] },
+      job_results: { cols:[{name:'id',type:'BIGSERIAL',pk:true,nn:true},{name:'app_id',type:'INTEGER',pk:false,nn:true},{name:'status',type:'VARCHAR(20)',pk:false,nn:true},{name:'started_at',type:'TIMESTAMPTZ',pk:false,nn:false},{name:'finished_at',type:'TIMESTAMPTZ',pk:false,nn:false}], fks:[{col:'app_id',refTable:'apps',refCol:'id'}] },
+    },
+    positions: {},
+    activeTable: null,
+  };
+
+  const SQL_TYPES = ['INTEGER','BIGINT','SERIAL','BIGSERIAL','SMALLINT','BOOLEAN','REAL','DOUBLE PRECISION','NUMERIC','VARCHAR(255)','VARCHAR(100)','VARCHAR(20)','TEXT','CHAR(1)','DATE','TIMESTAMPTZ','TIMESTAMP','TIME','UUID','JSONB','JSON','BYTEA'];
+
+  function sbRenderTableList() {
+    const ul = document.getElementById('sb-table-list');
+    ul.innerHTML = '';
+    const names = Object.keys(SB.tables);
+    document.getElementById('sb-table-count').textContent = names.length + ' tables';
+    names.forEach(name => {
+      const li = document.createElement('li');
+      li.className = 'sb-table-item' + (name === SB.activeTable ? ' active' : '');
+      li.innerHTML = `<span class="sb-table-name">${name}</span><button class="sb-del" title="Delete table" onclick="sbDeleteTable('${name}');event.stopPropagation()">✕</button>`;
+      li.addEventListener('click', () => sbSelectTable(name));
+      ul.appendChild(li);
+    });
+  }
+
+  function sbSelectTable(name) {
+    SB.activeTable = name;
+    sbRenderTableList();
+    sbRenderColEditor();
+  }
+
+  function sbRenderColEditor() {
+    const t = SB.tables[SB.activeTable];
+    document.getElementById('sb-editing-title').textContent = SB.activeTable ? `✏️ ${SB.activeTable}` : 'Select a table';
+    const colsDiv = document.getElementById('sb-cols');
+    const fksDiv  = document.getElementById('sb-fks');
+    colsDiv.innerHTML = '';
+    fksDiv.innerHTML  = '';
+    if (!t) return;
+
+    t.cols.forEach((col, i) => {
+      const row = document.createElement('div');
+      row.className = 'sb-col-row';
+      row.innerHTML = `
+        <input class="sb-col-name" type="text" value="${col.name}" placeholder="column_name"
+               onchange="SB.tables['${SB.activeTable}'].cols[${i}].name=this.value;erDraw()" />
+        <select class="sb-col-type" onchange="SB.tables['${SB.activeTable}'].cols[${i}].type=this.value;erDraw()">
+          ${SQL_TYPES.map(tp=>`<option${tp===col.type?' selected':''}>${tp}</option>`).join('')}
+        </select>
+        <label class="sb-col-pk"><input type="checkbox" ${col.pk?'checked':''} onchange="SB.tables['${SB.activeTable}'].cols[${i}].pk=this.checked;erDraw()" /> PK</label>
+        <label class="sb-col-nn"><input type="checkbox" ${col.nn?'checked':''} onchange="SB.tables['${SB.activeTable}'].cols[${i}].nn=this.checked;erDraw()" /> NN</label>
+        <button class="sb-del" onclick="SB.tables['${SB.activeTable}'].cols.splice(${i},1);sbRenderColEditor();erDraw()">✕</button>`;
+      colsDiv.appendChild(row);
+    });
+
+    const tableNames = Object.keys(SB.tables);
+    t.fks.forEach((fk, i) => {
+      const row = document.createElement('div');
+      row.className = 'sb-fk-row';
+      row.innerHTML = `
+        <select onchange="SB.tables['${SB.activeTable}'].fks[${i}].col=this.value;erDraw()">
+          ${t.cols.map(c=>`<option${c.name===fk.col?' selected':''}>${c.name}</option>`).join('')}
+        </select>
+        <span style="color:var(--muted);flex:0 0 auto">→</span>
+        <select onchange="SB.tables['${SB.activeTable}'].fks[${i}].refTable=this.value;erDraw()">
+          ${tableNames.filter(n=>n!==SB.activeTable).map(n=>`<option${n===fk.refTable?' selected':''}>${n}</option>`).join('')}
+        </select>
+        <input value="${fk.refCol}" placeholder="col" style="max-width:80px"
+               onchange="SB.tables['${SB.activeTable}'].fks[${i}].refCol=this.value;erDraw()" />
+        <button class="sb-del" onclick="SB.tables['${SB.activeTable}'].fks.splice(${i},1);sbRenderColEditor();erDraw()">✕</button>`;
+      fksDiv.appendChild(row);
+    });
+
+    erDraw();
+    sqlRender();
+  }
+
+  function sbAddTable() {
+    const inp = document.getElementById('sb-new-table-name');
+    const name = inp.value.trim().replace(/\s+/g,'_');
+    if (!name || SB.tables[name]) return;
+    SB.tables[name] = { cols:[{name:'id',type:'SERIAL',pk:true,nn:true}], fks:[] };
+    inp.value = '';
+    sbRenderTableList();
+    sbSelectTable(name);
+  }
+
+  function sbDeleteTable(name) {
+    if (!confirm(`Delete table "${name}"?`)) return;
+    delete SB.tables[name];
+    delete SB.positions[name];
+    // remove dangling FKs
+    Object.values(SB.tables).forEach(t => { t.fks = t.fks.filter(fk => fk.refTable !== name); });
+    if (SB.activeTable === name) SB.activeTable = null;
+    sbRenderTableList();
+    sbRenderColEditor();
+    erDraw();
+  }
+
+  function sbAddCol() {
+    if (!SB.activeTable) return;
+    SB.tables[SB.activeTable].cols.push({name:'new_col',type:'TEXT',pk:false,nn:false});
+    sbRenderColEditor();
+  }
+
+  function sbAddFk() {
+    if (!SB.activeTable) return;
+    const t = SB.tables[SB.activeTable];
+    const others = Object.keys(SB.tables).filter(n=>n!==SB.activeTable);
+    if (!others.length) { alert('Add at least one other table first.'); return; }
+    t.fks.push({col: t.cols[0]?.name || 'id', refTable: others[0], refCol: 'id'});
+    sbRenderColEditor();
+  }
+
+  // ── ER canvas ──────────────────────────────────────────────────────────────
+  const CARD_W = 190, COL_H = 22, HDR_H = 34, CARD_PAD = 8;
+  let erPan = {x:0, y:0}, erScale = 1;
+
+  function erAutoLayout() {
+    const names = Object.keys(SB.tables);
+    const cols = Math.max(1, Math.ceil(Math.sqrt(names.length)));
+    names.forEach((name, i) => {
+      if (SB.positions[name]) return;
+      const col = i % cols, row = Math.floor(i / cols);
+      SB.positions[name] = { x: 40 + col * (CARD_W + 60), y: 30 + row * 200 };
+    });
+  }
+
+  function erCardHeight(t) { return HDR_H + CARD_PAD + t.cols.length * COL_H + CARD_PAD; }
+
+  function erDraw() {
+    const canvas = document.getElementById('er-canvas');
+    if (!canvas) return;
+    canvas.width = canvas.offsetWidth || 800;
+    const ctx = canvas.getContext('2d');
+    erAutoLayout();
+
+    ctx.setTransform(erScale, 0, 0, erScale, erPan.x, erPan.y);
+    ctx.clearRect(-erPan.x / erScale, -erPan.y / erScale, canvas.width / erScale, canvas.height / erScale);
+
+    // Draw FK lines first (behind cards)
+    ctx.save();
+    Object.entries(SB.tables).forEach(([fromName, t]) => {
+      const fp = SB.positions[fromName];
+      if (!fp) return;
+      t.fks.forEach(fk => {
+        const tp = SB.positions[fk.refTable];
+        if (!tp) return;
+        const tt = SB.tables[fk.refTable];
+        // find col index for Y
+        const fromColIdx = t.cols.findIndex(c => c.name === fk.col);
+        const toColIdx   = tt?.cols.findIndex(c => c.name === fk.refCol) ?? 0;
+        const fx = fp.x + CARD_W;
+        const fy = fp.y + HDR_H + CARD_PAD + (fromColIdx + 0.5) * COL_H;
+        const tx = tp.x;
+        const ty = tp.y + HDR_H + CARD_PAD + (Math.max(0, toColIdx) + 0.5) * COL_H;
+        const cp = (tx - fx) * 0.45;
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        ctx.bezierCurveTo(fx + cp, fy, tx - cp, ty, tx, ty);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // arrowhead
+        const angle = Math.atan2(ty - fy, tx - fx);
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-9, -4);
+        ctx.lineTo(-9, 4);
+        ctx.closePath();
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        ctx.restore();
+      });
+    });
+    ctx.restore();
+
+    // Draw table cards
+    Object.entries(SB.tables).forEach(([name, t]) => {
+      const pos = SB.positions[name];
+      if (!pos) return;
+      const h = erCardHeight(t);
+      const isActive = name === SB.activeTable;
+
+      ctx.save();
+      // shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur  = isActive ? 12 : 6;
+      ctx.shadowOffsetY = 3;
+      // card bg
+      ctx.fillStyle = '#1e1e2e';
+      ctx.strokeStyle = isActive ? '#89b4fa' : '#45475a';
+      ctx.lineWidth = isActive ? 2 : 1;
+      roundRect(ctx, pos.x, pos.y, CARD_W, h, 7);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // header
+      ctx.fillStyle = isActive ? '#1e40af' : '#2d3748';
+      roundRectTop(ctx, pos.x, pos.y, CARD_W, HDR_H, 7);
+      ctx.fill();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = `bold 12px 'Segoe UI', system-ui, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🗄 ' + name, pos.x + 10, pos.y + HDR_H / 2);
+
+      // columns
+      t.cols.forEach((col, i) => {
+        const cy = pos.y + HDR_H + CARD_PAD + i * COL_H;
+        if (col.pk) {
+          ctx.fillStyle = 'rgba(250,204,21,0.08)';
+          ctx.fillRect(pos.x + 1, cy, CARD_W - 2, COL_H);
+        }
+        // icon
+        ctx.font = '10px monospace';
+        ctx.fillStyle = col.pk ? '#fbbf24' : '#94a3b8';
+        ctx.fillText(col.pk ? '🔑' : (col.nn ? '◆' : '◇'), pos.x + 7, cy + COL_H / 2);
+        // name
+        ctx.font = '11px "Cascadia Code", Consolas, monospace';
+        ctx.fillStyle = col.pk ? '#fde68a' : '#e2e8f0';
+        ctx.fillText(col.name, pos.x + 22, cy + COL_H / 2);
+        // type
+        ctx.font = '10px "Cascadia Code", Consolas, monospace';
+        ctx.fillStyle = '#64748b';
+        const typeText = col.type.length > 14 ? col.type.slice(0, 13) + '…' : col.type;
+        ctx.textAlign = 'right';
+        ctx.fillText(typeText, pos.x + CARD_W - 7, cy + COL_H / 2);
+        ctx.textAlign = 'left';
+      });
+      ctx.restore();
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+  function roundRectTop(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  // ── Canvas pan ─────────────────────────────────────────────────────────────
+  (function() {
+    const canvas = document.getElementById('er-canvas');
+    let drag = null;
+    canvas.addEventListener('mousedown', e => {
+      // check if clicking a card to select it
+      const rect = canvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left - erPan.x) / erScale;
+      const my = (e.clientY - rect.top  - erPan.y) / erScale;
+      let hit = null;
+      for (const [name, t] of Object.entries(SB.tables)) {
+        const p = SB.positions[name];
+        if (!p) continue;
+        const h = erCardHeight(t);
+        if (mx >= p.x && mx <= p.x + CARD_W && my >= p.y && my <= p.y + h) { hit = name; break; }
+      }
+      if (hit) {
+        sbSelectTable(hit);
+        // card drag
+        const startPos = { ...SB.positions[hit] };
+        drag = { type:'card', name:hit, sx:e.clientX, sy:e.clientY, ox:startPos.x, oy:startPos.y };
+      } else {
+        drag = { type:'pan', sx:e.clientX, sy:e.clientY, ox:erPan.x, oy:erPan.y };
+      }
+    });
+    window.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (drag.type === 'pan') { erPan.x = drag.ox + dx; erPan.y = drag.oy + dy; }
+      else { SB.positions[drag.name] = { x: drag.ox + dx / erScale, y: drag.oy + dy / erScale }; }
+      erDraw();
+    });
+    window.addEventListener('mouseup', () => { drag = null; });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 0.91;
+      erScale = Math.min(3, Math.max(0.3, erScale * factor));
+      erDraw();
+    }, { passive: false });
+  })();
+
+  function erFit() {
+    SB.positions = {};
+    erPan = {x:0,y:0}; erScale = 1;
+    erDraw();
+  }
+
+  function erExport() {
+    erDraw();
+    const canvas = document.getElementById('er-canvas');
+    const a = document.createElement('a');
+    a.download = 'er_diagram.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+
+  // Init schema builder
+  let sqlDialect = 'postgres';
+  sbRenderTableList();
+  sbSelectTable('users');
+  sqlRender();
+  window.addEventListener('resize', () => { if (document.getElementById('view-schema').classList.contains('active')) erDraw(); });
+
+  // ── SQL Export ─────────────────────────────────────────────────────────────
+
+  function sqlSetDialect(d, btn) {
+    sqlDialect = d;
+    document.querySelectorAll('.sql-dialect-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sqlRender();
+  }
+
+  function sqlQuote(name, dialect) {
+    if (dialect === 'mysql' || dialect === 'mariadb') return '`' + name + '`';
+    return '"' + name + '"';
+  }
+
+  function sqlMapType(type, dialect) {
+    const t = type.toUpperCase();
+    if (dialect === 'sqlite') {
+      if (t === 'SERIAL' || t === 'BIGSERIAL') return 'INTEGER';
+      if (t.startsWith('VARCHAR')) return 'TEXT';
+      if (t === 'TIMESTAMPTZ' || t === 'TIMESTAMP') return 'TEXT';
+      if (t === 'BOOLEAN') return 'INTEGER';
+      if (t === 'JSONB' || t === 'JSON') return 'TEXT';
+      if (t === 'UUID') return 'TEXT';
+      return t;
+    }
+    if (dialect === 'mysql' || dialect === 'mariadb') {
+      if (t === 'SERIAL') return 'INT AUTO_INCREMENT';
+      if (t === 'BIGSERIAL') return 'BIGINT AUTO_INCREMENT';
+      if (t === 'TIMESTAMPTZ') return 'DATETIME';
+      if (t === 'JSONB') return 'JSON';
+      if (t === 'UUID') return 'CHAR(36)';
+      if (t === 'TEXT[]') return 'JSON';
+      return type;
+    }
+    // postgres
+    return type;
+  }
+
+  function sqlAutoincrement(col, dialect) {
+    if (dialect === 'sqlite') return col.pk ? ' PRIMARY KEY AUTOINCREMENT' : '';
+    if ((dialect === 'mysql' || dialect === 'mariadb') && (col.type.toUpperCase() === 'SERIAL' || col.type.toUpperCase() === 'BIGSERIAL')) return ' PRIMARY KEY';
+    return '';
+  }
+
+  function sqlGenerate(dialect) {
+    const q = n => sqlQuote(n, dialect);
+    const lines = [];
+    const now = new Date().toISOString().slice(0, 10);
+    const dialectLabel = { postgres:'PostgreSQL', mysql:'MySQL', mariadb:'MariaDB', sqlite:'SQLite' }[dialect];
+
+    lines.push(`-- Generated by CoolBox Schema Builder`);
+    lines.push(`-- Dialect : ${dialectLabel}`);
+    lines.push(`-- Date    : ${now}`);
+    lines.push('');
+
+    if (dialect === 'postgres') {
+      lines.push('SET client_encoding = \'UTF8\';');
+      lines.push('SET standard_conforming_strings = on;');
+      lines.push('');
+    } else if (dialect === 'mysql' || dialect === 'mariadb') {
+      lines.push('SET NAMES utf8mb4;');
+      lines.push('SET FOREIGN_KEY_CHECKS = 0;');
+      lines.push('');
+    } else if (dialect === 'sqlite') {
+      lines.push('PRAGMA journal_mode = WAL;');
+      lines.push('PRAGMA foreign_keys = ON;');
+      lines.push('');
+    }
+
+    for (const [tName, tDef] of Object.entries(SB.tables)) {
+      lines.push(`-- Table: ${tName}`);
+      if (dialect !== 'sqlite') lines.push(`DROP TABLE IF EXISTS ${q(tName)} CASCADE;`);
+      else lines.push(`DROP TABLE IF EXISTS ${q(tName)};`);
+      lines.push(`CREATE TABLE ${q(tName)} (`);
+
+      const colLines = [];
+      let hasPk = false;
+
+      tDef.cols.forEach(col => {
+        const mappedType = sqlMapType(col.type, dialect);
+        const autoInc    = sqlAutoincrement(col, dialect);
+        let colDef = `  ${q(col.name)} ${mappedType}`;
+
+        // SERIAL in postgres implies NOT NULL automatically
+        const isSerial = col.type.toUpperCase() === 'SERIAL' || col.type.toUpperCase() === 'BIGSERIAL';
+        if (isSerial && dialect === 'postgres') {
+          // no extra NOT NULL needed
+        } else if (col.nn || col.pk) {
+          colDef += ' NOT NULL';
+        }
+
+        if (autoInc) colDef += autoInc;
+        colLines.push(colDef);
+        if (col.pk) hasPk = true;
+      });
+
+      // PK constraint (not sqlite, which uses inline PRIMARY KEY AUTOINCREMENT)
+      if (hasPk && dialect !== 'sqlite') {
+        const pkCols = tDef.cols.filter(c => c.pk);
+        // skip inline PK for mysql/mariadb SERIAL types (already has PRIMARY KEY)
+        const needsConstraint = !(dialect !== 'postgres' && pkCols.length === 1 &&
+          (pkCols[0].type.toUpperCase() === 'SERIAL' || pkCols[0].type.toUpperCase() === 'BIGSERIAL'));
+        if (needsConstraint) {
+          colLines.push(`  PRIMARY KEY (${pkCols.map(c => q(c.name)).join(', ')})`);
+        }
+      }
+
+      // FK constraints (inline for sqlite, named CONSTRAINT for others)
+      if (dialect === 'sqlite') {
+        tDef.fks.forEach(fk => {
+          colLines.push(`  FOREIGN KEY (${q(fk.col)}) REFERENCES ${q(fk.refTable)} (${q(fk.refCol)})`);
+        });
+      } else {
+        tDef.fks.forEach((fk, i) => {
+          colLines.push(`  CONSTRAINT ${q('fk_' + tName + '_' + fk.col + '_' + i)} FOREIGN KEY (${q(fk.col)}) REFERENCES ${q(fk.refTable)} (${q(fk.refCol)})`);
+        });
+      }
+
+      lines.push(colLines.join(',\n'));
+
+      if (dialect === 'mysql' || dialect === 'mariadb') {
+        lines.push(') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;');
+      } else {
+        lines.push(');');
+      }
+      lines.push('');
+    }
+
+    if (dialect === 'mysql' || dialect === 'mariadb') {
+      lines.push('SET FOREIGN_KEY_CHECKS = 1;');
+    }
+
+    return lines.join('\n');
+  }
+
+  function sqlHighlight(sql) {
+    const keywords = /\b(CREATE|TABLE|DROP|IF|EXISTS|CASCADE|PRIMARY|KEY|FOREIGN|REFERENCES|NOT|NULL|AUTO_INCREMENT|AUTOINCREMENT|SET|NAMES|PRAGMA|CONSTRAINT|ENGINE|DEFAULT|CHARSET|COLLATE|FOREIGN_KEY_CHECKS|standard_conforming_strings|client_encoding|journal_mode)\b/g;
+    return sql
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/(--[^\n]*)/g, '<span class="sql-cmt">$1</span>')
+      .replace(keywords, '<span class="sql-kw">$1</span>');
+  }
+
+  function sqlRender() {
+    const sql = sqlGenerate(sqlDialect);
+    const pre = document.getElementById('sql-output');
+    pre.innerHTML = sqlHighlight(sql);
+    pre._raw = sql;
+  }
+
+  function sqlCopy() {
+    const pre = document.getElementById('sql-output');
+    navigator.clipboard.writeText(pre._raw || pre.textContent).then(() => {
+      const btn = document.querySelector('.sql-copy-btn');
+      const orig = btn.innerHTML;
+      btn.textContent = '✓ Copied';
+      btn.style.background = '#16a34a';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 1600);
+    });
+  }
+
+  function sqlDownload() {
+    const pre = document.getElementById('sql-output');
+    const sql = pre._raw || pre.textContent;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([sql], { type: 'text/sql' }));
+    a.download = `schema_${sqlDialect}.sql`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function mockSave() {
+    const out = document.getElementById('query-output');
+    out.className = 'console-output out-ok';
+    out.textContent = '✓ Configuration saved. Reconnecting… connected in 42ms.';
+  }
+  function clearQuery() {
+    document.getElementById('query-input').value = '';
+    const out = document.getElementById('query-output');
+    out.className = 'console-output';
+    out.textContent = '-- Results will appear here';
+  }
+  function runQuery() {
+    const q = document.getElementById('query-input').value.trim();
+    const out = document.getElementById('query-output');
+    if (!q) { out.className='console-output out-err'; out.textContent='-- No query to run'; return; }
+    out.className = 'console-output out-ok';
+    out.textContent = `-- Mock result (no real database connected)\ntable_name            | size\n----------------------+--------\nservice_registry      | 24 kB\njob_results           | 2.3 MB\napps                  | 48 kB\nnetwork_services      | 16 kB\nusers                 | 8 kB\n\n(5 rows) · 3ms`;
+  }
+</script>
+</body>
+</html>

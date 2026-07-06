@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Office Sweet · Drive</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:       #2563eb;
+      --brand-dark:  #1d4ed8;
+      --brand-pale:  #eff6ff;
+      --text:        #1e293b;
+      --muted:       #64748b;
+      --border:      #e2e8f0;
+      --surface:     #f8fafc;
+      --white:       #ffffff;
+      --success:     #16a34a;
+      --warning:     #d97706;
+      --danger:      #dc2626;
+
+      --sidebar-w:   240px;
+      --topbar-h:    58px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─────────────────────────────── TOP BAR ──────────────────────────────── */
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topbar-h);
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      gap: 1rem;
+      z-index: 100;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: calc(var(--sidebar-w) - 1rem);
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .brand-text {
+      font-weight: 800;
+      font-size: 1rem;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .brand-text .accent { color: #60a5fa; }
+    .brand-sub {
+      font-size: 0.62rem;
+      color: #475569;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* Search bar */
+    .topbar-search {
+      flex: 1;
+      max-width: 680px;
+      position: relative;
+    }
+    .topbar-search input {
+      width: 100%;
+      padding: 0.55em 1em 0.55em 2.6em;
+      border-radius: 99px;
+      border: 1.5px solid #334155;
+      background: #1e293b;
+      color: #f1f5f9;
+      font-size: 0.875rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .topbar-search input::placeholder { color: #64748b; }
+    .topbar-search input:focus { border-color: var(--brand); background: #0f172a; }
+    .search-icon {
+      position: absolute;
+      left: 0.85rem; top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      pointer-events: none;
+      font-size: 0.9rem;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .icon-btn {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.05rem;
+      transition: background 0.12s, color 0.12s;
+    }
+    .icon-btn:hover { background: #1e293b; color: #f8fafc; }
+    .avatar-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      border: 2px solid #334155;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; color: #fff;
+      cursor: pointer;
+    }
+    .mock-badge {
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+      font-size: 0.62rem; font-weight: 700; padding: 0.1em 0.5em;
+      border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    /* ─────────────────────────────── LAYOUT ───────────────────────────────── */
+    .app-body {
+      margin-top: var(--topbar-h);
+      display: flex;
+      flex: 1;
+      min-height: calc(100vh - var(--topbar-h));
+    }
+
+    /* ─────────────────────────────── SIDEBAR ──────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: var(--topbar-h);
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 1rem 0.75rem;
+      gap: 0.25rem;
+      overflow-y: auto;
+    }
+
+    .new-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.65em 1.1em;
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 0.5rem;
+      transition: background 0.12s, box-shadow 0.12s;
+      box-shadow: 0 1px 6px rgba(37,99,235,0.25);
+      font-family: inherit;
+    }
+    .new-btn:hover { background: var(--brand-dark); box-shadow: 0 3px 12px rgba(37,99,235,0.35); }
+
+    .sidebar-section {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.75rem 0.5rem 0.25rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.5em 0.75em;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--brand-pale); color: var(--brand); }
+    .nav-item.active { background: var(--brand-pale); color: var(--brand); font-weight: 700; }
+    .nav-item .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-item .nav-badge {
+      margin-left: auto;
+      font-size: 0.68rem; font-weight: 700;
+      background: var(--brand-pale); color: var(--brand);
+      border-radius: 999px; padding: 0.1em 0.45em;
+    }
+
+    /* Storage meter */
+    .storage-block {
+      margin-top: auto;
+      padding: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .storage-label {
+      font-size: 0.75rem; font-weight: 600; color: var(--muted);
+      display: flex; justify-content: space-between; margin-bottom: 0.45rem;
+    }
+    .storage-bar {
+      height: 6px; background: var(--border); border-radius: 99px; overflow: hidden;
+    }
+    .storage-fill {
+      height: 100%;
+      width: 38%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--brand), #0ea5e9);
+    }
+    .storage-detail { font-size: 0.7rem; color: var(--muted); margin-top: 0.35rem; }
+
+    /* ──────────────────────────────── MAIN ────────────────────────────────── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1.75rem;
+      max-width: 100%;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+    .breadcrumb a { color: var(--muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--brand); }
+    .breadcrumb .sep { color: var(--border); }
+    .breadcrumb .current { color: var(--text); font-weight: 600; }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 0.5rem; flex: 1; flex-wrap: wrap; }
+    .toolbar-right { display: flex; align-items: center; gap: 0.4rem; }
+
+    .btn {
+      padding: 0.45em 0.9em;
+      font-size: 0.82rem; font-weight: 600;
+      font-family: inherit;
+      border-radius: 7px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .btn-ghost { background: var(--white); border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface); }
+    .btn-ghost.active { border-color: var(--brand); color: var(--brand); background: var(--brand-pale); }
+
+    .sort-select {
+      padding: 0.42em 2em 0.42em 0.7em;
+      font-size: 0.82rem; font-weight: 500;
+      font-family: inherit;
+      border-radius: 7px; border: 1.5px solid var(--border);
+      background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E") no-repeat right 0.6em center;
+      appearance: none; color: var(--text); cursor: pointer; outline: none;
+    }
+    .sort-select:focus { border-color: var(--brand); }
+
+    /* Section label */
+    .section-label {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 0.75rem; margin-top: 0.25rem;
+    }
+
+    /* ──────────────────── RECENT STRIP (horizontal scroll) ──────────────────── */
+    .recent-strip {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .recent-card {
+      flex-shrink: 0;
+      width: 160px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .recent-card:hover { border-color: var(--brand); box-shadow: 0 4px 14px rgba(37,99,235,0.12); }
+    .recent-thumb {
+      height: 90px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.4rem;
+    }
+    .recent-info { padding: 0.5rem 0.65rem 0.6rem; border-top: 1px solid var(--border); }
+    .recent-name {
+      font-size: 0.78rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .recent-meta { font-size: 0.68rem; color: var(--muted); margin-top: 0.1rem; }
+
+    /* ──────────────────────────── FILE GRID ────────────────────────────────── */
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+      gap: 0.75rem;
+    }
+    .file-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    .file-card:hover { border-color: var(--brand); box-shadow: 0 4px 16px rgba(37,99,235,0.13); }
+    .file-card.selected { border-color: var(--brand); background: var(--brand-pale); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+
+    .file-thumb {
+      height: 110px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem;
+      position: relative;
+    }
+    .file-thumb.doc-bg   { background: #eff6ff; }
+    .file-thumb.sheet-bg { background: #f0fdf4; }
+    .file-thumb.slide-bg { background: #fff7ed; }
+    .file-thumb.pdf-bg   { background: #fef2f2; }
+    .file-thumb.img-bg   { background: #faf5ff; }
+    .file-thumb.vid-bg   { background: #0f172a; }
+    .file-thumb.folder-bg{ background: var(--surface); }
+
+    .file-star {
+      position: absolute; top: 6px; right: 7px;
+      font-size: 0.85rem; opacity: 0.5;
+      cursor: pointer; transition: opacity 0.1s;
+    }
+    .file-star.on { opacity: 1; }
+
+    .file-info {
+      padding: 0.55rem 0.7rem 0.6rem;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.45rem;
+    }
+    .file-icon-sm { font-size: 1rem; flex-shrink: 0; }
+    .file-meta { min-width: 0; flex: 1; }
+    .file-name {
+      font-size: 0.78rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-date { font-size: 0.67rem; color: var(--muted); }
+    .file-menu-btn {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      border-radius: 4px; border: none; background: transparent;
+      color: var(--muted); cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.1s, background 0.1s;
+    }
+    .file-card:hover .file-menu-btn { opacity: 1; }
+    .file-menu-btn:hover { background: var(--surface); color: var(--text); }
+
+    /* ──────────────────────────── FILE LIST ────────────────────────────────── */
+    .file-list { display: none; flex-direction: column; gap: 0; }
+    .file-list-header {
+      display: grid;
+      grid-template-columns: 2rem 1fr 130px 110px 90px 2rem;
+      align-items: center;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted);
+      border-bottom: 1.5px solid var(--border);
+    }
+    .file-row {
+      display: grid;
+      grid-template-columns: 2rem 1fr 130px 110px 90px 2rem;
+      align-items: center;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+      font-size: 0.83rem;
+    }
+    .file-row:hover { background: var(--brand-pale); }
+    .file-row.selected { background: var(--brand-pale); }
+    .file-row-icon { font-size: 1.25rem; }
+    .file-row-name { font-weight: 600; min-width: 0; }
+    .file-row-name span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-row-owner { color: var(--muted); font-size: 0.78rem; }
+    .file-row-date  { color: var(--muted); font-size: 0.78rem; }
+    .file-row-size  { color: var(--muted); font-size: 0.78rem; }
+    .file-row-menu  { text-align: right; }
+
+    /* view toggle active */
+    .view-grid .file-grid { display: grid; }
+    .view-grid .file-list { display: none; }
+    .view-list .file-grid { display: none; }
+    .view-list .file-list { display: flex; }
+
+    /* ─────────────────────────────── UPLOAD ZONE ───────────────────────────── */
+    .upload-zone {
+      margin-top: 2rem;
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      transition: border-color 0.15s, background 0.15s;
+      cursor: pointer;
+    }
+    .upload-zone:hover { border-color: var(--brand); background: var(--brand-pale); }
+    .upload-zone-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .upload-zone p { font-size: 0.85rem; }
+    .upload-zone strong { color: var(--brand); }
+
+    /* ─────────────────────────── CONTEXT MENU ──────────────────────────────── */
+    .ctx-menu {
+      position: fixed;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+      min-width: 180px;
+      padding: 0.35rem;
+      z-index: 500;
+      display: none;
+    }
+    .ctx-menu.open { display: block; }
+    .ctx-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5em 0.75em; border-radius: 6px;
+      font-size: 0.82rem; font-weight: 500; color: var(--text);
+      cursor: pointer; transition: background 0.1s;
+    }
+    .ctx-item:hover { background: var(--brand-pale); color: var(--brand); }
+    .ctx-item.danger { color: var(--danger); }
+    .ctx-item.danger:hover { background: #fef2f2; }
+    .ctx-sep { height: 1px; background: var(--border); margin: 0.25rem 0; }
+
+    /* ────────────────────────── NEW FILE MODAL ─────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 400;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 1.75rem 2rem;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 1.25rem; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1.25rem; }
+    .modal-tile {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.4rem; padding: 1rem 0.5rem;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 0.78rem; font-weight: 600; color: var(--text);
+      cursor: pointer; transition: border-color 0.12s, background 0.12s;
+    }
+    .modal-tile:hover { border-color: var(--brand); background: var(--brand-pale); color: var(--brand); }
+    .modal-tile .tile-icon { font-size: 1.75rem; }
+    .modal-foot { display: flex; justify-content: flex-end; }
+    .btn-cancel { background: none; border: 1.5px solid var(--border); color: var(--muted); }
+    .btn-cancel:hover { background: var(--surface); }
+
+    /* ────────────────────────── TOAST ──────────────────────────────────────── */
+    .toast-rack {
+      position: fixed;
+      bottom: 1.5rem; right: 1.5rem;
+      z-index: 600;
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .toast {
+      background: #0f172a; color: #f8fafc;
+      padding: 0.65em 1.1em; border-radius: 9px;
+      font-size: 0.82rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      display: flex; align-items: center; gap: 0.5rem;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─────────────────────────── RESPONSIVE ────────────────────────────────── */
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 0px; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 1rem; }
+      .file-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ TOP BAR ══════════════════════════════════ -->
+<header class="topbar">
+  <a class="topbar-brand" href="#">
+    <div class="brand-icon">📂</div>
+    <div>
+      <div class="brand-text">Office <span class="accent">Sweet</span></div>
+      <div class="brand-sub">Drive</div>
+    </div>
+  </a>
+
+  <div class="topbar-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search in Drive…" autocomplete="off" />
+  </div>
+
+  <div class="topbar-right">
+    <span class="mock-badge">MOCK</span>
+    <button class="icon-btn" title="Notifications">🔔</button>
+    <button class="icon-btn" title="Settings">⚙️</button>
+    <div class="avatar-btn" title="Sarah Chen">SC</div>
+  </div>
+</header>
+
+<!-- ════════════════════════════ APP BODY ════════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- ─────────────────────────── SIDEBAR ──────────────────────────────────── -->
+  <aside class="sidebar">
+    <button class="new-btn" id="newBtn">
+      <span>＋</span> New
+    </button>
+
+    <nav>
+      <div class="nav-item active" data-section="my-drive">
+        <span class="nav-icon">🗂️</span> My Drive
+      </div>
+      <div class="nav-item" data-section="shared">
+        <span class="nav-icon">👥</span> Shared with me
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item" data-section="recent">
+        <span class="nav-icon">🕒</span> Recent
+      </div>
+      <div class="nav-item" data-section="starred">
+        <span class="nav-icon">⭐</span> Starred
+      </div>
+
+      <div class="sidebar-section">Workspace</div>
+      <div class="nav-item" data-section="docs">
+        <span class="nav-icon">📝</span> Documents
+      </div>
+      <div class="nav-item" data-section="sheets">
+        <span class="nav-icon">📊</span> Spreadsheets
+      </div>
+      <div class="nav-item" data-section="slides">
+        <span class="nav-icon">📽️</span> Presentations
+      </div>
+
+      <div class="sidebar-section">Storage</div>
+      <div class="nav-item" data-section="trash">
+        <span class="nav-icon">🗑️</span> Trash
+      </div>
+    </nav>
+
+    <div class="storage-block">
+      <div class="storage-label">
+        <span>Storage</span>
+        <span>3.8 GB / 10 GB</span>
+      </div>
+      <div class="storage-bar"><div class="storage-fill"></div></div>
+      <div class="storage-detail">6.2 GB remaining</div>
+    </div>
+  </aside>
+
+  <!-- ───────────────────────────── MAIN ───────────────────────────────────── -->
+  <main class="main view-grid" id="mainArea">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" id="breadcrumb">
+      <span class="current">My Drive</span>
+    </nav>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <select class="sort-select" id="sortSelect">
+          <option value="modified">Last modified</option>
+          <option value="name">Name</option>
+          <option value="size">File size</option>
+          <option value="type">Type</option>
+        </select>
+        <button class="btn btn-ghost" id="filterFolders">📁 Folders</button>
+        <button class="btn btn-ghost" id="filterDocs">📝 Documents</button>
+        <button class="btn btn-ghost" id="filterMedia">🖼️ Media</button>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-ghost active" id="viewGrid" title="Grid view">▦</button>
+        <button class="btn btn-ghost" id="viewList" title="List view">☰</button>
+      </div>
+    </div>
+
+    <!-- Recent section -->
+    <div id="recentSection">
+      <div class="section-label">Suggested</div>
+      <div class="recent-strip" id="recentStrip"></div>
+    </div>
+
+    <!-- Main files section -->
+    <div class="section-label" id="mainLabel">Folders</div>
+
+    <!-- Grid view -->
+    <div class="file-grid" id="fileGrid"></div>
+
+    <!-- List view -->
+    <div class="file-list" id="fileList">
+      <div class="file-list-header">
+        <span></span>
+        <span>Name</span>
+        <span>Owner</span>
+        <span>Modified</span>
+        <span>Size</span>
+        <span></span>
+      </div>
+      <div id="fileListBody"></div>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="upload-zone" id="dropZone">
+      <div class="upload-zone-icon">☁️</div>
+      <p>Drop files here or <strong>click to upload</strong></p>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════ NEW FILE MODAL ════════════════════════════════ -->
+<div class="modal-overlay" id="newModal">
+  <div class="modal">
+    <div class="modal-title">Create new…</div>
+    <div class="modal-grid">
+      <div class="modal-tile" data-create="folder">
+        <span class="tile-icon">📁</span> Folder
+      </div>
+      <div class="modal-tile" data-create="doc">
+        <span class="tile-icon">📝</span> Document
+      </div>
+      <div class="modal-tile" data-create="sheet">
+        <span class="tile-icon">📊</span> Spreadsheet
+      </div>
+      <div class="modal-tile" data-create="slide">
+        <span class="tile-icon">📽️</span> Presentation
+      </div>
+      <div class="modal-tile" data-create="upload">
+        <span class="tile-icon">⬆️</span> Upload file
+      </div>
+      <div class="modal-tile" data-create="upload-folder">
+        <span class="tile-icon">📤</span> Upload folder
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-cancel" id="cancelModal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" data-action="open">📂 Open</div>
+  <div class="ctx-item" data-action="share">🔗 Share</div>
+  <div class="ctx-item" data-action="star">⭐ Add to starred</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" data-action="copy">📋 Make a copy</div>
+  <div class="ctx-item" data-action="rename">✏️ Rename</div>
+  <div class="ctx-item" data-action="download">⬇️ Download</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" data-action="trash">🗑️ Move to trash</div>
+</div>
+
+<!-- Toast rack -->
+<div class="toast-rack" id="toastRack"></div>
+
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━  DATA MODEL  ━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+const FILES = [
+  // Folders
+  { id:1,  name:'Q2 Reports',        type:'folder', modified:'May 7, 2026',  size:'-',       owner:'You',        starred:true  },
+  { id:2,  name:'Client Assets',     type:'folder', modified:'May 3, 2026',  size:'-',       owner:'You',        starred:false },
+  { id:3,  name:'Design System',     type:'folder', modified:'Apr 28, 2026', size:'-',       owner:'You',        starred:false },
+  { id:4,  name:'Archive 2025',      type:'folder', modified:'Jan 12, 2026', size:'-',       owner:'You',        starred:false },
+  // Documents
+  { id:5,  name:'Project Charter',   type:'doc',    modified:'May 8, 2026',  size:'82 KB',   owner:'You',        starred:true  },
+  { id:6,  name:'Meeting Notes',     type:'doc',    modified:'May 7, 2026',  size:'34 KB',   owner:'Alex R.',    starred:false },
+  { id:7,  name:'API Specification', type:'doc',    modified:'May 5, 2026',  size:'210 KB',  owner:'You',        starred:false },
+  // Spreadsheets
+  { id:8,  name:'Budget Tracker',    type:'sheet',  modified:'May 6, 2026',  size:'140 KB',  owner:'You',        starred:true  },
+  { id:9,  name:'Resource Plan',     type:'sheet',  modified:'Apr 30, 2026', size:'95 KB',   owner:'Jamie L.',   starred:false },
+  // Presentations
+  { id:10, name:'Q2 Roadmap Deck',   type:'slide',  modified:'May 4, 2026',  size:'4.2 MB',  owner:'You',        starred:true  },
+  { id:11, name:'Onboarding Deck',   type:'slide',  modified:'Mar 18, 2026', size:'7.8 MB',  owner:'You',        starred:false },
+  // PDFs
+  { id:12, name:'Contract_NDA.pdf',  type:'pdf',    modified:'Apr 20, 2026', size:'320 KB',  owner:'Legal',      starred:false },
+  { id:13, name:'SOW_2026.pdf',      type:'pdf',    modified:'Feb 3, 2026',  size:'510 KB',  owner:'Legal',      starred:false },
+  // Images
+  { id:14, name:'Brand Kit.zip',     type:'img',    modified:'May 2, 2026',  size:'18.3 MB', owner:'You',        starred:false },
+  { id:15, name:'Cover Photo.png',   type:'img',    modified:'Apr 14, 2026', size:'2.1 MB',  owner:'You',        starred:false },
+  // Video
+  { id:16, name:'Demo Walkthrough',  type:'vid',    modified:'Apr 10, 2026', size:'234 MB',  owner:'You',        starred:false },
+];
+
+const TYPE_META = {
+  folder: { icon:'📁', thumb:'📁', thumbBg:'folder-bg', label:'Folder'       },
+  doc:    { icon:'📝', thumb:'📝', thumbBg:'doc-bg',    label:'Document'     },
+  sheet:  { icon:'📊', thumb:'📊', thumbBg:'sheet-bg',  label:'Spreadsheet'  },
+  slide:  { icon:'📽️', thumb:'📽️', thumbBg:'slide-bg',  label:'Presentation' },
+  pdf:    { icon:'📄', thumb:'📄', thumbBg:'pdf-bg',    label:'PDF'          },
+  img:    { icon:'🖼️', thumb:'🖼️', thumbBg:'img-bg',    label:'Image'        },
+  vid:    { icon:'🎬', thumb:'🎬', thumbBg:'vid-bg',    label:'Video'        },
+};
+
+let files = JSON.parse(JSON.stringify(FILES)); // mutable copy
+let currentSection = 'my-drive';
+let activeFilter   = null;
+let viewMode       = 'grid';
+let selectedId     = null;
+let ctxTargetId    = null;
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━  RENDER HELPERS  ━━━━━━━━━━━━━━━━━━━━━━━ */
+
+function visibleFiles() {
+  let list = files.filter(f => !f.trashed);
+  if (currentSection === 'starred')   list = files.filter(f => f.starred && !f.trashed);
+  if (currentSection === 'shared')    list = files.filter(f => f.owner !== 'You' && !f.trashed);
+  if (currentSection === 'recent')    list = [...files].filter(f => !f.trashed).slice(0, 8);
+  if (currentSection === 'trash')     list = files.filter(f => f.trashed);
+  if (currentSection === 'docs')      list = files.filter(f => f.type === 'doc' && !f.trashed);
+  if (currentSection === 'sheets')    list = files.filter(f => f.type === 'sheet' && !f.trashed);
+  if (currentSection === 'slides')    list = files.filter(f => f.type === 'slide' && !f.trashed);
+
+  if (activeFilter === 'folder')  list = list.filter(f => f.type === 'folder');
+  if (activeFilter === 'doc')     list = list.filter(f => ['doc','sheet','slide','pdf'].includes(f.type));
+  if (activeFilter === 'media')   list = list.filter(f => ['img','vid'].includes(f.type));
+
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (q) list = list.filter(f => f.name.toLowerCase().includes(q));
+
+  const sort = document.getElementById('sortSelect').value;
+  list.sort((a,b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name);
+    if (sort === 'type') return a.type.localeCompare(b.type);
+    return 0;
+  });
+
+  // Folders first
+  return list.sort((a,b) => (a.type === 'folder' ? -1 : 1) - (b.type === 'folder' ? -1 : 1));
+}
+
+function renderGrid() {
+  const grid = document.getElementById('fileGrid');
+  grid.innerHTML = '';
+  const list = visibleFiles();
+
+  list.forEach(f => {
+    const m  = TYPE_META[f.type];
+    const el = document.createElement('div');
+    el.className = 'file-card' + (selectedId === f.id ? ' selected' : '');
+    el.dataset.id = f.id;
+    el.innerHTML = `
+      <div class="file-thumb ${m.thumbBg}">
+        ${m.thumb}
+        <span class="file-star ${f.starred ? 'on' : ''}" data-star="${f.id}">⭐</span>
+      </div>
+      <div class="file-info">
+        <span class="file-icon-sm">${m.icon}</span>
+        <div class="file-meta">
+          <div class="file-name" title="${f.name}">${f.name}</div>
+          <div class="file-date">${f.modified}</div>
+        </div>
+        <button class="file-menu-btn" data-menu="${f.id}">⋮</button>
+      </div>`;
+    grid.appendChild(el);
+  });
+
+  if (list.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:2rem;text-align:center;font-size:.875rem;">No files found.</div>';
+  }
+}
+
+function renderList() {
+  const body = document.getElementById('fileListBody');
+  body.innerHTML = '';
+  const list = visibleFiles();
+
+  list.forEach(f => {
+    const m   = TYPE_META[f.type];
+    const row = document.createElement('div');
+    row.className = 'file-row' + (selectedId === f.id ? ' selected' : '');
+    row.dataset.id = f.id;
+    row.innerHTML = `
+      <span class="file-row-icon">${m.icon}</span>
+      <div class="file-row-name"><span title="${f.name}">${f.name}</span></div>
+      <div class="file-row-owner">${f.owner}</div>
+      <div class="file-row-date">${f.modified}</div>
+      <div class="file-row-size">${f.size}</div>
+      <div class="file-row-menu">
+        <button class="file-menu-btn" style="opacity:1" data-menu="${f.id}">⋮</button>
+      </div>`;
+    body.appendChild(row);
+  });
+
+  if (list.length === 0) {
+    body.innerHTML = '<div style="padding:2rem;color:var(--muted);font-size:.875rem;text-align:center;">No files found.</div>';
+  }
+}
+
+function renderRecent() {
+  const strip  = document.getElementById('recentStrip');
+  const recent = files.filter(f => !f.trashed).slice(0, 6);
+  strip.innerHTML = '';
+  recent.forEach(f => {
+    const m  = TYPE_META[f.type];
+    const el = document.createElement('div');
+    el.className = 'recent-card';
+    el.dataset.id = f.id;
+    el.innerHTML = `
+      <div class="recent-thumb ${m.thumbBg}">${m.thumb}</div>
+      <div class="recent-info">
+        <div class="recent-name" title="${f.name}">${f.name}</div>
+        <div class="recent-meta">${f.modified}</div>
+      </div>`;
+    strip.appendChild(el);
+  });
+}
+
+function render() {
+  renderGrid();
+  renderList();
+  const isMyDrive = currentSection === 'my-drive';
+  document.getElementById('recentSection').style.display = isMyDrive ? '' : 'none';
+  if (isMyDrive) renderRecent();
+
+  const labels = {
+    'my-drive':'Files', 'shared':'Shared with me', 'recent':'Recent',
+    'starred':'Starred', 'trash':'Trash',
+    'docs':'Documents', 'sheets':'Spreadsheets', 'slides':'Presentations',
+  };
+  document.getElementById('mainLabel').textContent = labels[currentSection] || 'Files';
+  document.getElementById('breadcrumb').innerHTML =
+    '<span class="current">' + (labels[currentSection] || 'My Drive') + '</span>';
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━  TOAST  ━━━━━━━━━━━━━━━━━━━━━━━━ */
+function toast(msg) {
+  const rack = document.getElementById('toastRack');
+  const el   = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  rack.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━  CONTEXT MENU  ━━━━━━━━━━━━━━━━━━━━━ */
+const ctxMenu = document.getElementById('ctxMenu');
+
+function openCtx(id, x, y) {
+  ctxTargetId = id;
+  ctxMenu.style.left = Math.min(x, window.innerWidth - 200) + 'px';
+  ctxMenu.style.top  = Math.min(y, window.innerHeight - 220) + 'px';
+  ctxMenu.classList.add('open');
+}
+function closeCtx() { ctxMenu.classList.remove('open'); ctxTargetId = null; }
+
+ctxMenu.addEventListener('click', e => {
+  const item = e.target.closest('[data-action]');
+  if (!item) return;
+  const action = item.dataset.action;
+  const f = files.find(x => x.id === ctxTargetId);
+  if (!f) { closeCtx(); return; }
+
+  if (action === 'open')     toast(`📂 Opened "${f.name}"`);
+  if (action === 'share')    toast(`🔗 Share link copied for "${f.name}"`);
+  if (action === 'star')   { f.starred = !f.starred; toast(f.starred ? `⭐ Starred "${f.name}"` : `Unstarred "${f.name}"`); }
+  if (action === 'copy')     toast(`📋 Copy of "${f.name}" created`);
+  if (action === 'rename') {
+    const name = prompt('Rename to:', f.name);
+    if (name && name.trim()) { f.name = name.trim(); toast(`✏️ Renamed to "${f.name}"`); }
+  }
+  if (action === 'download') toast(`⬇️ Downloading "${f.name}"…`);
+  if (action === 'trash')  {
+    f.trashed = true;
+    toast(`🗑️ "${f.name}" moved to trash`);
+  }
+
+  closeCtx();
+  render();
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━  EVENTS  ━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+// Sidebar nav
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    item.classList.add('active');
+    currentSection = item.dataset.section;
+    selectedId = null;
+    activeFilter = null;
+    render();
+  });
+});
+
+// View toggle
+document.getElementById('viewGrid').addEventListener('click', () => {
+  viewMode = 'grid';
+  document.getElementById('mainArea').className = 'main view-grid';
+  document.getElementById('viewGrid').classList.add('active');
+  document.getElementById('viewList').classList.remove('active');
+});
+document.getElementById('viewList').addEventListener('click', () => {
+  viewMode = 'list';
+  document.getElementById('mainArea').className = 'main view-list';
+  document.getElementById('viewList').classList.add('active');
+  document.getElementById('viewGrid').classList.remove('active');
+});
+
+// Filter buttons
+function toggleFilter(btn, key) {
+  if (activeFilter === key) {
+    activeFilter = null;
+    btn.classList.remove('active');
+  } else {
+    activeFilter = key;
+    document.querySelectorAll('.toolbar-left .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  render();
+}
+document.getElementById('filterFolders').addEventListener('click', e => toggleFilter(e.currentTarget, 'folder'));
+document.getElementById('filterDocs').addEventListener('click',    e => toggleFilter(e.currentTarget, 'doc'));
+document.getElementById('filterMedia').addEventListener('click',   e => toggleFilter(e.currentTarget, 'media'));
+
+// Search
+document.getElementById('searchInput').addEventListener('input', () => render());
+
+// Sort
+document.getElementById('sortSelect').addEventListener('change', () => render());
+
+// New button / modal
+document.getElementById('newBtn').addEventListener('click', () => {
+  document.getElementById('newModal').classList.add('open');
+});
+document.getElementById('cancelModal').addEventListener('click', () => {
+  document.getElementById('newModal').classList.remove('open');
+});
+document.getElementById('newModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('newModal'))
+    document.getElementById('newModal').classList.remove('open');
+});
+document.querySelectorAll('[data-create]').forEach(tile => {
+  tile.addEventListener('click', () => {
+    const type = tile.dataset.create;
+    const labels = { folder:'Folder', doc:'Document', sheet:'Spreadsheet', slide:'Presentation', upload:'File', 'upload-folder':'Folder' };
+    if (type === 'upload' || type === 'upload-folder') {
+      toast('⬆️ Upload dialog would open here');
+    } else {
+      const name = prompt(`Name your new ${labels[type]}:`, `Untitled ${labels[type]}`);
+      if (name && name.trim()) {
+        files.unshift({
+          id: Date.now(), name: name.trim(), type,
+          modified: 'Just now', size: '0 KB', owner: 'You', starred: false,
+        });
+        toast(`✅ Created "${name.trim()}"`);
+        render();
+      }
+    }
+    document.getElementById('newModal').classList.remove('open');
+  });
+});
+
+// File click → select; double-click → open
+document.getElementById('fileGrid').addEventListener('click', e => {
+  const card = e.target.closest('[data-id]');
+  if (!card) return;
+  const id = Number(card.dataset.id);
+
+  // Star toggle
+  if (e.target.closest('[data-star]')) {
+    const f = files.find(x => x.id === Number(e.target.dataset.star));
+    if (f) { f.starred = !f.starred; toast(f.starred ? `⭐ Starred` : `Unstarred`); render(); }
+    return;
+  }
+  // Menu btn
+  if (e.target.closest('[data-menu]')) {
+    const rect = e.target.getBoundingClientRect();
+    openCtx(id, rect.left, rect.bottom + 4);
+    return;
+  }
+  selectedId = selectedId === id ? null : id;
+  render();
+});
+
+document.getElementById('fileGrid').addEventListener('dblclick', e => {
+  const card = e.target.closest('[data-id]');
+  if (!card) return;
+  const f = files.find(x => x.id === Number(card.dataset.id));
+  if (f) toast(`📂 Opened "${f.name}"`);
+});
+
+document.getElementById('fileListBody').addEventListener('click', e => {
+  const row = e.target.closest('[data-id]');
+  if (!row) return;
+  const id = Number(row.dataset.id);
+  if (e.target.closest('[data-menu]')) {
+    const rect = e.target.getBoundingClientRect();
+    openCtx(id, rect.left, rect.bottom + 4);
+    return;
+  }
+  selectedId = selectedId === id ? null : id;
+  render();
+});
+
+// Recent strip click
+document.getElementById('recentStrip').addEventListener('click', e => {
+  const card = e.target.closest('[data-id]');
+  if (!card) return;
+  const f = files.find(x => x.id === Number(card.dataset.id));
+  if (f) toast(`📂 Opened "${f.name}"`);
+});
+
+// Context menu on right-click over card
+document.getElementById('fileGrid').addEventListener('contextmenu', e => {
+  const card = e.target.closest('[data-id]');
+  if (!card) return;
+  e.preventDefault();
+  openCtx(Number(card.dataset.id), e.clientX, e.clientY);
+});
+document.getElementById('fileListBody').addEventListener('contextmenu', e => {
+  const row = e.target.closest('[data-id]');
+  if (!row) return;
+  e.preventDefault();
+  openCtx(Number(row.dataset.id), e.clientX, e.clientY);
+});
+
+// Close ctx on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ctxMenu') && !e.target.closest('[data-menu]')) closeCtx();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); document.getElementById('newModal').classList.remove('open'); } });
+
+// Drop zone
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('click', () => toast('⬆️ File picker would open here'));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--brand)'; dropZone.style.background = 'var(--brand-pale)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; dropZone.style.background = ''; });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.style.borderColor = ''; dropZone.style.background = '';
+  const dropped = [...e.dataTransfer.files];
+  if (dropped.length) {
+    dropped.forEach(f => {
+      files.unshift({ id: Date.now() + Math.random(), name: f.name, type: 'img', modified: 'Just now', size: (f.size / 1024).toFixed(0) + ' KB', owner: 'You', starred: false });
+    });
+    toast(`⬆️ ${dropped.length} file(s) uploaded`);
+    render();
+  }
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━  INIT  ━━━━━━━━━━━━━━━━━━━━━━━━ */
+render();
+</script>
+</body>
+</html>

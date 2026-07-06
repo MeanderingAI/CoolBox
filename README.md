@@ -1,5 +1,57 @@
 # Compiling
 
+## v1.3.5 Sub-Repo Additions
+
+The following repositories are tracked as git submodules for v1.3.5:
+
+1. `GH-7` at `_sub_repos/GH-7` from `https://github.com/MeanderingAI/GH-7`
+2. `BH-2` at `_sub_repos/BH-2` from `https://github.com/MeanderingAI/BH-2.git`
+3. `bookish-meme` at `_sub_repos/bookish-meme` from `https://github.com/MeanderingAI/bookish-meme`
+
+Clone with submodules:
+
+```bash
+git clone --recurse-submodules https://github.com/MeanderingAI/CoolBox.git
+```
+
+Update submodules after cloning:
+
+```bash
+git submodule update --init --recursive
+```
+
+## v1.3.5 Bindings Debugging Update
+
+Recent v1.3.5 Python bindings fixes include:
+
+1. [_internal_documents/plan/v1.3._/v1.3.5/python_linear_regression_fit_segfault_fix.md](_internal_documents/plan/v1.3._/v1.3.5/python_linear_regression_fit_segfault_fix.md)
+2. [_internal_documents/plan/v1.3._/v1.3.5/python_deep_learning_wrapper_include_fix.md](_internal_documents/plan/v1.3._/v1.3.5/python_deep_learning_wrapper_include_fix.md)
+3. [_internal_documents/plan/v1.3._/v1.3.5/python_hmm_bindings_repair.md](_internal_documents/plan/v1.3._/v1.3.5/python_hmm_bindings_repair.md)
+4. [_internal_documents/plan/v1.3._/v1.3.5/python_pde_spde_binding_source_inclusion_fix.md](_internal_documents/plan/v1.3._/v1.3.5/python_pde_spde_binding_source_inclusion_fix.md)
+
+Validation status:
+
+1. `python3 -X faulthandler test_bindings.py` passes (`9/9` tests).
+2. `ctest -R hmm_python_bindings_test --output-on-failure` passes (`100%`).
+
+Note: for in-place Python extension rebuilds, run from `_deliverables/libraries/bindings/python_bindings`.
+
+## v1.3.5 Build and Test Stabilization Update
+
+Recent v1.3.5 core test and build stabilization fixes include:
+
+1. [_internal_documents/plan/v1.3._/v1.3.5/cp_decomposition_khatri_rao_fix.md](_internal_documents/plan/v1.3._/v1.3.5/cp_decomposition_khatri_rao_fix.md)
+2. [_internal_documents/plan/v1.3._/v1.3.5/matrix_profile_tolerance_adjustment.md](_internal_documents/plan/v1.3._/v1.3.5/matrix_profile_tolerance_adjustment.md)
+3. [_internal_documents/plan/v1.3._/v1.3.5/gabor_kernel_unnormalized_center_test_fix.md](_internal_documents/plan/v1.3._/v1.3.5/gabor_kernel_unnormalized_center_test_fix.md)
+4. [_internal_documents/plan/v1.3._/v1.3.5/radix_sort_msd_stabilization.md](_internal_documents/plan/v1.3._/v1.3.5/radix_sort_msd_stabilization.md)
+5. [_internal_documents/plan/v1.3._/v1.3.5/eigen_ctest_pollution_prevention.md](_internal_documents/plan/v1.3._/v1.3.5/eigen_ctest_pollution_prevention.md)
+6. [_internal_documents/plan/v1.3._/v1.3.5/macos_run_debug_terminal_profiles.md](_internal_documents/plan/v1.3._/v1.3.5/macos_run_debug_terminal_profiles.md)
+
+Validation status:
+
+1. `ctest --output-on-failure -j 8` passes (`100%`, `36/36`).
+2. `make test` passes with the same clean CTest result (`100%`, `36/36`).
+
 ## Release Assets: Platform and Binding Labels
 
 Starting with v1.1.58, all release assets for purchase workflows (including `manifest.txt` and `SHA256SUMS`) are uploaded with unique names that include both the platform and binding type. This prevents asset name collisions and makes it clear which asset corresponds to which package and platform.
@@ -230,6 +282,91 @@ mytrix::Matrix X_umap = umap.fit_transform(X);
 - For very high-dimensional data (>50 features), consider PCA preprocessing before UMAP
 - All algorithms exposed via Python bindings in `ml_core.dimensionality_reduction`
 - Scaling recommended when features have different units/scales
+
+## Signal Processing (SP)
+
+The `cool_car/SP` group provides a suite of digital signal processing libraries in the `sp` namespace.
+
+### Filters (`sp::filters`)
+
+FIR and IIR digital filter design and application:
+
+1. **FIR design** — windowed-sinc lowpass, highpass, bandpass, bandstop (Hann window)
+2. **IIR design** — Butterworth (lowpass, highpass, bandpass) and Chebyshev Type I (lowpass, highpass) via bilinear transform; biquad notch
+3. **Application** — `apply_fir`, `apply_iir` (Direct Form II Transposed), `filtfilt` (zero-phase forward-backward)
+4. **Analysis** — `frequency_response`, `group_delay`, `impulse_response`
+5. **Smoothing** — `moving_average`, `median_filter`, `savitzky_golay`
+
+### Resampling (`sp::resampling`)
+
+Sample-rate conversion at integer and fractional ratios:
+
+1. **Integer-ratio** — `upsample`, `downsample`, `decimate` (with anti-alias FIR)
+2. **Fractional** — `resample_rational` (polyphase windowed-sinc)
+3. **Interpolation** — `resample_linear`, `resample_cubic` (Catmull-Rom), `resample_sinc`
+4. **Arbitrary rate** — `resample_rate` (floating-point ratio)
+5. **Polyphase** — `polyphase_decompose`
+
+### Wavelets (`sp::wavelets`)
+
+Discrete and continuous wavelet transforms:
+
+1. **Families** — Haar, Daubechies 2 & 4, Symlet 2, Coiflet 1, Biorthogonal Spline 1.3
+2. **DWT** — `dwt` / `idwt` (single level, periodic extension), `wavedec` / `waverec` (multi-level)
+3. **CWT** — `cwt_morlet` (Morlet wavelet, configurable scales), `scalogram`
+4. **Denoising** — `threshold` (hard/soft), `denoise` (VisuShrink via MAD noise estimate)
+5. **Utilities** — `wavelet_filter_lo/hi`, `cwt_scales`, `pad_to_power_of_two`
+
+## Data Mining (DM)
+
+The `cool_car/DM` group provides time-series data mining algorithms in the `dm` namespace.
+
+### Matrix Profile (`dm::matrix_profile`)
+
+Efficient time-series motif and discord discovery via the matrix profile:
+
+1. **Core computation**
+   - `self_join` — STOMP O(n²) matrix profile of a series against itself with O(1) QT diagonal update per pair
+   - `ab_join` — cross matrix profile between two independent time series
+   - `distance_profile` — z-normalised Euclidean distances from a single query to all windows
+
+2. **Preprocessing**
+   - `z_normalize` — zero-mean, unit-variance normalisation of a subsequence
+   - `sliding_statistics` — O(n) running mean and standard deviation for all length-m windows
+
+3. **Pattern discovery**
+   - `top_motifs` — top-k repeating patterns (lowest distance pairs) with exclusion-zone suppression
+   - `top_discords` — top-k anomalies (highest distances) with exclusion-zone suppression
+
+4. **Segmentation (FLOSS)**
+   - `arc_curve` — corrected arc curve (CAC) for regime-change detection
+   - `segmentation_points` — boundary indices from local minima of the arc curve
+
+5. **Utilities**
+   - `extract_subsequence` — slice a subsequence from a time series
+   - `batch_self_join` — self-join for every row of a `mytrix::DenseMatrix`
+
+**Example (C++):**
+
+```cpp
+#include "matrix_profile.hpp"
+
+std::vector<double> ts = /* your time series */;
+std::size_t m = 16;  // subsequence length
+
+// Compute matrix profile
+auto mp = dm::matrix_profile::self_join(ts, m);
+
+// Find top motifs (repeating patterns)
+auto motifs = dm::matrix_profile::top_motifs(mp, 3);
+
+// Find top discords (anomalies)
+auto discords = dm::matrix_profile::top_discords(mp, 2);
+
+// Segment the time series
+auto arc = dm::matrix_profile::arc_curve(mp);
+auto boundaries = dm::matrix_profile::segmentation_points(arc, 3);
+```
 
 # Dependencies
 

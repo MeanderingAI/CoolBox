@@ -4,6 +4,113 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
         "configurations": [
+                {
+                    "name": "Run secret_gen_cli (Terminal, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version v7 --batch 10"
+                },
+                {
+                    "name": "Run secret_gen_cli (Terminal Prompt Args, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version ${input:secretGenUuidVersion} --batch ${input:secretGenBatchSize}"
+                },
+                {
+                    "name": "Launch GUI Dashboard (Terminal, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "make dashboard"
+                },
+                {
+                    "name": "Stop GUI Dashboard :8000 (Terminal, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "make dashboard-kill"
+                },
+                {
+                    "name": "Launch Call Center (Vite, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/call_center",
+                    "command": "cd ${workspaceFolder} && (lsof -nP -iTCP:8011 -sTCP:LISTEN >/dev/null 2>&1 || (cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target call_center_api && ./build/_deliverables/apps/call_center_api/call_center_api --port 8011 >/tmp/call_center_api.log 2>&1 &)) && cd ${workspaceFolder}/_interfaces/call_center && npm install && npm run dev"
+                },
+                {
+                    "name": "Launch Call Center API (macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target call_center_api && ./build/_deliverables/apps/call_center_api/call_center_api --port 8011"
+                },
+                {
+                    "name": "Launch Email Center (Vite, macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/email_center",
+                    "command": "cd ${workspaceFolder} && (lsof -nP -iTCP:8022 -sTCP:LISTEN >/dev/null 2>&1 || (cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target email_center_api && ./build/_deliverables/apps/email_center_api/email_center_api --port 8022 >/tmp/email_center_api.log 2>&1 &)) && cd ${workspaceFolder}/_interfaces/email_center && npm install && npm run dev"
+                },
+                {
+                    "name": "Launch Email Center API (macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target email_center_api && ./build/_deliverables/apps/email_center_api/email_center_api --port 8022"
+                },
+                {
+                    "name": "Launch GUI Dashboard (Terminal, Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ./launch_gui.ps1"
+                },
+                {
+                    "name": "Launch Call Center (Vite, Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/call_center",
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location '${workspaceFolder}'; if (-not (Get-NetTCPConnection -LocalPort 8011 -State Listen -ErrorAction SilentlyContinue)) { cmake -S . -B build -DBUILD_PRODUCTS=ON; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build --config Debug --target call_center_api; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Start-Process -FilePath '.\\build\\_deliverables\\apps\\call_center_api\\Debug\\call_center_api.exe' -ArgumentList '--port 8011' -WorkingDirectory '${workspaceFolder}' | Out-Null }; Set-Location '${workspaceFolder}\\_interfaces\\call_center'; npm install; npm run dev\""
+                },
+                {
+                    "name": "Launch Call Center API (Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --config Debug --target call_center_api && ./build/_deliverables/apps/call_center_api/Debug/call_center_api.exe --port 8011"
+                },
+                {
+                    "name": "Launch Email Center (Vite, Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/email_center",
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location '${workspaceFolder}'; if (-not (Get-NetTCPConnection -LocalPort 8022 -State Listen -ErrorAction SilentlyContinue)) { cmake -S . -B build -DBUILD_PRODUCTS=ON; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build --config Debug --target email_center_api; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Start-Process -FilePath '.\\build\\_deliverables\\apps\\email_center_api\\Debug\\email_center_api.exe' -ArgumentList '--port 8022' -WorkingDirectory '${workspaceFolder}' | Out-Null }; Set-Location '${workspaceFolder}\\_interfaces\\email_center'; npm install; npm run dev\""
+                },
+                {
+                    "name": "Launch Email Center API (Windows)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}",
+                    "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --config Debug --target email_center_api && ./build/_deliverables/apps/email_center_api/Debug/email_center_api.exe --port 8022"
+                },
+                {
+                    "name": "Launch GUI from _interfaces",
+                    "type": "cppvsdbg",
+                    "request": "launch",
+                    "program": "powershell",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        "${workspaceFolder}/_interfaces/GUI/launch_gui.ps1"
+                    ],
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "console": "integratedTerminal",
+                    "preLaunchTask": "launch-gui-from-interfaces"
+                },
             
 
             {
@@ -31,6 +138,240 @@
                 "args": ["pgha"],
                 "cwd": "${workspaceFolder}",
                 "console": "integratedTerminal"
+            },
+            {
+                "name": "Run secret_gen_cli (v7 x 10)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\secret_gen_cli\\Debug\\secret_gen_cli.exe",
+                "args": [
+                    "--version",
+                    "v7",
+                    "--batch",
+                    "10"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-secret-gen-cli-debug"
+            },
+            {
+                "name": "Run secret_gen_cli (v7 x 10, macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version v7 --batch 10"
+            },
+            {
+                "name": "Run secret_gen_cli (Prompt Args)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\secret_gen_cli\\Debug\\secret_gen_cli.exe",
+                "args": [
+                    "--version",
+                    "${input:secretGenUuidVersion}",
+                    "--batch",
+                    "${input:secretGenBatchSize}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-secret-gen-cli-debug"
+            },
+            {
+                "name": "Run secret_gen_cli (Prompt Args, macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli && ./build/_deliverables/apps/secret_gen_cli/secret_gen_cli --version ${input:secretGenUuidVersion} --batch ${input:secretGenBatchSize}"
+            },
+            {
+                "name": "Run cad_builder (--launch-gui)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\cad_builder\\Debug\\cad_builder.exe",
+                "args": [
+                    "--launch-gui"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-cad-builder-debug"
+            },
+            {
+                "name": "Run cad_builder (Prompt Input/Output)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\cad_builder\\Debug\\cad_builder.exe",
+                "args": [
+                    "--input",
+                    "${input:cadBuilderInputPath}",
+                    "--output",
+                    "${input:cadBuilderOutputPath}",
+                    "${input:cadBuilderWindowFlag}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-cad-builder-debug"
+            },
+            {
+                "name": "Run screen_builder (Default XML)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\screen_builder\\Debug\\screen_builder.exe",
+                "args": [
+                    "--xml",
+                    "_deliverables/apps/screen_builder/app_layout.xml"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-screen-builder-debug"
+            },
+            {
+                "name": "Run screen_builder (Prompt XML)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\screen_builder\\Debug\\screen_builder.exe",
+                "args": [
+                    "--xml",
+                    "${input:screenBuilderXmlPath}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-screen-builder-debug"
+            },
+            {
+                "name": "Run recording_studio (macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake --build build --target recording_studio && ./build/_deliverables/apps/recording_studio/recording_studio"
+            }
+        ],
+        "compounds": [
+            {
+                "name": "Launch Call Center Stack (macOS/Linux)",
+                "configurations": [
+                    "Launch Call Center API (macOS/Linux)",
+                    "Launch Call Center (Vite, macOS/Linux)"
+                ]
+            },
+            {
+                "name": "Launch Call Center Stack (Windows)",
+                "configurations": [
+                    "Launch Call Center API (Windows)",
+                    "Launch Call Center (Vite, Windows)"
+                ]
+            },
+            {
+                "name": "Launch Email Center Stack (macOS/Linux)",
+                "configurations": [
+                    "Launch Email Center API (macOS/Linux)",
+                    "Launch Email Center (Vite, macOS/Linux)"
+                ]
+            },
+            {
+                "name": "Launch Email Center Stack (Windows)",
+                "configurations": [
+                    "Launch Email Center API (Windows)",
+                    "Launch Email Center (Vite, Windows)"
+                ]
+            }
+        ],
+        "inputs": [
+            // Build all libraries (mac/linux)
+            {
+                "name": "Build All (mac/linux)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "make",
+                "args": ["all"],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build_all-mac-linux"
+            },
+            // Build all libraries (windows)
+            {
+                "name": "Build All (windows)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "powershell",
+                "args": [
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    "cmake --build build --config Debug"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build_all-windows"
+            },
+            // Run all tests (mac/linux)
+            {
+                "name": "Run All Tests (mac/linux)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "make",
+                "args": ["test"],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "test_all-mac-linux"
+            },
+            // Run all tests (windows)
+            {
+                "name": "Run All Tests (windows)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "powershell",
+                "args": [
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    "cmake --build build --config Debug && ctest --test-dir build --output-on-failure"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "test_all-windows"
+            },
+            {
+                "id": "secretGenUuidVersion",
+                "type": "promptString",
+                "description": "UUID version (1,2,3,4,5,6,7,8,v1..v8,guid)",
+                "default": "v7"
+            },
+            {
+                "id": "secretGenBatchSize",
+                "type": "promptString",
+                "description": "Batch size",
+                "default": "10"
+            },
+            {
+                "id": "cadBuilderInputPath",
+                "type": "promptString",
+                "description": "CAD input file path (.dwg/.step/.stl/.sldprt/etc.)",
+                "default": "${workspaceFolder}\\sample.step"
+            },
+            {
+                "id": "cadBuilderOutputPath",
+                "type": "promptString",
+                "description": "Output .hk_cad file path",
+                "default": "${workspaceFolder}\\sample.hk_cad"
+            },
+            {
+                "id": "cadBuilderWindowFlag",
+                "type": "pickString",
+                "description": "Optional startup GUI flag",
+                "options": [
+                    "",
+                    "--window",
+                    "--launch-gui"
+                ],
+                "default": ""
+            },
+            {
+                "id": "screenBuilderXmlPath",
+                "type": "promptString",
+                "description": "XML file path for screen_builder",
+                "default": "_deliverables/apps/screen_builder/app_layout.xml"
             }
         ]
 }

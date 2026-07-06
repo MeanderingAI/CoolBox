@@ -1,0 +1,38 @@
+# Linux dependency setup for CI builds
+# This is a composite action
+# To use, add: `- uses: ./.github/workflows/fragments/deps-linux.yaml`
+
+name: 'Linux Dependencies Setup'
+description: 'Install and configure dependencies for Linux builds'
+runs:
+  using: 'composite'
+  steps:
+  - name: Install dependencies (Linux)
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y g++ make cmake libeigen3-dev libgsl-dev libsqlite3-dev doxygen gfortran bison python3-dev python3-pip ninja-build
+
+  - name: Verify CMake is available (Linux)
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      command -v cmake
+      cmake --version
+
+  - name: Configure CMake (Linux)
+    if: runner.os == 'Linux'
+    shell: bash
+    run: |
+      if [ -n "$SQLITE3_ROOT" ]; then
+        CMAKE_SQLITE_ARGS="-DSQLITE3_ROOT=$SQLITE3_ROOT -DSQLite3_ROOT=$SQLITE3_ROOT -DCMAKE_PREFIX_PATH=$SQLITE3_ROOT"
+      else
+        CMAKE_SQLITE_ARGS=""
+      fi
+      if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
+        CMAKE_EXTRA_ARGS="-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE"
+        cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_EXTRA_ARGS $CMAKE_SQLITE_ARGS
+      else
+        cmake -S . -B build -Wno-dev -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release $CMAKE_SQLITE_ARGS
+      fi

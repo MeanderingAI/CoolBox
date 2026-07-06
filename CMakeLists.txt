@@ -1,5 +1,10 @@
-cmake_minimum_required(VERSION 4.2.3)
+
+cmake_minimum_required(VERSION 3.20)
 project(CoolBoxSQL LANGUAGES C CXX)
+
+# Force Eigen to use at least C++11 (and respect top-level C++ standard)
+set(EIGEN_TEST_CXX11 ON CACHE BOOL "Enable C++11/17 for Eigen" FORCE)
+
 
 # Ensure custom Find*.cmake modules are found before dependency checks run.
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
@@ -12,7 +17,7 @@ option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-set(COOLBOX_PUBLIC_INCLUDE_ROOT "${CMAKE_SOURCE_DIR}/_libraries/include")
+set(COOLBOX_PUBLIC_INCLUDE_ROOT "${CMAKE_SOURCE_DIR}/_deliverables/libraries/include")
 if(EXISTS "${COOLBOX_PUBLIC_INCLUDE_ROOT}")
     set(COOLBOX_HAS_PUBLIC_INCLUDE_ROOT ON)
 else()
@@ -22,6 +27,8 @@ endif()
 # On MSVC, force a consistent dynamic MSVC runtime to avoid /MT vs /MD mismatches
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+    # /FS: force synchronous PDB writes to fix C1041 when multiple CL.EXE run in parallel
+    add_compile_options(/FS)
 endif()
 
 # Ensure std::filesystem is available on macOS
@@ -48,6 +55,56 @@ include(cmake/ExternalDependencies.cmake)
 set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox source directory" FORCE)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(COOLBOX_ENABLE_GPU_ACCELERATION "Enable GPU backend detection and acceleration compile definitions" ON)
+
+set(COOLBOX_GPU_BACKENDS "")
+set(COOLBOX_GPU_ENABLED OFF)
+if(COOLBOX_ENABLE_GPU_ACCELERATION)
+    find_package(CUDAToolkit QUIET)
+    if(CUDAToolkit_FOUND)
+        set(COOLBOX_HAS_CUDA ON)
+        set(COOLBOX_GPU_ENABLED ON)
+        list(APPEND COOLBOX_GPU_BACKENDS "CUDA")
+    else()
+        set(COOLBOX_HAS_CUDA OFF)
+    endif()
+
+    find_package(OpenCL QUIET)
+    if(OpenCL_FOUND)
+        set(COOLBOX_HAS_OPENCL ON)
+        set(COOLBOX_GPU_ENABLED ON)
+        list(APPEND COOLBOX_GPU_BACKENDS "OpenCL")
+    else()
+        set(COOLBOX_HAS_OPENCL OFF)
+    endif()
+
+    find_package(OpenGL QUIET)
+    if(OpenGL_FOUND)
+        set(COOLBOX_HAS_OPENGL ON)
+        set(COOLBOX_GPU_ENABLED ON)
+        list(APPEND COOLBOX_GPU_BACKENDS "OpenGL")
+    else()
+        set(COOLBOX_HAS_OPENGL OFF)
+    endif()
+
+    if(COOLBOX_GPU_ENABLED)
+        list(REMOVE_DUPLICATES COOLBOX_GPU_BACKENDS)
+        string(JOIN ", " COOLBOX_GPU_BACKENDS_STR ${COOLBOX_GPU_BACKENDS})
+        message(STATUS "GPU acceleration backends detected: ${COOLBOX_GPU_BACKENDS_STR}")
+    else()
+        message(STATUS "GPU acceleration requested, but no CUDA/OpenCL/OpenGL backend was detected.")
+    endif()
+
+    add_compile_definitions(
+        COOLBOX_ENABLE_GPU_ACCELERATION=1
+        $<$<BOOL:${COOLBOX_HAS_CUDA}>:COOLBOX_HAS_CUDA=1>
+        $<$<BOOL:${COOLBOX_HAS_OPENCL}>:COOLBOX_HAS_OPENCL=1>
+        $<$<BOOL:${COOLBOX_HAS_OPENGL}>:COOLBOX_HAS_OPENGL=1>
+    )
+else()
+    message(STATUS "GPU acceleration detection disabled (COOLBOX_ENABLE_GPU_ACCELERATION=OFF).")
+endif()
 
 # Enable CTest so add_test() calls in subdirectories are discovered
 enable_testing()
@@ -126,16 +183,16 @@ if(BUILD_BINARIES)
     endif()
 endif()
 
-add_subdirectory(_libraries)
+add_subdirectory(_deliverables/libraries)
 
 # Build apps if present (e.g., apps/lsp)
-if(EXISTS "${CMAKE_SOURCE_DIR}/apps")
-    add_subdirectory(apps)
+if(EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
+    add_subdirectory(_deliverables/apps)
 endif()
 
 option(BUILD_PRODUCTS "Build products under _Product" ON)
-if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_Product")
-    add_subdirectory(_Product)
+if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/Product")
+    add_subdirectory(_deliverables/Product)
 endif()
 
 # Option to install and export CoolBox CMake package for external consumers
@@ -170,7 +227,7 @@ if(COOLBOX_INSTALL_PACKAGE)
         endif()
 
         if(EXISTS "${target_source_dir}/headers")
-            file(RELATIVE_PATH rel_headers "${CMAKE_SOURCE_DIR}/_libraries" "${target_source_dir}/headers")
+            file(RELATIVE_PATH rel_headers "${CMAKE_SOURCE_DIR}/_deliverables/libraries" "${target_source_dir}/headers")
             list(APPEND interface_includes
                 "$<BUILD_INTERFACE:${target_source_dir}/headers>"
                 "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${rel_headers}>"
@@ -199,7 +256,7 @@ if(COOLBOX_INSTALL_PACKAGE)
         set_target_properties(${target_name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${interface_includes}")
     endfunction()
 
-    coolbox_collect_directory_targets("${CMAKE_BINARY_DIR}/_libraries" all_targets)
+    coolbox_collect_directory_targets("${CMAKE_BINARY_DIR}/_deliverables/libraries" all_targets)
     set(COOLBOX_EXPORT_TARGETS "")
     foreach(target_name IN LISTS all_targets)
         if(NOT TARGET ${target_name})
@@ -241,7 +298,7 @@ if(COOLBOX_INSTALL_PACKAGE)
             )
         endif()
 
-        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_libraries/packages/
+        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_deliverables/libraries/packages/
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/packages
             FILES_MATCHING
                 PATTERN "*.h"
@@ -284,15 +341,15 @@ if(BUILD_PYTHON_BINDINGS)
     find_package(pybind11 QUIET)
     if(pybind11_FOUND)
         message(STATUS "Building Python bindings")
-        add_subdirectory(_libraries/bindings/python_bindings)
+        add_subdirectory(_deliverables/libraries/bindings/python_bindings)
     else()
         message(WARNING "pybind11 not found. Python bindings will not be built.")
         message(STATUS "Install pybind11 with: pip install pybind11[global]")
     endif()
 endif()
 
-
-
-
+# Find and include Eigen3 globally for all targets that need it
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 # External QUIC/HTTP3 dependency support disabled for pure HTTP2 build

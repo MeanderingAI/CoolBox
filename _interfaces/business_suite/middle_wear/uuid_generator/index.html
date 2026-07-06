@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UUID Generator · Middleware</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --brand: #2563eb;
+      --brand-d: #1d4ed8;
+      --panel: #ffffff;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      min-height: 100vh;
+    }
+    nav {
+      height: 54px;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #0f172a;
+      color: #93c5fd;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+    nav span { color: #e2e8f0; }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+    .title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin: 0 0 0.25rem;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 160px 140px;
+      gap: 0.65rem;
+      align-items: end;
+    }
+    label {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0 0 0.25rem;
+    }
+    select, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.5rem 0.6rem;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    select:focus, input:focus { border-color: var(--brand); }
+    .btn {
+      border: 1px solid var(--brand);
+      background: var(--brand);
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.54rem 0.8rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--brand-d); }
+    .btn.secondary {
+      border-color: var(--line);
+      background: #fff;
+      color: var(--text);
+    }
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.65rem;
+      gap: 0.45rem;
+    }
+    .btn.warn {
+      border-color: #f59e0b;
+      background: #f59e0b;
+      color: #111827;
+    }
+    .btn.warn:hover { background: #d97706; }
+    .out {
+      margin-top: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0b1220;
+      color: #cbd5e1;
+      padding: 0.7rem;
+      min-height: 180px;
+      max-height: 360px;
+      overflow: auto;
+      font-family: Consolas, 'Cascadia Mono', monospace;
+      font-size: 0.83rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    dialog {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0;
+      width: min(560px, 92vw);
+      box-shadow: 0 16px 50px rgba(2, 6, 23, 0.25);
+    }
+    dialog::backdrop {
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .dlg {
+      background: #fff;
+      color: var(--text);
+      padding: 1rem;
+    }
+    .dlg h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .dlg p {
+      margin: 0 0 0.75rem;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .build-log {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0b1220;
+      color: #cbd5e1;
+      font-family: Consolas, 'Cascadia Mono', monospace;
+      font-size: 0.78rem;
+      min-height: 90px;
+      max-height: 220px;
+      overflow: auto;
+      padding: 0.6rem;
+      white-space: pre-wrap;
+      margin-bottom: 0.75rem;
+    }
+    .dlg-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.45rem;
+    }
+    .muted { color: #94a3b8; }
+    @media (max-width: 760px) {
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>Meandering <span>LLC</span> › UUID Generator</nav>
+  <main class="page">
+    <section class="panel">
+      <h1 class="title">UUID Generator</h1>
+      <p class="sub">Powered by the UUID Emscripten extension module (createUuidGenerationModule).</p>
+      <p class="sub" id="engine-status">Loading UUID extension...</p>
+
+      <div class="row">
+        <div>
+          <label for="version">UUID Version</label>
+          <select id="version">
+            <option value="v1">UUID v1</option>
+            <option value="v2">UUID v2</option>
+            <option value="v3">UUID v3</option>
+            <option value="v4" selected>UUID v4</option>
+            <option value="v5">UUID v5</option>
+            <option value="v6">UUID v6</option>
+            <option value="v7">UUID v7</option>
+            <option value="v8">UUID v8</option>
+            <option value="guid">GUID</option>
+          </select>
+        </div>
+        <div>
+          <label for="count">Batch Size</label>
+          <input id="count" type="number" min="1" max="1000" value="1" />
+        </div>
+        <div>
+          <button class="btn" id="generate" disabled>Generate</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn warn" id="build-assets" style="display:none">Generate Assets</button>
+        <button class="btn secondary" id="copy">Copy</button>
+        <button class="btn secondary" id="clear">Clear</button>
+      </div>
+
+      <div class="out" id="output"><span class="muted">Ready.</span></div>
+    </section>
+  </main>
+
+  <dialog id="build-dialog">
+    <div class="dlg">
+      <h2>Build UUID Extension Assets</h2>
+      <p id="build-status">Preparing build...</p>
+      <div class="build-log" id="build-log">Waiting...</div>
+      <div class="dlg-actions">
+        <button class="btn secondary" id="build-close">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const MODULE_SCRIPT_URL = '/middle-portal-assets/uuid_generation/uuid_generation.js';
+    const MODULE_WASM_BASE_URL = '/middle-portal-assets/uuid_generation/';
+
+    let uuidModule = null;
+
+    const output = document.getElementById('output');
+    const status = document.getElementById('engine-status');
+    const versionEl = document.getElementById('version');
+    const countEl = document.getElementById('count');
+    const generateBtn = document.getElementById('generate');
+    const buildAssetsBtn = document.getElementById('build-assets');
+    const buildDialog = document.getElementById('build-dialog');
+    const buildStatus = document.getElementById('build-status');
+    const buildLog = document.getElementById('build-log');
+    const buildCloseBtn = document.getElementById('build-close');
+
+    function randomU32() {
+      const arr = new Uint32Array(1);
+      crypto.getRandomValues(arr);
+      return arr[0] >>> 0;
+    }
+
+    function randomHex(bytes) {
+      const arr = new Uint8Array(bytes);
+      crypto.getRandomValues(arr);
+      return [...arr].map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function appendMessage(msg) {
+      if (output.textContent.trim() === 'Ready.' || output.textContent.trim() === 'Cleared.') {
+        output.textContent = msg;
+      } else {
+        output.textContent += '\n' + msg;
+      }
+    }
+
+    function setStatus(text, ok) {
+      status.textContent = text;
+      status.style.color = ok ? '#16a34a' : '#b45309';
+    }
+
+    async function assetExists(url) {
+      try {
+        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+        return res.ok;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function checkAssets() {
+      const [hasJs, hasWasm] = await Promise.all([
+        assetExists(MODULE_SCRIPT_URL),
+        assetExists(MODULE_WASM_BASE_URL + 'uuid_generation.wasm'),
+      ]);
+      if (!hasJs || !hasWasm) {
+        buildAssetsBtn.style.display = '';
+        appendMessage('[WARN] UUID extension assets missing. Use Generate Assets.');
+      } else {
+        buildAssetsBtn.style.display = 'none';
+      }
+      return hasJs && hasWasm;
+    }
+
+    function openBuildDialog() {
+      buildStatus.textContent = 'Starting build...';
+      buildLog.textContent = 'Calling /middle-portal-assets/uuid_generation/build';
+      if (!buildDialog.open) {
+        buildDialog.showModal();
+      }
+    }
+
+    async function buildAssets() {
+      openBuildDialog();
+      buildAssetsBtn.disabled = true;
+      try {
+        buildStatus.textContent = 'Building uuid_generation assets...';
+        const res = await fetch('/middle-portal-assets/uuid_generation/build', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+
+        const tail = String(data.output || '').split('\n').slice(-20).join('\n') || '(no build output)';
+        buildLog.textContent = tail;
+
+        if (!res.ok || !data.success) {
+          buildStatus.textContent = 'Build failed';
+          appendMessage('[ERR] Asset build failed. See dialog output.');
+          return;
+        }
+
+        buildStatus.textContent = 'Build complete';
+        appendMessage('[OK] UUID extension assets generated. Reloading module...');
+        await loadUuidExtension();
+      } catch (err) {
+        buildStatus.textContent = 'Build request failed';
+        buildLog.textContent = String(err && err.message ? err.message : err);
+        appendMessage('[ERR] Asset build request failed: ' + (err && err.message ? err.message : String(err)));
+      } finally {
+        buildAssetsBtn.disabled = false;
+      }
+    }
+
+    async function loadUuidExtension() {
+      try {
+        const assetsReady = await checkAssets();
+        if (!assetsReady) {
+          throw new Error('uuid_generation.js/.wasm not available');
+        }
+
+        const oldScript = document.getElementById('uuid-module-script');
+        if (oldScript) oldScript.remove();
+
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.id = 'uuid-module-script';
+          s.src = MODULE_SCRIPT_URL;
+          s.async = true;
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Failed to load uuid_generation.js'));
+          document.head.appendChild(s);
+        });
+
+        if (typeof window.createUuidGenerationModule !== 'function') {
+          throw new Error('createUuidGenerationModule was not exported');
+        }
+
+        uuidModule = await window.createUuidGenerationModule({
+          locateFile: (path) => MODULE_WASM_BASE_URL + path,
+        });
+
+        setStatus('UUID extension loaded', true);
+        appendMessage('Loaded Emscripten UUID extension.');
+        generateBtn.disabled = false;
+      } catch (err) {
+        uuidModule = null;
+        setStatus('UUID extension failed to load', false);
+        appendMessage('[ERR] ' + err.message);
+        appendMessage('Use Generate Assets to build uuid_generation.js and uuid_generation.wasm.');
+        generateBtn.disabled = true;
+      }
+    }
+
+    function generateOne(version, i) {
+      switch (version) {
+        case 'v1': return uuidModule.uuid_v1();
+        case 'v2': return uuidModule.uuid_v2(randomU32(), 0);
+        case 'v3': return uuidModule.uuid_v3(uuidModule.namespace_dns(), 'coolbox-v3-' + Date.now() + '-' + i);
+        case 'v4': return uuidModule.uuid_v4();
+        case 'v5': return uuidModule.uuid_v5(uuidModule.namespace_dns(), 'coolbox-v5-' + Date.now() + '-' + i);
+        case 'v6': return uuidModule.uuid_v6();
+        case 'v7': return uuidModule.uuid_v7();
+        case 'v8': return uuidModule.uuid_v8(randomHex(16));
+        case 'guid': return uuidModule.guid();
+        default: return uuidModule.uuid_v4();
+      }
+    }
+
+    function onGenerate() {
+      if (!uuidModule) {
+        appendMessage('[ERR] UUID extension is not loaded');
+        return;
+      }
+      const version = versionEl.value;
+      const count = Math.max(1, Math.min(1000, Number(countEl.value || 1)));
+      const lines = [];
+      for (let i = 0; i < count; i += 1) {
+        lines.push(generateOne(version, i));
+      }
+      output.textContent = lines.join('\n');
+    }
+
+    document.getElementById('generate').addEventListener('click', onGenerate);
+    document.getElementById('clear').addEventListener('click', () => {
+      output.innerHTML = '<span class="muted">Cleared.</span>';
+    });
+    document.getElementById('copy').addEventListener('click', async () => {
+      const text = output.textContent.trim();
+      if (!text || text === 'Ready.' || text === 'Cleared.') return;
+      await navigator.clipboard.writeText(text);
+    });
+    buildAssetsBtn.addEventListener('click', buildAssets);
+    buildCloseBtn.addEventListener('click', () => buildDialog.close());
+
+    loadUuidExtension();
+  </script>
+</body>
+</html>

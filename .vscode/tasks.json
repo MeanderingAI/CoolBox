@@ -606,6 +606,167 @@
 				"reveal": "always"
 			},
 			"problemMatcher": []
+		},
+		{
+			"label": "build-secret-gen-cli-debug",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"if (Test-Path 'build/CMakeCache.txt') { Remove-Item -Force 'build/CMakeCache.txt' }; if (Test-Path 'build/CMakeFiles') { Remove-Item -Recurse -Force 'build/CMakeFiles' }; cmake -S . -B build -DBUILD_PRODUCTS=ON; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build --config Debug --target secret_gen_cli"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build-secret-gen-cli-macos",
+			"type": "shell",
+			"command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target secret_gen_cli",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"isBackground": false,
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"focus": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "build-cad-builder-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"cad_builder"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build-screen-builder-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"screen_builder"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build-recording-studio",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--target",
+				"recording_studio"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "run-recording-studio",
+			"type": "shell",
+			"command": "${workspaceFolder}/build/_deliverables/apps/recording_studio/recording_studio",
+			"dependsOn": [
+				"build-recording-studio"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"group": "run",
+			"problemMatcher": []
+		},
+		{
+			"label": "launch-gui-from-interfaces",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}/_interfaces/GUI/launch_gui.ps1"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/_interfaces/GUI"
+			},
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "run"
 		}
 	]
+	,
+	// Build all libraries (cross-platform)
+	{
+		"label": "build_all-mac-linux",
+		"type": "shell",
+		"command": "make",
+		"args": ["all"],
+		"isBackground": false,
+		"group": "build",
+		"problemMatcher": []
+	},
+	{
+		"label": "build_all-windows",
+		"type": "shell",
+		"command": "powershell",
+		"args": [
+			"-NoProfile",
+			"-ExecutionPolicy",
+			"Bypass",
+			"-Command",
+			"cmake --build build --config Debug"
+		],
+		"isBackground": false,
+		"group": "build",
+		"problemMatcher": []
+	},
+	// Run all tests (cross-platform)
+	{
+		"label": "test_all-mac-linux",
+		"type": "shell",
+		"command": "make",
+		"args": ["test"],
+		"isBackground": false,
+		"group": "test",
+		"problemMatcher": []
+	},
+	{
+		"label": "test_all-windows",
+		"type": "shell",
+		"command": "powershell",
+		"args": [
+			"-NoProfile",
+			"-ExecutionPolicy",
+			"Bypass",
+			"-Command",
+			"cmake --build build --config Debug && ctest --test-dir build --output-on-failure"
+		],
+		"isBackground": false,
+		"group": "test",
+		"problemMatcher": []
+	}
 }

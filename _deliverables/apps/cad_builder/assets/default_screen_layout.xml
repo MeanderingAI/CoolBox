@@ -1,0 +1,37 @@
+<screen title="CAD Builder Layout" width="1280" height="720" platform="windows">
+  <vertical>
+    <layout label="Main Screen">
+      <menu_bar>
+        <menu title="File">
+          <item label="Open CAD" shortcut="Ctrl+O" />
+          <item label="Export HK CAD" shortcut="Ctrl+E" />
+          <item label="About Release" />
+          <item separator="true" />
+          <item label="Exit" shortcut="Alt+F4" />
+        </menu>
+        <menu title="Views">
+          <item label="AI Chat Dialog" />
+          <item label="Inspector Dialog" />
+          <item label="Toolbox Selector" />
+        </menu>
+      </menu_bar>
+      <toolbar actions="Select,Rectangle,Line,Arc" />
+      <text text="Main viewport canvas is rendered by cad_builder core." width="56" />
+      <text text="Toolbar actions above are XML-configured defaults for toolbox." width="56" />
+    </layout>
+    <layout label="Toolbox Selector">
+      <radio label="Select" selected="true" />
+      <radio label="Rectangle" selected="false" />
+      <radio label="Line" selected="false" />
+      <radio label="Arc" selected="false" />
+    </layout>
+    <layout label="Inspector Dialog">
+      <text text="Inspector pane sourced from XML descriptor." width="48" />
+      <text text="Live camera and geometry stats appear below." width="48" />
+    </layout>
+    <layout label="AI Chat Dialog">
+      <text text="AI chat pane sourced from XML descriptor." width="48" />
+      <text text="Use Run demo to map speech phrase into CAD command." width="48" />
+    </layout>
+  </vertical>
+</screen>

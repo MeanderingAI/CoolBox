@@ -1,0 +1,19 @@
+{
+  "title": "Fourier Circuit and FFT Demo",
+  "description": "Animated phasor-chain Fourier reconstruction with direct DFT vs FFT complexity comparison.",
+  "icon": "\ud83c\udf9b",
+  "libraries": [
+    {
+      "name": "sp::fourier_tranforms",
+      "language": "C++",
+      "path": "_deliverables/libraries/groups/cool_car/SP/fourier_tranforms",
+      "description": "Native Fourier library providing DFT, FFT, inverse transforms, spectra, and related signal-processing helpers."
+    },
+    {
+      "name": "fourier_tranforms.js/.wasm",
+      "language": "Emscripten",
+      "path": "build/_deliverables/libraries/bindings/emscripten_bindings",
+      "description": "Browser extension module exposing the C++ Fourier library through createFourierTransformsModule."
+    }
+  ]
+}

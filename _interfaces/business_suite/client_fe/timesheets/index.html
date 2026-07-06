@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timesheets · Meandering LLC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #2563eb;
+      --brand-dark: #1d4ed8;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+      --success:    #16a34a;
+      --warning:    #d97706;
+      --danger:     #dc2626;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Top nav ── */
+    nav {
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      height: 54px;
+      gap: 1rem;
+    }
+    .nav-brand { font-weight: 800; color: #f8fafc; font-size: 0.95rem; }
+    .nav-brand span { color: #60a5fa; }
+    .nav-sep { color: #334155; }
+    .nav-title { font-size: 0.85rem; color: #94a3b8; font-weight: 500; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+    .nav-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; color: #fff; font-weight: 700;
+    }
+    .nav-user { font-size: 0.8rem; color: #94a3b8; }
+    .mock-badge {
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+      font-size: 0.65rem; font-weight: 700; padding: 0.1em 0.45em;
+      border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    /* ── Layout ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.5rem; }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .page-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+    .page-sub { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .btn {
+      padding: 0.45em 1em;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      border-radius: 7px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: background 0.12s, transform 0.1s;
+    }
+    .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-ghost { background: #fff; border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface); }
+
+    /* ── Week nav ── */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .week-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      padding: 0 0.5rem;
+      min-width: 180px;
+      text-align: center;
+    }
+    .week-btn {
+      width: 30px; height: 30px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s;
+    }
+    .week-btn:hover { background: var(--surface); }
+
+    /* ── Summary cards ── */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .sum-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+    .sum-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .sum-val { font-size: 1.6rem; font-weight: 900; color: var(--text); letter-spacing: -0.03em; margin-top: 0.15rem; }
+    .sum-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+    .sum-card.highlight { border-color: #bfdbfe; background: #eff6ff; }
+    .sum-card.highlight .sum-val { color: var(--brand); }
+
+    /* ── Timesheet grid ── */
+    .sheet-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: auto;
+      margin-bottom: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      min-width: 680px;
+    }
+    thead tr { background: #f1f5f9; }
+    th {
+      padding: 0.65em 0.9em;
+      text-align: left;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    th:first-child { border-radius: 10px 0 0 0; }
+    th:last-child  { border-radius: 0 10px 0 0; }
+    td {
+      padding: 0.6em 0.9em;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    .td-project { font-weight: 600; color: var(--text); }
+    .td-task    { color: var(--muted); font-size: 0.8em; }
+
+    /* Day columns */
+    .day-cell {
+      text-align: center;
+      min-width: 54px;
+    }
+    .day-cell input {
+      width: 48px;
+      text-align: center;
+      padding: 0.3em 0.4em;
+      border: 1.5px solid var(--border);
+      border-radius: 5px;
+      font-size: 0.82rem;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.15s;
+      background: var(--surface);
+    }
+    .day-cell input:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
+    }
+
+    .row-total {
+      font-weight: 700;
+      color: var(--brand);
+      text-align: center;
+      min-width: 54px;
+    }
+
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 0.15em 0.55em;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .badge-submitted { background: #dbeafe; color: #1d4ed8; }
+    .badge-approved  { background: #dcfce7; color: var(--success); }
+    .badge-draft     { background: #f1f5f9; color: var(--muted); }
+    .badge-rejected  { background: #fee2e2; color: var(--danger); }
+
+    /* ── Footer row ── */
+    tfoot td { font-weight: 700; background: #f8fafc; color: var(--text); }
+    tfoot .row-total { font-size: 1em; color: var(--brand-dark); }
+
+    /* ── Log section ── */
+    .log-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .log-list {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .log-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65em 1em;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-icon { font-size: 1em; }
+    .log-text { flex: 1; color: var(--text); }
+    .log-time { color: var(--muted); font-size: 0.75em; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Meandering<span>LLC</span></span>
+  <span class="nav-sep">›</span>
+  <span class="nav-title">🕐 Timesheets <span class="mock-badge">Mock</span></span>
+  <div class="nav-right">
+    <span class="nav-user">Jane Smith</span>
+    <div class="nav-avatar">JS</div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">My Timesheet</div>
+      <div class="page-sub">Week ending May 9, 2026</div>
+    </div>
+    <div style="display:flex;gap:0.5rem">
+      <button class="btn btn-ghost">💾 Save Draft</button>
+      <button class="btn btn-primary">📤 Submit for Approval</button>
+    </div>
+  </div>
+
+  <!-- Week navigation -->
+  <div class="week-nav">
+    <button class="week-btn" title="Previous week">‹</button>
+    <div class="week-label">Apr 27 – May 3, 2026</div>
+    <button class="week-btn" title="Next week">›</button>
+    <div style="margin-left:1rem;">
+      <span class="badge badge-approved">✓ Approved</span>
+    </div>
+    <div style="margin-left:auto;">
+      <button class="btn btn-ghost" style="font-size:0.78rem">⊕ Current week</button>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary-row">
+    <div class="sum-card highlight">
+      <div class="sum-label">This week</div>
+      <div class="sum-val">38.5h</div>
+      <div class="sum-sub">of 40h target</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Billable</div>
+      <div class="sum-val">32h</div>
+      <div class="sum-sub">83% billable ratio</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Internal</div>
+      <div class="sum-val">6.5h</div>
+      <div class="sum-sub">meetings, admin</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-label">Month to date</div>
+      <div class="sum-val">142h</div>
+      <div class="sum-sub">3 weeks logged</div>
+    </div>
+  </div>
+
+  <!-- Timesheet table -->
+  <div class="sheet-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:160px">Project</th>
+          <th style="min-width:140px">Task</th>
+          <th class="day-cell">Mon</th>
+          <th class="day-cell">Tue</th>
+          <th class="day-cell">Wed</th>
+          <th class="day-cell">Thu</th>
+          <th class="day-cell">Fri</th>
+          <th class="day-cell">Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="ts-body">
+        <!-- Rows injected by script -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="font-size:0.78rem;color:var(--muted);">Daily totals</td>
+          <td class="day-cell" id="col-mon">—</td>
+          <td class="day-cell" id="col-tue">—</td>
+          <td class="day-cell" id="col-wed">—</td>
+          <td class="day-cell" id="col-thu">—</td>
+          <td class="day-cell" id="col-fri">—</td>
+          <td class="row-total" id="col-total">—</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Activity log -->
+  <div class="log-title">Activity Log</div>
+  <div class="log-list">
+    <div class="log-item">
+      <span class="log-icon">✅</span>
+      <span class="log-text">Week ending May 3 approved by <strong>Alex Lee</strong></span>
+      <span class="log-time">May 5, 09:14</span>
+    </div>
+    <div class="log-item">
+      <span class="log-icon">📤</span>
+      <span class="log-text">Week ending May 3 submitted for approval</span>
+      <span class="log-time">May 4, 17:02</span>
+    </div>
+    <div class="log-item">
+      <span class="log-icon">💾</span>
+      <span class="log-text">Draft saved — 38.5 hours logged</span>
+      <span class="log-time">May 4, 16:55</span>
+    </div>
+    <div class="log-item">
+      <span class="log-icon">✅</span>
+      <span class="log-text">Week ending Apr 26 approved by <strong>Alex Lee</strong></span>
+      <span class="log-time">Apr 28, 10:30</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ROWS = [
+    { project: 'CoolBox · Dashboard',     task: 'Frontend development',  hours: [4, 6, 5, 4, 5], status: 'submitted' },
+    { project: 'LSP Suite',               task: 'C3 parser fixes',        hours: [4, 0, 4, 4, 0], status: 'submitted' },
+    { project: 'Distribution Pipeline',   task: 'Circuit breaker impl.',  hours: [0, 2, 0, 2, 3], status: 'draft'     },
+    { project: 'Client Portals',          task: 'Design & HTML mocks',    hours: [0, 0, 0, 0, 2], status: 'draft'     },
+    { project: 'Internal / Admin',        task: 'Stand-ups & planning',   hours: [0, 0, 1, 0, 0.5], status: 'draft'   },
+  ];
+
+  const DAYS = ['mon','tue','wed','thu','fri'];
+  const BADGE = { submitted:'badge-submitted', approved:'badge-approved', draft:'badge-draft', rejected:'badge-rejected' };
+  const BADGE_LABEL = { submitted:'Submitted', approved:'Approved', draft:'Draft', rejected:'Rejected' };
+
+  function rowTotal(hours) { return hours.reduce((a,b)=>a+b,0); }
+
+  function buildRows() {
+    const tbody = document.getElementById('ts-body');
+    ROWS.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-project">${r.project}</td>
+        <td class="td-task">${r.task}</td>
+        ${r.hours.map((h,i) => `<td class="day-cell"><input type="number" min="0" max="24" step="0.5" value="${h}" data-row="${ROWS.indexOf(r)}" data-day="${i}" /></td>`).join('')}
+        <td class="row-total" id="rt-${ROWS.indexOf(r)}">${rowTotal(r.hours)}</td>
+        <td><span class="badge ${BADGE[r.status]}">${BADGE_LABEL[r.status]}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    updateTotals();
+  }
+
+  function updateTotals() {
+    const dayTotals = [0,0,0,0,0];
+    ROWS.forEach((r, ri) => {
+      const inputs = document.querySelectorAll(`input[data-row="${ri}"]`);
+      const hours = [...inputs].map(i => parseFloat(i.value)||0);
+      r.hours = hours;
+      document.getElementById(`rt-${ri}`).textContent = rowTotal(hours);
+      hours.forEach((h,di) => dayTotals[di] += h);
+    });
+    DAYS.forEach((d,i) => { document.getElementById(`col-${d}`).textContent = dayTotals[i] || '—'; });
+    const tot = dayTotals.reduce((a,b)=>a+b,0);
+    document.getElementById('col-total').textContent = tot ? tot + 'h' : '—';
+  }
+
+  buildRows();
+  document.addEventListener('input', e => { if (e.target.matches('input[type="number"]')) updateTotals(); });
+</script>
+
+</body>
+</html>

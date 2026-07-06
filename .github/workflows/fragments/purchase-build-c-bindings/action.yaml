@@ -1,0 +1,10 @@
+# Build C bindings for generate_purchase_c
+steps:
+name: 'purchase-build-c-bindings'
+description: 'Composite action for purchase-build-c-bindings'
+runs:
+  using: 'composite'
+  steps:
+  - name: Build C bindings
+    run: |
+      cmake --build _libraries/c_bindings/build --config Release

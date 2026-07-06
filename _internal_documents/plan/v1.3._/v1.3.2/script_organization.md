@@ -1,0 +1,1 @@
+move build scripts into build_scripts sub folder and move install scripts to dedicated folder add various client_fes and a budgetting screen.

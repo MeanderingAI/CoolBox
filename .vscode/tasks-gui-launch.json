@@ -1,0 +1,18 @@
+{
+    "label": "launch-gui-from-interfaces",
+    "type": "shell",
+    "command": "powershell",
+    "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/_interfaces/GUI/launch_gui.ps1"
+    ],
+    "options": {
+        "cwd": "${workspaceFolder}/_interfaces/GUI"
+    },
+    "isBackground": false,
+    "problemMatcher": [],
+    "group": "run"
+}

@@ -24,12 +24,12 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PLATFORM: linux-x86_64
     steps:
-      - uses: ./.github/workflows/fragments/purchase-checkout.yaml
-      - uses: ./.github/workflows/fragments/purchase-install-native-build-tooling.yaml
-      - uses: ./.github/workflows/fragments/purchase-configure-c-bindings.yaml
-      - uses: ./.github/workflows/fragments/purchase-build-c-bindings.yaml
-      - uses: ./.github/workflows/fragments/purchase-list-configured-tests.yaml
-      - uses: ./.github/workflows/fragments/purchase-package-c-bindings-tests.yaml
+      - uses: ./.github/workflows/fragments/purchase-checkout
+      - uses: ./.github/workflows/fragments/purchase-install-native-build-tooling
+      - uses: ./.github/workflows/fragments/purchase-configure-c-bindings
+      - uses: ./.github/workflows/fragments/purchase-build-c-bindings
+      - uses: ./.github/workflows/fragments/purchase-list-configured-tests
+      - uses: ./.github/workflows/fragments/purchase-package-c-bindings-tests
 
       - name: Test C bindings
         run: |

@@ -103,5 +103,6 @@
         "shared_mutex": "cpp",
         "cfenv": "cpp",
         "__locale": "cpp"
-    }
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }

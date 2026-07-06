@@ -1,0 +1,45 @@
+# Common steps for pljava-lsp build and publish
+steps:
+name: 'lsp-java-steps'
+description: 'Composite action for lsp-java-steps'
+runs:
+  using: 'composite'
+  steps:
+  - name: Checkout
+    uses: actions/checkout@v6
+
+  - name: Install dependencies
+    run: |
+      sudo apt-get update
+      sudo apt-get remove -y containerd.io || true
+      sudo apt-get install -y build-essential cmake curl pkg-config
+      sudo apt-get install -y --no-install-recommends docker.io
+
+  - name: Download pljava_lsp artifact
+    uses: actions/download-artifact@v8
+    with:
+      pattern: pl-lsp-binaries-linux-x86_64-*
+      path: apps/lsp/dist
+      merge-multiple: true
+      run-id: ${{ github.event.workflow_run.id }}
+
+  - name: Log in to GitHub Container Registry
+    uses: docker/login-action@v3
+    with:
+      registry: ghcr.io
+      username: ${{ github.actor }}
+      password: ${{ secrets.GITHUB_TOKEN }}
+
+  - name: Normalize GHCR owner
+    id: ghcr-owner
+    run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+  - name: Build and push Docker image
+    uses: docker/build-push-action@v5
+    with:
+      context: apps/lsp
+      file: apps/lsp/docker/Dockerfile.java
+      push: true
+      tags: |
+        ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
+        ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest

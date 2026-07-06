@@ -1,0 +1,78 @@
+<screen title="Tabbed Editable Advanced" width="1280" height="820" platform="windows">
+  <vertical vspacing="1">
+    <layout label="TabbedView + EditableTextView demo">
+      <tabbed_view selected="0">
+        <tab title="Design">
+          <vertical vspacing="1">
+            <toolbar actions="New,Open,Save,Export" />
+            <button label="Draw Rectangle" width="20" />
+            <text_view
+              text="Design notes are wrapped with a visible border and line numbers so the panel reads more like an editor preview."
+              width="36"
+              wrap="true"
+              border-style="double"
+              border-thickness="1"
+              line-numbers="true" />
+            <editable_text_view
+              text="Type command here"
+              cursor="5"
+              focused="true"
+              width="36"
+              wrap="true"
+              border-style="solid"
+              border-thickness="1"
+              line-numbers="true"
+              resizable="true"
+              max-height="4"
+              font-size="18"
+              autocomplete="draw line,draw arc,draw rectangle,draw circle" />
+          </vertical>
+        </tab>
+
+        <tab title="Inspect">
+          <vertical vspacing="1">
+            <property_inspector properties="Object=Wall,Layer=Architecture,Locked=false" />
+            <editable_text_view
+              text="Search property"
+              cursor="6"
+              focused="false"
+              width="30"
+              wrap="false"
+              border-style="dashed"
+              border-thickness="2"
+              line-numbers="false"
+              resizable="true"
+              max-height="2"
+              font-size="14"
+              autocomplete="width,height,material,color" />
+          </vertical>
+        </tab>
+
+        <tab title="Notes">
+          <vertical vspacing="1">
+            <text_view
+              text="Tab-local notes area with wrapped guidance text for reviewers. This sample shows double borders and numbered lines."
+              width="42"
+              wrap="true"
+              border-style="double"
+              border-thickness="1"
+              line-numbers="true" />
+            <editable_text_view
+              text="Add note..."
+              cursor="0"
+              focused="false"
+              width="42"
+              wrap="true"
+              border-style="solid"
+              border-thickness="1"
+              line-numbers="true"
+              resizable="true"
+              max-height="6"
+              font-size="16"
+              autocomplete="todo,fixme,reviewed,approved" />
+          </vertical>
+        </tab>
+      </tabbed_view>
+    </layout>
+  </vertical>
+</screen>

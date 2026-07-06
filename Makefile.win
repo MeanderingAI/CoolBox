@@ -8,6 +8,36 @@
 POWERSHELL := powershell -NoProfile -NonInteractive
 POWERSHELL_BYPASS := powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass
 
+PYTHON := $(if $(wildcard .venv/Scripts/python.exe),$(CURDIR)/.venv/Scripts/python.exe,python)
+
+# Support "make build app NAME" and "make build library NAME [NAME...]"
+BUILD_KIND := $(firstword $(filter app library,$(MAKECMDGOALS)))
+BUILD_NAMES := $(filter-out build app library,$(MAKECMDGOALS))
+PACKAGE_NAMES := $(filter-out package library libraries,$(MAKECMDGOALS))
+RUN_NAMES := $(filter-out run app,$(MAKECMDGOALS))
+
+ifneq ($(filter build,$(MAKECMDGOALS)),)
+  ifneq ($(strip $(BUILD_KIND)),)
+    $(eval $(BUILD_KIND):;@:)
+    $(eval $(BUILD_NAMES):;@:)
+  endif
+endif
+
+ifneq ($(filter package,$(MAKECMDGOALS)),)
+  ifneq ($(strip $(PACKAGE_NAMES)),)
+    $(eval library:;@:)
+    $(eval libraries:;@:)
+    $(eval $(PACKAGE_NAMES):;@:)
+  endif
+endif
+
+ifneq ($(filter run,$(MAKECMDGOALS)),)
+  ifneq ($(firstword $(filter app,$(MAKECMDGOALS))),)
+    $(eval app:;@:)
+    $(eval $(RUN_NAMES):;@:)
+  endif
+endif
+
 WINDOWS_SDK_CHANNEL ?= Windows11
 WINDOWS_SDK_ARTIFACT ?= Installer
 WINDOWS_SDK_OUTPUT_DIR ?=
@@ -24,27 +54,60 @@ WINDOWS_SIGN_CERT_INSTALL_TO_TRUSTED_PEOPLE ?= 0
 
 .PHONY: help configure build build_libraries build_libraries_io build_libraries_ml \
 	build_libraries_security build_libraries_misc build_libraries_graphics \
-	build_libraries_electronics build_% sign_windows_artifacts download_latest_windows_sdk install_latest_windows_sdk generate_windows_signing_cert \
-	test test-% test_logged test_local_pipeline install clean completion \
+	build_libraries_electronics build_% show_deps_% sign_windows_artifacts download_latest_windows_sdk install_latest_windows_sdk generate_windows_signing_cert \
+	list list_apps list_libraries apps libraries package run test test-% test_logged test_local_pipeline install clean completion \
 	worksplace_editor run_worksplace_editor file_browser run_file_browser \
 	body_generator_ui run_body_generator_ui
 
 help:
-	@$(POWERSHELL) -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure                     Configure CMake"; Write-Host "  make -f Makefile.win build                         Build configured CMake project"; Write-Host "  make -f Makefile.win build_NAME                    Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries               Build the configured libraries"; Write-Host "  make -f Makefile.win sign_windows_artifacts        Sign Release .exe/.dll outputs when a cert is configured"; Write-Host "  make -f Makefile.win download_latest_windows_sdk   Download the latest Windows SDK installer or ISO"; Write-Host "  make -f Makefile.win install_latest_windows_sdk    Download and install the latest Windows SDK"; Write-Host "  make -f Makefile.win generate_windows_signing_cert Generate a self-signed Windows code-signing cert"; Write-Host "  make -f Makefile.win worksplace_editor             Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor         Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser                  Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser              Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                          Build and run CTest"; Write-Host "  make -f Makefile.win test_logged                   Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win test_local_pipeline           Run local build-libs pipelines for supported backends"; Write-Host "  make -f Makefile.win install                       Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                         Remove build/ and lib/"; Write-Host ""'
+	@$(POWERSHELL) -Command 'Write-Host ""; Write-Host "CoolBox Build System (Windows)"; Write-Host ""; Write-Host "  make -f Makefile.win configure                     Configure CMake"; Write-Host "  make -f Makefile.win build                         Build configured CMake project"; Write-Host "  make -f Makefile.win build app NAME              Build one app from _deliverables/apps"; Write-Host "  make -f Makefile.win build library NAME            Build a library group or individual libraries"; Write-Host "  make -f Makefile.win build_NAME                    Build a specific CMake target"; Write-Host "  make -f Makefile.win build_libraries               Build the configured libraries"; Write-Host "  make -f Makefile.win package library NAME            Build and copy libraries into lib/packages/"; Write-Host "  make -f Makefile.win run app NAME                  Run a built app (builds first if missing)"; Write-Host "  make -f Makefile.win run app NAME TARGET             Run a specific executable for multi-target apps"; Write-Host "  make -f Makefile.win list_apps                     List apps in _deliverables/apps"; Write-Host "  make -f Makefile.win list_libraries                List libraries in _deliverables/libraries"; Write-Host "  make -f Makefile.win list apps                     Alias for list_apps"; Write-Host "  make -f Makefile.win list libraries                Alias for list_libraries"; Write-Host "  make -f Makefile.win sign_windows_artifacts        Sign Release .exe/.dll outputs when a cert is configured"; Write-Host "  make -f Makefile.win download_latest_windows_sdk   Download the latest Windows SDK installer or ISO"; Write-Host "  make -f Makefile.win install_latest_windows_sdk    Download and install the latest Windows SDK"; Write-Host "  make -f Makefile.win generate_windows_signing_cert Generate a self-signed Windows code-signing cert"; Write-Host "  make -f Makefile.win worksplace_editor             Build the worksplace_editor product"; Write-Host "  make -f Makefile.win run_worksplace_editor         Build and launch the worksplace_editor product"; Write-Host "  make -f Makefile.win file_browser                  Build the file_browser product"; Write-Host "  make -f Makefile.win run_file_browser              Build and launch the file_browser product"; Write-Host "  make -f Makefile.win test                          Build and run CTest"; Write-Host "  make -f Makefile.win test_logged                   Build and run CTest with a saved log"; Write-Host "  make -f Makefile.win test_local_pipeline           Run local build-libs pipelines for supported backends"; Write-Host "  make -f Makefile.win install                       Copy built DLLs to ./lib"; Write-Host "  make -f Makefile.win clean                         Remove build/ and lib/"; Write-Host ""'
 
 configure:
 	@$(POWERSHELL_BYPASS) -File .\_scripts\configure_windows.ps1
 
 build: configure
+ifeq ($(strip $(BUILD_KIND)),)
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building project..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] Build complete."'
+else
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building deliverable $(BUILD_KIND): $(BUILD_NAMES)"; & "$(PYTHON)" _scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
+	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
+endif
+
+package: configure
+ifeq ($(strip $(PACKAGE_NAMES)),)
+	@$(POWERSHELL) -Command 'Write-Host "Usage: make -f Makefile.win package library NAME [NAME...]"; exit 1'
+else
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Packaging libraries: $(PACKAGE_NAMES)"; & "$(PYTHON)" _scripts/package_libraries.py $(PACKAGE_NAMES); if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
+	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
+endif
+
+run:
+ifeq ($(strip $(RUN_NAMES)),)
+	@$(POWERSHELL) -Command 'Write-Host "Usage: make -f Makefile.win run app NAME [TARGET]"; exit 1'
+else
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Running app: $(RUN_NAMES)"; & "$(PYTHON)" _scripts/run_deliverable.py $(RUN_NAMES); if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
+endif
 
 build_libraries: configure
-	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building libraries (delegating to CMake)..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Release build failed, retrying default configuration..."; cmake --build build; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Both Release and default builds failed."; exit $$LASTEXITCODE } }; Write-Host "[Makefile.win] Build step finished."'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building all libraries..."; cmake --build build --config Release'
 	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
 
 build_%: configure
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building target: $*"; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { Write-Host "[Makefile.win] Target build failed or not found."; exit $$LASTEXITCODE }'
 	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
+
+list:
+	@$(POWERSHELL) -Command 'if ("$(words $(MAKECMDGOALS))" -eq "1") { Write-Host "Use ''make -f Makefile.win list_apps'' or ''make -f Makefile.win list_libraries''." }'
+
+list_apps:
+	@$(POWERSHELL) -Command '$$python = $${null}; if (Test-Path ".venv\Scripts\python.exe") { $$python = ".venv\Scripts\python.exe" } elseif (Get-Command py -ErrorAction SilentlyContinue) { $$python = "py" } elseif (Get-Command python -ErrorAction SilentlyContinue) { $$python = "python" } else { throw "Python is required to list apps." }; if ($$python -eq "py") { & py -3 _scripts/list_deliverables.py apps } else { & $$python _scripts/list_deliverables.py apps }'
+
+list_libraries:
+	@$(POWERSHELL) -Command '$$python = $${null}; if (Test-Path ".venv\Scripts\python.exe") { $$python = ".venv\Scripts\python.exe" } elseif (Get-Command py -ErrorAction SilentlyContinue) { $$python = "py" } elseif (Get-Command python -ErrorAction SilentlyContinue) { $$python = "python" } else { throw "Python is required to list libraries." }; if ($$python -eq "py") { & py -3 _scripts/list_deliverables.py libraries } else { & $$python _scripts/list_deliverables.py libraries }'
+
+apps: list_apps
+
+libraries: list_libraries
 
 sign_windows_artifacts:
 	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
@@ -88,6 +151,9 @@ test_local_pipeline:
 test-%: configure
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building & running test: $*"; cmake --build build --target $* --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Push-Location build; try { ctest -R "^$*$$" --output-on-failure --build-config Release } finally { Pop-Location }'
 
+show_deps_%:
+	@$(POWERSHELL) -Command '$$p = Join-Path (Resolve-Path .).Path ".venv\Scripts\python.exe"; if (-not (Test-Path $$p)) { $$p = "python" }; & $$p GUI/library/show_deps.py "$*"'
+
 install:
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Installing DLLs to ./lib ..."; if (-not (Test-Path lib)) { New-Item -ItemType Directory -Path lib | Out-Null }; Get-ChildItem -Path build -Recurse -Include *.dll -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item -Path $$_.FullName -Destination (Join-Path (Resolve-Path .).ToString() "lib") -Force; Write-Host "  Copied: " $$_.FullName }'
 
@@ -96,3 +162,6 @@ clean:
 
 completion:
 	@$(POWERSHELL) -Command 'Write-Host "# completion script not implemented for Windows Makefile"'
+
+install_system_deps:
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Installing system dependencies via vcpkg..."; if (!(Test-Path vcpkg)) { git clone https://github.com/microsoft/vcpkg.git vcpkg; cd vcpkg; .\bootstrap-vcpkg.bat }; .\vcpkg\vcpkg.exe install eigen3 gsl doxygen cmake'

@@ -1,0 +1,23 @@
+CXX_STD = CXX17
+PKG_CPPFLAGS = \
+	-I../../../c_bindings/include \
+	-I../../../../groups/trekker/MISC/metadata_management/headers \
+	-I../../../../groups/cool_car/MATRIX/headers \
+	-I../../../../groups/cool_car/ML/generalized_linear_model/headers \
+	-I../../../../groups/cool_car/ML/time_series/headers \
+	-I../../../../groups/cool_car/ML/decision_tree/headers \
+	-I../../../../groups/cool_car/ML/support_vector_machine/headers \
+	-I../../../../groups/cool_car/ML/bayesian_network_ai/headers \
+	-I../../../../groups/cool_car/ML/hidden_markov_model/headers \
+	-I../../../../groups/cool_car/ML/multi_arm_bandit/headers \
+	-I../../../../groups/cool_car/ML/marked_point_process/headers \
+	-I../../../../groups/cool_car/ML/latent_sentiment_analysis/headers \
+	-I../../../../groups/cool_car/ML/dimensionality_reduction/headers \
+	-I../../../../../../external/eigen/eigen-3.4.0 \
+	-I/usr/include/eigen3 \
+	-I/usr/local/include/eigen3 \
+	-I/opt/homebrew/include/eigen3 \
+	-I/opt/homebrew/opt/eigen/include/eigen3 \
+	-I/usr/local/opt/eigen/include/eigen3
+
+PKG_LIBS = -L../../../c_bindings/build -L../../../c_bindings/build/Release -lcoolbox_c_bindings
