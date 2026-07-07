@@ -19,7 +19,7 @@ public:
     virtual Tensor backward(const Tensor& gradient) = 0;
     
     // Update parameters with optimizer
-    virtual void update_parameters(double learning_rate) {}
+    virtual void update_parameters(double /*learning_rate*/) {}
     
     // Getters
     virtual std::string name() const = 0;

@@ -78,6 +78,7 @@ jobs:
           cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
           cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
           cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plscala_lsp apps/lsp/dist/plscala_lsp || cp build/plscala_lsp apps/lsp/dist/plscala_lsp || true
           cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
           cp build/apps/lsp/plvlang_lsp apps/lsp/dist/plvlang_lsp || cp build/plvlang_lsp apps/lsp/dist/plvlang_lsp || true
           cp build/apps/lsp/plc3_lsp apps/lsp/dist/plc3_lsp || cp build/plc3_lsp apps/lsp/dist/plc3_lsp || true
@@ -105,6 +106,7 @@ jobs:
             apps/lsp/dist/plang_lsp
             apps/lsp/dist/plrust_lsp
             apps/lsp/dist/pljava_lsp
+            apps/lsp/dist/plscala_lsp
             apps/lsp/dist/plpython_lsp
             apps/lsp/dist/plvlang_lsp
             apps/lsp/dist/plc3_lsp

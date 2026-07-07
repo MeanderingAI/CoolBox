@@ -128,7 +128,7 @@ public:
     
 private:
     int n_clusters_;
-    int max_iterations_;
+    [[maybe_unused]] int max_iterations_;
     std::vector<std::vector<double>> centroids_;
     
     void initialize_centroids(const std::vector<std::vector<double>>& data);

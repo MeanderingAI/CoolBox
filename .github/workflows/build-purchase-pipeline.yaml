@@ -331,6 +331,7 @@ jobs:
           cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
           cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
           cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plscala_lsp apps/lsp/dist/plscala_lsp || cp build/plscala_lsp apps/lsp/dist/plscala_lsp || true
           cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
 
       - name: Ensure binaries are executable
@@ -376,6 +377,16 @@ jobs:
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
+
+      - name: Build & push plscala LSP image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.scala
+          push: true
+          tags: |
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:latest
 
       - name: Build & push plpython LSP image
         uses: docker/build-push-action@v5

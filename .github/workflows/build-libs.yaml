@@ -190,14 +190,27 @@ jobs:
         if: matrix.platform == 'linux-x86_64'
         run: |
           mkdir -p staging-headers
-          find _libraries/packages -type d \( -name 'include' -o -name 'headers' \) | while read -r hdr_dir; do
+
+          header_root=""
+          if [ -d "_libraries/packages" ]; then
+            header_root="_libraries/packages"
+          elif [ -d "_deliverables/libraries/groups" ]; then
+            header_root="_deliverables/libraries/groups"
+          fi
+
+          if [ -z "$header_root" ]; then
+            echo "No header source root found (_libraries/packages or _deliverables/libraries/groups)."
+          else
+            find "$header_root" -type d \( -name 'include' -o -name 'headers' \) | while read -r hdr_dir; do
             lib_name=$(basename "$(dirname "$hdr_dir")")
             mkdir -p "staging-headers/${lib_name}"
             cp "${hdr_dir}"/*.h "staging-headers/${lib_name}/" 2>/dev/null || true
             cp "${hdr_dir}"/*.hpp "staging-headers/${lib_name}/" 2>/dev/null || true
-          done
-            tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz -C staging-headers .
-                python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
+            done
+          fi
+
+          tar czf release-assets/coolbox-headers-${{ github.ref_name }}.tar.gz -C staging-headers .
+          python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
               "staging-headers" "release-assets/coolbox-headers-${{ github.ref_name }}.zip"
           rm -rf staging-headers
 

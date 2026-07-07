@@ -64,7 +64,8 @@ const std::vector<std::string>& RuleSet::get_rules() const {
 bool RuleSet::match_rule(const std::vector<int>& sample, const Rule& rule) const {
     for (const auto& condition : rule.conditions) {
         // Ensure the sample has the feature and it matches the condition
-        if (condition.first >= sample.size() || sample[condition.first] != condition.second) {
+        if (condition.first < 0 || static_cast<size_t>(condition.first) >= sample.size() ||
+            sample[condition.first] != condition.second) {
             return false;
         }
     }

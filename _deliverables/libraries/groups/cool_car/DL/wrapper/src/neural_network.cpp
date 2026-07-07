@@ -42,6 +42,7 @@ Tensor NeuralNetwork::predict(const Tensor& input) {
 void NeuralNetwork::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
                            int epochs, int batch_size, bool verbose) {
     if (!loss_) return;
+    (void)batch_size;
 
     for (int epoch = 0; epoch < epochs; ++epoch) {
         double total_loss = 0.0;
