@@ -2,6 +2,9 @@
 
 #include <vector>
 
+template<typename V>
+using v = std::vector<V>;
+
 #include "b.inc"
 #include "uni.inc"
 #include "to.inc"

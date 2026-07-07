@@ -33,16 +33,16 @@ template<typename M>
 using nyc2 = v<M>;
 
 template<typename M>
-using boston2 = std::vector<M>;
+using boston2 = v<M>;
 
 template<typename M>
-using sf2 = std::vector<M>;
+using sf2 = v<M>;
 
 template<typename P>
-using sv2 = std::vector<P>;
+using sv2 = v<P>;
 
 template<typename P>
-using london = std::vector<P>;
+using london = v<P>;
 ## DD
 
 template<typename F>
