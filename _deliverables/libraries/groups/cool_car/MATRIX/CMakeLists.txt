@@ -35,3 +35,13 @@ if(MYTRIX_ENABLE_METAL)
     target_compile_definitions(mytrix INTERFACE MYTRIX_ENABLE_METAL=1)
 endif()
 
+if(MYTRIX_ENABLE_METAL AND APPLE)
+    target_compile_definitions(mytrix INTERFACE
+        MYTRIX_METAL_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/source/metal_backend.metal"
+    )
+    target_sources(mytrix INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/source/metal_backend.metal
+        ${CMAKE_CURRENT_SOURCE_DIR}/source/metal_backend.mm
+    )
+endif()
+
