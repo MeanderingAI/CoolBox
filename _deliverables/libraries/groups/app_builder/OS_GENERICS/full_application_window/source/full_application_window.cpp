@@ -1359,6 +1359,7 @@ bool FullApplicationWindow::client_size(int& width, int& height) const {
 
 void FullApplicationWindow::clear_background(unsigned char r, unsigned char g, unsigned char b) const {
 #if defined(_WIN32)
+    if (!impl_->hwnd || !IsWindow(impl_->hwnd)) {
         return;
     }
     RECT rc{};
