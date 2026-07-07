@@ -39,6 +39,28 @@ Tensor NeuralNetwork::predict(const Tensor& input) {
     return forward(input);
 }
 
+double NeuralNetwork::train_step(const Tensor& input, const Tensor& target) {
+    if (!loss_) {
+        return 0.0;
+    }
+
+    Tensor output = forward(input);
+    const double loss_value = loss_->compute(output, target);
+
+    Tensor grad = loss_->gradient(output, target);
+    for (int l = static_cast<int>(layers_.size()) - 1; l >= 0; --l) {
+        grad = layers_[l]->backward(grad);
+    }
+
+    for (auto& layer : layers_) {
+        if (layer->has_parameters()) {
+            layer->update_parameters(0.01);
+        }
+    }
+
+    return loss_value;
+}
+
 void NeuralNetwork::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
                            int epochs, int batch_size, bool verbose) {
     if (!loss_) return;

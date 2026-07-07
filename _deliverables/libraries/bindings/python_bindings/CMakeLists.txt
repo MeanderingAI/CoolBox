@@ -15,6 +15,8 @@ add_subdirectory(fuzzer)
 cmake_minimum_required(VERSION 3.12)
 project(ml_core_python_bindings)
 
+include(FetchContent)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -31,6 +33,18 @@ if(NOT TARGET Eigen3::Eigen)
     endif()
 endif()
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
+
+# graphics.cpp depends on stb_image_write.h for PNG/JPG exports.
+if(NOT DEFINED stb_SOURCE_DIR OR NOT EXISTS "${stb_SOURCE_DIR}/stb_image_write.h")
+    FetchContent_Declare(
+        stb
+        GIT_REPOSITORY https://github.com/nothings/stb.git
+        GIT_TAG        31c1ad37456438565541f4919958214b6e762fb4
+        GIT_SHALLOW    TRUE
+        UPDATE_DISCONNECTED TRUE
+    )
+    FetchContent_MakeAvailable(stb)
+endif()
 
 # Include directories
 include_directories(
@@ -86,6 +100,8 @@ set(ML_BINDINGS_FLAT_INCLUDE_DIRS
 pybind11_add_module(ml_core 
     py_ml_core.cpp
     ${ML_BINDING_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/GRAPHICS/charts/source/graphics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/MISC/wave_generator/source/wave_generator.cpp
     ../../groups/cool_car/DL/layers/src/tensor.cpp
     ../../groups/cool_car/DL/wrapper/src/templates.cpp
     ../../groups/cool_car/DL/optimizer/src/optimizer.cpp
@@ -114,6 +130,10 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
+)
+
+target_include_directories(ml_core SYSTEM PRIVATE
+    ${stb_SOURCE_DIR}
 )
 
 # Compiler-specific options

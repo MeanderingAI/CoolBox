@@ -201,3 +201,43 @@ Reintroduced the Scala LSP frontend/library/docker/workflow path after the earli
 - `cmake -S . -B build` → `CONFIG_EXIT_CODE:0`
 - `cmake --build build --target plscala_lsp plscala_lsp_test -j4` → `BUILD_EXIT_CODE:0`
 - `./build/LSP_lsp_scala_build/plscala_lsp_test` → `TEST_EXIT_CODE:0`
+
+## Windows follow-up fix: ml_core link failures for DL train_step, graphics, and wave generator
+
+### Issue
+
+Windows CI failed while linking `ml_core` with unresolved symbols including:
+
+- `ml::deep_learning::NeuralNetwork::train_step(...)`
+- `utils::wave_generator::{sample_at, generate_samples, generate_samples_for_duration}(...)`
+- multiple `graphics::{Canvas, Graph, Table}` methods referenced by python bindings.
+
+### Root cause
+
+- `NeuralNetwork::train_step` was declared in the cool_car DL wrapper API but not implemented in `_deliverables/libraries/groups/cool_car/DL/wrapper/src/neural_network.cpp`.
+- `ml_core` bindings referenced graphics/wave-generator APIs from headers, but their implementation translation units were not included in the `ml_core` target sources.
+
+### Fix
+
+Updated:
+
+- `_deliverables/libraries/groups/cool_car/DL/wrapper/src/neural_network.cpp`
+- `_deliverables/libraries/bindings/python_bindings/CMakeLists.txt`
+
+Changes made:
+
+- Added a concrete `NeuralNetwork::train_step` implementation in the cool_car DL wrapper source.
+- Added vendor implementation sources to `ml_core`:
+  - `vendor_src/GRAPHICS/charts/source/graphics.cpp`
+  - `vendor_src/MISC/wave_generator/source/wave_generator.cpp`
+- Added `stb` FetchContent wiring and include path (as SYSTEM include) for `stb_image_write.h`, which is required by graphics PNG/JPG export code.
+
+### Validation
+
+- `cmake -S . -B build` → `CONFIG_EXIT_CODE:0`
+- `cmake --build build --target ml_core --clean-first -j4` → `BUILD_EXIT_CODE:0`
+
+### Impact
+
+- Resolves the reported Windows undefined-reference link errors in the `ml_core` python bindings target.
+- Keeps graphics/misc bindings link-complete by explicitly including required implementation units.
