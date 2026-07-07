@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install from GitHub | CoolBox Tutorials</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0 auto; max-width: 920px; padding: 2rem 1rem 4rem; line-height: 1.6; color: #0f172a; background: #f8fafc; }
+    header, .meta-box, article { background: white; border: 1px solid #dbeafe; border-radius: 14px; padding: 1.25rem; box-shadow: 0 12px 36px rgba(15, 23, 42, 0.07); }
+    header { margin-bottom: 1rem; }
+    h1, h2, h3, h4, h5, h6 { color: #111827; line-height: 1.2; }
+    .meta-box { margin: 1rem 0 1.5rem; }
+    .meta { margin: 0.25rem 0; color: #334155; }
+    .description { color: #475569; font-size: 1.05rem; }
+    pre { overflow-x: auto; background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 12px; }
+    code { font-family: Menlo, Monaco, Consolas, monospace; }
+    .code-block { margin: 1rem 0; }
+    figure { margin: 1.25rem 0; }
+    img, video { max-width: 100%; border-radius: 12px; }
+    .muted { color: #64748b; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Install from GitHub</h1>
+    
+  </header>
+  <section class="meta-box">
+    <p class="meta"><strong>Published:</strong> March 21st 2026</p>
+    <p class="meta"><strong>Repo:</strong> <a href="https://github.com/MeanderingAI/CoolBox">https://github.com/MeanderingAI/CoolBox</a></p>
+    <p class="meta"><strong>Tags:</strong> <span>tutorial</span>, <span>install</span>, <span>github</span>, <span>bindings</span></p>
+    <p class="meta"><strong>Libraries:</strong> <span class="muted">None</span></p>
+  </section>
+  <article>
+    <p>Install the published CoolBox bindings directly from the GitHub repository when you want the latest source instead of a packaged release.</p>
+<p><a href="https://github.com/MeanderingAI/CoolBox/releases/latest">Latest release</a></p>
+<p><a href="https://github.com/MeanderingAI/CoolBox/releases">All releases</a></p>
+<h2>Python</h2>
+<p>Install directly from the Python bindings subdirectory with `pip`.</p>
+<div class="code-block"><pre><code class="language-bash">pip install "git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings"</code></pre></div>
+<h2>R</h2>
+<p>Install the `coolboxr` package from the repository with `remotes` or `devtools`.</p>
+<div class="code-block"><pre><code class="language-r">remotes::install_github("MeanderingAI/CoolBox", subdir = "_libraries/r_bindings/coolboxr")</code></pre></div>
+<h2>Go</h2>
+<p>Fetch the Go module directly from the repository.</p>
+<div class="code-block"><pre><code class="language-bash">go get github.com/MeanderingAI/CoolBox/_libraries/go_bindings@latest</code></pre></div>
+<h2>Rust</h2>
+<p>Git dependencies work for Rust because the repository exposes a top-level Cargo workspace.</p>
+<div class="code-block"><pre><code class="language-bash">cargo add coolbox-rs --git https://github.com/MeanderingAI/CoolBox.git</code></pre></div>
+<h2>Java / Maven</h2>
+<p>Maven does not install dependencies directly from a Git URL. Build and install locally, or publish the artifact to GitHub Packages or Maven Central.</p>
+<div class="code-block"><pre><code class="language-bash">git clone https://github.com/MeanderingAI/CoolBox.git &amp;&amp; mvn -f CoolBox/_libraries/java_bindings/pom.xml install</code></pre></div>
+  </article>
+</body>
+</html>

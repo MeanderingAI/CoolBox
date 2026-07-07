@@ -22,7 +22,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT TARGET pybind11::pybind11)
     find_package(pybind11 REQUIRED)
 endif()
-find_package(Eigen3 REQUIRED)
+# Prefer repository-provided Eigen3::Eigen target (from ExternalDependencies).
+# Fall back to package discovery only when the target is not already available.
+if(NOT TARGET Eigen3::Eigen)
+    find_package(Eigen3 QUIET CONFIG)
+    if(NOT TARGET Eigen3::Eigen)
+        find_package(Eigen3 REQUIRED)
+    endif()
+endif()
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
 # Include directories
@@ -31,7 +38,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/bindings/python_bindings/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers
-    ${EIGEN3_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
 )
