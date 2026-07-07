@@ -24,10 +24,17 @@ namespace mytrix {
 
 enum class ComputeBackend {
     CPU,
+    BOOST,
+    EIGEN,
     GPU_AUTO,
     GPU_OPENCL,
     GPU_CUDA,
     GPU_METAL
+};
+
+struct OperationOptions {
+    ComputeBackend backend{ComputeBackend::GPU_AUTO};
+    bool boost{false};
 };
 
 namespace metal {
@@ -109,6 +116,20 @@ template <>
 struct BackendResolver<ComputeBackend::CPU> {
     struct CPUBackend {}; // Marker, actual CPU fallback is inline
     using type = CPUBackend;
+    static constexpr bool available = true;
+};
+
+template <>
+struct BackendResolver<ComputeBackend::BOOST> {
+    struct BoostBackend {};
+    using type = BoostBackend;
+    static constexpr bool available = true;
+};
+
+template <>
+struct BackendResolver<ComputeBackend::EIGEN> {
+    struct EigenBackend {};
+    using type = EigenBackend;
     static constexpr bool available = true;
 };
 
@@ -202,12 +223,20 @@ public:
         requested_backend_.store(backend, std::memory_order_relaxed);
     }
 
+    static void set_boost_enabled(bool enabled) {
+        boost_enabled_.store(enabled, std::memory_order_relaxed);
+    }
+
     static ComputeBackend requested_backend() {
         return requested_backend_.load(std::memory_order_relaxed);
     }
 
     static ComputeBackend active_backend() {
         return active_backend_.load(std::memory_order_relaxed);
+    }
+
+    static bool boost_enabled() {
+        return boost_enabled_.load(std::memory_order_relaxed);
     }
 
     static void set_active_backend(ComputeBackend backend) {
@@ -221,11 +250,27 @@ public:
      * Follows fallback chain: Requested → GPU_AUTO → CPU
      */
     static ComputeBackend resolve_backend() {
-        const ComputeBackend requested = requested_backend();
-        
+        return resolve_backend(requested_backend(), boost_enabled());
+    }
+
+    static ComputeBackend resolve_backend(ComputeBackend requested, bool boost) {
+        if (requested == ComputeBackend::BOOST || requested == ComputeBackend::EIGEN) {
+            return requested;
+        }
+
+        if (boost && (requested == ComputeBackend::CPU || requested == ComputeBackend::GPU_AUTO)) {
+            return ComputeBackend::BOOST;
+        }
+
         switch (requested) {
             case ComputeBackend::CPU:
                 return ComputeBackend::CPU;
+
+            case ComputeBackend::BOOST:
+                return ComputeBackend::BOOST;
+
+            case ComputeBackend::EIGEN:
+                return ComputeBackend::EIGEN;
                 
             case ComputeBackend::GPU_AUTO: {
                 // Use compile-time platform preference
@@ -261,6 +306,10 @@ public:
         switch (backend) {
             case ComputeBackend::CPU:
                 return true;
+
+            case ComputeBackend::BOOST:
+            case ComputeBackend::EIGEN:
+                return true;
                 
             case ComputeBackend::GPU_METAL:
                 return BackendResolver<ComputeBackend::GPU_METAL>::available;
@@ -282,6 +331,8 @@ public:
     static const char* backend_name(ComputeBackend backend) {
         switch (backend) {
             case ComputeBackend::CPU: return "cpu";
+            case ComputeBackend::BOOST: return "boost";
+            case ComputeBackend::EIGEN: return "eigen";
             case ComputeBackend::GPU_AUTO: return "gpu_auto";
             case ComputeBackend::GPU_OPENCL: return "gpu_opencl";
             case ComputeBackend::GPU_CUDA: return "gpu_cuda";
@@ -293,6 +344,7 @@ public:
 private:
     inline static std::atomic<ComputeBackend> requested_backend_{ComputeBackend::CPU};
     inline static std::atomic<ComputeBackend> active_backend_{ComputeBackend::CPU};
+    inline static std::atomic<bool> boost_enabled_{false};
 };
 
 // ============================================================================
@@ -303,12 +355,20 @@ inline void set_backend(ComputeBackend backend) {
     BackendConfig::set_requested_backend(backend);
 }
 
+inline void set_boost_enabled(bool enabled) {
+    BackendConfig::set_boost_enabled(enabled);
+}
+
 inline ComputeBackend requested_backend() {
     return BackendConfig::requested_backend();
 }
 
 inline ComputeBackend active_backend() {
     return BackendConfig::active_backend();
+}
+
+inline bool boost_enabled() {
+    return BackendConfig::boost_enabled();
 }
 
 inline std::string backend_name(ComputeBackend backend) {

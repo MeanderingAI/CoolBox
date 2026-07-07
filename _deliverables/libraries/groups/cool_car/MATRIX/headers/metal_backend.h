@@ -7,6 +7,15 @@
 namespace mytrix {
 namespace metal {
 
+namespace detail {
+#if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
+    bool runtime_available();
+    std::unique_ptr<DenseMatrix> dispatch_add(const DenseMatrix& lhs, const DenseMatrix& rhs);
+    std::unique_ptr<DenseMatrix> dispatch_transpose(const DenseMatrix& mat);
+    std::unique_ptr<DenseMatrix> dispatch_multiply(const DenseMatrix& lhs, const DenseMatrix& rhs);
+#endif
+} // namespace detail
+
 /**
  * @brief Metal compute backend for matrix operations.
  *
@@ -14,14 +23,15 @@ namespace metal {
  * Separate kernel methods for each operation, each with its own optimization strategy.
  * Falls back to CPU for unsupported shapes or when Metal is unavailable.
  *
- * TODO: Implement actual Metal shaders and device buffers once Objective-C++ infrastructure is available.
+ * When compiled as Objective-C++ on Apple platforms, this backend uses inline Metal
+ * shader sources plus command buffers. Otherwise it falls back to the CPU path.
  */
 
 class MetalBackend {
 public:
     static bool is_available() {
-#ifdef MYTRIX_ENABLE_METAL
-        return true;
+    #if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
+        return detail::runtime_available();
 #else
         return false;
 #endif
@@ -37,8 +47,11 @@ public:
         if (lhs.cols() != rhs.rows()) {
             throw std::invalid_argument("metal multiply_kernel: incompatible dimensions");
         }
-        // TODO: Implement Metal matrix multiplication kernel
-        // For now, fallback to CPU
+#if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
+        if (auto result = detail::dispatch_multiply(lhs, rhs)) {
+            return *result;
+        }
+#endif
         auto result = std::make_unique<DenseMatrix>(lhs.rows(), rhs.cols());
         result->data = lhs.data * rhs.data;
         return *result;
@@ -51,8 +64,11 @@ public:
      * Uses local memory to avoid global memory bottlenecks.
      */
     static DenseMatrix transpose_kernel(const DenseMatrix& mat) {
-        // TODO: Implement Metal transpose kernel with local memory optimization
-        // For now, fallback to CPU
+#if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
+        if (auto result = detail::dispatch_transpose(mat)) {
+            return *result;
+        }
+#endif
         auto result = std::make_unique<DenseMatrix>(mat.cols(), mat.rows());
         result->data = mat.data.transpose();
         return *result;
@@ -67,8 +83,11 @@ public:
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) {
             throw std::invalid_argument("metal add_kernel: dimension mismatch");
         }
-        // TODO: Implement Metal element-wise addition kernel
-        // For now, fallback to CPU
+#if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
+        if (auto result = detail::dispatch_add(lhs, rhs)) {
+            return *result;
+        }
+#endif
         auto result = std::make_unique<DenseMatrix>(lhs.rows(), lhs.cols());
         result->data = lhs.data + rhs.data;
         return *result;
@@ -84,7 +103,7 @@ public:
      * Dispatches to Metal kernel for large matrices.
      * Falls back to CPU for small matrices (< 256×256) to avoid transfer overhead.
      */
-    static DenseMatrix multiply(const DenseMatrix& lhs, const DenseMatrix& rhs) {
+    static DenseMatrix multiply(const DenseMatrix& lhs, const DenseMatrix& rhs, bool boost = false) {
         if (lhs.cols() != rhs.rows()) {
             throw std::invalid_argument("multiply: incompatible matrix dimensions");
         }
@@ -93,17 +112,16 @@ public:
         const int n = lhs.cols();
         const int p = rhs.cols();
 
-        // Heuristic: use GPU for matrices larger than this threshold
-        const int gpu_threshold = 256;
+        // Boost mode lowers the threshold so more workloads take the GPU path.
+        const int gpu_threshold = boost ? 1 : 256;
 
-        if (m < gpu_threshold || n < gpu_threshold || p < gpu_threshold) {
+        if (!boost && (m < gpu_threshold || n < gpu_threshold || p < gpu_threshold)) {
             // Fall back to CPU for small matrices
             return cpu_multiply(lhs, rhs);
         }
 
-        // For large matrices, dispatch to Metal (currently CPU fallback until Metal shaders are implemented)
-        // TODO: Implement actual Metal device buffer allocation, command queue dispatch, and shader execution.
-        return cpu_multiply(lhs, rhs);
+        // Dispatch to the Metal kernel entry point when the Objective-C++ runtime path exists.
+        return multiply_kernel(lhs, rhs);
     }
 
     /**
@@ -112,16 +130,15 @@ public:
      * @param mat Input matrix (m × n)
      * @return Transposed matrix (n × m)
      */
-    static DenseMatrix transpose(const DenseMatrix& mat) {
+    static DenseMatrix transpose(const DenseMatrix& mat, bool boost = false) {
         const int m = mat.rows();
         const int n = mat.cols();
 
-        if (m < 256 || n < 256) {
+        if (!boost && (m < 256 || n < 256)) {
             return cpu_transpose(mat);
         }
 
-        // TODO: Implement actual Metal transpose kernel.
-        return cpu_transpose(mat);
+        return transpose_kernel(mat);
     }
 
     /**
@@ -131,7 +148,7 @@ public:
      * @param rhs Right-hand matrix (m × n)
      * @return Sum matrix (m × n)
      */
-    static DenseMatrix add(const DenseMatrix& lhs, const DenseMatrix& rhs) {
+    static DenseMatrix add(const DenseMatrix& lhs, const DenseMatrix& rhs, bool boost = false) {
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) {
             throw std::invalid_argument("add: incompatible matrix dimensions");
         }
@@ -139,12 +156,11 @@ public:
         const int m = lhs.rows();
         const int n = lhs.cols();
 
-        if (m * n < 256 * 256) {
+        if (!boost && m * n < 256 * 256) {
             return cpu_add(lhs, rhs);
         }
 
-        // TODO: Implement actual Metal element-wise add kernel.
-        return cpu_add(lhs, rhs);
+        return add_kernel(lhs, rhs);
     }
 
 private:

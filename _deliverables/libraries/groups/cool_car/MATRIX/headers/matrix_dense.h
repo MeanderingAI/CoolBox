@@ -26,14 +26,20 @@ namespace mytrix {
 
 namespace detail {
 
-inline mytrix::ComputeBackend resolve_operation_backend() {
-    const mytrix::ComputeBackend active = mytrix::BackendConfig::resolve_backend();
+inline mytrix::ComputeBackend resolve_operation_backend(const mytrix::OperationOptions& options) {
+    const mytrix::ComputeBackend active = mytrix::BackendConfig::resolve_backend(options.backend, options.boost);
     mytrix::BackendConfig::set_active_backend(active);
     return active;
 }
 
 inline bool uses_cpu_fallback(mytrix::ComputeBackend backend) {
-    return backend == mytrix::ComputeBackend::CPU;
+    return backend == mytrix::ComputeBackend::CPU ||
+           backend == mytrix::ComputeBackend::BOOST ||
+           backend == mytrix::ComputeBackend::EIGEN;
+}
+
+inline mytrix::OperationOptions default_operation_options() {
+    return mytrix::OperationOptions{mytrix::BackendConfig::requested_backend(), mytrix::BackendConfig::boost_enabled()};
 }
 
 } // namespace detail
@@ -99,8 +105,11 @@ public:
     }
 
     std::unique_ptr<mytrix::MatrixBase> multiply(const DenseMatrix& other) const;
+    std::unique_ptr<mytrix::MatrixBase> multiply(const DenseMatrix& other, const mytrix::OperationOptions& options) const;
     std::unique_ptr<mytrix::MatrixBase> transpose() const;
+    std::unique_ptr<mytrix::MatrixBase> transpose(const mytrix::OperationOptions& options) const;
     std::unique_ptr<mytrix::MatrixBase> add(const DenseMatrix& other) const;
+    std::unique_ptr<mytrix::MatrixBase> add(const DenseMatrix& other, const mytrix::OperationOptions& options) const;
 
     DenseMatrix operator+(const DenseMatrix& other) const {
         DenseMatrix result(rows(), cols());
@@ -196,17 +205,21 @@ inline mytrix::DenseMatrix mytrix::DenseVector::transpose() const {
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::multiply(const mytrix::DenseMatrix& other) const {
+    return multiply(other, mytrix::detail::default_operation_options());
+}
+
+inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::multiply(const mytrix::DenseMatrix& other, const mytrix::OperationOptions& options) const {
     if (cols() != other.rows()) {
         throw std::invalid_argument("multiply: matrix dimension mismatch");
     }
 
-    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend();
+    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
     auto result = std::make_unique<mytrix::DenseMatrix>(rows(), other.cols());
 
     // Template-based compile-time dispatch to platform-specific backends
 #ifdef MYTRIX_ENABLE_METAL
     if (backend == mytrix::ComputeBackend::GPU_METAL) {
-        DenseMatrix temp = mytrix::metal::MetalBackend::multiply(*this, other);
+        DenseMatrix temp = mytrix::metal::MetalBackend::multiply(*this, other, options.boost);
         result->data = temp.data;
         return result;
     }
@@ -234,13 +247,17 @@ inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::multiply(const m
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose() const {
-    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend();
+    return transpose(mytrix::detail::default_operation_options());
+}
+
+inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose(const mytrix::OperationOptions& options) const {
+    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
     auto result = std::make_unique<mytrix::DenseMatrix>(cols(), rows());
 
     // Template-based compile-time dispatch to platform-specific backends
 #ifdef MYTRIX_ENABLE_METAL
     if (backend == mytrix::ComputeBackend::GPU_METAL) {
-        DenseMatrix temp = mytrix::metal::MetalBackend::transpose(*this);
+        DenseMatrix temp = mytrix::metal::MetalBackend::transpose(*this, options.boost);
         result->data = temp.data;
         return result;
     }
@@ -268,17 +285,21 @@ inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose() cons
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::add(const mytrix::DenseMatrix& other) const {
+    return add(other, mytrix::detail::default_operation_options());
+}
+
+inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::add(const mytrix::DenseMatrix& other, const mytrix::OperationOptions& options) const {
     if (rows() != other.rows() || cols() != other.cols()) {
         throw std::invalid_argument("add: matrix dimension mismatch");
     }
 
-    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend();
+    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
     auto result = std::make_unique<mytrix::DenseMatrix>(rows(), cols());
 
     // Template-based compile-time dispatch to platform-specific backends
 #ifdef MYTRIX_ENABLE_METAL
     if (backend == mytrix::ComputeBackend::GPU_METAL) {
-        DenseMatrix temp = mytrix::metal::MetalBackend::add(*this, other);
+        DenseMatrix temp = mytrix::metal::MetalBackend::add(*this, other, options.boost);
         result->data = temp.data;
         return result;
     }

@@ -1,39 +1,39 @@
 ## DD
 template<typename B>
-using mlb = std::vector<B>; //main logic board
+using mlb = v<B>; //main logic board
 
 template<typename B>
-using nba = std::vector<B>; //only
+using nba = v<B>; //only
 
 template<typename B>
-using nfl = std::vector<B>; //only
+using nfl = v<B>; //only
 
 template<typename B>
-using nhl = std::vector<B>; //only
+using nhl = v<B>; //only
 
 template<typename B>
-using sumo = std::vector<B>; //only
+using sumo = v<B>; //only
 
 template<typename B>
-using PP = std::vector<B>; //only
+using PP = v<B>; //only
 
 template<typename WB>
-using snba = std::vector<WB>; //only
+using snba = v<WB>; //only
 
 template<typename WB>
-using snfl = std::vector<WB>; //only
+using snfl = v<WB>; //only
 
 template<typename WB>
-using snhl = std::vector<WB>; //only
+using snhl = v<WB>; //only
 
 template<typename WB>
-using of = std::vector<WB>; //only
+using of = v<WB>; //only
 
 template <typename WB>
-using sof = std::vector<WB>; //only
+using sof = v<WB>; //only
 
 template <typename WB>
-using cof = std::vector<WB>; //only
+using cof = v<WB>; //only
 
 template <typename WB>
 using actor = std::vector<WB>; //only
