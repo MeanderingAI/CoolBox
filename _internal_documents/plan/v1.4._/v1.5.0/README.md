@@ -241,3 +241,72 @@ Changes made:
 
 - Resolves the reported Windows undefined-reference link errors in the `ml_core` python bindings target.
 - Keeps graphics/misc bindings link-complete by explicitly including required implementation units.
+
+## Windows ARM64 CI fix: release-assets upload had no files
+
+### Issue
+
+The Windows ARM64 lane reported:
+
+- `Upload release assets: No files were found with the provided path: release-assets/. No artifacts will be uploaded.`
+
+### Root cause
+
+The library packaging script in `.github/workflows/build-libs.yaml` assumed legacy package paths under:
+
+- `_libraries/packages/<category>`
+- `build/_libraries/packages/<category>`
+
+In the current tree/build layout, outputs are primarily under `_deliverables/libraries/groups` and `build/_deliverables/libraries/groups`, so category packaging could produce zero archives for this lane.
+
+### Fix
+
+Updated:
+
+- `.github/workflows/build-libs.yaml`
+
+Changes made:
+
+- Added path fallback from legacy `_libraries/packages/*` to `_deliverables/libraries/groups/*` for category packaging.
+- Added a fallback aggregate package path when category packaging yields no archives, collecting available built libraries and headers into:
+  - `coolbox-libraries-<platform>-<ref>.tar.gz`
+  - `coolbox-libraries-<platform>-<ref>.zip`
+- Set artifact upload to `if-no-files-found: ignore` to avoid hard-fail/noisy warning in genuinely empty edge cases.
+
+### Impact
+
+- Prevents empty `release-assets/` uploads for Windows ARM64 due to layout mismatch.
+- Improves resilience across legacy and current repository layouts.
+
+## Process note: ongoing git message log
+
+For incremental CI/build fixes, continue recording updates in commit message bodies (ongoing git message log), and keep this v1.5.0 plan file as a periodic summary rather than a per-change scratch log.
+
+## macOS CI fix: Homebrew untrusted `aws/tap` blocked dependency install
+
+### Issue
+
+`build_libs / Build (macos-arm64)` failed during Homebrew operations with:
+
+- `The following taps are not trusted: aws/tap`
+
+### Root cause
+
+GitHub-hosted macOS runners can have third-party taps present in Homebrew state. When Homebrew tap trust enforcement is enabled, an untrusted tap can interrupt normal brew commands.
+
+### Fix
+
+Updated:
+
+- `.github/workflows/fragments/deps-macos/action.yaml`
+
+Changes made:
+
+- Added a pre-install guard step that removes `aws/tap` if present:
+  - `brew tap | grep '^aws/tap$'`
+  - `brew untap aws/tap`
+
+### Impact
+
+- Makes macOS dependency setup deterministic across hosted runners.
+- Prevents unrelated third-party tap trust state from breaking CI dependency installation.

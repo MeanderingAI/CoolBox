@@ -1,5 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
+param(
+    [string]$Filter
+)
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $buildDir = Join-Path $repoRoot 'build'
 $logPath = Join-Path $repoRoot 'ctest-release.log'
@@ -12,7 +16,13 @@ Write-Host "[run_release_tests] Running Release tests from $buildDir"
 
 Push-Location $buildDir
 try {
-    & ctest -C Release --output-on-failure 2>&1 | Tee-Object -FilePath $logPath
+    $ctestArgs = @('-C', 'Release', '--output-on-failure')
+    if ($Filter) {
+        $ctestArgs += @('-R', $Filter)
+        Write-Host "[run_release_tests] Applying test filter: $Filter"
+    }
+
+    & ctest @ctestArgs 2>&1 | Tee-Object -FilePath $logPath
     $exitCode = $LASTEXITCODE
 }
 finally {

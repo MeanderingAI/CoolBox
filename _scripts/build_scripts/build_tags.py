@@ -5,7 +5,7 @@ import argparse
 import html
 from pathlib import Path
 
-from build_tutorials import parse_tutorial
+from _scripts.build_scripts.build_tutorials import parse_tutorial
 
 
 def build_tags_site(source_dir: Path, output_dir: Path) -> None:
