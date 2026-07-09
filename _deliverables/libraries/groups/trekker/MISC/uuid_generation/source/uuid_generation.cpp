@@ -23,8 +23,25 @@ namespace {
 
 constexpr std::uint64_t UUID_EPOCH_OFFSET_100NS = 0x01B21DD213814000ULL;
 
+std::uint64_t next_seed_value() {
+    static std::atomic<std::uint64_t> seed_counter{0U};
+    const auto wall_clock = std::chrono::system_clock::now().time_since_epoch().count();
+    const auto steady_clock = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto counter = seed_counter.fetch_add(1U, std::memory_order_relaxed);
+
+    std::uint64_t seed = static_cast<std::uint64_t>(wall_clock)
+        ^ (static_cast<std::uint64_t>(steady_clock) << 1U)
+        ^ (counter * 0x9e3779b97f4a7c15ULL);
+
+    if (seed == 0U) {
+        seed = 0x9e3779b97f4a7c15ULL;
+    }
+
+    return seed;
+}
+
 std::mt19937_64& rng() {
-    static std::mt19937_64 engine{std::random_device{}()};
+    static std::mt19937_64 engine{next_seed_value()};
     return engine;
 }
 
