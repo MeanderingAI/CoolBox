@@ -102,5 +102,6 @@ if(BUILD_TESTING)
         tests/test_coolbox_c_bindings.c
     )
     target_link_libraries(test_coolbox_c_bindings PRIVATE coolbox_c_bindings)
+    coolbox_stage_test_runtime_dependencies(test_coolbox_c_bindings)
     add_test(NAME test_coolbox_c_bindings COMMAND test_coolbox_c_bindings)
 endif()
