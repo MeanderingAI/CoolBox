@@ -1,9 +1,19 @@
-# Add a CTest entry to run the Python HMM bindings test
+# Add a CTest entry to run the Python HMM bindings test when NumPy is available.
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
-add_test(NAME hmm_python_bindings_test
-    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_bindings.py
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import numpy"
+    RESULT_VARIABLE COOLBOX_NUMPY_IMPORT_RESULT
+    OUTPUT_QUIET
+    ERROR_QUIET
 )
+if(COOLBOX_NUMPY_IMPORT_RESULT EQUAL 0)
+    add_test(NAME hmm_python_bindings_test
+        COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_bindings.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+else()
+    message(STATUS "Skipping hmm_python_bindings_test: NumPy is not available for ${Python3_EXECUTABLE}")
+endif()
 # Add bindings for new libraries
 option(BUILD_PYTHON_HTTP_BINDINGS "Build python http_bindings module" OFF)
 if(BUILD_PYTHON_HTTP_BINDINGS)

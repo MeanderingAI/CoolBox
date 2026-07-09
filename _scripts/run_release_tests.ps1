@@ -31,8 +31,15 @@ try {
     }
 
     try {
-        & ctest @ctestArgs 2>&1 | Tee-Object -FilePath $logPath
-        $exitCode = $LASTEXITCODE
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & ctest @ctestArgs 2>&1 | Tee-Object -FilePath $logPath
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
     }
     finally {
         if ($restoreNativeCommandPreference) {
