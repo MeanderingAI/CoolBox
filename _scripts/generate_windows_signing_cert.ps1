@@ -28,17 +28,30 @@ function Convert-ToSecurePassword {
         [string]$Password
     )
 
+    function New-SecureStringFromPlainText {
+        param(
+            [string]$PlainText
+        )
+
+        $secureString = [System.Security.SecureString]::new()
+        foreach ($character in $PlainText.ToCharArray()) {
+            $secureString.AppendChar($character)
+        }
+        $secureString.MakeReadOnly()
+        return $secureString
+    }
+
     if ($Password) {
         return [pscustomobject]@{
             PlainText = $Password
-            SecureString = (ConvertTo-SecureString -String $Password -AsPlainText -Force)
+            SecureString = (New-SecureStringFromPlainText -PlainText $Password)
         }
     }
 
     $generatedPassword = [guid]::NewGuid().ToString('N')
     return [pscustomobject]@{
         PlainText = $generatedPassword
-        SecureString = (ConvertTo-SecureString -String $generatedPassword -AsPlainText -Force)
+        SecureString = (New-SecureStringFromPlainText -PlainText $generatedPassword)
     }
 }
 
