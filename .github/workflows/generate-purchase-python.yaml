@@ -36,7 +36,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: ./.github/workflows/fragments/purchase-checkout
+      - uses: actions/checkout@v6
       - uses: ./.github/workflows/fragments/purchase-compute-artifact-name
 
       - name: Download built C++ libraries (from build_libs) (with run-id)

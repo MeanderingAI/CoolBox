@@ -7,7 +7,7 @@ runs:
   using: 'composite'
   steps:
     - name: Install vcpkg dependencies (Windows ARM64)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
           Write-Host 'Skipping ARM64 vcpkg dependency install'
@@ -94,7 +94,7 @@ runs:
         pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-make make
 
     - name: Install Bison (Windows ARM64)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
           Write-Host 'Skipping ARM64 bison install'
@@ -112,7 +112,7 @@ runs:
         cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
 
     - name: Configure CMake (Windows ARM64 / MinGW preferred)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
           Write-Host 'Skipping ARM64 CMake configure'
@@ -149,7 +149,7 @@ runs:
         }
 
     - name: Show CMake cache (Windows)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows') {
           Write-Host 'Skipping cache dump on non-Windows runner'

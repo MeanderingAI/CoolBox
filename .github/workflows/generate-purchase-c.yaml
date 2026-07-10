@@ -24,7 +24,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PLATFORM: linux-x86_64
     steps:
-      - uses: ./.github/workflows/fragments/purchase-checkout
+      - uses: actions/checkout@v6
       - uses: ./.github/workflows/fragments/purchase-install-native-build-tooling
       - uses: ./.github/workflows/fragments/purchase-configure-c-bindings
       - uses: ./.github/workflows/fragments/purchase-build-c-bindings
