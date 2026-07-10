@@ -111,6 +111,7 @@ jobs:
       - name: Set up R (macOS)
         if: runner.os == 'macOS'
         run: |
+          brew untap aws/tap || true
           brew list r &>/dev/null || brew install r
 
       - name: Set up R (Windows)

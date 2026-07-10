@@ -12,9 +12,7 @@ runs:
     run: |
       # GitHub runner images can contain third-party taps that are untrusted.
       # Keep CI deterministic by removing aws/tap when present.
-      if brew tap | grep -q '^aws/tap$'; then
-        brew untap aws/tap || true
-      fi
+      brew untap aws/tap || true
 
   - name: Install dependencies (macOS)
     if: runner.os == 'macOS'
