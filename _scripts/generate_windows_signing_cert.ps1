@@ -55,19 +55,84 @@ function Convert-ToSecurePassword {
     }
 }
 
-function Ensure-CertificatePsDrive {
-    if (Get-PSDrive -Name Cert -ErrorAction SilentlyContinue) {
-        return
+function New-CodeSigningCertificate {
+    param(
+        [string]$CertificateSubject,
+        [string]$CertificateFriendlyName,
+        [datetime]$CertificateNotAfter
+    )
+
+    $rsa = [System.Security.Cryptography.RSA]::Create(4096)
+
+    try {
+        $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
+            $CertificateSubject,
+            $rsa,
+            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+        )
+
+        $request.CertificateExtensions.Add(
+            [System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]::new($false, $false, 0, $false)
+        )
+        $request.CertificateExtensions.Add(
+            [System.Security.Cryptography.X509Certificates.X509KeyUsageExtension]::new(
+                [System.Security.Cryptography.X509Certificates.X509KeyUsageFlags]::DigitalSignature,
+                $true
+            )
+        )
+
+        $ekuOids = [System.Security.Cryptography.OidCollection]::new()
+        $ekuOids.Add([System.Security.Cryptography.Oid]::new('1.3.6.1.5.5.7.3.3', 'Code Signing')) | Out-Null
+        $request.CertificateExtensions.Add(
+            [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]::new($ekuOids, $true)
+        )
+        $request.CertificateExtensions.Add(
+            [System.Security.Cryptography.X509Certificates.X509SubjectKeyIdentifierExtension]::new($request.PublicKey, $false)
+        )
+
+        $notBefore = (Get-Date).AddMinutes(-5)
+        $certificate = $request.CreateSelfSigned($notBefore, $CertificateNotAfter)
+        $certificate.FriendlyName = $CertificateFriendlyName
+        return $certificate
     }
-
-    Import-Module Microsoft.PowerShell.Security -ErrorAction SilentlyContinue
-
-    $certificateProvider = Get-PSProvider -PSProvider Certificate -ErrorAction SilentlyContinue
-    if (-not $certificateProvider) {
-        throw 'The PowerShell Certificate provider is unavailable in this session.'
+    finally {
+        $rsa.Dispose()
     }
+}
 
-    New-PSDrive -Name Cert -PSProvider Certificate -Root '\' -Scope Script | Out-Null
+function Export-CodeSigningCertificate {
+    param(
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
+        [string]$PfxFilePath,
+        [string]$CerFilePath,
+        [string]$Password
+    )
+
+    $pfxBytes = $Certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx, $Password)
+    [System.IO.File]::WriteAllBytes($PfxFilePath, $pfxBytes)
+
+    $cerBytes = $Certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+    [System.IO.File]::WriteAllBytes($CerFilePath, $cerBytes)
+}
+
+function Install-CertificateToTrustedPeople {
+    param(
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate
+    )
+
+    $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
+        [System.Security.Cryptography.X509Certificates.StoreName]::TrustedPeople,
+        [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
+    )
+
+    try {
+        $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+        $store.Add($Certificate)
+    }
+    finally {
+        $store.Close()
+    }
 }
 
 if (-not $OutputDirectory) {
@@ -101,28 +166,25 @@ if ($PrintOnly) {
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 $notAfter = (Get-Date).AddYears($ValidYears)
-Ensure-CertificatePsDrive
-$certificate = New-SelfSignedCertificate `
-    -Subject $Subject `
-    -FriendlyName $FriendlyName `
-    -Type CodeSigningCert `
-    -KeyAlgorithm RSA `
-    -KeyLength 4096 `
-    -HashAlgorithm SHA256 `
-    -CertStoreLocation 'Cert:\CurrentUser\My' `
-    -NotAfter $notAfter `
-    -KeyExportPolicy Exportable
+$certificate = New-CodeSigningCertificate `
+    -CertificateSubject $Subject `
+    -CertificateFriendlyName $FriendlyName `
+    -CertificateNotAfter $notAfter
 
 if (-not $certificate) {
     throw 'Failed to create the self-signed code-signing certificate.'
 }
 
-Export-PfxCertificate -Cert $certificate -FilePath $pfxPath -Password $resolvedPassword.SecureString | Out-Null
-Export-Certificate -Cert $certificate -FilePath $cerPath | Out-Null
+try {
+    Export-CodeSigningCertificate -Certificate $certificate -PfxFilePath $pfxPath -CerFilePath $cerPath -Password $resolvedPassword.PlainText
 
-if ($InstallToTrustedPeople) {
-    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
-    Write-Host '[generate_windows_signing_cert] Installed the public certificate into Cert:\CurrentUser\TrustedPeople'
+    if ($InstallToTrustedPeople) {
+        Install-CertificateToTrustedPeople -Certificate $certificate
+        Write-Host '[generate_windows_signing_cert] Installed the public certificate into CurrentUser TrustedPeople'
+    }
+}
+finally {
+    $certificate.Dispose()
 }
 
 Write-Host '[generate_windows_signing_cert] Certificate generation complete.'
