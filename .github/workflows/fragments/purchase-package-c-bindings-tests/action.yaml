@@ -1,11 +1,11 @@
 # Package C bindings test binaries for generate_purchase_c
-steps:
 name: 'purchase-package-c-bindings-tests'
 description: 'Composite action for purchase-package-c-bindings-tests'
 runs:
   using: 'composite'
   steps:
   - name: Package c bindings test binaries
+    shell: bash
     run: |
       mkdir -p _libraries/c_bindings/build/test-binaries || true
       for f in _libraries/c_bindings/build/**/*_tests _libraries/c_bindings/build/**/*_test _libraries/c_bindings/build/tests/*; do

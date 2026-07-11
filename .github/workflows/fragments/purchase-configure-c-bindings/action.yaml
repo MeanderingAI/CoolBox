@@ -1,10 +1,10 @@
 # Configure C bindings for generate_purchase_c
-steps:
 name: 'purchase-configure-c-bindings'
 description: 'Composite action for purchase-configure-c-bindings'
 runs:
   using: 'composite'
   steps:
   - name: Configure C bindings
+    shell: bash
     run: |
       cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON

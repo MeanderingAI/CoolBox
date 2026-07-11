@@ -1,5 +1,4 @@
 # Common steps for pljava-lsp build and publish
-steps:
 name: 'lsp-java-steps'
 description: 'Composite action for lsp-java-steps'
 runs:
@@ -9,6 +8,7 @@ runs:
     uses: actions/checkout@v6
 
   - name: Install dependencies
+    shell: bash
     run: |
       sudo apt-get update
       sudo apt-get remove -y containerd.io || true
@@ -32,6 +32,7 @@ runs:
 
   - name: Normalize GHCR owner
     id: ghcr-owner
+    shell: bash
     run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
   - name: Build and push Docker image

@@ -1,5 +1,4 @@
 # Run CMake configure/build for Windows ARM64 (MSYS2)
-steps:
 name: 'run-cmake-windows-arm64'
 description: 'Composite action for run-cmake-windows-arm64'
 runs:
@@ -7,6 +6,6 @@ runs:
   steps:
   - name: Configure CMake (Windows ARM64)
     if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+    shell: msys2 {0}
     run: |
       cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
-    shell: msys2 {0}
