@@ -7,4 +7,4 @@ runs:
   - name: Build C bindings
     shell: bash
     run: |
-      cmake --build _libraries/c_bindings/build --config Release
+      cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release

@@ -285,12 +285,14 @@ jobs:
 
       - name: Download LSP artifacts
         uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           name: pl-lsp-dist-linux-x86_64-${{ github.ref_name }}
           path: apps/lsp/dist
 
       - name: "Fallback: download individual LSP binaries"
         uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
           path: apps/lsp/dist

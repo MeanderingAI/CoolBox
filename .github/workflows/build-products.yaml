@@ -73,20 +73,48 @@ jobs:
             }
           }
 
-      - name: Verify CMake 4.3.1 is available (Windows)
+      - name: Verify CMake >= 3.20 is available (Windows)
         if: runner.os == 'Windows'
         run: |
           command -v cmake
-          cmake --version
-          cmake --version | grep 'cmake version 4.3.1'
+          version_line="$(cmake --version | head -n 1)"
+          echo "$version_line"
+          cmake_version="$(echo "$version_line" | awk '{print $3}')"
+          cmake_major="${cmake_version%%.*}"
+          cmake_rest="${cmake_version#*.}"
+          cmake_minor="${cmake_rest%%.*}"
+
+          if [ -z "$cmake_major" ] || [ -z "$cmake_minor" ]; then
+            echo "Unable to parse CMake version from: $version_line"
+            exit 1
+          fi
+
+          if [ "$cmake_major" -lt 3 ] || { [ "$cmake_major" -eq 3 ] && [ "$cmake_minor" -lt 20 ]; }; then
+            echo "CMake $cmake_version is too old; require >= 3.20"
+            exit 1
+          fi
         shell: msys2 {0}
 
-      - name: Verify CMake 4.3.1 is available (Linux/macOS)
+      - name: Verify CMake >= 3.20 is available (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           command -v cmake
-          cmake --version
-          cmake --version | grep 'cmake version 4.3.1'
+          version_line="$(cmake --version | head -n 1)"
+          echo "$version_line"
+          cmake_version="$(echo "$version_line" | awk '{print $3}')"
+          cmake_major="${cmake_version%%.*}"
+          cmake_rest="${cmake_version#*.}"
+          cmake_minor="${cmake_rest%%.*}"
+
+          if [ -z "$cmake_major" ] || [ -z "$cmake_minor" ]; then
+            echo "Unable to parse CMake version from: $version_line"
+            exit 1
+          fi
+
+          if [ "$cmake_major" -lt 3 ] || { [ "$cmake_major" -eq 3 ] && [ "$cmake_minor" -lt 20 ]; }; then
+            echo "CMake $cmake_version is too old; require >= 3.20"
+            exit 1
+          fi
 
       - name: Configure product build (Windows x86_64 / MSYS2)
         if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'

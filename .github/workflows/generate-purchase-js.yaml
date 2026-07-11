@@ -165,7 +165,7 @@ jobs:
           export EMSDK="$RUNNER_TEMP/emsdk"
           export EM_CONFIG="$RUNNER_TEMP/emsdk/.emscripten"
           export BINARYEN_ROOT="$RUNNER_TEMP/emsdk/upstream/bin"
-          "$RUNNER_TEMP/emsdk/upstream/emscripten/emcmake" cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          "$RUNNER_TEMP/emsdk/upstream/emscripten/emcmake" cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
 
       - name: Configure JavaScript bindings (Windows)
         if: runner.os == 'Windows'
@@ -174,7 +174,7 @@ jobs:
           if (-not (Test-Path $emcmake)) {
             throw "emcmake.bat not found at $emcmake"
           }
-          & $emcmake cmake -S _libraries/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          & $emcmake cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
         shell: pwsh
 
       - name: Build JavaScript bindings (Linux/macOS)

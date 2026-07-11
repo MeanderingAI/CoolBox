@@ -7,4 +7,4 @@ runs:
   - name: Configure C bindings
     shell: bash
     run: |
-      cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
+      cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -DBUILD_TESTING=ON

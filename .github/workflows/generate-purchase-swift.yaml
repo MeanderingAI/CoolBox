@@ -31,6 +31,7 @@ jobs:
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: "5.9"
+          skip-verify-signature: true
 
       - name: Build Swift bindings
         run: |
