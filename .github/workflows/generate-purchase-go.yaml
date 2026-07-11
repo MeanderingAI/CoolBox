@@ -149,7 +149,7 @@ jobs:
           $msysBin = Join-Path $msysRoot "mingw64\bin"
           if (Test-Path $msysUsrBin) { echo "$msysUsrBin" >> $env:GITHUB_PATH }
           echo "$msysBin" >> $env:GITHUB_PATH
-        shell: powershell
+        shell: pwsh
 
       - name: Verify CMake is available (Windows)
         if: runner.os == 'Windows'
@@ -277,7 +277,7 @@ jobs:
           Write-Host "Checked Eigen candidates:"
           $candidates | ForEach-Object { Write-Host " - $_" }
           throw "Unable to locate Eigen headers for Go bindings"
-        shell: powershell
+        shell: pwsh
 
       - name: Show Go toolchain
         run: |

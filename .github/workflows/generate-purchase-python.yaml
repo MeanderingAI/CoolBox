@@ -113,7 +113,7 @@ jobs:
           } else {
             Write-Host "vcpkg not found, continuing"
           }
-        shell: powershell
+        shell: pwsh
 
       - name: Prepare Eigen headers (Windows)
         if: runner.os == 'Windows'
@@ -153,7 +153,7 @@ jobs:
             }
           }
           throw "Unable to locate Eigen headers for Python bindings"
-        shell: powershell
+        shell: pwsh
 
       - name: Install Python packages
         run: |
@@ -214,13 +214,13 @@ jobs:
         run: |
           cmake -S . -B build-python-msvc -A x64 -DBUILD_TESTING=OFF -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=OFF -DCMAKE_BUILD_TYPE=Release
           cmake --build build-python-msvc --config Release --target charts wave_generator_utils --parallel
-        shell: powershell
+        shell: pwsh
 
       - name: Set COOLBOX_LIB_DIR for Python build (Windows)
         if: runner.os == 'Windows'
         run: |
           "COOLBOX_LIB_DIR=$env:GITHUB_WORKSPACE\build-python-msvc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        shell: powershell
+        shell: pwsh
 
       - name: Build Python bindings
         env:

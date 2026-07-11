@@ -94,7 +94,7 @@ jobs:
       - name: Build native C bindings (Windows x86_64)
         if: runner.os == 'Windows' && matrix.platform != 'windows-arm64'
         run: |
-          $vsgen = powershell -File _scripts/detect_vs_generator.ps1
+          $vsgen = & .\_scripts\detect_vs_generator.ps1
           cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "$vsgen" -A x64 -DBUILD_TESTING=ON
           cmake --build _libraries/c_bindings/build --config Release --parallel
 

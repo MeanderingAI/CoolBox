@@ -121,7 +121,7 @@ jobs:
           $rBin = Get-ChildItem 'C:\Program Files\R' -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName 'bin\x64' }
           if (-not $rBin) { throw 'R installation directory was not found.' }
           echo "$rBin" >> $env:GITHUB_PATH
-        shell: powershell
+        shell: pwsh
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'

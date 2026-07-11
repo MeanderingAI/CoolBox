@@ -132,7 +132,7 @@ runs:
             '-S', '.',
             '-B', 'build',
             '-Wno-dev',
-            '-G', (powershell -File _scripts/detect_vs_generator.ps1),
+            '-G', (& .\_scripts\detect_vs_generator.ps1),
             '-A', 'ARM64',
             '-DBUILD_BINARIES=OFF',
             '-DBUILD_PRODUCTS=ON',
