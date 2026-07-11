@@ -55,6 +55,21 @@ function Convert-ToSecurePassword {
     }
 }
 
+function Ensure-CertificatePsDrive {
+    if (Get-PSDrive -Name Cert -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    Import-Module Microsoft.PowerShell.Security -ErrorAction SilentlyContinue
+
+    $certificateProvider = Get-PSProvider -PSProvider Certificate -ErrorAction SilentlyContinue
+    if (-not $certificateProvider) {
+        throw 'The PowerShell Certificate provider is unavailable in this session.'
+    }
+
+    New-PSDrive -Name Cert -PSProvider Certificate -Root '\' -Scope Script | Out-Null
+}
+
 if (-not $OutputDirectory) {
     $OutputDirectory = Join-Path (Get-RepoRoot) '.certs'
 }
@@ -86,6 +101,7 @@ if ($PrintOnly) {
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 $notAfter = (Get-Date).AddYears($ValidYears)
+Ensure-CertificatePsDrive
 $certificate = New-SelfSignedCertificate `
     -Subject $Subject `
     -FriendlyName $FriendlyName `
