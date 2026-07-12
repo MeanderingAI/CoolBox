@@ -165,33 +165,28 @@ runs:
 
         # Clean build dir to avoid generator mismatch
         Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
-        # Try MinGW Makefiles first
-        cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/mingw64;$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl" -DGSL_ROOT_DIR=$arm64Installed -DBISON_EXECUTABLE=$bisonExecutable -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
+        # Use MSVC ARM64 cross-compile path directly on hosted Windows runners.
+        $cmakeArgs = @(
+          '-S', '.',
+          '-B', 'build',
+          '-Wno-dev',
+          '-G', (& .\_scripts\detect_vs_generator.ps1),
+          '-A', 'ARM64',
+          '-DBUILD_BINARIES=OFF',
+          '-DBUILD_PRODUCTS=ON',
+          '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
+          '-DBUILD_IO_SQL=ON',
+          '-DBUILD_TESTING=ON',
+          '-DBUILD_PYTHON_BINDINGS=OFF',
+          "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
+          "-DCMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl",
+          "-DGSL_ROOT_DIR=$arm64Installed",
+          "-DBISON_EXECUTABLE=$bisonExecutable",
+          '-DVCPKG_TARGET_TRIPLET=arm64-windows'
+        )
+        & cmake @cmakeArgs
         if ($LASTEXITCODE -ne 0) {
-          # Ensure generator cache from MinGW attempt does not poison MSVC configure.
-          Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
-          # Fallback to MSVC if MinGW fails
-          $cmakeArgs = @(
-            '-S', '.',
-            '-B', 'build',
-            '-Wno-dev',
-            '-G', (& .\_scripts\detect_vs_generator.ps1),
-            '-A', 'ARM64',
-            '-DBUILD_BINARIES=OFF',
-            '-DBUILD_PRODUCTS=ON',
-            '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
-            '-DBUILD_IO_SQL=ON',
-            '-DBUILD_TESTING=ON',
-            "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
-            "-DCMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl",
-            "-DGSL_ROOT_DIR=$arm64Installed",
-            "-DBISON_EXECUTABLE=$bisonExecutable",
-            '-DVCPKG_TARGET_TRIPLET=arm64-windows'
-          )
-          & cmake @cmakeArgs
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
+          exit $LASTEXITCODE
         }
 
     - name: Show CMake cache (Windows)

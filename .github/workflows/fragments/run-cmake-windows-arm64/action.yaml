@@ -39,4 +39,26 @@ runs:
       $arm64Installed = Join-Path $vcpkgRoot 'installed\arm64-windows'
       $bisonExecutable = 'C:\ProgramData\chocolatey\lib\winflexbison\tools\win_bison.exe'
 
-      cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/mingw64;$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl" -DGSL_ROOT_DIR=$arm64Installed -DBISON_EXECUTABLE=$bisonExecutable -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
+      $cmakeArgs = @(
+        '-S', '.',
+        '-B', 'build',
+        '-Wno-dev',
+        '-G', (& .\_scripts\detect_vs_generator.ps1),
+        '-A', 'ARM64',
+        '-DBUILD_BINARIES=OFF',
+        '-DBUILD_PRODUCTS=ON',
+        '-DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON',
+        '-DBUILD_IO_SQL=ON',
+        '-DBUILD_TESTING=OFF',
+        '-DBUILD_PYTHON_BINDINGS=OFF',
+        "-DCMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl",
+        "-DGSL_ROOT_DIR=$arm64Installed",
+        "-DBISON_EXECUTABLE=$bisonExecutable",
+        "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
+        '-DVCPKG_TARGET_TRIPLET=arm64-windows'
+      )
+
+      & cmake @cmakeArgs
+      if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+      }
