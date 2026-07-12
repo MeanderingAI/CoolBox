@@ -104,8 +104,8 @@ jobs:
             "_deliverables/libraries/bindings/go_bindings"
           )
           c_candidates=(
-            "_libraries/c_bindings"
             "_deliverables/libraries/bindings/c_bindings"
+            "_libraries/c_bindings"
           )
 
           go_dir=""

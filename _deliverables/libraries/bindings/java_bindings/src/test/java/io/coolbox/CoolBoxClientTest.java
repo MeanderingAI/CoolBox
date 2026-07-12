@@ -14,9 +14,10 @@ class CoolBoxClientTest {
         assertEquals("local://coolbox", client.getEndpoint());
         assertTrue(client.isReady());
         assertEquals("1.0.0", client.getVersion());
-        assertEquals(3, client.getCapabilityCount());
+        assertEquals(4, client.getCapabilityCount());
         assertEquals("metadata", client.getCapabilityAt(0));
         assertTrue(client.getCapabilities().contains("metadata_management"));
+        assertTrue(client.getCapabilities().contains("uuid_generation"));
         assertFalse(client.describe().isBlank());
     }
 }

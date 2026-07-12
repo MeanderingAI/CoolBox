@@ -283,6 +283,11 @@ jobs:
           sudo apt-get remove -y containerd.io || true
           sudo apt-get install -y --no-install-recommends docker.io
 
+      - name: Install fallback LSP build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake build-essential libgsl-dev doxygen
+
       - name: Download LSP artifacts
         uses: actions/download-artifact@v8
         continue-on-error: true

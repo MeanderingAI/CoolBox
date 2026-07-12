@@ -473,20 +473,20 @@ jobs:
         if: steps.restore-python.outputs.restored != 'true'
         continue-on-error: true
         run: |
-          python -m build ./_libraries/python_bindings --outdir ./_libraries/python_bindings/dist
+          python -m build ./_deliverables/libraries/bindings/python_bindings --outdir ./_deliverables/libraries/bindings/python_bindings/dist
 
       - name: Build C bindings
         if: steps.restore-c.outputs.restored != 'true'
         continue-on-error: true
         run: |
-          rm -rf _libraries/c_bindings/build _libraries/c_bindings/target
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
-          cmake --build _libraries/c_bindings/build --config Release
-          ctest --test-dir _libraries/c_bindings/build --output-on-failure
-          bash _libraries/c_bindings/generate_docs.sh
-          mkdir -p _libraries/c_bindings/target/include _libraries/c_bindings/target/lib
-          cp -R _libraries/c_bindings/include/. _libraries/c_bindings/target/include/
-          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} _libraries/c_bindings/target/lib/ \;
+          rm -rf _deliverables/libraries/bindings/c_bindings/build _deliverables/libraries/bindings/c_bindings/target
+          cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -DBUILD_TESTING=ON
+          cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release
+          ctest --test-dir _deliverables/libraries/bindings/c_bindings/build --output-on-failure
+          bash _deliverables/libraries/bindings/c_bindings/generate_docs.sh
+          mkdir -p _deliverables/libraries/bindings/c_bindings/target/include _deliverables/libraries/bindings/c_bindings/target/lib
+          cp -R _deliverables/libraries/bindings/c_bindings/include/. _deliverables/libraries/bindings/c_bindings/target/include/
+          find _deliverables/libraries/bindings/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} _deliverables/libraries/bindings/c_bindings/target/lib/ \;
 
       - name: Build JavaScript bindings
         if: steps.restore-javascript.outputs.restored != 'true'

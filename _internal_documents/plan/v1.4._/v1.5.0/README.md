@@ -282,6 +282,19 @@ Changes made:
 
 For incremental CI/build fixes, continue recording updates in commit message bodies (ongoing git message log), and keep this v1.5.0 plan file as a periodic summary rather than a per-change scratch log.
 
+## Extension-specific change notes
+
+Detailed v1.5.0 notes for extension-related path and CI fixes are tracked in:
+
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/c-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/c3-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/v-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/go-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/python-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/javascript-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/swift-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/windows-ci.md`
+
 ## macOS CI fix: Homebrew untrusted `aws/tap` blocked dependency install
 
 ### Issue

@@ -226,7 +226,7 @@ jobs:
         env:
           COOLBOX_PYTHON_FORCE_VENDOR_SOURCES: ${{ runner.os != 'Windows' && '1' || '0' }}
         run: |
-          cd _libraries/python_bindings
+          cd _deliverables/libraries/bindings/python_bindings
           rm -rf build dist ml_toolbox.egg-info vendor_include vendor_src
           python setup.py build
           python -m build --outdir ./dist
@@ -235,8 +235,8 @@ jobs:
         run: |
           rm -rf release-assets staging-python
           mkdir -p release-assets staging-python
-          cp -R _libraries/python_bindings/dist/. staging-python/ 2>/dev/null || true
-          find _libraries/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} staging-python/ \;
+          cp -R _deliverables/libraries/bindings/python_bindings/dist/. staging-python/ 2>/dev/null || true
+          find _deliverables/libraries/bindings/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} staging-python/ \;
           tar -C staging-python -czf release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-python release-assets/coolbox-python-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip
