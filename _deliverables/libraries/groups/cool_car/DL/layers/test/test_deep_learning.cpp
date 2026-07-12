@@ -4,6 +4,7 @@
 #include <limits>
 #include "tyst_framework.hpp"
 #include "tensor.h"
+#include "quantization.h"
 #include "layer.h"
 #include "loss.h"
 #include "optimizer.h"
@@ -33,6 +34,23 @@ TEST(TensorTest, MatMul) {
     EXPECT_EQ(c.shape()[1], 2);
     EXPECT_DOUBLE_EQ(c.data()[0], 58);  // 1*7 + 2*9 + 3*11
     EXPECT_DOUBLE_EQ(c.data()[1], 64);  // 1*8 + 2*10 + 3*12
+}
+
+TEST(QuantizationTest, RoundTripPreservesShapeAndApproximateValues) {
+    Tensor input({2, 3}, {-1.0, -0.5, 0.0, 0.5, 0.75, 1.0});
+
+    QuantizationParameters params = calculate_symmetric_quantization_parameters(input);
+    QuantizedTensor quantized = quantize_tensor(input, params);
+    Tensor output = dequantize_tensor(quantized);
+
+    EXPECT_EQ(quantized.shape(), input.shape());
+    EXPECT_EQ(quantized.size(), input.size());
+    EXPECT_EQ(quantized.parameters().zero_point, 0);
+    EXPECT_GT(quantized.parameters().scale, 0.0);
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        EXPECT_NEAR(output.data()[i], input.data()[i], quantized.parameters().scale);
+    }
 }
 
 // ============================================================================

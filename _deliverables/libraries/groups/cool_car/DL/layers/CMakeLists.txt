@@ -6,6 +6,7 @@ add_executable(test_deep_learning
 	test/test_deep_learning.cpp
 	src/layer.cpp
 	src/tensor.cpp
+	src/quantization.cpp
 	../loss/src/loss.cpp
 	../optimizer/src/optimizer.cpp
 	../wrapper/src/neural_network.cpp
