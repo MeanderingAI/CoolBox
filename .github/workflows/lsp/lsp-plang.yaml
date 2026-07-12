@@ -31,6 +31,22 @@ jobs:
           merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
 
+      - name: Build plang_lsp locally if missing
+        run: |
+          set -e
+          if [ -f "_deliverables/apps/lsp/dist/plang_lsp" ]; then
+            echo "Using downloaded plang_lsp artifact"
+            ls -la _deliverables/apps/lsp/dist
+            exit 0
+          fi
+
+          echo "No plang_lsp artifact found; building locally"
+          cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          mkdir -p _deliverables/apps/lsp/dist
+          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp
+          ls -la _deliverables/apps/lsp/dist
+
 
       # Common GHCR login and owner normalization
       - uses: ./.github/workflows/fragments/ghcr-login.yaml

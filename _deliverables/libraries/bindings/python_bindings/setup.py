@@ -52,6 +52,14 @@ repo_wave_source_candidates = [
     repo_root / "_deliverables/libraries/groups/trekker/MISC/wave_generator/source/wave_generator.cpp",
     repo_root / "_libraries/packages/MISC/wave_generator/source/wave_generator.cpp",
 ]
+repo_matrix_header_candidates = [
+    repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
+    project_root.parent.parent / "groups/cool_car/MATRIX/headers",
+]
+repo_cool_car_root_candidates = [
+    repo_root / "_deliverables/libraries/groups/cool_car",
+    project_root.parent.parent / "groups/cool_car",
+]
 
 module_dirs = [
     "decision_tree",
@@ -270,8 +278,8 @@ include_dirs = [
     str(wave_generator_header.parent),
     # cool_car group headers: mytrix_eigen_compat.hpp, DL/layers, DL/loss, DL/optimizer, DL/wrapper
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
-    str(project_root.parent.parent.parent.parent / "_deliverables" / "libraries" / "groups" / "cool_car"),
-    str(project_root.parent.parent.parent.parent / "_deliverables" / "libraries" / "groups" / "cool_car" / "MATRIX" / "headers"),
+    *existing_dirs(repo_cool_car_root_candidates),
+    *existing_dirs(repo_matrix_header_candidates),
     *existing_dirs(
         [
             repo_root / "build/_deps/stb-src",

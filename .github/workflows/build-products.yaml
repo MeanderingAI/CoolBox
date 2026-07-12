@@ -153,6 +153,10 @@ jobs:
             throw 'Unable to locate vcpkg toolchain file. Set VCPKG_ROOT or install vcpkg so scripts\buildsystems\vcpkg.cmake is available.'
           }
 
+          $vcpkgRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $vcpkgToolchain))
+          $arm64Installed = Join-Path $vcpkgRoot 'installed\arm64-windows'
+          $bisonExecutable = 'C:\ProgramData\chocolatey\lib\winflexbison\tools\win_bison.exe'
+
           # Windows dependency setup may have already configured build/ with MinGW.
           # Clear cache before forcing a Visual Studio generator.
           Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
@@ -170,6 +174,9 @@ jobs:
             '-DBUILD_IO_SQL=ON',
             '-DBUILD_TESTING=OFF',
             "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
+            "-DCMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl",
+            "-DGSL_ROOT_DIR=$arm64Installed",
+            "-DBISON_EXECUTABLE=$bisonExecutable",
             '-DVCPKG_TARGET_TRIPLET=arm64-windows'
           )
 

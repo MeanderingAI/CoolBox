@@ -18,6 +18,10 @@ set_target_properties(uuid_generation PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${UUID_GENERATION_OUTPUT_DIR}"
 )
 
+if(WIN32)
+    set_target_properties(uuid_generation PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 foreach(config IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER "${config}" config_upper)
     set_target_properties(uuid_generation PROPERTIES
