@@ -33,6 +33,7 @@ vendor_include_root = project_root / "vendor_include"
 vendor_src_root = project_root / "vendor_src"
 vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
 vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
+vendor_matrix_headers_dir = project_root / "vendor_include" / "MATRIX" / "headers"
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
 
@@ -134,6 +135,23 @@ def sync_vendor_file(repo_source: Union[Path, str], vendored_path: Union[Path, s
         raise FileNotFoundError(f"Required vendored file not found: {vendored_path}")
 
     return vendored_path
+
+
+def sync_vendor_directory(repo_source_dir: Union[Path, str], vendored_dir: Union[Path, str], patterns) -> Path:
+    repo_source_dir = Path(repo_source_dir)
+    vendored_dir = Path(vendored_dir)
+
+    if repo_source_dir.exists():
+        vendored_dir.mkdir(parents=True, exist_ok=True)
+        for pattern in patterns:
+            for source in repo_source_dir.glob(pattern):
+                if source.is_file():
+                    shutil.copy2(source, vendored_dir / source.name)
+
+    if not vendored_dir.exists():
+        raise FileNotFoundError(f"Required vendored directory not found: {vendored_dir}")
+
+    return vendored_dir
 
 
 def resolve_repo_source(candidates) -> Path:
@@ -248,6 +266,14 @@ else:
     )
 
 
+matrix_header_source_dir = resolve_repo_source(repo_matrix_header_candidates)
+matrix_header_dir = sync_vendor_directory(
+    matrix_header_source_dir,
+    vendor_matrix_headers_dir,
+    ["*.h", "*.hpp"],
+)
+
+
 eigen_candidates = [
     os.environ.get("EIGEN3_INCLUDE_DIR"),
     os.environ.get("EIGEN_INCLUDE_DIR"),
@@ -273,6 +299,7 @@ include_dirs = [
     pybind11.get_include(),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
+    str(matrix_header_dir),
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
     str(wave_generator_header.parent),

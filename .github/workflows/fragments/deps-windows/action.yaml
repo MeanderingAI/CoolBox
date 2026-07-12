@@ -9,7 +9,9 @@ runs:
     - name: Install vcpkg dependencies (Windows ARM64)
       shell: pwsh
       run: |
-        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+        $targetPlatform = '${{ matrix.platform }}'
+        $isArm64Target = ($env:RUNNER_ARCH -eq 'ARM64') -or ($targetPlatform -eq 'windows-arm64')
+        if ($env:RUNNER_OS -ne 'Windows' -or -not $isArm64Target) {
           Write-Host 'Skipping ARM64 vcpkg dependency install'
           exit 0
         }
@@ -80,7 +82,7 @@ runs:
     - name: Install MinGW GSL, SQLite3, and Bison (Windows x86_64)
       shell: msys2 {0}
       run: |
-        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "X64" ]; then
+        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "X64" ] || [ "${{ matrix.platform }}" = "windows-arm64" ]; then
           echo "Skipping x86_64 MinGW dependency install"
           exit 0
         fi
@@ -90,7 +92,7 @@ runs:
     - name: Install MinGW and make (Windows ARM64)
       shell: msys2 {0}
       run: |
-        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "ARM64" ]; then
+        if [ "$RUNNER_OS" != "Windows" ] || { [ "$RUNNER_ARCH" != "ARM64" ] && [ "${{ matrix.platform }}" != "windows-arm64" ]; }; then
           echo "Skipping ARM64 MinGW/make install"
           exit 0
         fi
@@ -100,7 +102,9 @@ runs:
     - name: Install Bison (Windows ARM64)
       shell: pwsh
       run: |
-        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+        $targetPlatform = '${{ matrix.platform }}'
+        $isArm64Target = ($env:RUNNER_ARCH -eq 'ARM64') -or ($targetPlatform -eq 'windows-arm64')
+        if ($env:RUNNER_OS -ne 'Windows' -or -not $isArm64Target) {
           Write-Host 'Skipping ARM64 bison install'
           exit 0
         }
@@ -113,7 +117,7 @@ runs:
     - name: Configure CMake (Windows x86_64 / MSYS2)
       shell: msys2 {0}
       run: |
-        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "X64" ]; then
+        if [ "$RUNNER_OS" != "Windows" ] || [ "$RUNNER_ARCH" != "X64" ] || [ "${{ matrix.platform }}" = "windows-arm64" ]; then
           echo "Skipping x86_64 CMake configure"
           exit 0
         fi
@@ -122,7 +126,9 @@ runs:
     - name: Configure CMake (Windows ARM64 / MinGW preferred)
       shell: pwsh
       run: |
-        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+        $targetPlatform = '${{ matrix.platform }}'
+        $isArm64Target = ($env:RUNNER_ARCH -eq 'ARM64') -or ($targetPlatform -eq 'windows-arm64')
+        if ($env:RUNNER_OS -ne 'Windows' -or -not $isArm64Target) {
           Write-Host 'Skipping ARM64 CMake configure'
           exit 0
         }
@@ -152,10 +158,15 @@ runs:
         if ($null -eq $vcpkgToolchain) {
           throw 'Unable to locate vcpkg toolchain file. Set VCPKG_ROOT or install vcpkg so scripts\buildsystems\vcpkg.cmake is available.'
         }
+
+        $vcpkgRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $vcpkgToolchain))
+        $arm64Installed = Join-Path $vcpkgRoot 'installed\arm64-windows'
+        $bisonExecutable = 'C:\ProgramData\chocolatey\lib\winflexbison\tools\win_bison.exe'
+
         # Clean build dir to avoid generator mismatch
         Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
         # Try MinGW Makefiles first
-        cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
+        cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/mingw64;$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl" -DGSL_ROOT_DIR=$arm64Installed -DBISON_EXECUTABLE=$bisonExecutable -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
         if ($LASTEXITCODE -ne 0) {
           # Ensure generator cache from MinGW attempt does not poison MSVC configure.
           Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
@@ -172,6 +183,9 @@ runs:
             '-DBUILD_IO_SQL=ON',
             '-DBUILD_TESTING=ON',
             "-DCMAKE_TOOLCHAIN_FILE=$($vcpkgToolchain)",
+            "-DCMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl",
+            "-DGSL_ROOT_DIR=$arm64Installed",
+            "-DBISON_EXECUTABLE=$bisonExecutable",
             '-DVCPKG_TARGET_TRIPLET=arm64-windows'
           )
           & cmake @cmakeArgs

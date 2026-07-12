@@ -326,7 +326,15 @@ jobs:
       - name: "Fallback: build LSP binaries locally if missing"
         run: |
           set -e
-          if [ -d "_deliverables/apps/lsp/dist" ] && [ "$(ls -A _deliverables/apps/lsp/dist)" ]; then
+          required_bins=(plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp)
+          missing=0
+          for bin in "${required_bins[@]}"; do
+            if [ ! -f "_deliverables/apps/lsp/dist/${bin}" ]; then
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -eq 0 ]; then
             echo "LSP binaries present, skipping local build"
             ls -la _deliverables/apps/lsp/dist
             exit 0
@@ -340,6 +348,26 @@ jobs:
           cp build/apps/lsp/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || cp build/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || true
           cp build/apps/lsp/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || cp build/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || true
           cp build/apps/lsp/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || cp build/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || true
+
+      - name: Verify required LSP binaries before Docker build
+        run: |
+          set -e
+          required_bins=(plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp)
+          missing=0
+          for bin in "${required_bins[@]}"; do
+            if [ ! -f "_deliverables/apps/lsp/dist/${bin}" ]; then
+              echo "Missing required LSP binary: _deliverables/apps/lsp/dist/${bin}" >&2
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Contents of _deliverables/apps/lsp/dist:" >&2
+            ls -la _deliverables/apps/lsp/dist >&2 || true
+            echo "Contents of build/apps/lsp:" >&2
+            ls -la build/apps/lsp >&2 || true
+            exit 1
+          fi
 
       - name: Ensure binaries are executable
         run: chmod +x _deliverables/apps/lsp/dist/* || true

@@ -154,6 +154,22 @@ jobs:
           }
 
           $vcpkgRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $vcpkgToolchain))
+          $vcpkgExe = Join-Path $vcpkgRoot 'vcpkg.exe'
+          if (-not (Test-Path $vcpkgExe)) {
+            $vcpkgCommand = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+            if ($null -ne $vcpkgCommand) {
+              $vcpkgExe = $vcpkgCommand.Source
+            }
+          }
+          if (-not (Test-Path $vcpkgExe)) {
+            throw 'Unable to locate vcpkg.exe. Set VCPKG_ROOT or ensure vcpkg is installed on PATH.'
+          }
+
+          & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows openssl:arm64-windows
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
           $arm64Installed = Join-Path $vcpkgRoot 'installed\arm64-windows'
           $bisonExecutable = 'C:\ProgramData\chocolatey\lib\winflexbison\tools\win_bison.exe'
 
