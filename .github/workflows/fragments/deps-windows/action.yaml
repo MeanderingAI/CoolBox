@@ -36,7 +36,7 @@ runs:
 
         $vcpkgExe = Find-VcpkgExe
         if ($null -eq $vcpkgExe) {
-          & .\_scripts\install_vcpkg.ps1
+          & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PWD '_scripts\install_scripts\windows\install_vcpkg.ps1')
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
@@ -50,11 +50,15 @@ runs:
         $vcpkgRoot = Split-Path -Parent $vcpkgExe
         Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
         Add-Content -Path $env:GITHUB_ENV -Value 'VCPKG_DEFAULT_TRIPLET=arm64-windows'
+        Add-Content -Path $env:GITHUB_PATH -Value $vcpkgRoot
 
         & $vcpkgExe install eigen3:arm64-windows sqlite3:arm64-windows gsl:arm64-windows openssl:arm64-windows
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
+
+        $arm64Installed = Join-Path $vcpkgRoot 'installed\arm64-windows'
+        Add-Content -Path $env:GITHUB_ENV -Value "CMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl"
 
     - name: Clean up stale MSYS2 install (all Windows)
       shell: pwsh
@@ -100,7 +104,11 @@ runs:
           Write-Host 'Skipping ARM64 bison install'
           exit 0
         }
-        & _scripts/install_bison.ps1
+        & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PWD '_scripts\install_scripts\windows\install_bison.ps1')
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
+        Add-Content -Path $env:GITHUB_PATH -Value 'C:\ProgramData\chocolatey\lib\winflexbison\tools'
 
     - name: Configure CMake (Windows x86_64 / MSYS2)
       shell: msys2 {0}

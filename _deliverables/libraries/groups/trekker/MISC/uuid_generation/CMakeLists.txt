@@ -11,6 +11,22 @@ add_library(uuid_generation SHARED
 target_include_directories(uuid_generation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_compile_features(uuid_generation PUBLIC cxx_std_17)
 
+set(UUID_GENERATION_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(uuid_generation PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${UUID_GENERATION_OUTPUT_DIR}"
+    LIBRARY_OUTPUT_DIRECTORY "${UUID_GENERATION_OUTPUT_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${UUID_GENERATION_OUTPUT_DIR}"
+)
+
+foreach(config IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER "${config}" config_upper)
+    set_target_properties(uuid_generation PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY_${config_upper} "${UUID_GENERATION_OUTPUT_DIR}/${config}"
+        LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${UUID_GENERATION_OUTPUT_DIR}/${config}"
+        RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${UUID_GENERATION_OUTPUT_DIR}/${config}"
+    )
+endforeach()
+
 if(OpenSSL_FOUND)
     target_link_libraries(uuid_generation PUBLIC OpenSSL::Crypto)
     target_compile_definitions(uuid_generation PRIVATE COOLBOX_UUID_USE_OPENSSL=1)
