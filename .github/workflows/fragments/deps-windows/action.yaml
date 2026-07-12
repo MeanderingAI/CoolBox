@@ -149,6 +149,8 @@ runs:
         # Try MinGW Makefiles first
         cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
         if ($LASTEXITCODE -ne 0) {
+          # Ensure generator cache from MinGW attempt does not poison MSVC configure.
+          Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
           # Fallback to MSVC if MinGW fails
           $cmakeArgs = @(
             '-S', '.',

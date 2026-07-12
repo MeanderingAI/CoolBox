@@ -26,3 +26,19 @@ If no candidate exists, configuration now fails with a clear fatal message.
 ## Impact
 
 Allows JS bindings to resolve Eigen headers across vendored, fetched, and system-installed environments, removing the CI compile blocker.
+
+## Follow-up workflow hardening
+
+`generate-purchase-js` could still fail on fresh runners where Eigen was not preinstalled.
+
+### Additional fix
+
+Updated `.github/workflows/generate-purchase-js.yaml`:
+
+- Linux dependency install now includes `libeigen3-dev`
+- macOS dependency install now includes `eigen`
+- updated stale prebuilt-artifact check from `build/_libraries` to accept current layout (`build/_deliverables`) with legacy fallback
+
+### Result
+
+Reduces environment sensitivity for Emscripten configure in JS purchase jobs and aligns the prebuilt artifact detection message with the current repository structure.

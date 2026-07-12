@@ -153,6 +153,10 @@ jobs:
             throw 'Unable to locate vcpkg toolchain file. Set VCPKG_ROOT or install vcpkg so scripts\buildsystems\vcpkg.cmake is available.'
           }
 
+          # Windows dependency setup may have already configured build/ with MinGW.
+          # Clear cache before forcing a Visual Studio generator.
+          Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
+
           $cmakeArgs = @(
             '-S', '.',
             '-B', 'build',

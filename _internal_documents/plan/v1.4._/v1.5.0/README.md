@@ -290,8 +290,11 @@ Detailed v1.5.0 notes for extension-related path and CI fixes are tracked in:
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/c3-extension.md`
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/v-extension.md`
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/go-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/java-extension.md`
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/python-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/python-vendor-sync-fix.md`
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/javascript-extension.md`
+- `_internal_documents/plan/v1.4._/v1.5.0/extensions/rust-extension.md`
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/swift-extension.md`
 - `_internal_documents/plan/v1.4._/v1.5.0/extensions/windows-ci.md`
 
