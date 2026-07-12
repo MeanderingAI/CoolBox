@@ -51,6 +51,7 @@ runs:
         '-DBUILD_IO_SQL=ON',
         '-DBUILD_TESTING=OFF',
         '-DBUILD_PYTHON_BINDINGS=OFF',
+        '-DPYBIND11_FINDPYTHON=OFF',
         "-DCMAKE_PREFIX_PATH=$arm64Installed;$arm64Installed\share\gsl;$arm64Installed\lib\cmake\GSL;$arm64Installed\share\sqlite3;$arm64Installed\share\openssl",
         "-DGSL_ROOT_DIR=$arm64Installed",
         "-DBISON_EXECUTABLE=$bisonExecutable",
