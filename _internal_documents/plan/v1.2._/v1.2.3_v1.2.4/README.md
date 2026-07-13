@@ -18,7 +18,7 @@ fix issue with vswhere.exe
 - Ensures Visual Studio 18 2026 generator is correctly selected
 
 ### pybind11 Modernization
-- Upgraded pybind11 from v2.11.1 to v2.13.6 in `cmake/ExternalDependencies.cmake`
+- Upgraded pybind11 from v2.11.1 to v2.13.6 in `cmake/BDependencies.cmake`
 - Enabled `PYBIND11_FINDPYTHON` to use modern FindPython instead of deprecated FindPythonInterp
 - Added conditional check in `_libraries/bindings/python_bindings/CMakeLists.txt` to avoid find_package conflict when pybind11 is already available via FetchContent
 

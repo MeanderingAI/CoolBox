@@ -49,7 +49,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Include the external dependencies from the sub-directory
-include(cmake/ExternalDependencies.cmake)
+include(cmake/BDependencies.cmake)
 
 # Pass top-level source dir to gen_docs
 set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox source directory" FORCE)

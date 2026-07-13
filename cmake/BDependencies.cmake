@@ -1,22 +1,36 @@
 # --- pybind11 (for Python bindings) ---
 include(FetchContent)
 set(_coolbox_skip_pybind11 FALSE)
-if(WIN32 AND CMAKE_CROSSCOMPILING)
+set(_coolbox_skip_pybind11_reason "")
+
+if(DEFINED BUILD_PYTHON_BINDINGS AND NOT BUILD_PYTHON_BINDINGS)
+  set(_coolbox_skip_pybind11 TRUE)
+  set(_coolbox_skip_pybind11_reason "BUILD_PYTHON_BINDINGS=OFF")
+endif()
+
+if(WIN32)
   if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
     set(_coolbox_skip_pybind11 TRUE)
+    set(_coolbox_skip_pybind11_reason "Windows ARM64 target")
   endif()
 endif()
 
 if(_coolbox_skip_pybind11)
-  message(STATUS "Skipping pybind11 FetchContent for Windows ARM64 cross-compile.")
+  if(_coolbox_skip_pybind11_reason STREQUAL "")
+    message(STATUS "Skipping pybind11 FetchContent.")
+  else()
+    message(STATUS "Skipping pybind11 FetchContent (${_coolbox_skip_pybind11_reason}).")
+  endif()
 elseif(NOT TARGET pybind11::pybind11)
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
     GIT_TAG        v2.13.6
   )
-  # Set PYBIND11_FINDPYTHON to use modern FindPython instead of deprecated FindPythonInterp
-  set(PYBIND11_FINDPYTHON ON CACHE BOOL "Use FindPython instead of deprecated FindPythonInterp" FORCE)
+  # Respect caller-provided -DPYBIND11_FINDPYTHON=... and only default to ON when not provided.
+  if(NOT DEFINED PYBIND11_FINDPYTHON)
+    set(PYBIND11_FINDPYTHON ON CACHE BOOL "Use FindPython instead of deprecated FindPythonInterp")
+  endif()
   FetchContent_MakeAvailable(pybind11)
 endif()
 # Use FetchContent to manage external dependencies
