@@ -9,6 +9,7 @@ add_executable(test_deep_learning
 	../loss/src/loss.cpp
 	../optimizer/src/optimizer.cpp
 	../wrapper/src/neural_network.cpp
+	../wrapper/src/cdeepex.cpp
 	../wrapper/src/templates.cpp
 )
 target_include_directories(test_deep_learning PRIVATE
