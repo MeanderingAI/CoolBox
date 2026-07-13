@@ -44,7 +44,7 @@ jobs:
           cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
           mkdir -p _deliverables/apps/lsp/dist
-          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp
+          cp build/_deliverables/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp
           ls -la _deliverables/apps/lsp/dist
 
 

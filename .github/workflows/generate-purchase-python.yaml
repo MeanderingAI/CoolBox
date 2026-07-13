@@ -96,22 +96,62 @@ jobs:
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install cmake -y
-          $vcpkg = Get-Command vcpkg -ErrorAction SilentlyContinue
-          if ($null -ne $vcpkg) {
-            try {
-              & $vcpkg.Source install eigen3:x64-windows sqlite3:x64-windows gsl:x64-windows
-              "EIGEN3_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include/eigen3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-              "SQLITE3_LIB_DIR=C:/vcpkg/installed/x64-windows/lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-              if (Test-Path "C:/vcpkg/installed/x64-windows/include") {
-                "GSL_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-                "GSL_LIB_DIR=C:/vcpkg/installed/x64-windows/lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          choco install cmake winflexbison -y
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\ProgramData\chocolatey\lib\winflexbison\tools'
+          "BISON_EXECUTABLE=C:\ProgramData\chocolatey\lib\winflexbison\tools\win_bison.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          function Find-VcpkgExe {
+            $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+            $candidates = @(
+              $(if ($null -ne $command) { $command.Source }),
+              $(if ($null -ne $command) { $command.Path }),
+              $(if ($env:VCPKG_ROOT) { Join-Path $env:VCPKG_ROOT 'vcpkg.exe' }),
+              'C:\vcpkg\vcpkg.exe',
+              $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'vcpkg\vcpkg.exe' }),
+              $(if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'vcpkg\vcpkg.exe' })
+            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+            foreach ($candidate in $candidates) {
+              if (Test-Path $candidate) {
+                return $candidate
               }
-            } catch {
-              Write-Host "vcpkg install failed, continuing"
             }
-          } else {
-            Write-Host "vcpkg not found, continuing"
+
+            return $null
+          }
+
+          $vcpkgExe = Find-VcpkgExe
+          if ($null -eq $vcpkgExe) {
+            & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PWD '_scripts\install_scripts\windows\install_vcpkg.ps1')
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+            $vcpkgExe = Find-VcpkgExe
+          }
+
+          if ($null -eq $vcpkgExe) {
+            throw 'vcpkg.exe was not found after installation attempt. Windows Python CI requires vcpkg for gsl/sqlite/eigen.'
+          }
+
+          $vcpkgRoot = Split-Path -Parent $vcpkgExe
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
+          Add-Content -Path $env:GITHUB_PATH -Value $vcpkgRoot
+
+          & $vcpkgExe install eigen3:x64-windows sqlite3:x64-windows gsl:x64-windows
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          $x64Installed = Join-Path $vcpkgRoot 'installed\x64-windows'
+          $toolchainFile = Join-Path $vcpkgRoot 'scripts\buildsystems\vcpkg.cmake'
+          "EIGEN3_INCLUDE_DIR=$x64Installed\include\eigen3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "SQLITE3_LIB_DIR=$x64Installed\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GSL_INCLUDE_DIR=$x64Installed\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GSL_LIB_DIR=$x64Installed\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "GSL_ROOT_DIR=$x64Installed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CMAKE_PREFIX_PATH=$x64Installed;$x64Installed\share\gsl;$x64Installed\lib\cmake\GSL;$x64Installed\share\sqlite3" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if (Test-Path $toolchainFile) {
+            "CMAKE_TOOLCHAIN_FILE=$toolchainFile" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           }
         shell: pwsh
 
@@ -160,6 +200,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel build pybind11 numpy
 
       - name: Configure and build C++ libraries (top-level, enable tests)
+        if: runner.os != 'Windows'
         run: |
           if [ -d build/_libraries ]; then
             echo "Using downloaded build/ from build_libs; will probe existing targets"
@@ -203,6 +244,46 @@ jobs:
           done
         shell: bash
 
+      - name: Configure and build C++ libraries (Windows, top-level, enable tests)
+        if: runner.os == 'Windows'
+        run: |
+          $generator = (& .\_scripts\detect_vs_generator.ps1)
+          if ([string]::IsNullOrWhiteSpace($generator)) {
+            throw 'Unable to detect Visual Studio generator via _scripts/detect_vs_generator.ps1'
+          }
+
+          $cmakeArgs = @(
+            '-S', '.',
+            '-B', 'build',
+            '-Wno-dev',
+            '-G', $generator,
+            '-A', 'x64',
+            '-DBUILD_TESTING=ON',
+            '-DBUILD_BINARIES=ON',
+            '-DCMAKE_BUILD_TYPE=Release'
+          )
+
+          if ($env:CMAKE_TOOLCHAIN_FILE) {
+            $cmakeArgs += "-DCMAKE_TOOLCHAIN_FILE=$env:CMAKE_TOOLCHAIN_FILE"
+          }
+          if ($env:CMAKE_PREFIX_PATH) {
+            $cmakeArgs += "-DCMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH"
+          }
+          if ($env:GSL_ROOT_DIR) {
+            $cmakeArgs += "-DGSL_ROOT_DIR=$env:GSL_ROOT_DIR"
+          }
+          if ($env:BISON_EXECUTABLE) {
+            $cmakeArgs += "-DBISON_EXECUTABLE=$env:BISON_EXECUTABLE"
+          }
+
+          & cmake @cmakeArgs
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          cmake --build build --config Release --parallel
+        shell: pwsh
+
       - name: Set COOLBOX_LIB_DIR for Python build
         if: runner.os != 'Windows'
         run: |
@@ -212,7 +293,39 @@ jobs:
       - name: Build Windows native libraries for Python packaging
         if: runner.os == 'Windows'
         run: |
-          cmake -S . -B build-python-msvc -A x64 -DBUILD_TESTING=OFF -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=OFF -DCMAKE_BUILD_TYPE=Release
+          $generator = (& .\_scripts\detect_vs_generator.ps1)
+          if ([string]::IsNullOrWhiteSpace($generator)) {
+            throw 'Unable to detect Visual Studio generator via _scripts/detect_vs_generator.ps1'
+          }
+
+          $cmakeArgs = @(
+            '-S', '.',
+            '-B', 'build-python-msvc',
+            '-G', $generator,
+            '-A', 'x64',
+            '-DBUILD_TESTING=OFF',
+            '-DBUILD_BINARIES=OFF',
+            '-DBUILD_PRODUCTS=OFF',
+            '-DCMAKE_BUILD_TYPE=Release'
+          )
+
+          if ($env:CMAKE_TOOLCHAIN_FILE) {
+            $cmakeArgs += "-DCMAKE_TOOLCHAIN_FILE=$env:CMAKE_TOOLCHAIN_FILE"
+          }
+          if ($env:CMAKE_PREFIX_PATH) {
+            $cmakeArgs += "-DCMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH"
+          }
+          if ($env:GSL_ROOT_DIR) {
+            $cmakeArgs += "-DGSL_ROOT_DIR=$env:GSL_ROOT_DIR"
+          }
+          if ($env:BISON_EXECUTABLE) {
+            $cmakeArgs += "-DBISON_EXECUTABLE=$env:BISON_EXECUTABLE"
+          }
+
+          & cmake @cmakeArgs
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
           cmake --build build-python-msvc --config Release --target charts wave_generator_utils --parallel
         shell: pwsh
 

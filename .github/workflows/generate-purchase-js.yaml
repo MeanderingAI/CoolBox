@@ -170,10 +170,34 @@ jobs:
       - name: Configure JavaScript bindings (Windows)
         if: runner.os == 'Windows'
         run: |
-          $emcmake = Join-Path $env:RUNNER_TEMP 'emsdk\upstream\emscripten\emcmake.bat'
-          if (-not (Test-Path $emcmake)) {
-            throw "emcmake.bat not found at $emcmake"
+          $emcmakeCommand = Get-Command emcmake.bat -ErrorAction SilentlyContinue
+          if (-not $emcmakeCommand) {
+            $emcmakeCommand = Get-Command emcmake -ErrorAction SilentlyContinue
           }
+
+          $candidatePaths = @(
+            (Join-Path $env:EMSDK 'upstream\emscripten\emcmake.bat'),
+            (Join-Path $env:RUNNER_TEMP 'emsdk\upstream\emscripten\emcmake.bat'),
+            (Join-Path $env:GITHUB_WORKSPACE 'emsdk\upstream\emscripten\emcmake.bat')
+          ) | Where-Object { $_ -and $_ -ne 'upstream\emscripten\emcmake.bat' }
+
+          if (-not $emcmakeCommand) {
+            foreach ($candidate in $candidatePaths) {
+              if (Test-Path $candidate) {
+                $emcmakeCommand = @{ Source = $candidate }
+                break
+              }
+            }
+          }
+
+          if (-not $emcmakeCommand) {
+            Write-Host 'Unable to resolve emcmake. Checked PATH and candidate locations:'
+            $candidatePaths | ForEach-Object { Write-Host "  - $_" }
+            throw 'emcmake not found; Emscripten SDK setup did not produce an emcmake entry point'
+          }
+
+          $emcmake = $emcmakeCommand.Source
+          Write-Host "Using emcmake: $emcmake"
           & $emcmake cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
         shell: pwsh
 

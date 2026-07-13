@@ -327,6 +327,22 @@ jobs:
         run: |
           set -e
           required_bins=(plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp)
+          stage_lsp_bin() {
+            local bin="$1"
+            local dest="_deliverables/apps/lsp/dist/${bin}"
+
+            cp "build/_deliverables/apps/lsp/${bin}" "$dest" 2>/dev/null || \
+            cp "build/apps/lsp/${bin}" "$dest" 2>/dev/null || \
+            cp "build/${bin}" "$dest" 2>/dev/null || true
+
+            if [ ! -f "$dest" ]; then
+              found_path="$(find build -type f -name "$bin" 2>/dev/null | head -n 1 || true)"
+              if [ -n "$found_path" ] && [ -f "$found_path" ]; then
+                cp "$found_path" "$dest"
+              fi
+            fi
+          }
+
           missing=0
           for bin in "${required_bins[@]}"; do
             if [ ! -f "_deliverables/apps/lsp/dist/${bin}" ]; then
@@ -341,13 +357,11 @@ jobs:
           fi
           echo "No LSP binaries found; attempting local build"
           cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
+          cmake --build build --parallel --target plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp
           mkdir -p _deliverables/apps/lsp/dist
-          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || true
-          cp build/apps/lsp/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || cp build/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || true
-          cp build/apps/lsp/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || cp build/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || true
-          cp build/apps/lsp/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || cp build/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || true
-          cp build/apps/lsp/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || cp build/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || true
+          for bin in "${required_bins[@]}"; do
+            stage_lsp_bin "$bin"
+          done
 
       - name: Verify required LSP binaries before Docker build
         run: |
@@ -364,8 +378,12 @@ jobs:
           if [ "$missing" -ne 0 ]; then
             echo "Contents of _deliverables/apps/lsp/dist:" >&2
             ls -la _deliverables/apps/lsp/dist >&2 || true
-            echo "Contents of build/apps/lsp:" >&2
+            echo "Contents of build/_deliverables/apps/lsp:" >&2
+            ls -la build/_deliverables/apps/lsp >&2 || true
+            echo "Contents of build/apps/lsp (legacy path):" >&2
             ls -la build/apps/lsp >&2 || true
+            echo "Discovered LSP-like binaries under build/:" >&2
+            find build -type f \( -name 'plang_lsp*' -o -name 'plrust_lsp*' -o -name 'pljava_lsp*' -o -name 'plscala_lsp*' -o -name 'plpython_lsp*' \) >&2 || true
             exit 1
           fi
 
