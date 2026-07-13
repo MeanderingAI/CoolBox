@@ -97,7 +97,12 @@ jobs:
       - name: Build all libraries
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            make -f Makefile.win build_libraries
+            if [ "${{ matrix.platform }}" = "windows-arm64" ]; then
+              echo "Skipping post-build signing for windows-arm64 cross-build."
+              COOLBOX_WINDOWS_SIGN_CERT_PATH= make -f Makefile.win build_libraries
+            else
+              make -f Makefile.win build_libraries
+            fi
           else
             make build_libraries
           fi

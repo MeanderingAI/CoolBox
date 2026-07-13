@@ -722,7 +722,7 @@ int run_window(const Options& options) {
     constexpr Rect mark_a_chip_rect{700, 438, 810, 466};
     constexpr Rect mark_b_chip_rect{818, 438, 930, 466};
 
-    auto mic_row_bounds = [](std::size_t index) {
+    auto mic_row_bounds = [mic_list_top, mic_row_height, mic_row_gap](std::size_t index) {
         const int top = mic_list_top + static_cast<int>(index) * (mic_row_height + mic_row_gap);
         const int bottom = top + mic_row_height;
         return std::pair<int, int>{top, bottom};
