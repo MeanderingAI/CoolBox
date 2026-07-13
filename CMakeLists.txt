@@ -185,9 +185,11 @@ endif()
 
 add_subdirectory(_deliverables/libraries)
 
-# Build apps if present (e.g., apps/lsp)
-if(EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
+# Build deliverable apps only when binary builds are enabled.
+if(BUILD_BINARIES AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
     add_subdirectory(_deliverables/apps)
+elseif(NOT BUILD_BINARIES)
+    message(STATUS "BUILD_BINARIES=OFF; skipping _deliverables/apps")
 endif()
 
 option(BUILD_PRODUCTS "Build products under _Product" ON)
