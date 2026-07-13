@@ -1,7 +1,7 @@
 #include <emscripten/bind.h>
-#include "_deliverables/libraries/groups/cool_car/MATH/pde_solver.hpp"
-#include "_deliverables/libraries/groups/cool_car/MATH/spde.hpp"
-#include "_deliverables/libraries/groups/cool_car/MATRIX/headers/matrix_dense.h"
+#include <pde_solver.hpp>
+#include <spde.hpp>
+#include <matrix_dense.h>
 #include <random>
 #include <string>
 #include <vector>

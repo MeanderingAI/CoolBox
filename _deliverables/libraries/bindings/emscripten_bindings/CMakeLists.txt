@@ -351,8 +351,14 @@ add_emscripten_module(pde_spde_js createPdeSpdeModule
 # ── Circuitry (Electronics) ──────────────────────────────────────
 set(CIRCUITRY_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/sim_group/ELECTRONICS/circuitry")
 
-add_emscripten_module(circuitry_js createCircuitryModule
-    circuitry_bindings.cpp
-    "${CIRCUITRY_SRC_DIR}/src/circuit.cpp"
-    "${CIRCUITRY_SRC_DIR}/include"
-)
+# NOTE: circuitry_js is disabled for now.
+# Current circuitry public headers in this branch are skeletal and do not
+# expose Circuit/CircuitSolver declarations required by circuitry_bindings.cpp.
+# Re-enable once circuitry/include/circuit.h and circuit_solver.h publish
+# a stable public API again.
+#
+# add_emscripten_module(circuitry_js createCircuitryModule
+#     circuitry_bindings.cpp
+#     "${CIRCUITRY_SRC_DIR}/src/circuit.cpp"
+#     "${CIRCUITRY_SRC_DIR}/include"
+# )

@@ -1,9 +1,21 @@
 #include "../include/pde_spde_bindings.hpp"
 
+#if __has_include(<pde_solver.hpp>) && __has_include(<spde.hpp>)
+#include <pde_solver.hpp>
+#include <spde.hpp>
+#define COOLBOX_HAS_PDE_SPDE_HEADERS 1
+#else
+#define COOLBOX_HAS_PDE_SPDE_HEADERS 0
+#endif
+
 namespace py = pybind11;
+
+#if COOLBOX_HAS_PDE_SPDE_HEADERS
 using namespace cool_car::MATH;
+#endif
 
 void bind_pde_spde(py::module_ &m) {
+#if COOLBOX_HAS_PDE_SPDE_HEADERS
     py::module_ pde_mod = m.def_submodule("pde", "PDE solvers");
     py::module_ spde_mod = m.def_submodule("spde", "SPDE solvers");
 
@@ -36,4 +48,10 @@ void bind_pde_spde(py::module_ &m) {
     }, py::arg("u0"), py::arg("alpha"), py::arg("sigma"), py::arg("dx"), py::arg("dy"), py::arg("dt"), py::arg("steps"), py::arg("seed") = 42,
     "Solve 2D stochastic heat equation (mytrix backend)");
     // TODO: Add xarray backend and ND support
+#else
+    py::module_ pde_mod = m.def_submodule("pde", "PDE solvers");
+    py::module_ spde_mod = m.def_submodule("spde", "SPDE solvers");
+    pde_mod.doc() = "PDE bindings unavailable in this build artifact.";
+    spde_mod.doc() = "SPDE bindings unavailable in this build artifact.";
+#endif
 }
