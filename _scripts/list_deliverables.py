@@ -9,7 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from deliverable_utils import (  # noqa: E402
+
+from build_scripts.deliverable_utils import (  # noqa: E402
     ROOT,
     app_targets,
     iter_app_dirs,

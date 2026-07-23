@@ -1,4 +1,4 @@
-#include "DL/layers/include/avg_pool_2d_layer.h"
+#include "deep_learning/layers/avg_pool_2d_layer.h"
 
 namespace ml {
 namespace deep_learning {

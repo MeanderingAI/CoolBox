@@ -9,12 +9,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from deliverable_utils import resolve_app, resolve_libraries  # noqa: E402
+from build_scripts.deliverable_utils import resolve_app, resolve_libraries  # noqa: E402
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 BUILD_DIR = ROOT / "build"
 
 

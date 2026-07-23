@@ -1,5 +1,5 @@
 #pragma once
-#include "DL/layers/include/layer.h"
+#include "deep_learning/layer.h"
 
 namespace ml {
 namespace deep_learning {

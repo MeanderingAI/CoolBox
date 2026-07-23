@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DELIVERABLES = ROOT / "_deliverables"
 APPS_ROOT = DELIVERABLES / "apps"
 LIBRARIES_ROOT = DELIVERABLES / "libraries"

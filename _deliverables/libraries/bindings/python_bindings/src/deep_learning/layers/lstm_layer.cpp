@@ -1,4 +1,4 @@
-#include "DL/layers/include/lstm_layer.h"
+#include "deep_learning/layers/lstm_layer.h"
 
 namespace ml {
 namespace deep_learning {

@@ -1,4 +1,4 @@
-#include "DL/layers/include/gru_layer.h"
+#include "deep_learning/layers/gru_layer.h"
 
 namespace ml {
 namespace deep_learning {

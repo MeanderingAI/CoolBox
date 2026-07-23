@@ -1,16 +1,16 @@
-#include "DL/wrapper/include/templates.h"
-#include "DL/layers/include/layer.h"
-#include "DL/wrapper/include/templates.h"
-#include "DL/layers/include/layer.h"
-#include "DL/loss/include/loss.h"
-#include "DL/optimizer/include/optimizer.h"
+#include "deep_learning/templates.h"
+#include "deep_learning/layer.h"
+#include "deep_learning/templates.h"
+#include "deep_learning/layer.h"
+#include "deep_learning/loss.h"
+#include "deep_learning/optimizer.h"
 #include "computer_vision/layers.h" // For MaxPool2DLayer, Conv2DLayer, etc.
-#include "DL/layers/include/avg_pool_2d_layer.h"
-#include "DL/layers/include/lstm_layer.h"
-#include "DL/layers/include/gru_layer.h"
-#include "DL/layers/include/rnn_layer.h"
-#include "DL/layers/include/l2_norm_layer.h"
-#include "DL/layers/include/layer.h" // For LayerNormLayer, EmbeddingLayer, MultiHeadAttentionLayer, PositionalEncodingLayer
+#include "deep_learning/layers/avg_pool_2d_layer.h"
+#include "deep_learning/layers/lstm_layer.h"
+#include "deep_learning/layers/gru_layer.h"
+#include "deep_learning/layers/rnn_layer.h"
+#include "deep_learning/layers/l2_norm_layer.h"
+#include "deep_learning/layer.h" // For LayerNormLayer, EmbeddingLayer, MultiHeadAttentionLayer, PositionalEncodingLayer
 namespace ml {
 namespace deep_learning {
 

@@ -1,4 +1,4 @@
-#include "DL/layers/include/tensor.h"
+#include "deep_learning/tensor.h"
 #include <random>
 #include <sstream>
 

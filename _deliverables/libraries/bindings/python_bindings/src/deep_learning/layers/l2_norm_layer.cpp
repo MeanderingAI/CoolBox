@@ -1,4 +1,4 @@
-#include "DL/layers/include/l2_norm_layer.h"
+#include "deep_learning/layers/l2_norm_layer.h"
 #include <cmath>
 
 namespace ml {

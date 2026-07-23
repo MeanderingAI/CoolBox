@@ -1,4 +1,4 @@
-#include "DL/layers/include/layer.h"
+#include "deep_learning/layer.h"
 #include <cmath>
 #include <random>
 #include <algorithm>

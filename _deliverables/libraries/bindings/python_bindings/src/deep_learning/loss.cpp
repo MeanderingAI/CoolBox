@@ -1,4 +1,4 @@
-#include "DL/loss/include/loss.h"
+#include "deep_learning/loss.h"
 #include <cmath>
 #include <algorithm>
 

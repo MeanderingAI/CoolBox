@@ -170,6 +170,46 @@ jobs:
       - name: Configure JavaScript bindings (Windows)
         if: runner.os == 'Windows'
         run: |
+          $eigenCandidates = @(
+            (Join-Path $env:GITHUB_WORKSPACE 'external\eigen\eigen-3.4.0'),
+            (Join-Path $env:GITHUB_WORKSPACE 'build\_deps\eigen-src'),
+            (Join-Path $env:COOLBOX_LIB_DIR '_deps\eigen-src'),
+            (Join-Path $env:COOLBOX_LIB_DIR 'container-check\_deps\eigen-src'),
+            (Join-Path $env:COOLBOX_LIB_DIR 'crypto-check\_deps\eigen-src')
+          )
+
+          $resolvedEigenDir = $null
+          foreach ($candidate in $eigenCandidates) {
+            if ($candidate -and (Test-Path (Join-Path $candidate 'Eigen\Dense'))) {
+              $resolvedEigenDir = $candidate
+              break
+            }
+          }
+
+          if (-not $resolvedEigenDir) {
+            $eigenZip = Join-Path $env:RUNNER_TEMP 'eigen-3.4.0.zip'
+            $eigenExtractRoot = Join-Path $env:RUNNER_TEMP 'eigen'
+            $eigenExtractedDir = Join-Path $eigenExtractRoot 'eigen-3.4.0'
+
+            if (Test-Path $eigenExtractRoot) {
+              Remove-Item -Recurse -Force $eigenExtractRoot
+            }
+
+            Invoke-WebRequest -Uri 'https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip' -OutFile $eigenZip
+            Expand-Archive -Path $eigenZip -DestinationPath $eigenExtractRoot -Force
+
+            if (Test-Path (Join-Path $eigenExtractedDir 'Eigen\Dense')) {
+              $resolvedEigenDir = $eigenExtractedDir
+            }
+          }
+
+          if (-not $resolvedEigenDir) {
+            throw 'Unable to locate Eigen headers for Windows JS purchase build'
+          }
+
+          Write-Host "Using Eigen include dir: $resolvedEigenDir"
+          "EIGEN3_INCLUDE_DIR=$resolvedEigenDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
           $emcmakeCommand = Get-Command emcmake.bat -ErrorAction SilentlyContinue
           if (-not $emcmakeCommand) {
             $emcmakeCommand = Get-Command emcmake -ErrorAction SilentlyContinue
@@ -198,7 +238,7 @@ jobs:
 
           $emcmake = $emcmakeCommand.Source
           Write-Host "Using emcmake: $emcmake"
-          & $emcmake cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          & $emcmake cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON "-DEIGEN3_INCLUDE_DIR=$resolvedEigenDir"
         shell: pwsh
 
       - name: Build JavaScript bindings (Linux/macOS)

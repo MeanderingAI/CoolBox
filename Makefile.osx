@@ -57,6 +57,7 @@ help:
 	@echo "make package library NAME Build and copy libraries into lib/packages/"
 	@echo "make run app NAME          Run a built app (builds first if missing)"
 	@echo "make run app NAME TARGET   Run a specific executable for multi-target apps"
+	@echo "make run app NAME RUN_ARGS=\"...\"  Pass runtime arguments to the app"
 	@echo "make list_apps            List apps in _deliverables/apps"
 	@echo "make list_libraries       List libraries in _deliverables/libraries"
 	@echo "make list apps            Alias for make list_apps"
@@ -72,7 +73,11 @@ configure:
 build: configure
 	@if [ -n "$(strip $(BUILD_KIND))" ]; then \
 		echo "[Makefile.osx] Building deliverable $(BUILD_KIND): $(BUILD_NAMES)"; \
-		$(PYTHON) _scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); \
+		if [ "$(BUILD_KIND)" = "app" ]; then \
+			echo "[Makefile.osx] Ensuring BUILD_BINARIES=ON for app targets..."; \
+			cmake -S . -B build -G "Unix Makefiles" -DBUILD_BINARIES=ON; \
+		fi; \
+		$(PYTHON) _scripts/build_scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); \
 	else \
 		echo "[Makefile.osx] Building all targets..."; \
 		cmake --build build; \
@@ -88,11 +93,12 @@ package: configure
 
 run:
 	@if [ -z "$(strip $(RUN_NAMES))" ]; then \
-		echo "Usage: make run app NAME [TARGET]"; \
+		echo "Usage: make run app NAME [TARGET] [RUN_ARGS=\"...\"]"; \
+		echo "   or: make -- run app NAME [TARGET] --flag [args]"; \
 		exit 1; \
 	fi
-	@echo "[Makefile.osx] Running app: $(RUN_NAMES)"
-	@$(PYTHON) _scripts/run_deliverable.py $(RUN_NAMES)
+	@echo "[Makefile.osx] Running app: $(RUN_NAMES) $(RUN_ARGS)"
+	@$(PYTHON) _scripts/run_deliverable.py $(RUN_NAMES) $(RUN_ARGS)
 
 build_libraries: configure
 	@echo "[Makefile.osx] Building all libraries..."

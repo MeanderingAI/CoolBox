@@ -205,6 +205,7 @@ src/tracker/unscented_kalman_filter.cpp
 test/test_pde_spde.py
 test/test_py_circuitry.py
 vendor_include/GRAPHICS/charts/headers/graphics.h
+vendor_include/GRAPHICS/charts/headers/stb_image_write.h
 vendor_include/MATRIX/headers/backend_config.h
 vendor_include/MATRIX/headers/backend_config_templated.h
 vendor_include/MATRIX/headers/cuda_backend.h

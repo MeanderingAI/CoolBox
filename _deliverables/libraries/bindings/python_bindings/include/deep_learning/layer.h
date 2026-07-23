@@ -107,7 +107,7 @@ public:
     std::string name() const override { return "Dropout"; }
     
 private:
-    double dropout_rate_;
+    double rate_;
     bool training_;
     Tensor mask_;
 };

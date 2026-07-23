@@ -12,8 +12,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _scripts.build_scripts.build_deliverable import cmake_build, default_config  # noqa: E402
-from deliverable_utils import (  # noqa: E402
+from build_scripts.build_deliverable import cmake_build, default_config  # noqa: E402
+from build_scripts.deliverable_utils import (  # noqa: E402
     ROOT,
     app_dir_for,
     app_python_scripts,
@@ -22,6 +22,14 @@ from deliverable_utils import (  # noqa: E402
 )
 
 BUILD_DIR = ROOT / "build"
+
+
+def ensure_app_targets_enabled() -> int:
+    """Ensure deliverable app targets are present in the current build tree."""
+    if not BUILD_DIR.is_dir():
+        return 0
+    cmd = ["cmake", "-S", str(ROOT), "-B", str(BUILD_DIR), "-DBUILD_BINARIES=ON"]
+    return subprocess.run(cmd, cwd=ROOT).returncode
 
 
 def _config_dirs(config: str | None) -> list[str | None]:
@@ -58,7 +66,7 @@ def find_app_executable(app_name: str, target: str, config: str | None) -> Path 
     return None
 
 
-def run_python_app(app_name: str, script: str | None) -> int:
+def run_python_app(app_name: str, script: str | None, app_args: list[str]) -> int:
     app_dir = app_dir_for(app_name)
     scripts = app_python_scripts(app_dir)
     if not scripts:
@@ -74,12 +82,13 @@ def run_python_app(app_name: str, script: str | None) -> int:
     script_path = app_dir / script_name
     python_exe = sys.executable
     print(f"Running {script_path.relative_to(ROOT)}")
-    return subprocess.run([python_exe, str(script_path)], cwd=app_dir).returncode
+    return subprocess.run([python_exe, str(script_path), *app_args], cwd=app_dir).returncode
 
 
 def run_cmake_app(
     app_name: str,
     target: str | None,
+    app_args: list[str],
     config: str | None,
     build_if_missing: bool,
 ) -> int:
@@ -88,6 +97,9 @@ def run_cmake_app(
 
     if exe_path is None and build_if_missing:
         print(f"'{exe_target}' not built yet — building first...")
+        code = ensure_app_targets_enabled()
+        if code != 0:
+            return code
         code = cmake_build([exe_target], config)
         if code != 0:
             return code
@@ -118,7 +130,7 @@ def run_cmake_app(
         else:
             env["LD_LIBRARY_PATH"] = str(lib_dir) + os.pathsep + env.get("LD_LIBRARY_PATH", "")
 
-    return subprocess.run([str(exe_path)], cwd=exe_path.parent, env=env).returncode
+    return subprocess.run([str(exe_path), *app_args], cwd=exe_path.parent, env=env).returncode
 
 
 def main() -> int:
@@ -128,6 +140,11 @@ def main() -> int:
         "target",
         nargs="?",
         help="Optional executable or .py script name when an app has several.",
+    )
+    parser.add_argument(
+        "app_args",
+        nargs=argparse.REMAINDER,
+        help="Optional arguments passed to the app. Use '--' before app args.",
     )
     parser.add_argument(
         "--config",
@@ -140,6 +157,15 @@ def main() -> int:
         help="Do not build automatically when the executable is missing.",
     )
     args = parser.parse_args()
+    app_args = args.app_args
+    if app_args and app_args[0] == "--":
+        app_args = app_args[1:]
+
+    # Allow flag-style passthrough without requiring an explicit "--" separator.
+    target = args.target
+    if target and target.startswith("-"):
+        app_args = [target, *app_args]
+        target = None
 
     try:
         app_dir = app_dir_for(args.app)
@@ -149,12 +175,13 @@ def main() -> int:
         if cmake_targets_list:
             return run_cmake_app(
                 args.app,
-                args.target,
+                target,
+                app_args,
                 args.config,
                 build_if_missing=not args.no_build,
             )
         if scripts:
-            return run_python_app(args.app, args.target)
+            return run_python_app(args.app, target, app_args)
         raise LookupError(f"App '{args.app}' has no runnable cmake or Python targets.")
     except LookupError as exc:
         print(exc, file=sys.stderr)

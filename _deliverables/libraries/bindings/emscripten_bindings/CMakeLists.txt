@@ -5,9 +5,26 @@ project(emscripten_bindings)
 get_filename_component(COOLBOX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 
 function(resolve_eigen3_include_dir OUTPUT_VAR)
+    if(DEFINED EIGEN3_INCLUDE_DIR AND EXISTS "${EIGEN3_INCLUDE_DIR}/Eigen/Dense")
+        set(${OUTPUT_VAR} "${EIGEN3_INCLUDE_DIR}" PARENT_SCOPE)
+        message(STATUS "Using Eigen include dir from EIGEN3_INCLUDE_DIR: ${EIGEN3_INCLUDE_DIR}")
+        return()
+    endif()
+
+    set(_coolbox_lib_dir "$ENV{COOLBOX_LIB_DIR}")
     set(_eigen_candidates
+        "$ENV{EIGEN3_INCLUDE_DIR}"
+        "$ENV{EIGEN_INCLUDE_DIR}"
+        "$ENV{COOLBOX_EIGEN_DIR}"
         "${COOLBOX_ROOT}/external/eigen/eigen-3.4.0"
         "${COOLBOX_ROOT}/build/_deps/eigen-src"
+        "${COOLBOX_ROOT}/build/container-check/_deps/eigen-src"
+        "${COOLBOX_ROOT}/build/crypto-check/_deps/eigen-src"
+        "${_coolbox_lib_dir}/_deps/eigen-src"
+        "${_coolbox_lib_dir}/container-check/_deps/eigen-src"
+        "${_coolbox_lib_dir}/crypto-check/_deps/eigen-src"
+        "C:/vcpkg/installed/x64-windows/include/eigen3"
+        "C:/vcpkg/installed/x64-windows/include"
         "/usr/include/eigen3"
         "/opt/homebrew/include/eigen3"
         "/usr/local/include/eigen3"
@@ -20,13 +37,20 @@ function(resolve_eigen3_include_dir OUTPUT_VAR)
         endif()
     endforeach()
 
-    find_path(_resolved_eigen_include_dir NAMES Eigen/Dense PATH_SUFFIXES eigen3)
+    find_path(
+        _resolved_eigen_include_dir
+        NAMES Eigen/Dense
+        HINTS ${_eigen_candidates}
+        PATH_SUFFIXES "" eigen3 include include/eigen3
+    )
     if(_resolved_eigen_include_dir)
         set(${OUTPUT_VAR} "${_resolved_eigen_include_dir}" PARENT_SCOPE)
+        message(STATUS "Using Eigen include dir from find_path: ${_resolved_eigen_include_dir}")
         return()
     endif()
 
-    message(FATAL_ERROR "Unable to locate Eigen headers for emscripten bindings")
+    string(JOIN "\n  - " _eigen_candidates_msg ${_eigen_candidates})
+    message(FATAL_ERROR "Unable to locate Eigen headers for emscripten bindings. Checked:\n  - ${_eigen_candidates_msg}")
 endfunction()
 
 resolve_eigen3_include_dir(EIGEN3_INCLUDE_DIR)
