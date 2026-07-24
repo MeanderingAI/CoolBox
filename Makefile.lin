@@ -36,7 +36,7 @@ ifneq ($(filter run,$(MAKECMDGOALS)),)
   endif
 endif
 
-.PHONY: help configure build build_libraries build_apps package run list list_apps list_libraries apps libraries test install_system_deps clean
+.PHONY: help configure build build_libraries build_apps package run list list_apps list_libraries apps libraries test install_system_deps clean run_python_bindings_battery_demo run_python_bindings_battery_graphics_demo run_python_bindings_battery_graphics_split_demo
 
 help:
 	@echo "\nCoolBox Linux Build System"
@@ -56,6 +56,9 @@ help:
 	@echo "make list_libraries       List libraries in _deliverables/libraries"
 	@echo "make list apps            Alias for make list_apps"
 	@echo "make list libraries       Alias for make list_libraries"
+	@echo "make run_python_bindings_battery_demo                 Run battery simulator CSV demo"
+	@echo "make run_python_bindings_battery_graphics_demo        Run battery simulator + combined graphics demo"
+	@echo "make run_python_bindings_battery_graphics_split_demo  Run battery simulator + split graphics demo"
 	@echo "make test                 Run all tests"
 	@echo "make install_system_deps  Install system dependencies via apt-get"
 	@echo "make clean                Remove build artifacts"
@@ -134,3 +137,15 @@ install_system_deps:
 clean:
 	@echo "[Makefile.lin] Cleaning build artifacts..."
 	@rm -rf build lib
+
+run_python_bindings_battery_demo:
+	@echo "[Makefile.lin] Running python bindings battery simulator demo..."
+	@cd _deliverables/libraries/bindings/python_bindings && $(PYTHON) examples/battery_simulator_demo.py
+
+run_python_bindings_battery_graphics_demo:
+	@echo "[Makefile.lin] Running python bindings battery simulator graphics demo..."
+	@cd _deliverables/libraries/bindings/python_bindings && $(PYTHON) examples/battery_simulator_graphics_demo.py
+
+run_python_bindings_battery_graphics_split_demo:
+	@echo "[Makefile.lin] Running python bindings battery simulator split graphics demo..."
+	@cd _deliverables/libraries/bindings/python_bindings && $(PYTHON) examples/battery_simulator_graphics_split_demo.py

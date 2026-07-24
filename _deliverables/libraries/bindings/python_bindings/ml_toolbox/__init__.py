@@ -69,6 +69,16 @@ except ImportError as e:
     ) from e
 ml_core = _ml_core
 
+try:
+    from . import battery_simulator
+except ImportError:
+    battery_simulator = None
+
+try:
+    from . import graphics
+except ImportError:
+    graphics = None
+
 __all__ = [
     "Client",
     "create_default",
@@ -86,4 +96,6 @@ __all__ = [
     "computer_vision",
     "nlp",
     "multi_arm_bandit",
+    "battery_simulator",
+    "graphics",
 ]

@@ -1,0 +1,9 @@
+# command key=value key=value ...
+# discharge under load
+discharge duration_s=120 current_a=8.0 step_s=5
+
+# idle period
+rest duration_s=30 step_s=5
+
+# tapered optimization-style charge toward target SoC
+optimization duration_s=240 step_s=5 current_limit_a=12.0 target_soc=0.9

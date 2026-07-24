@@ -12,17 +12,32 @@ from setuptools.command.build_ext import build_ext as build_ext_orig
 class build_ext_with_move(build_ext_orig):
     def run(self):
         super().run()
-        # Move built ml_core*.so into ml_toolbox/ for in-place builds
+        # Move built extension artifacts into ml_toolbox/ for in-place builds.
+        ext_basenames = [
+            "ml_core",
+            "battery_lib",
+        ]
+        module_filename_patterns = []
+        for basename in ext_basenames:
+            module_filename_patterns.extend(
+                [
+                    f"{basename}*.so",
+                    f"{basename}*.pyd",
+                    f"{basename}*.dylib",
+                ]
+            )
+
         search_dirs = ['.', self.build_lib if hasattr(self, 'build_lib') else None]
         found = False
         for search_dir in filter(None, search_dirs):
-            for so_file in glob.glob(os.path.join(search_dir, "ml_core*.so")):
-                dest = os.path.join("ml_toolbox", os.path.basename(so_file))
-                print(f"[post-build] Moving {so_file} -> {dest}")
-                shutil.move(so_file, dest)
-                found = True
+            for pattern in module_filename_patterns:
+                for extension_file in glob.glob(os.path.join(search_dir, pattern)):
+                    dest = os.path.join("ml_toolbox", os.path.basename(extension_file))
+                    print(f"[post-build] Moving {extension_file} -> {dest}")
+                    shutil.move(extension_file, dest)
+                    found = True
         if not found:
-            print("[post-build] No ml_core*.so file found to move.")
+            print("[post-build] No built extension artifacts found to move.")
 
 
 project_root = Path(__file__).resolve().parent
@@ -60,6 +75,12 @@ repo_matrix_header_candidates = [
 repo_cool_car_root_candidates = [
     repo_root / "_deliverables/libraries/groups/cool_car",
     project_root.parent.parent / "groups/cool_car",
+]
+repo_battery_include_candidates = [
+    repo_root / "_deliverables/libraries/groups/sim_group/ELECTRONICS/battery/include",
+]
+repo_chemistry_include_candidates = [
+    repo_root / "_deliverables/libraries/groups/sim_group/CHEMISTRY/include",
 ]
 
 module_dirs = [
@@ -408,6 +429,27 @@ ext_modules = [
         runtime_library_dirs=runtime_library_dirs,
     ),
 ]
+
+battery_binding_source = project_root / "electronics" / "py_battery.cpp"
+battery_include_dirs = existing_dirs([
+    pybind11.get_include(),
+    *repo_battery_include_candidates,
+    *repo_chemistry_include_candidates,
+])
+
+if battery_binding_source.exists() and len(battery_include_dirs) >= 3:
+    ext_modules.append(
+        Pybind11Extension(
+            "ml_toolbox.battery_lib",
+            [to_setup_relative_path(battery_binding_source)],
+            include_dirs=battery_include_dirs,
+            cxx_std=17,
+            extra_compile_args=extra_compile_args,
+        )
+    )
+    print("Enabled battery Python extension: ml_toolbox.battery_lib")
+else:
+    print("Skipping battery Python extension: missing binding source or battery/chemistry headers")
 
 setup(
     packages=["ml_toolbox"],
