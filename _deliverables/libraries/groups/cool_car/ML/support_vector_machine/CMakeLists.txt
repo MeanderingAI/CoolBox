@@ -1,4 +1,5 @@
 add_library(support_vector_machine SHARED
+    source/catenary_support_vector_machine.cpp
     source/linear_kernel.cpp
     source/polynomial_kernel.cpp
     source/rbf_kernel.cpp
@@ -12,6 +13,7 @@ target_link_libraries(support_vector_machine PUBLIC mytrix)
 if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(support_vector_machine_tests
+        tests/test_catenary_support_vector_machine.cpp
         tests/test_support_vector_machine.cpp
     )
     target_link_libraries(support_vector_machine_tests PRIVATE support_vector_machine tyst_framework_main)
