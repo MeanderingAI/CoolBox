@@ -2,10 +2,13 @@ cmake_minimum_required(VERSION 3.12)
 project(hidden_markov_model LANGUAGES CXX)
 
 add_library(hidden_markov_model SHARED
+    source/hmm_flare_adapter.cpp
     source/hidden_markov_model.cpp
 )
 target_include_directories(hidden_markov_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_include_directories(hidden_markov_model PUBLIC ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/ML/flare_mcmc/headers)
 target_link_libraries(hidden_markov_model PUBLIC mytrix)
+target_link_libraries(hidden_markov_model PUBLIC flare_mcmc)
 
 ## Tests
 enable_testing()

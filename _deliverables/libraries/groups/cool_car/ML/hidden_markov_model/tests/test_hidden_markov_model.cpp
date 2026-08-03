@@ -1,6 +1,7 @@
 
 #include "tyst_framework.hpp"
 #include "../headers/hidden_markov_model.h"
+#include "hmm_flare_adapter.h"
 
 using namespace std;
 
@@ -47,5 +48,41 @@ TEST(HiddenMarkovModel, GettersAndSetters) {
 	B(2,1) = 1.0;
 	model.set_emission_matrix(B);
 	EXPECT_EQ(model.get_emission_matrix().cols(), 2);
+}
+
+TEST(HiddenMarkovModel, BuildsFlareLayersForHmmParameterInference) {
+	HmmFlareProblem problem;
+	problem.states = 2;
+	problem.observations = 2;
+	problem.observation_sequences = {{0, 0, 1, 1, 1, 0}, {0, 1, 1, 0}};
+	problem.prior.initial_concentration = 1.1;
+	problem.prior.transition_concentration = 1.1;
+	problem.prior.emission_concentration = 1.1;
+
+	const std::size_t parameter_count = hmm_flare_parameter_count(problem.states, problem.observations);
+	EXPECT_EQ(parameter_count, 10u);
+
+	ml::FlareState parameters(parameter_count, 0.0);
+	HMM model = hmm_from_flare_state(parameters, problem.states, problem.observations);
+	EXPECT_NEAR(model.log_likelihood({0, 1}), std::log(0.25), 1e-12);
+
+	std::vector<ml::FlareLayer> layers = make_hmm_flare_layers(problem, {1, 2});
+	ASSERT_EQ(layers.size(), 2u);
+	EXPECT_EQ(layers[0].name, std::string("hmm_stride_1"));
+	EXPECT_EQ(layers[1].name, std::string("hmm_stride_2"));
+
+	const double fine_log_density = layers[0].log_density(parameters);
+	const double coarse_log_density = layers[1].log_density(parameters);
+	EXPECT_LT(fine_log_density, coarse_log_density);
+
+	ml::FlareConfig config;
+	config.seed = 19u;
+	config.inner_steps = 2;
+	config.proposal_stddev = 0.15;
+	ml::FlareMcmcSampler sampler(layers, config);
+	ml::FlareRunResult result = sampler.sample(parameters, 8);
+	EXPECT_EQ(result.samples.size(), 8u);
+	EXPECT_EQ(result.layer_stats[0].proposals, 8u);
+	EXPECT_GT(result.layer_stats[1].proposals, result.layer_stats[0].proposals);
 }
 
