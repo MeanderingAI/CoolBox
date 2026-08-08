@@ -17,8 +17,6 @@ class PDESolver {
     // NDArray traits for backend selection
     template<typename T>
     struct is_mytrix_matrix : std::false_type {};
-    template<>
-    struct is_mytrix_matrix<mytrix::DenseMatrix> : std::true_type {};
 
     template<typename T>
     struct is_xarray : std::false_type {};
@@ -105,7 +103,7 @@ class PDESolver {
         double alpha, const std::vector<double>& dx, double dt, int steps) {
         NDArray u = u0;
         NDArray u_new = u0;
-        if constexpr (is_mytrix_matrix<typename NDArray::value_type>::value || std::is_same_v<typename NDArray::value_type, mytrix::DenseMatrix>) {
+        if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<typename NDArray::value_type>>, mytrix::DenseMatrix>) {
             solve_heat_eq_nd_mytrix(u, u_new, dx, alpha, dt, steps);
         } else if constexpr (is_xarray<NDArray>::value) {
             solve_heat_eq_nd_xarray(u, u_new, dx, alpha, dt, steps);

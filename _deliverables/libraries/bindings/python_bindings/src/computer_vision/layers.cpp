@@ -33,6 +33,7 @@ dl::Tensor image_to_tensor(const Image& image) {
 
 // Tensor to Image conversion
 Image tensor_to_image(const dl::Tensor& tensor, ImageFormat format) {
+    (void)format;
     const auto& shape = tensor.shape();
     
     // Expect shape [1, C, H, W] or [C, H, W]
@@ -156,6 +157,7 @@ dl::Tensor Conv2DLayer::forward(const dl::Tensor& input) {
 }
 
 dl::Tensor Conv2DLayer::backward(const dl::Tensor& grad_output) {
+    (void)grad_output;
     // Simplified backward pass
     const auto& in_shape = input_cache_.shape();
     dl::Tensor grad_input(in_shape);
@@ -172,6 +174,8 @@ dl::Tensor Conv2DLayer::im2col(const dl::Tensor& input) const {
 }
 
 dl::Tensor Conv2DLayer::col2im(const dl::Tensor& col, int height, int width) const {
+    (void)height;
+    (void)width;
     // col2im implementation stub
     return col;
 }
@@ -295,6 +299,7 @@ dl::Tensor AvgPool2DLayer::forward(const dl::Tensor& input) {
 }
 
 dl::Tensor AvgPool2DLayer::backward(const dl::Tensor& grad_output) {
+    (void)grad_output;
     // Simplified backward pass
     dl::Tensor grad_input(input_cache_.shape());
     return grad_input;
@@ -384,6 +389,7 @@ dl::Tensor GlobalAvgPool2DLayer::forward(const dl::Tensor& input) {
 }
 
 dl::Tensor GlobalAvgPool2DLayer::backward(const dl::Tensor& grad_output) {
+    (void)grad_output;
     // Simplified backward pass
     dl::Tensor grad_input(input_cache_.shape());
     return grad_input;

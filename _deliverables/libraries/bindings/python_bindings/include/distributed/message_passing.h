@@ -110,7 +110,7 @@ public:
     size_t partition_size(int rank) const;
     
 private:
-    size_t total_size_;
+    [[maybe_unused]] size_t total_size_;
     int world_size_;
     std::vector<std::pair<size_t, size_t>> partitions_;
 };

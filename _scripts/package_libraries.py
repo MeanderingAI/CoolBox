@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from build_deliverable import cmake_build, default_config  # noqa: E402
+from _scripts.build_scripts.build_deliverable import cmake_build, default_config  # noqa: E402
 from deliverable_utils import resolve_libraries  # noqa: E402
 
 

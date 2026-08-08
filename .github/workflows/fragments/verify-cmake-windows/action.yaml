@@ -1,5 +1,4 @@
 # Verify CMake configuration and cache on Windows
-steps:
 name: 'verify-cmake-windows'
 description: 'Composite action for verify-cmake-windows'
 runs:
@@ -7,6 +6,7 @@ runs:
   steps:
   - name: Show CMake cache (Windows)
     if: runner.os == 'Windows'
+    shell: bash
     run: |
       echo "=== build/CMakeCache.txt ==="
       if [ -f build/CMakeCache.txt ]; then

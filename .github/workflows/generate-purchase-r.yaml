@@ -111,6 +111,7 @@ jobs:
       - name: Set up R (macOS)
         if: runner.os == 'macOS'
         run: |
+          brew untap aws/tap || true
           brew list r &>/dev/null || brew install r
 
       - name: Set up R (Windows)
@@ -120,7 +121,7 @@ jobs:
           $rBin = Get-ChildItem 'C:\Program Files\R' -Directory | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Join-Path $_.FullName 'bin\x64' }
           if (-not $rBin) { throw 'R installation directory was not found.' }
           echo "$rBin" >> $env:GITHUB_PATH
-        shell: powershell
+        shell: pwsh
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -147,8 +148,8 @@ jobs:
         run: |
           rm -rf release-assets staging-r
           mkdir -p release-assets staging-r
-          find _libraries/r_bindings/coolboxr/src -maxdepth 1 -type f \( -name '*.o' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name '*.a' -o -name '*.lib' \) -delete
-          R CMD build _libraries/r_bindings/coolboxr
+          find _deliverables/libraries/bindings/r_bindings/coolboxr/src -maxdepth 1 -type f \( -name '*.o' -o -name '*.so' -o -name '*.dll' -o -name '*.dylib' -o -name '*.a' -o -name '*.lib' \) -delete
+          R CMD build _deliverables/libraries/bindings/r_bindings/coolboxr
           mv coolboxr_*.tar.gz release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz
           tar -xzf release-assets/coolbox-r-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz -C staging-r
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
