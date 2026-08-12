@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <map>
+#include <cstdint>
 
 /**
  * @class PiecewiseConditionalIntensityModel
@@ -46,6 +47,57 @@ public:
         
         TimeInterval(double start, double end, IntensityType type)
             : start_time(start), end_time(end), intensity_type(type) {}
+    };
+
+    /**
+     * @brief Low-level visual word evidence used by the TIP17 video-event PCIM formulation.
+     */
+    struct Tip17VisualObservation {
+        double time;
+        int visual_word;
+        double confidence;
+
+        Tip17VisualObservation(double event_time, int word, double event_confidence = 1.0)
+            : time(event_time), visual_word(word), confidence(event_confidence) {}
+    };
+
+    /**
+     * @brief Inferred high-level semantic event interval.
+     */
+    struct Tip17SemanticEvent {
+        int semantic_label;
+        double start_time;
+        double end_time;
+        double posterior_probability;
+    };
+
+    /**
+     * @brief Configuration for TIP17-style low-level evidence to semantic-event inference.
+     */
+    struct Tip17InferenceConfig {
+        int semantic_label_count = 1;
+        int sample_count = 64;
+        int burn_in = 8;
+        unsigned int random_seed = 1337;
+        double visual_bandwidth = 0.5;
+        double visual_weight = 2.0;
+        double base_semantic_rate = 0.05;
+        double auxiliary_rate_multiplier = 2.0;
+        double min_event_duration = 0.1;
+        double default_event_duration = 1.0;
+        double max_event_duration = 5.0;
+        double posterior_threshold = 0.5;
+        std::map<int, int> visual_word_to_semantic_label;
+    };
+
+    /**
+     * @brief Output of TIP17-style auxiliary thinning inference.
+     */
+    struct Tip17InferenceResult {
+        std::vector<Tip17SemanticEvent> semantic_events;
+        std::vector<Tip17VisualObservation> observed_events;
+        std::vector<double> semantic_label_scores;
+        int virtual_event_count = 0;
     };
 
     /**
@@ -147,6 +199,18 @@ public:
     double log_likelihood(const std::vector<std::vector<double>>& event_times) const;
 
     /**
+     * @brief Infer high-level semantic video events from observed low-level visual words.
+     *
+     * This follows the TIP17 PCIM event-stream setup: visual words are observed events,
+     * semantic starts/ends are latent events, and auxiliary virtual times provide a
+     * finite candidate set for keep/drop posterior sampling.
+     */
+    Tip17InferenceResult infer_tip17_video_events(
+        const std::vector<Tip17VisualObservation>& observations,
+        const Tip17InferenceConfig& config
+    ) const;
+
+    /**
      * @brief Get the time intervals used by the model.
      * @return Vector of time intervals.
      */
@@ -222,6 +286,21 @@ private:
         const std::vector<double>& params,
         const std::vector<double>& history_times,
         const std::vector<double>& covariates
+    ) const;
+
+    double compute_tip17_visual_support(
+        int semantic_label,
+        double time,
+        const std::vector<Tip17VisualObservation>& observations,
+        const Tip17InferenceConfig& config
+    ) const;
+
+    double compute_tip17_candidate_probability(
+        int semantic_label,
+        double time,
+        const std::vector<double>& history_times,
+        const std::vector<Tip17VisualObservation>& observations,
+        const Tip17InferenceConfig& config
     ) const;
 
     /**

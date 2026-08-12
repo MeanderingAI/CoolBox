@@ -1,5 +1,6 @@
 #include "neural_network.h"
 #include <iostream>
+#include <stdexcept>
 
 namespace ml {
 namespace deep_learning {
@@ -24,6 +25,23 @@ Tensor NeuralNetwork::forward(const Tensor& input) {
         current = layer->forward(current);
     }
     return current;
+}
+
+Tensor NeuralNetwork::input_gradient(const Tensor& input, const Tensor& output_gradient) {
+    if (layers_.empty()) {
+        return Tensor(input.shape(), 0.0);
+    }
+
+    Tensor output = forward(input);
+    if (output.shape() != output_gradient.shape()) {
+        throw std::invalid_argument("output_gradient shape must match model output shape");
+    }
+
+    Tensor grad = output_gradient;
+    for (int l = static_cast<int>(layers_.size()) - 1; l >= 0; --l) {
+        grad = layers_[l]->backward(grad);
+    }
+    return grad;
 }
 
 void NeuralNetwork::backward(const Tensor& target) {
