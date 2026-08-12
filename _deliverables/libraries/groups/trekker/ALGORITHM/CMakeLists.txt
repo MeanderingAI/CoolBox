@@ -18,6 +18,7 @@ target_include_directories(algorithm_headers INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/dfs
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/dijkstra
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/tsp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_programming/rank_convergence_ltdp
 )
 
 target_compile_features(algorithm_headers INTERFACE cxx_std_17)
