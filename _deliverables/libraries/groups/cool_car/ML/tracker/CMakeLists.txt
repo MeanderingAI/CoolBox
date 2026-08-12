@@ -1,6 +1,7 @@
 add_library(tracker SHARED
     source/extended_kalman_filter.cpp
     source/kalman_filter.cpp
+    source/mobile_robot_model_calibration.cpp
     source/sequential_monte_carlo.cpp
     source/unscented_kalman_filter.cpp
 )
@@ -13,6 +14,7 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     add_executable(tracker_tests
         tests/test_extended_kalman_filter.cpp
         tests/test_kalman_filter.cpp
+        tests/test_mobile_robot_model_calibration.cpp
         tests/test_sequential_monte_carlo.cpp
         tests/test_unscented_kalman_filter.cpp
     )
