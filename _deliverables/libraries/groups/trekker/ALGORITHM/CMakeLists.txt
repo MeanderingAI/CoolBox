@@ -17,6 +17,7 @@ target_include_directories(algorithm_headers INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/dfs
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/dijkstra
     ${CMAKE_CURRENT_SOURCE_DIR}/graphs/tsp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_programming/rank_convergence_ltdp
 )
 
 target_compile_features(algorithm_headers INTERFACE cxx_std_17)
@@ -42,4 +43,38 @@ if(BUILD_TESTING)
     )
 
     add_test(NAME SortsTests COMMAND sorts_tests)
+
+    add_executable(rank_convergence_ltdp_tests
+        dynamic_programming/rank_convergence_ltdp/test_rank_convergence_ltdp.cpp
+        ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
+    )
+
+    target_link_libraries(rank_convergence_ltdp_tests
+        PRIVATE
+            algorithm_headers
+    )
+
+    target_include_directories(rank_convergence_ltdp_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_programming/rank_convergence_ltdp
+        ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
+    )
+
+    add_test(NAME RankConvergenceLTDPTests COMMAND rank_convergence_ltdp_tests)
+
+    add_executable(viterbi_rank_convergence_tests
+        dynamic_programming/rank_convergence_ltdp/test_viterbi_rank_convergence.cpp
+        ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
+    )
+
+    target_link_libraries(viterbi_rank_convergence_tests
+        PRIVATE
+            algorithm_headers
+    )
+
+    target_include_directories(viterbi_rank_convergence_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_programming/rank_convergence_ltdp
+        ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
+    )
+
+    add_test(NAME ViterbiRankConvergenceTests COMMAND viterbi_rank_convergence_tests)
 endif()

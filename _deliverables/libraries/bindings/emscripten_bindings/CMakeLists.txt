@@ -320,7 +320,7 @@ set(MATH_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/cool_car/MATH")
 
 add_emscripten_module(pde_spde_js createPdeSpdeModule
     pde_spde_bindings.cpp
-    "${MATH_SRC_DIR}/pde_solver.cpp;${MATH_SRC_DIR}/spde.cpp"
+    ""
     "${MATH_SRC_DIR}"
 )
 

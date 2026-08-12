@@ -20,7 +20,7 @@ Tensor::Tensor(const std::vector<size_t>& shape, double fill_value) : shape_(sha
 }
 
 Tensor::Tensor(const std::vector<size_t>& shape, const std::vector<double>& data)
-    : shape_(shape), data_(data) {}
+    : data_(data), shape_(shape) {}
 
 size_t Tensor::flat_index(const std::vector<size_t>& indices) const {
     if (indices.size() != shape_.size()) {

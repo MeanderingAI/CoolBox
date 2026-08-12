@@ -1,5 +1,7 @@
 build
 build_*
+!_scripts/build_scripts/
+!_scripts/build_scripts/**
 build_lsp
 build-test
 build-emscripten-local-check

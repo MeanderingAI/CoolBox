@@ -1,0 +1,39 @@
+name: Build & publish plscala-lsp
+
+on:
+  workflow_run:
+    workflows: ["Build Libraries & Release"]
+    types: [completed]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: ./.github/workflows/fragments/lsp-install-deps.yaml
+
+      - name: Download plscala_lsp artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: pl-lsp-binaries-linux-x86_64-*
+          path: apps/lsp/dist
+          merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - uses: ./.github/workflows/fragments/ghcr-login.yaml
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/lsp
+          file: apps/lsp/docker/Dockerfile.scala
+          push: true
+          tags: |
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }}
+            ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:latest

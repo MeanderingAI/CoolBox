@@ -130,17 +130,17 @@ jobs:
       - name: Build tutorials site fallback
         if: github.event_name != 'workflow_call'
         run: |
-          python ./_scripts/build_tags.py --out ./.prebuilt/tutorials/tags
-          python ./_scripts/build_publications.py --bib ./bib --out ./.prebuilt/tutorials
-          python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
+          python ./_scripts/build_scripts/build_tags.py --out ./.prebuilt/tutorials/tags
+          python ./_scripts/build_scripts/build_publications.py --bib ./bib --out ./.prebuilt/tutorials
+          python ./_scripts/build_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
 
       - name: Ensure tutorials site exists
         if: github.event_name == 'workflow_call'
         run: |
           if [ ! -f ./.prebuilt/tutorials/index.html ]; then
-            python ./_scripts/build_tags.py --out ./.prebuilt/tutorials/tags
-            python ./_scripts/build_publications.py --bib ./bib --out ./.prebuilt/tutorials
-            python ./_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
+            python ./_scripts/build_scripts/build_tags.py --out ./.prebuilt/tutorials/tags
+            python ./_scripts/build_scripts/build_publications.py --bib ./bib --out ./.prebuilt/tutorials
+            python ./_scripts/build_scripts/build_tutorials.py ./tutorials ./.prebuilt/tutorials
           fi
 
       - name: Download prebuilt Python bindings (Linux)

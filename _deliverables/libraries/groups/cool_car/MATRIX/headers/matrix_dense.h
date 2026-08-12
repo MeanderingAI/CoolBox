@@ -213,7 +213,7 @@ inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::multiply(const m
         throw std::invalid_argument("multiply: matrix dimension mismatch");
     }
 
-    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
+    [[maybe_unused]] const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
     auto result = std::make_unique<mytrix::DenseMatrix>(rows(), other.cols());
 
     // Template-based compile-time dispatch to platform-specific backends
@@ -251,7 +251,7 @@ inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose() cons
 }
 
 inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::transpose(const mytrix::OperationOptions& options) const {
-    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
+    [[maybe_unused]] const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
     auto result = std::make_unique<mytrix::DenseMatrix>(cols(), rows());
 
     // Template-based compile-time dispatch to platform-specific backends
@@ -293,7 +293,7 @@ inline std::unique_ptr<mytrix::MatrixBase> mytrix::DenseMatrix::add(const mytrix
         throw std::invalid_argument("add: matrix dimension mismatch");
     }
 
-    const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
+    [[maybe_unused]] const mytrix::ComputeBackend backend = mytrix::detail::resolve_operation_backend(options);
     auto result = std::make_unique<mytrix::DenseMatrix>(rows(), cols());
 
     // Template-based compile-time dispatch to platform-specific backends

@@ -19,7 +19,7 @@ PACKAGES_DIR = ROOT_DIR / "_libraries" / "packages"
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from _scripts.build_tutorials import is_remote_url, normalize_library_reference, parse_tutorial, render_page
+from _scripts.build_scripts.build_tutorials import is_remote_url, normalize_library_reference, parse_tutorial, render_page
 
 PREVIEW_WORK_DIR = ROOT_DIR / "build" / "tutorial-editor-preview"
 PREVIEW_SITE_DIR = PREVIEW_WORK_DIR / "site"

@@ -235,29 +235,45 @@ std::vector<double> MarsRegression::solve_coefficients(
     const int n_samples = static_cast<int>(X.size());
     const int n_columns = static_cast<int>(candidate_terms.size()) + 1;
 
+    // Downcast a backend-dispatched result (unique_ptr<MatrixBase>) back to a DenseMatrix,
+    // mirroring the idiom in cool_car/ML/tracker/source/kalman_filter.cpp.
+    auto as_dense = [](const std::unique_ptr<mytrix::MatrixBase>& base) -> mytrix::DenseMatrix {
+        const mytrix::DenseMatrix* dense = dynamic_cast<const mytrix::DenseMatrix*>(base.get());
+        if (!dense) {
+            throw std::runtime_error("MarsRegression: matrix backend returned non-dense result");
+        }
+        return *dense;
+    };
+
+    // Design matrix [1, h_1(x), ..., h_k(x)] and target as an (n_samples x 1) matrix.
     mytrix::DenseMatrix design(n_samples, n_columns);
+    mytrix::DenseMatrix y_mat(n_samples, 1);
     for (int i = 0; i < n_samples; ++i) {
         design.at(i, 0) = 1.0;
         for (int j = 0; j < static_cast<int>(candidate_terms.size()); ++j) {
             design.at(i, j + 1) = candidate_terms[static_cast<std::size_t>(j)].evaluate(X[static_cast<std::size_t>(i)]);
         }
+        y_mat.at(i, 0) = y[static_cast<std::size_t>(i)];
     }
 
-    Eigen::VectorXd y_vector(n_samples);
-    for (int i = 0; i < n_samples; ++i) {
-        y_vector(i) = y[static_cast<std::size_t>(i)];
-    }
+    // Normal equations via the generic backend dispatch (CPU/GPU): X^T X and X^T y.
+    const mytrix::DenseMatrix design_t = as_dense(design.transpose());
+    mytrix::DenseMatrix xtx = as_dense(design_t.multiply(design));   // (n_columns x n_columns)
+    const mytrix::DenseMatrix xty = as_dense(design_t.multiply(y_mat)); // (n_columns x 1)
 
-    const Eigen::MatrixXd xtx = design.data.transpose() * design.data;
-    Eigen::MatrixXd regularized = xtx;
+    // Ridge regularization: (X^T X + lambda I). Diagonal increment via the generic accessor.
     if (ridge_lambda > 0.0) {
-        regularized += ridge_lambda * Eigen::MatrixXd::Identity(n_columns, n_columns);
+        for (int i = 0; i < n_columns; ++i) {
+            xtx.at(i, i) += ridge_lambda;
+        }
     }
-    const Eigen::VectorXd xty = design.data.transpose() * y_vector;
 
-    Eigen::VectorXd coefficients = regularized.ldlt().solve(xty);
-    if ((regularized * coefficients).isApprox(xty, 1e-7) == false) {
-        coefficients = regularized.completeOrthogonalDecomposition().solve(xty);
+    // Final small (n_columns x n_columns) solve stays on Eigen: the generic backend exposes
+    // no linear solver (same boundary the Kalman filter draws for its inverse).
+    const Eigen::VectorXd xty_vec = xty.data.col(0);
+    Eigen::VectorXd coefficients = xtx.data.ldlt().solve(xty_vec);
+    if ((xtx.data * coefficients).isApprox(xty_vec, 1e-7) == false) {
+        coefficients = xtx.data.completeOrthogonalDecomposition().solve(xty_vec);
     }
 
     std::vector<double> result(static_cast<std::size_t>(n_columns), 0.0);
