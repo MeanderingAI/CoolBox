@@ -349,7 +349,11 @@ if(BUILD_PYTHON_BINDINGS)
 endif()
 
 # Find and include Eigen3 globally for all targets that need it
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+if(NOT TARGET Eigen3::Eigen)
+    find_package(Eigen3 REQUIRED)
+endif()
+if(DEFINED EIGEN3_INCLUDE_DIR)
+    include_directories(${EIGEN3_INCLUDE_DIR})
+endif()
 
 # External QUIC/HTTP3 dependency support disabled for pure HTTP2 build

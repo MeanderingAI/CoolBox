@@ -22,7 +22,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT TARGET pybind11::pybind11)
     find_package(pybind11 REQUIRED)
 endif()
-find_package(Eigen3 REQUIRED)
+if(NOT TARGET Eigen3::Eigen)
+    find_package(Eigen3 REQUIRED)
+endif()
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
 # Include directories
