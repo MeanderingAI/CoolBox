@@ -70,6 +70,7 @@ public:
     void set_optimizer(std::shared_ptr<Optimizer> optimizer);
 
     Tensor forward(const Tensor& input);
+    Tensor input_gradient(const Tensor& input, const Tensor& output_gradient);
     void train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
                int epochs = 10, int batch_size = 32, bool verbose = false);
     Tensor predict(const Tensor& input);

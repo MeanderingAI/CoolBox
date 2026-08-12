@@ -29,6 +29,9 @@ OptimizationType optimization_type_from_string(const std::string& value) {
     if (key == "hill_climbing" || key == "hillclimbing" || key == "hc") {
         return OptimizationType::HillClimbing;
     }
+    if (key == "quantum_control_bo" || key == "quantum_control" || key == "mthombare" || key == "qbo") {
+        return OptimizationType::QuantumControlBayesianOptimization;
+    }
 
     throw std::invalid_argument("Unknown optimization type: " + value);
 }
@@ -41,6 +44,8 @@ std::string to_string(OptimizationType value) {
             return "simulated_annealing";
         case OptimizationType::HillClimbing:
             return "hill_climbing";
+        case OptimizationType::QuantumControlBayesianOptimization:
+            return "quantum_control_bo";
         default:
             throw std::invalid_argument("Unsupported optimization type");
     }
@@ -54,6 +59,8 @@ std::unique_ptr<OptimizationAlgorithm> create_optimizer(OptimizationType type) {
             return std::make_unique<SimulatedAnnealing>();
         case OptimizationType::HillClimbing:
             return std::make_unique<HillClimbing>();
+        case OptimizationType::QuantumControlBayesianOptimization:
+            return std::make_unique<QuantumControlBayesianOptimizer>();
         default:
             throw std::invalid_argument("Unsupported optimization type");
     }
@@ -69,6 +76,10 @@ std::unique_ptr<OptimizationAlgorithm> create_optimizer(const SimulatedAnnealing
 
 std::unique_ptr<OptimizationAlgorithm> create_optimizer(const HillClimbing::Config& config) {
     return std::make_unique<HillClimbing>(config);
+}
+
+std::unique_ptr<OptimizationAlgorithm> create_optimizer(const QuantumControlBayesianOptimizer::Config& config) {
+    return std::make_unique<QuantumControlBayesianOptimizer>(config);
 }
 
 } // namespace opt

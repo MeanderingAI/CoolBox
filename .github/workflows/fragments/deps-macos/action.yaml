@@ -6,6 +6,14 @@ description: 'Install and configure dependencies for macOS builds'
 runs:
   using: 'composite'
   steps:
+  - name: Normalize Homebrew tap trust (macOS)
+    if: runner.os == 'macOS'
+    shell: bash
+    run: |
+      # GitHub runner images can contain third-party taps that are untrusted.
+      # Keep CI deterministic by removing aws/tap when present.
+      brew untap aws/tap || true
+
   - name: Install dependencies (macOS)
     if: runner.os == 'macOS'
     shell: bash

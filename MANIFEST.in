@@ -1,8 +1,8 @@
 include pyproject.toml
 include setup.py
 include README.md
-recursive-include _libraries/python_bindings *.md *.txt *.toml *.py *.typed *.h *.hpp *.cpp *.cmake
-include _libraries/python_bindings/CMakeLists.txt
+recursive-include _deliverables/libraries/bindings/python_bindings *.md *.txt *.toml *.py *.typed *.h *.hpp *.cpp *.cmake
+include _deliverables/libraries/bindings/python_bindings/CMakeLists.txt
 global-exclude *.pyc
 global-exclude __pycache__
 global-exclude .git*

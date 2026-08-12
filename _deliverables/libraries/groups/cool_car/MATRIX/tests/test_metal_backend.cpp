@@ -17,6 +17,14 @@ void test_backend_selection() {
     assert(mytrix::BackendConfig::resolve_backend() == mytrix::ComputeBackend::CPU);
     std::cout << "  CPU backend: PASS" << std::endl;
 
+    mytrix::set_backend(mytrix::ComputeBackend::BOOST);
+    assert(mytrix::BackendConfig::resolve_backend() == mytrix::ComputeBackend::BOOST);
+    std::cout << "  BOOST backend: PASS" << std::endl;
+
+    mytrix::set_backend(mytrix::ComputeBackend::EIGEN);
+    assert(mytrix::BackendConfig::resolve_backend() == mytrix::ComputeBackend::EIGEN);
+    std::cout << "  EIGEN backend: PASS" << std::endl;
+
     // Test GPU_AUTO backend resolution
     mytrix::set_backend(mytrix::ComputeBackend::GPU_AUTO);
     mytrix::ComputeBackend resolved = mytrix::BackendConfig::resolve_backend();
@@ -30,6 +38,13 @@ void test_backend_selection() {
     } else {
         std::cout << "  Metal backend: unavailable, fell back to " << mytrix::backend_name(resolved) << std::endl;
     }
+
+    mytrix::set_boost_enabled(true);
+    assert(mytrix::boost_enabled());
+    resolved = mytrix::BackendConfig::resolve_backend(mytrix::ComputeBackend::CPU, true);
+    assert(resolved == mytrix::ComputeBackend::BOOST);
+    std::cout << "  Boosted CPU request resolves to: " << mytrix::backend_name(resolved) << std::endl;
+    mytrix::set_boost_enabled(false);
 }
 
 void test_matrix_operations_parity() {

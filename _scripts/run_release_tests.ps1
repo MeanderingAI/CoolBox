@@ -1,4 +1,9 @@
+param(
+    [string]$Filter
+)
+
 $ErrorActionPreference = 'Stop'
+$exitCode = 0
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $buildDir = Join-Path $repoRoot 'build'
@@ -12,8 +17,35 @@ Write-Host "[run_release_tests] Running Release tests from $buildDir"
 
 Push-Location $buildDir
 try {
-    & ctest -C Release --output-on-failure 2>&1 | Tee-Object -FilePath $logPath
-    $exitCode = $LASTEXITCODE
+    $ctestArgs = @('-C', 'Release', '--output-on-failure')
+    if ($Filter) {
+        $ctestArgs += @('-R', $Filter)
+        Write-Host "[run_release_tests] Applying test filter: $Filter"
+    }
+
+    $restoreNativeCommandPreference = $false
+    if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+        $previousNativeCommandPreference = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+        $restoreNativeCommandPreference = $true
+    }
+
+    try {
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & ctest @ctestArgs 2>&1 | Tee-Object -FilePath $logPath
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+    }
+    finally {
+        if ($restoreNativeCommandPreference) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeCommandPreference
+        }
+    }
 }
 finally {
     Pop-Location

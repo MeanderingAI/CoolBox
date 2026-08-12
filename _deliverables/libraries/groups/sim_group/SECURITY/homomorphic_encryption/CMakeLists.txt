@@ -1,0 +1,11 @@
+add_library(homomorphic_encryption SHARED
+    source/homomorphic_encryption.cpp
+)
+target_include_directories(homomorphic_encryption PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_compile_features(homomorphic_encryption PUBLIC cxx_std_17)
+
+add_executable(homomorphic_encryption_tests
+    tests/homomorphic_encryption_test.cpp
+)
+target_link_libraries(homomorphic_encryption_tests PRIVATE homomorphic_encryption)
+add_test(NAME HomomorphicEncryptionTests COMMAND homomorphic_encryption_tests)

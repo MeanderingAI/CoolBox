@@ -1,5 +1,4 @@
 # Run CMake configure/build for Linux
-steps:
 name: 'run-cmake-linux'
 description: 'Composite action for run-cmake-linux'
 runs:
@@ -7,6 +6,7 @@ runs:
   steps:
   - name: Configure CMake (Linux)
     if: runner.os == 'Linux'
+    shell: bash
     run: |
       cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
       cmake --build build --parallel

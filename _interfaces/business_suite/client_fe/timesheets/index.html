@@ -167,6 +167,30 @@
 
     .td-project { font-weight: 600; color: var(--text); }
     .td-task    { color: var(--muted); font-size: 0.8em; }
+    .section-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 84px;
+      padding: 0.35em 0.7em;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .section-chip-work {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .section-chip-lunch {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .section-chip-break {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
 
     /* Day columns */
     .day-cell {
@@ -235,6 +259,48 @@
     .log-icon { font-size: 1em; }
     .log-text { flex: 1; color: var(--text); }
     .log-time { color: var(--muted); font-size: 0.75em; white-space: nowrap; }
+
+    .week-dock {
+      position: fixed;
+      left: 1rem;
+      bottom: 1rem;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.94);
+      color: #f8fafc;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      padding: 0.8rem 0.95rem;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22);
+      min-width: 220px;
+      backdrop-filter: blur(10px);
+    }
+    .week-dock-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-bottom: 0.2rem;
+    }
+    .week-dock-range {
+      font-size: 0.9rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .week-dock-sub {
+      font-size: 0.74rem;
+      color: #cbd5e1;
+      margin-top: 0.2rem;
+    }
+
+    @media (max-width: 720px) {
+      .week-dock {
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
+        min-width: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -253,7 +319,7 @@
   <div class="page-header">
     <div>
       <div class="page-title">My Timesheet</div>
-      <div class="page-sub">Week ending May 9, 2026</div>
+      <div class="page-sub" id="page-sub">Week of May 3, 2026</div>
     </div>
     <div style="display:flex;gap:0.5rem">
       <button class="btn btn-ghost">💾 Save Draft</button>
@@ -263,14 +329,14 @@
 
   <!-- Week navigation -->
   <div class="week-nav">
-    <button class="week-btn" title="Previous week">‹</button>
-    <div class="week-label">Apr 27 – May 3, 2026</div>
-    <button class="week-btn" title="Next week">›</button>
+    <button class="week-btn" id="prev-week-btn" title="Previous week">‹</button>
+    <div class="week-label" id="week-label">May 3 – May 9, 2026</div>
+    <button class="week-btn" id="next-week-btn" title="Next week">›</button>
     <div style="margin-left:1rem;">
-      <span class="badge badge-approved">✓ Approved</span>
+      <span class="badge badge-draft">Draft</span>
     </div>
     <div style="margin-left:auto;">
-      <button class="btn btn-ghost" style="font-size:0.78rem">⊕ Current week</button>
+      <button class="btn btn-ghost" id="current-week-btn" style="font-size:0.78rem">⊕ Current week</button>
     </div>
   </div>
 
@@ -278,23 +344,23 @@
   <div class="summary-row">
     <div class="sum-card highlight">
       <div class="sum-label">This week</div>
-      <div class="sum-val">38.5h</div>
-      <div class="sum-sub">of 40h target</div>
+      <div class="sum-val">47.5h</div>
+      <div class="sum-sub">default scheduled hours</div>
     </div>
     <div class="sum-card">
-      <div class="sum-label">Billable</div>
-      <div class="sum-val">32h</div>
-      <div class="sum-sub">83% billable ratio</div>
+      <div class="sum-label">Morning work</div>
+      <div class="sum-val">20h</div>
+      <div class="sum-sub">8:00 AM to 12:00 PM</div>
     </div>
     <div class="sum-card">
-      <div class="sum-label">Internal</div>
-      <div class="sum-val">6.5h</div>
-      <div class="sum-sub">meetings, admin</div>
+      <div class="sum-label">Lunch</div>
+      <div class="sum-val">2.5h</div>
+      <div class="sum-sub">12:00 PM to 12:30 PM</div>
     </div>
     <div class="sum-card">
-      <div class="sum-label">Month to date</div>
-      <div class="sum-val">142h</div>
-      <div class="sum-sub">3 weeks logged</div>
+      <div class="sum-label">Afternoon work</div>
+      <div class="sum-val">25h</div>
+      <div class="sum-sub">12:30 PM to 5:30 PM</div>
     </div>
   </div>
 
@@ -303,13 +369,15 @@
     <table>
       <thead>
         <tr>
-          <th style="min-width:160px">Project</th>
-          <th style="min-width:140px">Task</th>
+          <th style="min-width:160px">Section Label</th>
+          <th style="min-width:180px">Time</th>
+          <th class="day-cell">Sun</th>
           <th class="day-cell">Mon</th>
           <th class="day-cell">Tue</th>
           <th class="day-cell">Wed</th>
           <th class="day-cell">Thu</th>
           <th class="day-cell">Fri</th>
+          <th class="day-cell">Sat</th>
           <th class="day-cell">Total</th>
           <th>Status</th>
         </tr>
@@ -320,11 +388,13 @@
       <tfoot>
         <tr>
           <td colspan="2" style="font-size:0.78rem;color:var(--muted);">Daily totals</td>
+          <td class="day-cell" id="col-sun">—</td>
           <td class="day-cell" id="col-mon">—</td>
           <td class="day-cell" id="col-tue">—</td>
           <td class="day-cell" id="col-wed">—</td>
           <td class="day-cell" id="col-thu">—</td>
           <td class="day-cell" id="col-fri">—</td>
+          <td class="day-cell" id="col-sat">—</td>
           <td class="row-total" id="col-total">—</td>
           <td></td>
         </tr>
@@ -337,17 +407,17 @@
   <div class="log-list">
     <div class="log-item">
       <span class="log-icon">✅</span>
-      <span class="log-text">Week ending May 3 approved by <strong>Alex Lee</strong></span>
+      <span class="log-text" id="log-approved-text">Week of Apr 26 approved by <strong>Alex Lee</strong></span>
       <span class="log-time">May 5, 09:14</span>
     </div>
     <div class="log-item">
       <span class="log-icon">📤</span>
-      <span class="log-text">Week ending May 3 submitted for approval</span>
+      <span class="log-text" id="log-submitted-text">Sunday-start schedule template submitted for approval</span>
       <span class="log-time">May 4, 17:02</span>
     </div>
     <div class="log-item">
       <span class="log-icon">💾</span>
-      <span class="log-text">Draft saved — 38.5 hours logged</span>
+      <span class="log-text">Draft saved — 47.5 scheduled hours logged</span>
       <span class="log-time">May 4, 16:55</span>
     </div>
     <div class="log-item">
@@ -358,18 +428,88 @@
   </div>
 </div>
 
+<div class="week-dock" aria-live="polite">
+  <div class="week-dock-label">Active Week</div>
+  <div class="week-dock-range" id="week-dock-range">May 3 – May 9, 2026</div>
+  <div class="week-dock-sub">Sunday-start schedule</div>
+</div>
+
 <script>
   const ROWS = [
-    { project: 'CoolBox · Dashboard',     task: 'Frontend development',  hours: [4, 6, 5, 4, 5], status: 'submitted' },
-    { project: 'LSP Suite',               task: 'C3 parser fixes',        hours: [4, 0, 4, 4, 0], status: 'submitted' },
-    { project: 'Distribution Pipeline',   task: 'Circuit breaker impl.',  hours: [0, 2, 0, 2, 3], status: 'draft'     },
-    { project: 'Client Portals',          task: 'Design & HTML mocks',    hours: [0, 0, 0, 0, 2], status: 'draft'     },
-    { project: 'Internal / Admin',        task: 'Stand-ups & planning',   hours: [0, 0, 1, 0, 0.5], status: 'draft'   },
+    { section: 'Work',  chipClass: 'section-chip-work',  time: '8:00 AM – 12:00 PM',  hours: [0, 4, 4, 4, 4, 4, 0], status: 'draft' },
+    { section: 'Lunch', chipClass: 'section-chip-lunch', time: '12:00 PM – 12:30 PM', hours: [0, 0.5, 0.5, 0.5, 0.5, 0.5, 0], status: 'draft' },
+    { section: 'Break', chipClass: 'section-chip-break', time: '12:30 PM – 5:30 PM',  hours: [0, 5, 5, 5, 5, 5, 0], status: 'draft' },
   ];
 
-  const DAYS = ['mon','tue','wed','thu','fri'];
+  const DAYS = ['sun','mon','tue','wed','thu','fri','sat'];
   const BADGE = { submitted:'badge-submitted', approved:'badge-approved', draft:'badge-draft', rejected:'badge-rejected' };
   const BADGE_LABEL = { submitted:'Submitted', approved:'Approved', draft:'Draft', rejected:'Rejected' };
+  const pageSub = document.getElementById('page-sub');
+  const weekLabel = document.getElementById('week-label');
+  const weekDockRange = document.getElementById('week-dock-range');
+  const approvedLogText = document.getElementById('log-approved-text');
+  const submittedLogText = document.getElementById('log-submitted-text');
+  const prevWeekBtn = document.getElementById('prev-week-btn');
+  const nextWeekBtn = document.getElementById('next-week-btn');
+  const currentWeekBtn = document.getElementById('current-week-btn');
+
+  const today = new Date();
+  const currentSunday = startOfWeek(today);
+  let visibleSunday = new Date(currentSunday);
+
+  function startOfWeek(date) {
+    const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    return weekStart;
+  }
+
+  function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  function sameDay(left, right) {
+    return left.getFullYear() === right.getFullYear()
+      && left.getMonth() === right.getMonth()
+      && left.getDate() === right.getDate();
+  }
+
+  function formatLongDate(date) {
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function formatShortDate(date, includeYear = false) {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      ...(includeYear ? { year: 'numeric' } : {})
+    });
+  }
+
+  function formatWeekRange(weekStart) {
+    const weekEnd = addDays(weekStart, 6);
+    if (weekStart.getFullYear() !== weekEnd.getFullYear()) {
+      return `${formatShortDate(weekStart, true)} – ${formatShortDate(weekEnd, true)}`;
+    }
+    if (weekStart.getMonth() !== weekEnd.getMonth()) {
+      return `${formatShortDate(weekStart)} – ${formatShortDate(weekEnd, true)}`;
+    }
+    return `${weekStart.toLocaleDateString('en-US', { month: 'short' })} ${weekStart.getDate()} – ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+  }
+
+  function renderWeek() {
+    const previousWeek = addDays(visibleSunday, -7);
+    const currentWeekText = formatWeekRange(visibleSunday);
+    pageSub.textContent = `Week of ${formatLongDate(visibleSunday)}`;
+    weekLabel.textContent = currentWeekText;
+    weekDockRange.textContent = currentWeekText;
+    approvedLogText.innerHTML = `Week of ${formatLongDate(previousWeek)} approved by <strong>Alex Lee</strong>`;
+    submittedLogText.textContent = `Sunday-start schedule template ready for ${currentWeekText}`;
+    currentWeekBtn.disabled = sameDay(visibleSunday, currentSunday);
+    currentWeekBtn.style.opacity = currentWeekBtn.disabled ? '0.6' : '1';
+    currentWeekBtn.style.cursor = currentWeekBtn.disabled ? 'default' : 'pointer';
+  }
 
   function rowTotal(hours) { return hours.reduce((a,b)=>a+b,0); }
 
@@ -378,8 +518,8 @@
     ROWS.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="td-project">${r.project}</td>
-        <td class="td-task">${r.task}</td>
+        <td class="td-project"><span class="section-chip ${r.chipClass}">${r.section}</span></td>
+        <td class="td-task">${r.time}</td>
         ${r.hours.map((h,i) => `<td class="day-cell"><input type="number" min="0" max="24" step="0.5" value="${h}" data-row="${ROWS.indexOf(r)}" data-day="${i}" /></td>`).join('')}
         <td class="row-total" id="rt-${ROWS.indexOf(r)}">${rowTotal(r.hours)}</td>
         <td><span class="badge ${BADGE[r.status]}">${BADGE_LABEL[r.status]}</span></td>
@@ -390,7 +530,7 @@
   }
 
   function updateTotals() {
-    const dayTotals = [0,0,0,0,0];
+    const dayTotals = [0,0,0,0,0,0,0];
     ROWS.forEach((r, ri) => {
       const inputs = document.querySelectorAll(`input[data-row="${ri}"]`);
       const hours = [...inputs].map(i => parseFloat(i.value)||0);
@@ -404,7 +544,20 @@
   }
 
   buildRows();
+  renderWeek();
   document.addEventListener('input', e => { if (e.target.matches('input[type="number"]')) updateTotals(); });
+  prevWeekBtn.addEventListener('click', () => {
+    visibleSunday = addDays(visibleSunday, -7);
+    renderWeek();
+  });
+  nextWeekBtn.addEventListener('click', () => {
+    visibleSunday = addDays(visibleSunday, 7);
+    renderWeek();
+  });
+  currentWeekBtn.addEventListener('click', () => {
+    visibleSunday = new Date(currentSunday);
+    renderWeek();
+  });
 </script>
 
 </body>

@@ -120,7 +120,7 @@ public:
 private:
     double alpha_;  // Level smoothing
     double beta_;   // Trend smoothing
-    double gamma_;  // Seasonality smoothing
+    [[maybe_unused]] double gamma_;  // Seasonality smoothing
     
     double level_;
     double trend_;

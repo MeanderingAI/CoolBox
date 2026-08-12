@@ -1,4 +1,5 @@
 #include "hidden_markov_model.h"
+#include "viterbi_rank_convergence.h"
 #include <cmath>
 #include <limits>
 #include <algorithm>
@@ -87,36 +88,115 @@ double HMM::log_likelihood(const std::vector<int>& observations) const {
 }
 
 std::vector<int> HMM::get_most_likely_states(const std::vector<int>& observations) const {
-    int T = static_cast<int>(observations.size());
-    mytrix::DenseMatrix delta(num_states, T);
-    mytrix::DenseMatrix psi(num_states, T); // store as double, cast to int
-    // Init
-    for (int s = 0; s < num_states; ++s) {
-        delta.at(s, 0) = std::log(initial_probabilities[s]) + std::log(emission_matrix.at(s, observations[0]));
-        psi.at(s, 0) = 0;
+    if (observations.empty()) {
+        return {};
     }
-    // Recurse
-    for (int t = 1; t < T; ++t) {
+
+    auto decode_classic_viterbi = [&]() {
+        int T = static_cast<int>(observations.size());
+        mytrix::DenseMatrix delta(num_states, T);
+        mytrix::DenseMatrix psi(num_states, T);
+
         for (int s = 0; s < num_states; ++s) {
-            double best = -std::numeric_limits<double>::infinity();
-            int best_prev = 0;
-            for (int prev = 0; prev < num_states; ++prev) {
-                double v = delta.at(prev, t-1) + std::log(transition_matrix.at(prev, s));
-                if (v > best) { best = v; best_prev = prev; }
+            const double pi_log = (initial_probabilities[s] <= 0.0)
+                ? -std::numeric_limits<double>::infinity()
+                : std::log(initial_probabilities[s]);
+            const double emit_log = (emission_matrix.at(s, observations[0]) <= 0.0)
+                ? -std::numeric_limits<double>::infinity()
+                : std::log(emission_matrix.at(s, observations[0]));
+            delta.at(s, 0) = pi_log + emit_log;
+            psi.at(s, 0) = 0;
+        }
+
+        for (int t = 1; t < T; ++t) {
+            for (int s = 0; s < num_states; ++s) {
+                double best = -std::numeric_limits<double>::infinity();
+                int best_prev = 0;
+                for (int prev = 0; prev < num_states; ++prev) {
+                    const double trans_log = (transition_matrix.at(prev, s) <= 0.0)
+                        ? -std::numeric_limits<double>::infinity()
+                        : std::log(transition_matrix.at(prev, s));
+                    double v = delta.at(prev, t - 1) + trans_log;
+                    if (v > best) {
+                        best = v;
+                        best_prev = prev;
+                    }
+                }
+                const double emit_log = (emission_matrix.at(s, observations[t]) <= 0.0)
+                    ? -std::numeric_limits<double>::infinity()
+                    : std::log(emission_matrix.at(s, observations[t]));
+                delta.at(s, t) = best + emit_log;
+                psi.at(s, t) = best_prev;
             }
-            delta.at(s, t) = best + std::log(emission_matrix.at(s, observations[t]));
-            psi.at(s, t) = best_prev;
+        }
+
+        std::vector<int> path(T);
+        double best = -std::numeric_limits<double>::infinity();
+        for (int s = 0; s < num_states; ++s) {
+            if (delta.at(s, T - 1) > best) {
+                best = delta.at(s, T - 1);
+                path[T - 1] = s;
+            }
+        }
+        for (int t = T - 2; t >= 0; --t) {
+            path[t] = static_cast<int>(psi.at(path[t + 1], t + 1));
+        }
+        return path;
+    };
+
+    using Decoder = trekker::algorithm::dynamic_programming::ViterbiRankConvergence<double>;
+    auto to_log_probability = [](double p) {
+        return (p <= 0.0) ? -std::numeric_limits<double>::infinity() : std::log(p);
+    };
+
+    Decoder::Vector initial_log(static_cast<std::size_t>(num_states), -std::numeric_limits<double>::infinity());
+    Decoder::Matrix transition_log(static_cast<std::size_t>(num_states), Decoder::Vector(static_cast<std::size_t>(num_states), -std::numeric_limits<double>::infinity()));
+    Decoder::Matrix emission_log(static_cast<std::size_t>(num_states), Decoder::Vector(static_cast<std::size_t>(num_observations), -std::numeric_limits<double>::infinity()));
+
+    for (int state = 0; state < num_states; ++state) {
+        initial_log[static_cast<std::size_t>(state)] = to_log_probability(initial_probabilities[static_cast<std::size_t>(state)]);
+        for (int next = 0; next < num_states; ++next) {
+            transition_log[static_cast<std::size_t>(state)][static_cast<std::size_t>(next)] =
+                to_log_probability(transition_matrix.at(state, next));
+        }
+        for (int obs = 0; obs < num_observations; ++obs) {
+            emission_log[static_cast<std::size_t>(state)][static_cast<std::size_t>(obs)] =
+                to_log_probability(emission_matrix.at(state, obs));
         }
     }
-    // Backtrack
-    std::vector<int> path(T);
-    double best = -std::numeric_limits<double>::infinity();
-    for (int s = 0; s < num_states; ++s) {
-        if (delta.at(s, T-1) > best) { best = delta.at(s, T-1); path[T-1] = s; }
+
+    std::vector<std::size_t> obs_indices;
+    obs_indices.reserve(observations.size());
+    for (const int obs : observations) {
+        if (obs < 0) {
+            throw std::invalid_argument("observations must be non-negative");
+        }
+        obs_indices.push_back(static_cast<std::size_t>(obs));
     }
-    for (int t = T - 2; t >= 0; --t)
-        path[t] = static_cast<int>(psi.at(path[t+1], t+1));
-    return path;
+
+    Decoder::Vector nz(static_cast<std::size_t>(num_states), 0.0);
+    const std::size_t processors = std::min<std::size_t>(4, static_cast<std::size_t>(num_states));
+
+    try {
+        const auto decoded = Decoder::decode_rank_convergence(
+            obs_indices,
+            initial_log,
+            transition_log,
+            emission_log,
+            std::max<std::size_t>(processors, 1),
+            nz);
+
+        std::vector<int> path;
+        path.reserve(decoded.path.size());
+        for (const std::size_t state : decoded.path) {
+            path.push_back(static_cast<int>(state));
+        }
+        return path;
+    } catch (const std::invalid_argument&) {
+        // Degenerate HMMs can create all -inf LTDP rows. Fall back to
+        // classic Viterbi to preserve historical behavior.
+        return decode_classic_viterbi();
+    }
 }
 
 void HMM::train(const std::vector<std::vector<int>>& observation_sequences, int max_iterations, double tolerance, double smoothing_factor, unsigned int seed) {

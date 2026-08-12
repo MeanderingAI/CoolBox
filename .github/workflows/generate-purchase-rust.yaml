@@ -36,7 +36,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: ./.github/workflows/fragments/purchase-checkout
+      - uses: actions/checkout@v6
       - uses: ./.github/workflows/fragments/purchase-compute-artifact-name
 
       - name: Download built C++ libraries (from build_libs) (with run-id)
@@ -77,8 +77,8 @@ jobs:
       - name: Set COOLBOX_LIB_DIR for Rust build
         run: |
           echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
-          echo "COOLBOX_C_BINDINGS_BUILD_DIR=${GITHUB_WORKSPACE}/_libraries/c_bindings/build" >> $GITHUB_ENV
-          echo "COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR=${GITHUB_WORKSPACE}/_libraries/c_bindings/build/Release" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_BUILD_DIR=${GITHUB_WORKSPACE}/_deliverables/libraries/bindings/c_bindings/build" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR=${GITHUB_WORKSPACE}/_deliverables/libraries/bindings/c_bindings/build/Release" >> $GITHUB_ENV
 
       - name: Show Rust toolchain
         run: |
@@ -88,21 +88,22 @@ jobs:
       - name: Build native C bindings (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build _libraries/c_bindings/build --config Release --parallel
+          cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release --parallel
 
       - name: Build native C bindings (Windows x86_64)
         if: runner.os == 'Windows' && matrix.platform != 'windows-arm64'
+        shell: pwsh
         run: |
-          $vsgen = powershell -File _scripts/detect_vs_generator.ps1
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "$vsgen" -A x64 -DBUILD_TESTING=ON
-          cmake --build _libraries/c_bindings/build --config Release --parallel
+          $vsgen = & .\_scripts\detect_vs_generator.ps1
+          cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -G "$vsgen" -A x64 -DBUILD_TESTING=ON
+          cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release --parallel
 
       - name: Build native C bindings (Windows ARM64 with MinGW)
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "MinGW Makefiles" -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build _libraries/c_bindings/build --config Release --parallel
+          cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -G "MinGW Makefiles" -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release --parallel
 
       - name: Verify native C bindings runtime artifact
         run: |
@@ -159,16 +160,16 @@ jobs:
           if [ -d build/_libraries ]; then
             echo "Using prebuilt C++ libraries from build/; proceeding to cargo build without rebuilding C++"
           fi
-          cargo build --manifest-path _libraries/rust_bindings/Cargo.toml --release
+          cargo build --manifest-path _deliverables/libraries/bindings/rust_bindings/Cargo.toml --release
 
 
       - name: Copy C bindings DLLs for Rust tests (Windows)
         if: runner.os == 'Windows'
         run: |
           mkdir -p target/release/deps
-          cp _libraries/c_bindings/build/*.dll target/release/deps/ || true
-          cp _libraries/c_bindings/build/Debug/*.dll target/release/deps/ || true
-          cp _libraries/c_bindings/build/Release/*.dll target/release/deps/ || true
+          cp _deliverables/libraries/bindings/c_bindings/build/*.dll target/release/deps/ || true
+          cp _deliverables/libraries/bindings/c_bindings/build/Debug/*.dll target/release/deps/ || true
+          cp _deliverables/libraries/bindings/c_bindings/build/Release/*.dll target/release/deps/ || true
 
       - name: Test Rust bindings
         run: |
@@ -181,15 +182,34 @@ jobs:
                 ;;
             esac
           fi
-          cargo test --manifest-path _libraries/rust_bindings/Cargo.toml --release
+          cargo test --manifest-path _deliverables/libraries/bindings/rust_bindings/Cargo.toml --release
 
       - name: Package Rust crate
         if: runner.os == 'Linux'
         run: |
           rm -rf release-assets staging-rust
           mkdir -p release-assets staging-rust
-          cargo package --manifest-path _libraries/rust_bindings/Cargo.toml --allow-dirty --no-verify
-          cp target/package/*.crate release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate
+          cargo package --manifest-path _deliverables/libraries/bindings/rust_bindings/Cargo.toml --allow-dirty --no-verify
+
+          crate_src=""
+          for candidate in \
+            _deliverables/libraries/bindings/rust_bindings/target/package/*.crate \
+            target/package/*.crate; do
+            if [ -f "$candidate" ]; then
+              crate_src="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$crate_src" ]; then
+            echo "No packaged crate found after cargo package" >&2
+            echo "Checked candidates:" >&2
+            echo "  _deliverables/libraries/bindings/rust_bindings/target/package/*.crate" >&2
+            echo "  target/package/*.crate" >&2
+            exit 1
+          fi
+
+          cp "$crate_src" release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate
           tar -xzf release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.crate -C staging-rust
           find staging-rust -exec touch -t 198001010000 {} +
           tar -C staging-rust -czf release-assets/coolbox-rust-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .

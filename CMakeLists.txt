@@ -348,9 +348,14 @@ if(BUILD_PYTHON_BINDINGS)
     endif()
 endif()
 
-# Find and include Eigen3 globally for all targets that need it
+# Find and include Eigen3 globally for all targets that need it.
+# ExternalDependencies.cmake already provides Eigen3::Eigen in CI/toolchains
+# where a package config is unavailable.
 if(NOT TARGET Eigen3::Eigen)
-    find_package(Eigen3 REQUIRED)
+    find_package(Eigen3 QUIET CONFIG)
+    if(NOT TARGET Eigen3::Eigen)
+        find_package(Eigen3 REQUIRED)
+    endif()
 endif()
 if(DEFINED EIGEN3_INCLUDE_DIR)
     include_directories(${EIGEN3_INCLUDE_DIR})

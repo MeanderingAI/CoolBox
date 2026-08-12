@@ -20,7 +20,7 @@ runs:
   using: 'composite'
   steps:
   - name: Prepare Windows signing environment
-    shell: powershell
+    shell: pwsh
     env:
       COOLBOX_WINDOWS_SIGN_CERT_BASE64_SECRET: ${{ inputs.signing-cert-base64 }}
       COOLBOX_WINDOWS_SIGN_CERT_PASSWORD_SECRET: ${{ inputs.signing-cert-password }}

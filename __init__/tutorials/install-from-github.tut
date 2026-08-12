@@ -12,7 +12,7 @@ Install the published CoolBox bindings directly from the GitHub repository when 
 Install directly from the Python bindings subdirectory with `pip`.
 
 @code: bash
-pip install "git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings"
+pip install "git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_deliverables/libraries/bindings/python_bindings"
 @endcode
 
 @title2: R
