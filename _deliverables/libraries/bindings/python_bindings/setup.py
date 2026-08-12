@@ -36,6 +36,23 @@ vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
 
+repo_graphics_header_candidates = [
+    repo_root / "_deliverables/libraries/groups/app_builder/GRAPHICS/charts/headers/graphics.h",
+    repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
+]
+repo_wave_header_candidates = [
+    repo_root / "_deliverables/libraries/groups/trekker/MISC/wave_generator/headers/wave_generator.hpp",
+    repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
+]
+repo_graphics_source_candidates = [
+    repo_root / "_deliverables/libraries/groups/app_builder/GRAPHICS/charts/source/graphics.cpp",
+    repo_root / "_libraries/packages/GRAPHICS/charts/source/graphics.cpp",
+]
+repo_wave_source_candidates = [
+    repo_root / "_deliverables/libraries/groups/trekker/MISC/wave_generator/source/wave_generator.cpp",
+    repo_root / "_libraries/packages/MISC/wave_generator/source/wave_generator.cpp",
+]
+
 module_dirs = [
     "decision_tree",
     "support_vector_machine",
@@ -111,6 +128,14 @@ def sync_vendor_file(repo_source: Union[Path, str], vendored_path: Union[Path, s
     return vendored_path
 
 
+def resolve_repo_source(candidates) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    # Return first candidate to preserve deterministic error messages if none exist.
+    return candidates[0]
+
+
 def to_setup_relative_path(path: Union[Path, str]) -> str:
     path_obj = Path(path)
 
@@ -178,7 +203,7 @@ if sys.platform.startswith("win"):
     else:
         # Fallback: copy from repository packages if available.
         graphics_header = sync_vendor_file(
-            repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
+            resolve_repo_source(repo_graphics_header_candidates),
             project_root / vendor_graphics_header,
         )
 
@@ -188,7 +213,7 @@ if sys.platform.startswith("win"):
         wave_generator_header = wave_candidate
     else:
         wave_generator_header = sync_vendor_file(
-            repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
+            resolve_repo_source(repo_wave_header_candidates),
             project_root / vendor_wave_header,
         )
 
@@ -198,19 +223,19 @@ if sys.platform.startswith("win"):
     wave_generator_source = project_root / vendor_wave_source
 else:
     graphics_header = sync_vendor_file(
-        repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
+        resolve_repo_source(repo_graphics_header_candidates),
         project_root / vendor_graphics_header,
     )
     wave_generator_header = sync_vendor_file(
-        repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
+        resolve_repo_source(repo_wave_header_candidates),
         project_root / vendor_wave_header,
     )
     graphics_source = sync_vendor_file(
-        repo_root / "_libraries/packages/GRAPHICS/charts/source/graphics.cpp",
+        resolve_repo_source(repo_graphics_source_candidates),
         project_root / vendor_graphics_source,
     )
     wave_generator_source = sync_vendor_file(
-        repo_root / "_libraries/packages/MISC/wave_generator/source/wave_generator.cpp",
+        resolve_repo_source(repo_wave_source_candidates),
         project_root / vendor_wave_source,
     )
 

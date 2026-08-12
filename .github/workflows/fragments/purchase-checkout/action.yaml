@@ -1,5 +1,3 @@
-# Common checkout step for generate_purchase workflows
-steps:
 name: 'purchase-checkout'
 description: 'Composite action for purchase-checkout'
 runs:

@@ -1,5 +1,4 @@
 # Verify CMake configuration and cache on Linux
-steps:
 name: 'verify-cmake-linux'
 description: 'Composite action for verify-cmake-linux'
 runs:
@@ -7,6 +6,7 @@ runs:
   steps:
   - name: Show CMake cache (Linux)
     if: runner.os == 'Linux'
+    shell: bash
     run: |
       echo "=== build/CMakeCache.txt ==="
       if [ -f build/CMakeCache.txt ]; then

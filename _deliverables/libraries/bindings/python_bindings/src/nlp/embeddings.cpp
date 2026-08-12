@@ -44,6 +44,7 @@ void WordEmbedding::xavier_init(const std::vector<std::string>& vocabulary) {
 }
 
 void WordEmbedding::load_pretrained(const std::string& filename) {
+    (void)filename;
     // Stub - in practice would read from file (e.g., GloVe, Word2Vec format)
     throw std::runtime_error("load_pretrained not yet implemented");
 }

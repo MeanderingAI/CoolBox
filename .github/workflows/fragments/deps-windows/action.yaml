@@ -7,7 +7,7 @@ runs:
   using: 'composite'
   steps:
     - name: Install vcpkg dependencies (Windows ARM64)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
           Write-Host 'Skipping ARM64 vcpkg dependency install'
@@ -94,7 +94,7 @@ runs:
         pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-gcc mingw-w64-x86_64-make make
 
     - name: Install Bison (Windows ARM64)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
           Write-Host 'Skipping ARM64 bison install'
@@ -112,27 +112,51 @@ runs:
         cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
 
     - name: Configure CMake (Windows ARM64 / MinGW preferred)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
           Write-Host 'Skipping ARM64 CMake configure'
           exit 0
         }
-        $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
-        if (!(Test-Path $vcpkgToolchain)) {
-          throw "vcpkg toolchain file not found at $vcpkgToolchain"
+        function Find-VcpkgToolchain {
+          $candidateRoots = @()
+          if ($env:VCPKG_ROOT) { $candidateRoots += $env:VCPKG_ROOT }
+          $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+          if ($null -ne $command) {
+            $candidateRoots += (Split-Path -Parent $command.Source)
+            $candidateRoots += (Split-Path -Parent $command.Path)
+          }
+          if ($env:USERPROFILE) { $candidateRoots += (Join-Path $env:USERPROFILE 'vcpkg') }
+          if ($env:LOCALAPPDATA) { $candidateRoots += (Join-Path $env:LOCALAPPDATA 'vcpkg') }
+          $candidateRoots += 'C:\vcpkg'
+
+          foreach ($candidateRoot in ($candidateRoots | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)) {
+            $toolchain = Join-Path $candidateRoot 'scripts\buildsystems\vcpkg.cmake'
+            if (Test-Path $toolchain) {
+              return $toolchain
+            }
+          }
+
+          return $null
+        }
+
+        $vcpkgToolchain = Find-VcpkgToolchain
+        if ($null -eq $vcpkgToolchain) {
+          throw 'Unable to locate vcpkg toolchain file. Set VCPKG_ROOT or install vcpkg so scripts\buildsystems\vcpkg.cmake is available.'
         }
         # Clean build dir to avoid generator mismatch
         Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
         # Try MinGW Makefiles first
         cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64' -DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain -DVCPKG_TARGET_TRIPLET=arm64-windows
         if ($LASTEXITCODE -ne 0) {
+          # Ensure generator cache from MinGW attempt does not poison MSVC configure.
+          Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
           # Fallback to MSVC if MinGW fails
           $cmakeArgs = @(
             '-S', '.',
             '-B', 'build',
             '-Wno-dev',
-            '-G', (powershell -File _scripts/detect_vs_generator.ps1),
+            '-G', (& .\_scripts\detect_vs_generator.ps1),
             '-A', 'ARM64',
             '-DBUILD_BINARIES=OFF',
             '-DBUILD_PRODUCTS=ON',
@@ -149,7 +173,7 @@ runs:
         }
 
     - name: Show CMake cache (Windows)
-      shell: powershell
+      shell: pwsh
       run: |
         if ($env:RUNNER_OS -ne 'Windows') {
           Write-Host 'Skipping cache dump on non-Windows runner'

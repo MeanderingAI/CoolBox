@@ -1,11 +1,11 @@
 # Install native build tooling for generate_purchase workflows
-steps:
 name: 'purchase-install-native-build-tooling'
 description: 'Composite action for purchase-install-native-build-tooling'
 runs:
   using: 'composite'
   steps:
   - name: Install native build tooling
+    shell: bash
     run: |
       sudo apt-get update
       sudo apt-get install -y cmake build-essential doxygen

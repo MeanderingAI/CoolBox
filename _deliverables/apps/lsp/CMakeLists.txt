@@ -10,6 +10,9 @@ target_link_libraries(plrust_lsp PRIVATE plrust_lsp_lib)
 add_executable(pljava_lsp src/main_java.cpp)
 target_link_libraries(pljava_lsp PRIVATE pljava_lsp_lib)
 
+add_executable(plscala_lsp src/main_scala.cpp)
+target_link_libraries(plscala_lsp PRIVATE plscala_lsp_lib)
+
 add_executable(plpython_lsp src/main_python.cpp)
 target_link_libraries(plpython_lsp PRIVATE plpython_lsp_lib)
 
@@ -30,5 +33,5 @@ target_link_libraries(plmatlab_lsp PRIVATE plmatlab_lsp_lib)
 target_include_directories(plmatlab_lsp PRIVATE ${CMAKE_SOURCE_DIR}/_deliverables/libraries/packages/LSP/lsp_matlab/headers)
 target_link_libraries(plmatlab_lsp PRIVATE matlab_parser)
 
-install(TARGETS plang_lsp plrust_lsp pljava_lsp plpython_lsp plvlang_lsp plc3_lsp)
+install(TARGETS plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp plvlang_lsp plc3_lsp)
 install(TARGETS plvhdl_lsp plmatlab_lsp)

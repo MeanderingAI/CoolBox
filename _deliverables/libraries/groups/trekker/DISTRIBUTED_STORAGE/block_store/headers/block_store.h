@@ -1,6 +1,7 @@
 #ifndef TREKKER_DFS_BLOCK_STORE_H
 #define TREKKER_DFS_BLOCK_STORE_H
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
