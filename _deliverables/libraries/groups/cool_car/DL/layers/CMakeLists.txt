@@ -4,6 +4,7 @@
 enable_testing()
 add_executable(test_deep_learning
 	test/test_deep_learning.cpp
+	src/ifinder.cpp
 	src/layer.cpp
 	src/tensor.cpp
 	../loss/src/loss.cpp
