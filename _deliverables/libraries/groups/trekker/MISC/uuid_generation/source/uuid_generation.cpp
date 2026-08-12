@@ -13,8 +13,7 @@
 #include <vector>
 
 #if defined(COOLBOX_UUID_USE_OPENSSL)
-#include <openssl/md5.h>
-#include <openssl/sha.h>
+#include <openssl/evp.h>
 #endif
 
 namespace trekker {
@@ -24,8 +23,25 @@ namespace {
 
 constexpr std::uint64_t UUID_EPOCH_OFFSET_100NS = 0x01B21DD213814000ULL;
 
+std::uint64_t next_seed_value() {
+    static std::atomic<std::uint64_t> seed_counter{0U};
+    const auto wall_clock = std::chrono::system_clock::now().time_since_epoch().count();
+    const auto steady_clock = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto counter = seed_counter.fetch_add(1U, std::memory_order_relaxed);
+
+    std::uint64_t seed = static_cast<std::uint64_t>(wall_clock)
+        ^ (static_cast<std::uint64_t>(steady_clock) << 1U)
+        ^ (counter * 0x9e3779b97f4a7c15ULL);
+
+    if (seed == 0U) {
+        seed = 0x9e3779b97f4a7c15ULL;
+    }
+
+    return seed;
+}
+
 std::mt19937_64& rng() {
-    static std::mt19937_64 engine{std::random_device{}()};
+    static std::mt19937_64 engine{next_seed_value()};
     return engine;
 }
 
@@ -144,7 +160,24 @@ std::array<std::uint8_t, 16> fallback_hash_128(const std::vector<std::uint8_t>& 
 std::array<std::uint8_t, 16> md5_like(const std::vector<std::uint8_t>& data) {
 #if defined(COOLBOX_UUID_USE_OPENSSL)
     std::array<std::uint8_t, 16> out{};
-    MD5(data.data(), data.size(), out.data());
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (ctx == nullptr) {
+        return fallback_hash_128(data, 0x4d44352ULL);
+    }
+
+    std::array<unsigned char, EVP_MAX_MD_SIZE> digest{};
+    unsigned int digest_len = 0U;
+    const bool ok =
+        EVP_DigestInit_ex(ctx, EVP_md5(), nullptr) == 1 &&
+        EVP_DigestUpdate(ctx, data.data(), data.size()) == 1 &&
+        EVP_DigestFinal_ex(ctx, digest.data(), &digest_len) == 1;
+    EVP_MD_CTX_free(ctx);
+
+    if (!ok || digest_len < out.size()) {
+        return fallback_hash_128(data, 0x4d44352ULL);
+    }
+
+    std::copy_n(digest.begin(), out.size(), out.begin());
     return out;
 #else
     return fallback_hash_128(data, 0x4d44352ULL);
@@ -153,10 +186,26 @@ std::array<std::uint8_t, 16> md5_like(const std::vector<std::uint8_t>& data) {
 
 std::array<std::uint8_t, 16> sha1_like_128(const std::vector<std::uint8_t>& data) {
 #if defined(COOLBOX_UUID_USE_OPENSSL)
-    std::array<std::uint8_t, SHA_DIGEST_LENGTH> digest{};
-    SHA1(data.data(), data.size(), digest.data());
+    std::array<unsigned char, EVP_MAX_MD_SIZE> digest{};
     std::array<std::uint8_t, 16> out{};
-    std::copy_n(digest.begin(), 16, out.begin());
+
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (ctx == nullptr) {
+        return fallback_hash_128(data, 0x53484131ULL);
+    }
+
+    unsigned int digest_len = 0U;
+    const bool ok =
+        EVP_DigestInit_ex(ctx, EVP_sha1(), nullptr) == 1 &&
+        EVP_DigestUpdate(ctx, data.data(), data.size()) == 1 &&
+        EVP_DigestFinal_ex(ctx, digest.data(), &digest_len) == 1;
+    EVP_MD_CTX_free(ctx);
+
+    if (!ok || digest_len < out.size()) {
+        return fallback_hash_128(data, 0x53484131ULL);
+    }
+
+    std::copy_n(digest.begin(), out.size(), out.begin());
     return out;
 #else
     return fallback_hash_128(data, 0x53484131ULL);

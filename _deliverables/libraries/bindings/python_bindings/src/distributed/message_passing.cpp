@@ -212,7 +212,7 @@ void DistributedContext::barrier() {
         barrier_count = 0;
         barrier_cv.notify_all();
     } else {
-        barrier_cv.wait(lock, [this] { return barrier_count == 0; });
+        barrier_cv.wait(lock, [] { return barrier_count == 0; });
     }
 }
 
@@ -283,7 +283,7 @@ DataPartitioner::DataPartitioner(size_t total_size, int world_size)
     size_t remainder = total_size % world_size;
     
     size_t current = 0;
-    for (int i = 0; i < world_size; ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(world_size); ++i) {
         size_t size = base_size + (i < remainder ? 1 : 0);
         partitions_.emplace_back(current, current + size);
         current += size;

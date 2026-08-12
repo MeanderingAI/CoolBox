@@ -5,12 +5,104 @@
 #include "tyst_framework.hpp"
 #include "tensor.h"
 #include "layer.h"
+#include "ifinder.h"
 #include "loss.h"
 #include "optimizer.h"
 #include "neural_network.h"
 #include "templates.h"
 
 using namespace ml::deep_learning;
+
+// ============================================================================
+// iFINDER Structured Grounding Tests
+// ============================================================================
+
+TEST(IFinderTest, AssignsObjectAndEgoLanes) {
+    using namespace ml::deep_learning::ifinder;
+
+    std::vector<LaneMarking> lanes = {
+        {{{100.0, 0.0}, {100.0, 720.0}}},
+        {{{300.0, 0.0}, {300.0, 720.0}}},
+        {{{500.0, 0.0}, {500.0, 720.0}}}
+    };
+
+    BoundingBox object_box{320.0, 200.0, 420.0, 460.0};
+    EXPECT_EQ(assign_object_lane(object_box, lanes, 640.0), 2);
+    EXPECT_EQ(assign_ego_lane(640.0, 720.0, lanes), 2);
+}
+
+TEST(IFinderTest, EstimatesMaskedDistance) {
+    using namespace ml::deep_learning::ifinder;
+
+    std::vector<double> depth = {
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+        7.0, 8.0, 9.0
+    };
+    std::vector<unsigned char> mask = {
+        0, 0, 0,
+        0, 1, 1,
+        0, 1, 1
+    };
+
+    EXPECT_NEAR(masked_mean_distance(depth, mask, 3, 3, BoundingBox{1.0, 1.0, 3.0, 3.0}), 7.0, 1e-6);
+}
+
+TEST(IFinderTest, EstimatesEgoMotionAndTurn) {
+    using namespace ml::deep_learning::ifinder;
+
+    std::vector<Point3D> positions = {
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0},
+        {1.0, 0.0, 1.0}
+    };
+
+    IFinderConfig config;
+    config.turn_threshold_rad = 0.1;
+    config.stopped_speed_threshold = 0.01;
+
+    EgoState state = estimate_ego_state(positions, 1, config);
+    EXPECT_EQ(state.motion, "Moving");
+    EXPECT_EQ(state.turn, "Right Turn");
+    EXPECT_NEAR(state.heading_delta_rad, 1.57079632679, 1e-6);
+}
+
+TEST(IFinderTest, SerializesStructuredCueAndPromptBlocks) {
+    using namespace ml::deep_learning::ifinder;
+
+    ObjectCue object;
+    object.track_id = 13;
+    object.class_label = "car";
+    object.box = BoundingBox{10.0, 20.0, 50.0, 80.0};
+    object.distance_m = 9.78;
+    object.orientation_yaw_rad = -2.1;
+    object.lane = 1;
+    object.attributes["color"] = "white";
+
+    FrameCue frame;
+    frame.frame_index = 24;
+    frame.ego_state.motion = "Moving";
+    frame.ego_state.turn = "Straight";
+    frame.ego_lane = 1;
+    frame.detected_objects.push_back(object);
+
+    VideoCue cue;
+    cue.surrounding_info = "daytime urban road";
+    cue.event_description = "a vehicle cuts toward the ego lane";
+    cue.peer_response = "no accident";
+    cue.frames.push_back(frame);
+
+    const std::string json = to_json(cue);
+    EXPECT_NE(json.find("Video-Level-Information"), std::string::npos);
+    EXPECT_NE(json.find("detected_objects"), std::string::npos);
+    EXPECT_NE(json.find("\"track_id\":13"), std::string::npos);
+
+    PromptBlocks blocks = build_prompt_blocks(cue, "What caused the incident?");
+    const std::string prompt = blocks.compose();
+    EXPECT_NE(prompt.find("Key Explanation"), std::string::npos);
+    EXPECT_NE(prompt.find("Step Instructions"), std::string::npos);
+    EXPECT_NE(prompt.find("Peer Instruction"), std::string::npos);
+}
 
 // ============================================================================
 // Tensor Tests

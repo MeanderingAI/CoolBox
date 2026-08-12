@@ -16,8 +16,6 @@ class SPDESolver {
     // NDArray traits for backend selection
     template<typename T>
     struct is_mytrix_matrix : std::false_type {};
-    template<>
-    struct is_mytrix_matrix<mytrix::DenseMatrix> : std::true_type {};
 
     template<typename T>
     struct is_xarray : std::false_type {};
@@ -108,7 +106,7 @@ class SPDESolver {
         double alpha, double sigma, const std::vector<double>& dx, double dt, int steps, RNG& rng) {
         NDArray u = u0;
         NDArray u_new = u0;
-        if constexpr (is_mytrix_matrix<typename NDArray::value_type>::value || std::is_same_v<typename NDArray::value_type, mytrix::DenseMatrix>) {
+        if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<typename NDArray::value_type>>, mytrix::DenseMatrix>) {
             solve_stochastic_heat_eq_nd_mytrix(u, u_new, dx, alpha, sigma, dt, steps, rng);
         } else if constexpr (is_xarray<NDArray>::value) {
             solve_stochastic_heat_eq_nd_xarray(u, u_new, dx, alpha, sigma, dt, steps, rng);

@@ -1,5 +1,4 @@
 # Common GHCR login and owner normalization for all workflows
-steps:
 name: 'ghcr-login'
 description: 'Composite action for ghcr-login'
 runs:
@@ -14,4 +13,5 @@ runs:
 
   - name: Normalize GHCR owner
     id: ghcr-owner
+    shell: bash
     run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"

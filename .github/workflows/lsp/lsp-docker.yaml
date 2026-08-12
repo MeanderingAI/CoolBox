@@ -56,6 +56,11 @@ jobs:
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
 
+          docker build -f apps/lsp/docker/Dockerfile.scala -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }} apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:latest
+
           docker build -f apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest

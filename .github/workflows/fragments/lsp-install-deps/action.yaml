@@ -1,11 +1,11 @@
 # Common LSP dependencies for all LSP workflows
-steps:
 name: 'lsp-install-deps'
 description: 'Composite action for lsp-install-deps'
 runs:
   using: 'composite'
   steps:
   - name: Install dependencies
+    shell: bash
     run: |
       sudo apt-get update
       sudo apt-get remove -y containerd.io || true

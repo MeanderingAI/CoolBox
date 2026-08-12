@@ -96,32 +96,84 @@ jobs:
           path: build/
           merge-multiple: true
 
+      - name: Detect Go/C bindings paths
+        id: detect_bindings
+        run: |
+          go_candidates=(
+            "_libraries/go_bindings"
+            "_deliverables/libraries/bindings/go_bindings"
+          )
+          c_candidates=(
+            "_deliverables/libraries/bindings/c_bindings"
+            "_libraries/c_bindings"
+          )
+
+          go_dir=""
+          c_dir=""
+
+          for d in "${go_candidates[@]}"; do
+            if [ -f "$d/go.mod" ]; then
+              go_dir="$d"
+              break
+            fi
+          done
+
+          for d in "${c_candidates[@]}"; do
+            if [ -f "$d/CMakeLists.txt" ]; then
+              c_dir="$d"
+              break
+            fi
+          done
+
+          if [ -n "$go_dir" ]; then
+            echo "has_go_bindings=true" >> "$GITHUB_OUTPUT"
+            echo "go_bindings_dir=$go_dir" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_go_bindings=false" >> "$GITHUB_OUTPUT"
+            echo "go_bindings_dir=" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$c_dir" ]; then
+            echo "c_bindings_dir=$c_dir" >> "$GITHUB_OUTPUT"
+          else
+            echo "c_bindings_dir=_deliverables/libraries/bindings/c_bindings" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip Go bindings job when module is absent
+        if: steps.detect_bindings.outputs.has_go_bindings != 'true'
+        run: |
+          echo "::notice::No go.mod found for Go bindings (checked _libraries/go_bindings and _deliverables/libraries/bindings/go_bindings). Skipping Go bindings build/package steps."
+
       - name: Set COOLBOX_LIB_DIR for Go build
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           echo "COOLBOX_LIB_DIR=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
-          echo "COOLBOX_C_BINDINGS_BUILD_DIR=${GITHUB_WORKSPACE}/_libraries/c_bindings/build" >> $GITHUB_ENV
-          echo "COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR=${GITHUB_WORKSPACE}/_libraries/c_bindings/build/Release" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_SOURCE_DIR=${GITHUB_WORKSPACE}/${{ steps.detect_bindings.outputs.c_bindings_dir }}" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_BUILD_DIR=${GITHUB_WORKSPACE}/${{ steps.detect_bindings.outputs.c_bindings_dir }}/build" >> $GITHUB_ENV
+          echo "COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR=${GITHUB_WORKSPACE}/${{ steps.detect_bindings.outputs.c_bindings_dir }}/build/Release" >> $GITHUB_ENV
+          echo "COOLBOX_GO_BINDINGS_DIR=${GITHUB_WORKSPACE}/${{ steps.detect_bindings.outputs.go_bindings_dir }}" >> $GITHUB_ENV
 
       - name: Set up Go
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         uses: actions/setup-go@v6
         with:
-          go-version-file: _libraries/go_bindings/go.mod
-          cache-dependency-path: _libraries/go_bindings/go.mod
+          go-version-file: ${{ steps.detect_bindings.outputs.go_bindings_dir }}/go.mod
+          cache-dependency-path: ${{ steps.detect_bindings.outputs.go_bindings_dir }}/go.mod
 
       - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake g++ make libeigen3-dev
 
       - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           brew list cmake &>/dev/null || brew install cmake
           brew list eigen &>/dev/null || brew install eigen
 
       - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         id: msys2
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -138,7 +190,7 @@ jobs:
             mingw-w64-x86_64-eigen3
 
       - name: Ensure mingw64 in PATH (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           $msysRoot = "${{ steps.msys2.outputs.msys2-location }}"
           if ([string]::IsNullOrWhiteSpace($msysRoot) -or !(Test-Path $msysRoot)) {
@@ -149,17 +201,17 @@ jobs:
           $msysBin = Join-Path $msysRoot "mingw64\bin"
           if (Test-Path $msysUsrBin) { echo "$msysUsrBin" >> $env:GITHUB_PATH }
           echo "$msysBin" >> $env:GITHUB_PATH
-        shell: powershell
+        shell: pwsh
 
       - name: Verify CMake is available (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           command -v cmake
           cmake --version
         shell: msys2 {0}
 
       - name: Prepare Eigen headers (Linux/macOS)
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           BUILD_DIR="$GITHUB_WORKSPACE/build"
           if [[ -e "$BUILD_DIR" && ! -d "$BUILD_DIR" ]]; then
@@ -215,7 +267,7 @@ jobs:
           fi
 
       - name: Prepare Eigen headers (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           $gcc = Get-Command g++.exe -ErrorAction SilentlyContinue
           if ($null -eq $gcc) {
@@ -277,31 +329,33 @@ jobs:
           Write-Host "Checked Eigen candidates:"
           $candidates | ForEach-Object { Write-Host " - $_" }
           throw "Unable to locate Eigen headers for Go bindings"
-        shell: powershell
+        shell: pwsh
 
       - name: Show Go toolchain
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           go version
           go env
 
       - name: Build native libraries for Go bindings (Linux/macOS)
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build _libraries/c_bindings/build --config Release --parallel
-          cmake -S _libraries/go_bindings/cbridge -B _libraries/go_bindings/cbridge/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build _libraries/go_bindings/cbridge/build --config Release --target coolboxbridge --parallel
+          cmake -S "$COOLBOX_C_BINDINGS_SOURCE_DIR" -B "$COOLBOX_C_BINDINGS_SOURCE_DIR/build" -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$COOLBOX_C_BINDINGS_SOURCE_DIR/build" --config Release --parallel
+          cmake -S "$COOLBOX_GO_BINDINGS_DIR/cbridge" -B "$COOLBOX_GO_BINDINGS_DIR/cbridge/build" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$COOLBOX_GO_BINDINGS_DIR/cbridge/build" --config Release --target coolboxbridge --parallel
 
       - name: Build native libraries for Go bindings (Windows)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -G "MinGW Makefiles" -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build _libraries/c_bindings/build --config Release --parallel
-          cmake -S _libraries/go_bindings/cbridge -B _libraries/go_bindings/cbridge/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
-          cmake --build _libraries/go_bindings/cbridge/build --config Release --target coolboxbridge --parallel
+          cmake -S "$COOLBOX_C_BINDINGS_SOURCE_DIR" -B "$COOLBOX_C_BINDINGS_SOURCE_DIR/build" -G "MinGW Makefiles" -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$COOLBOX_C_BINDINGS_SOURCE_DIR/build" --config Release --parallel
+          cmake -S "$COOLBOX_GO_BINDINGS_DIR/cbridge" -B "$COOLBOX_GO_BINDINGS_DIR/cbridge/build" -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$COOLBOX_GO_BINDINGS_DIR/cbridge/build" --config Release --target coolboxbridge --parallel
         shell: msys2 {0}
 
       - name: Verify native C bindings artifact for Go
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           candidates=()
           case "${RUNNER_OS}" in
@@ -347,9 +401,10 @@ jobs:
           echo "Using native C bindings artifact: $found"
 
       - name: Build and test Go bindings
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           mkdir -p build/test-logs
-          cd _libraries/go_bindings
+          cd "$COOLBOX_GO_BINDINGS_DIR"
           if [ -d "${COOLBOX_C_BINDINGS_BUILD_DIR}" ]; then
             export LD_LIBRARY_PATH="${COOLBOX_C_BINDINGS_BUILD_DIR}:${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:${LD_LIBRARY_PATH:-}"
             export DYLD_LIBRARY_PATH="${COOLBOX_C_BINDINGS_BUILD_DIR}:${COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR}:${DYLD_LIBRARY_PATH:-}"
@@ -361,16 +416,18 @@ jobs:
           go test -count=1 -v ./... | tee ../../build/test-logs/go-bindings-${{ matrix.platform }}.log
 
       - name: Package Go bindings
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           rm -rf release-assets staging-go
           mkdir -p release-assets staging-go
-          cp -R _libraries/go_bindings/. staging-go/
+          cp -R "$COOLBOX_GO_BINDINGS_DIR"/. staging-go/
           rm -rf staging-go/.git staging-go/.github
           tar -C staging-go -czf release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.tar.gz .
               python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             "staging-go" "release-assets/coolbox-go-bindings-${{ matrix.platform }}-${GITHUB_REF_NAME}.zip"
 
       - name: Finalize Go release assets
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         uses: ./.github/actions/finalize-purchase-assets
         with:
           assets_dir: release-assets
@@ -383,6 +440,7 @@ jobs:
           run_attempt: ${{ github.run_attempt }}
 
       - name: Probe configured CMake tests and package test binaries
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         run: |
           if [ -d build ]; then
             echo "--- CMake help (first 200 lines) ---"
@@ -407,6 +465,7 @@ jobs:
           fi
 
       - name: Upload test binaries artifact (Go job)
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: go_test_binaries
@@ -414,6 +473,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Go test log
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: go-test-log-${{ matrix.platform }}
@@ -421,6 +481,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Go archives
+        if: steps.detect_bindings.outputs.has_go_bindings == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: go-extension-${{ matrix.platform }}-${{ github.ref_name }}
@@ -432,7 +493,7 @@ jobs:
           retention-days: 14
 
       - name: Attach Go archives to release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && steps.detect_bindings.outputs.has_go_bindings == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

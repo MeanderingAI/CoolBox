@@ -12,7 +12,7 @@ stage_release_dir
 export COOLBOX_LIB_DIR=/workspace/build
 export COOLBOX_PYTHON_FORCE_VENDOR_SOURCES=1
 
-cd /workspace/_libraries/python_bindings
+cd /workspace/_deliverables/libraries/bindings/python_bindings
 rm -rf build dist ml_toolbox.egg-info vendor_include vendor_src
 python setup.py build
 python -m build --outdir ./dist
@@ -20,8 +20,8 @@ python -m build --outdir ./dist
 cd /workspace
 rm -rf staging-python
 mkdir -p staging-python
-cp -R _libraries/python_bindings/dist/. staging-python/ 2>/dev/null || true
-find _libraries/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} staging-python/ \;
+cp -R _deliverables/libraries/bindings/python_bindings/dist/. staging-python/ 2>/dev/null || true
+find _deliverables/libraries/bindings/python_bindings -type f \( -name '*.so' -o -name '*.pyd' -o -name '*.dylib' -o -name '*.dll' \) -exec cp {} staging-python/ \;
 tar -C staging-python -czf "$(package_tarball_path python-bindings)" .
 create_zip_from_dir staging-python "$(package_zip_path python-bindings)"
 finalize_release_assets
