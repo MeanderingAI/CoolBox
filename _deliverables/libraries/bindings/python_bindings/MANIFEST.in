@@ -9,6 +9,8 @@ recursive-include ml_toolbox *.py *.typed
 recursive-include ml_core *.py
 recursive-include examples *.py *.md
 recursive-include include *.h *.hpp
+recursive-include ../../groups/cool_car/MATRIX/headers *.h *.hpp
+recursive-include ../../groups/cool_car/DL *.h *.hpp *.cpp
 recursive-include src *.cpp
 recursive-include vendor_include *.h *.hpp
 recursive-include vendor_src *.cpp

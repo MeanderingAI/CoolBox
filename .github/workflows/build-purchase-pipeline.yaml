@@ -293,31 +293,31 @@ jobs:
         continue-on-error: true
         with:
           name: pl-lsp-dist-linux-x86_64-${{ github.ref_name }}
-          path: apps/lsp/dist
+          path: _deliverables/apps/lsp/dist
 
       - name: "Fallback: download individual LSP binaries"
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
-          path: apps/lsp/dist
+          path: _deliverables/apps/lsp/dist
 
       - name: Extract LSP dist archive if present
         run: |
           set -e
-          ARGV="apps/lsp/dist/pl_lsp_dist.tar.gz"
+          ARGV="_deliverables/apps/lsp/dist/pl_lsp_dist.tar.gz"
           if [ -f "$ARGV" ]; then
-            echo "Extracting $ARGV -> apps/lsp"
-            mkdir -p apps/lsp
-            tar -xzf "$ARGV" -C apps/lsp || true
-            ls -la apps/lsp/dist || true
+            echo "Extracting $ARGV -> _deliverables/apps/lsp"
+            mkdir -p _deliverables/apps/lsp
+            tar -xzf "$ARGV" -C _deliverables/apps/lsp || true
+            ls -la _deliverables/apps/lsp/dist || true
           else
-            ALT="apps/lsp/dist/build/pl_lsp_dist.tar.gz"
+            ALT="_deliverables/apps/lsp/dist/build/pl_lsp_dist.tar.gz"
             if [ -f "$ALT" ]; then
-              echo "Extracting $ALT -> apps/lsp"
-              mkdir -p apps/lsp
-              tar -xzf "$ALT" -C apps/lsp || true
-              ls -la apps/lsp/dist || true
+              echo "Extracting $ALT -> _deliverables/apps/lsp"
+              mkdir -p _deliverables/apps/lsp
+              tar -xzf "$ALT" -C _deliverables/apps/lsp || true
+              ls -la _deliverables/apps/lsp/dist || true
             else
               echo "No pl_lsp_dist archive found; continuing (fallback binaries may be present)"
             fi
@@ -326,23 +326,51 @@ jobs:
       - name: "Fallback: build LSP binaries locally if missing"
         run: |
           set -e
-          if [ -d "apps/lsp/dist" ] && [ "$(ls -A apps/lsp/dist)" ]; then
+          required_bins=(plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp)
+          missing=0
+          for bin in "${required_bins[@]}"; do
+            if [ ! -f "_deliverables/apps/lsp/dist/${bin}" ]; then
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -eq 0 ]; then
             echo "LSP binaries present, skipping local build"
-            ls -la apps/lsp/dist
+            ls -la _deliverables/apps/lsp/dist
             exit 0
           fi
           echo "No LSP binaries found; attempting local build"
           cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
-          mkdir -p apps/lsp/dist
-          cp build/apps/lsp/plang_lsp apps/lsp/dist/plang_lsp || cp build/plang_lsp apps/lsp/dist/plang_lsp || true
-          cp build/apps/lsp/plrust_lsp apps/lsp/dist/plrust_lsp || cp build/plrust_lsp apps/lsp/dist/plrust_lsp || true
-          cp build/apps/lsp/pljava_lsp apps/lsp/dist/pljava_lsp || cp build/pljava_lsp apps/lsp/dist/pljava_lsp || true
-          cp build/apps/lsp/plscala_lsp apps/lsp/dist/plscala_lsp || cp build/plscala_lsp apps/lsp/dist/plscala_lsp || true
-          cp build/apps/lsp/plpython_lsp apps/lsp/dist/plpython_lsp || cp build/plpython_lsp apps/lsp/dist/plpython_lsp || true
+          mkdir -p _deliverables/apps/lsp/dist
+          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || cp build/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || cp build/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || cp build/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || true
+          cp build/apps/lsp/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || cp build/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || true
+
+      - name: Verify required LSP binaries before Docker build
+        run: |
+          set -e
+          required_bins=(plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp)
+          missing=0
+          for bin in "${required_bins[@]}"; do
+            if [ ! -f "_deliverables/apps/lsp/dist/${bin}" ]; then
+              echo "Missing required LSP binary: _deliverables/apps/lsp/dist/${bin}" >&2
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Contents of _deliverables/apps/lsp/dist:" >&2
+            ls -la _deliverables/apps/lsp/dist >&2 || true
+            echo "Contents of build/apps/lsp:" >&2
+            ls -la build/apps/lsp >&2 || true
+            exit 1
+          fi
 
       - name: Ensure binaries are executable
-        run: chmod +x apps/lsp/dist/* || true
+        run: chmod +x _deliverables/apps/lsp/dist/* || true
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -358,8 +386,8 @@ jobs:
       - name: Build & push plang LSP image
         uses: docker/build-push-action@v5
         with:
-          context: apps/lsp
-          file: apps/lsp/docker/Dockerfile.plang
+          context: _deliverables/apps/lsp
+          file: _deliverables/apps/lsp/docker/Dockerfile.plang
           push: true
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }}
@@ -368,8 +396,8 @@ jobs:
       - name: Build & push plrust LSP image
         uses: docker/build-push-action@v5
         with:
-          context: apps/lsp
-          file: apps/lsp/docker/Dockerfile.rust
+          context: _deliverables/apps/lsp
+          file: _deliverables/apps/lsp/docker/Dockerfile.rust
           push: true
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }}
@@ -378,8 +406,8 @@ jobs:
       - name: Build & push pljava LSP image
         uses: docker/build-push-action@v5
         with:
-          context: apps/lsp
-          file: apps/lsp/docker/Dockerfile.java
+          context: _deliverables/apps/lsp
+          file: _deliverables/apps/lsp/docker/Dockerfile.java
           push: true
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
@@ -388,8 +416,8 @@ jobs:
       - name: Build & push plscala LSP image
         uses: docker/build-push-action@v5
         with:
-          context: apps/lsp
-          file: apps/lsp/docker/Dockerfile.scala
+          context: _deliverables/apps/lsp
+          file: _deliverables/apps/lsp/docker/Dockerfile.scala
           push: true
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }}
@@ -398,8 +426,8 @@ jobs:
       - name: Build & push plpython LSP image
         uses: docker/build-push-action@v5
         with:
-          context: apps/lsp
-          file: apps/lsp/docker/Dockerfile.python
+          context: _deliverables/apps/lsp
+          file: _deliverables/apps/lsp/docker/Dockerfile.python
           push: true
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }}

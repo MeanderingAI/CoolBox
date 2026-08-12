@@ -1,3 +1,11 @@
+# Windows hosted ARM64 cross-builds frequently run on x64 runners where the
+# available Python interpreter is x64. Skip configuring python_bindings in this
+# specific cross-compilation case to avoid hard configure failures.
+if(WIN32 AND CMAKE_CROSSCOMPILING AND (CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$"))
+    message(STATUS "Skipping python_bindings for Windows ARM64 cross-compile (host Python interpreter architecture mismatch).")
+    return()
+endif()
+
 # Add a CTest entry to run the Python HMM bindings test when NumPy is available.
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 execute_process(

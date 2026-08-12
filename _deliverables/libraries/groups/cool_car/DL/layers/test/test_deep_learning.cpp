@@ -9,6 +9,8 @@
 #include "loss.h"
 #include "optimizer.h"
 #include "neural_network.h"
+#include "cdeepex.h"
+#include "explainability_facade.h"
 #include "templates.h"
 
 using namespace ml::deep_learning;
@@ -718,6 +720,179 @@ TEST(IntegrationTest, RNNPipeline) {
     Tensor output = net.forward(input);
     EXPECT_EQ(output.shape()[0], 2);
     EXPECT_EQ(output.shape()[1], 3);
+}
+
+// ============================================================================
+// CDeepEx Tests
+// ============================================================================
+
+TEST(CDeepExTest, ContrastiveMapShapeAndRange) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.2, -0.1, 0.5, 0.8});
+
+    CDeepExExplainer explainer(net);
+    ContrastiveExplanation explanation = explainer.explain(input, 0, 1, true);
+
+    EXPECT_EQ(explanation.positive_gradient.shape(), input.shape());
+    EXPECT_EQ(explanation.negative_gradient.shape(), input.shape());
+    EXPECT_EQ(explanation.contrastive_map.shape(), input.shape());
+
+    for (size_t i = 0; i < explanation.contrastive_map.size(); ++i) {
+        EXPECT_GE(explanation.contrastive_map.data()[i], 0.0);
+        EXPECT_LE(explanation.contrastive_map.data()[i], 1.0);
+    }
+}
+
+TEST(CDeepExTest, AutoFoilPicksDifferentClass) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.1, 0.2, -0.3, 0.4});
+
+    CDeepExExplainer explainer(net);
+    ContrastiveExplanation explanation = explainer.explain(input, 2);
+
+    EXPECT_EQ(explanation.target_class, 2u);
+    EXPECT_NE(explanation.foil_class, explanation.target_class);
+    EXPECT_LT(explanation.foil_class, 3u);
+}
+
+TEST(CDeepExTest, InvalidTargetThrows) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.1, 0.2, -0.3, 0.4});
+
+    CDeepExExplainer explainer(net);
+    EXPECT_THROW(explainer.explain(input, 3), std::invalid_argument);
+}
+
+TEST(CDeepExTest, LimeExplanationShapeAndFinitePrediction) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.3, -0.4, 0.1, 0.9});
+
+    CDeepExExplainer explainer(net);
+    LimeExplanation explanation = explainer.explain_lime(input, 1, 96, 4, 0.8, 1e-3, 123);
+
+    EXPECT_EQ(explanation.feature_importance.shape(), input.shape());
+    EXPECT_EQ(explanation.target_class, 1u);
+    EXPECT_GT(explanation.sampled_features, 0u);
+    EXPECT_TRUE(std::isfinite(explanation.local_prediction));
+    EXPECT_TRUE(std::isfinite(explanation.model_prediction));
+}
+
+TEST(CDeepExTest, IntegratedGradientsShapeAndRange) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.5, -0.2, 0.8, 0.1});
+
+    CDeepExExplainer explainer(net);
+    IntegratedGradientsExplanation explanation =
+        explainer.explain_integrated_gradients(input, 2, 16, true);
+
+    EXPECT_EQ(explanation.attribution.shape(), input.shape());
+    EXPECT_EQ(explanation.target_class, 2u);
+    for (size_t i = 0; i < explanation.attribution.size(); ++i) {
+        EXPECT_GE(explanation.attribution.data()[i], 0.0);
+        EXPECT_LE(explanation.attribution.data()[i], 1.0);
+    }
+}
+
+TEST(CDeepExTest, KernelShapShapeAndFiniteValues) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.7, -0.3, 0.2, 0.5});
+
+    CDeepExExplainer explainer(net);
+    ShapExplanation explanation = explainer.explain_kernel_shap(input, 0, 200, 4, 1e-6, 11);
+
+    EXPECT_EQ(explanation.shap_values.shape(), input.shape());
+    EXPECT_EQ(explanation.target_class, 0u);
+    EXPECT_GT(explanation.sampled_features, 0u);
+    EXPECT_TRUE(std::isfinite(explanation.base_value));
+    EXPECT_TRUE(std::isfinite(explanation.local_prediction));
+    EXPECT_TRUE(std::isfinite(explanation.model_prediction));
+}
+
+TEST(CDeepExTest, KernelShapLocalAdditivityApproximation) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+
+    Tensor input({1, 4}, {0.4, 0.1, -0.2, 0.9});
+
+    CDeepExExplainer explainer(net);
+    ShapExplanation explanation = explainer.explain_kernel_shap(input, 2, 240, 4, 1e-8, 13);
+
+    const double gap = std::abs(explanation.local_prediction - explanation.model_prediction);
+    EXPECT_LT(gap, 0.5);
+}
+
+TEST(ExplainabilityFacadeTest, DispatchesLime) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+    ExplainabilityFacade facade(net);
+
+    ExplainRequest request = ExplainRequest::for_lime(1, 96, 4, 0.75, 1e-3, 21);
+
+    Tensor input({1, 4}, {0.2, 0.6, -0.1, 0.4});
+    ExplainabilityResult result = facade.explain(input, request);
+
+    EXPECT_EQ(result.method, ExplanationMethod::LIME);
+    EXPECT_EQ(result.lime.feature_importance.shape(), input.shape());
+    EXPECT_EQ(result.lime.target_class, 1u);
+}
+
+TEST(ExplainabilityFacadeTest, DispatchesKernelShap) {
+    NeuralNetwork net;
+    net.add_layer(std::make_shared<DenseLayer>(4, 3));
+    ExplainabilityFacade facade(net);
+
+    ExplainRequest request = ExplainRequest::for_kernel_shap(2, 180, 4, 1e-6, 27);
+
+    Tensor input({1, 4}, {0.5, -0.2, 0.3, 0.9});
+    ExplainabilityResult result = facade.explain(input, request);
+
+    EXPECT_EQ(result.method, ExplanationMethod::KERNEL_SHAP);
+    EXPECT_EQ(result.shap.shap_values.shape(), input.shape());
+    EXPECT_EQ(result.shap.target_class, 2u);
+}
+
+TEST(ExplainabilityFacadeTest, RequestFactoryHelpersSetFields) {
+    ExplainRequest contrastive = ExplainRequest::for_contrastive(3, false, false, 1);
+    EXPECT_EQ(contrastive.method, ExplanationMethod::CDEEPEX_CONTRASTIVE);
+    EXPECT_EQ(contrastive.target_class, 3u);
+    EXPECT_FALSE(contrastive.normalize);
+    EXPECT_FALSE(contrastive.use_default_foil);
+    EXPECT_EQ(contrastive.foil_class, 1u);
+
+    ExplainRequest lime = ExplainRequest::for_lime(2, 77, 5, 0.5, 1e-4, 99);
+    EXPECT_EQ(lime.method, ExplanationMethod::LIME);
+    EXPECT_EQ(lime.target_class, 2u);
+    EXPECT_EQ(lime.lime_num_samples, 77u);
+    EXPECT_EQ(lime.lime_max_features, 5u);
+    EXPECT_DOUBLE_EQ(lime.lime_kernel_width, 0.5);
+    EXPECT_DOUBLE_EQ(lime.lime_ridge, 1e-4);
+    EXPECT_EQ(lime.lime_seed, 99u);
+
+    ExplainRequest ig = ExplainRequest::for_integrated_gradients(4, 19, false);
+    EXPECT_EQ(ig.method, ExplanationMethod::INTEGRATED_GRADIENTS);
+    EXPECT_EQ(ig.target_class, 4u);
+    EXPECT_EQ(ig.ig_steps, 19u);
+    EXPECT_FALSE(ig.normalize);
+
+    ExplainRequest shap = ExplainRequest::for_kernel_shap(5, 111, 6, 1e-7, 101);
+    EXPECT_EQ(shap.method, ExplanationMethod::KERNEL_SHAP);
+    EXPECT_EQ(shap.target_class, 5u);
+    EXPECT_EQ(shap.shap_num_samples, 111u);
+    EXPECT_EQ(shap.shap_max_features, 6u);
+    EXPECT_DOUBLE_EQ(shap.shap_ridge, 1e-7);
+    EXPECT_EQ(shap.shap_seed, 101u);
 }
 
 
