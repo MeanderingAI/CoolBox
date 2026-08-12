@@ -12,6 +12,7 @@ add_subdirectory(FINANCE)
 add_subdirectory(MATRIX)
 add_subdirectory(ML)
 add_subdirectory(OPT)
+add_subdirectory(SS)
 add_subdirectory(SP)
 add_subdirectory(MATH)
 
