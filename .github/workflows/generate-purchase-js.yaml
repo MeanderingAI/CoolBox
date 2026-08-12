@@ -82,12 +82,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build libeigen3-dev
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
         run: |
-          for pkg in cmake ninja; do
+          for pkg in cmake ninja eigen; do
             brew list "$pkg" &>/dev/null || brew install "$pkg"
           done
 
@@ -158,7 +158,7 @@ jobs:
       - name: Configure JavaScript bindings (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          if [ -d build/_libraries ]; then
+          if [ -d build/_deliverables ] || [ -d build/_libraries ]; then
             echo "Using prebuilt C++ libraries from build/; proceeding to emcmake configure to build JS bindings only"
           fi
           source "$RUNNER_TEMP/emsdk/emsdk_env.sh" >/dev/null

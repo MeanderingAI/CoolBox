@@ -4,8 +4,32 @@ project(emscripten_bindings)
 # Root of the CoolBox project (four levels up from this CMakeLists.txt)
 get_filename_component(COOLBOX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 
-# Eigen is header-only; set include dir directly (find_package fails for cross-compilation)
-set(EIGEN3_INCLUDE_DIR "${COOLBOX_ROOT}/external/eigen/eigen-3.4.0")
+function(resolve_eigen3_include_dir OUTPUT_VAR)
+    set(_eigen_candidates
+        "${COOLBOX_ROOT}/external/eigen/eigen-3.4.0"
+        "${COOLBOX_ROOT}/build/_deps/eigen-src"
+        "/usr/include/eigen3"
+        "/opt/homebrew/include/eigen3"
+        "/usr/local/include/eigen3"
+    )
+
+    foreach(_candidate IN LISTS _eigen_candidates)
+        if(EXISTS "${_candidate}/Eigen/Dense")
+            set(${OUTPUT_VAR} "${_candidate}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+
+    find_path(_resolved_eigen_include_dir NAMES Eigen/Dense PATH_SUFFIXES eigen3)
+    if(_resolved_eigen_include_dir)
+        set(${OUTPUT_VAR} "${_resolved_eigen_include_dir}" PARENT_SCOPE)
+        return()
+    endif()
+
+    message(FATAL_ERROR "Unable to locate Eigen headers for emscripten bindings")
+endfunction()
+
+resolve_eigen3_include_dir(EIGEN3_INCLUDE_DIR)
 
 # Shared path variables (must be defined before any target uses them)
 set(PACKAGES_ROOT "${COOLBOX_ROOT}/_deliverables/libraries/groups")

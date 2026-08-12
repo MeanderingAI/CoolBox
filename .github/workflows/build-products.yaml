@@ -126,10 +126,36 @@ jobs:
         if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
         shell: pwsh
         run: |
-          $vcpkgToolchain = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
-          if (!(Test-Path $vcpkgToolchain)) {
-            throw "vcpkg toolchain file not found at $vcpkgToolchain"
+          function Find-VcpkgToolchain {
+            $candidateRoots = @()
+            if ($env:VCPKG_ROOT) { $candidateRoots += $env:VCPKG_ROOT }
+            $command = Get-Command vcpkg.exe -ErrorAction SilentlyContinue
+            if ($null -ne $command) {
+              $candidateRoots += (Split-Path -Parent $command.Source)
+              $candidateRoots += (Split-Path -Parent $command.Path)
+            }
+            if ($env:USERPROFILE) { $candidateRoots += (Join-Path $env:USERPROFILE 'vcpkg') }
+            if ($env:LOCALAPPDATA) { $candidateRoots += (Join-Path $env:LOCALAPPDATA 'vcpkg') }
+            $candidateRoots += 'C:\vcpkg'
+
+            foreach ($candidateRoot in ($candidateRoots | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)) {
+              $toolchain = Join-Path $candidateRoot 'scripts\buildsystems\vcpkg.cmake'
+              if (Test-Path $toolchain) {
+                return $toolchain
+              }
+            }
+
+            return $null
           }
+
+          $vcpkgToolchain = Find-VcpkgToolchain
+          if ($null -eq $vcpkgToolchain) {
+            throw 'Unable to locate vcpkg toolchain file. Set VCPKG_ROOT or install vcpkg so scripts\buildsystems\vcpkg.cmake is available.'
+          }
+
+          # Windows dependency setup may have already configured build/ with MinGW.
+          # Clear cache before forcing a Visual Studio generator.
+          Remove-Item -Recurse -Force build/CMakeCache.txt,build/CMakeFiles -ErrorAction SilentlyContinue
 
           $cmakeArgs = @(
             '-S', '.',

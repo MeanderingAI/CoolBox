@@ -5,8 +5,8 @@ Python bindings for the CoolBox C++ machine learning toolkit.
 ## Install
 
 - `pip install git+https://github.com/MeanderingAI/CoolBox.git`
-- `pip install git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings`
-- `pip install .` from `_libraries/python_bindings`
+- `pip install git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_deliverables/libraries/bindings/python_bindings`
+- `pip install .` from `_deliverables/libraries/bindings/python_bindings`
 
 If you are already at the repository root, `pip install .` also works there now.
 
@@ -40,7 +40,7 @@ From the repository root:
 
 Or directly:
 
-- `cd _libraries/python_bindings && python -m build`
+- `cd _deliverables/libraries/bindings/python_bindings && python -m build`
 
 ## Native Library Resolution
 

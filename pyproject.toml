@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 name = "ml-toolbox"
 version = "0.2.0"
 description = "Comprehensive C++ Machine Learning Library with Python Bindings"
-readme = "_libraries/python_bindings/README.md"
+readme = "_deliverables/libraries/bindings/python_bindings/README.md"
 requires-python = ">=3.7"
 license = "GPL-3.0-or-later"
 authors = [
@@ -64,12 +64,12 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/MeanderingAI/CoolBox"
-Documentation = "https://github.com/MeanderingAI/CoolBox/blob/main/_libraries/python_bindings/README.md"
+Documentation = "https://github.com/MeanderingAI/CoolBox/blob/main/_deliverables/libraries/bindings/python_bindings/README.md"
 Repository = "https://github.com/MeanderingAI/CoolBox"
 Issues = "https://github.com/MeanderingAI/CoolBox/issues"
 
 [tool.setuptools]
-package-dir = {"" = "_libraries/python_bindings"}
+package-dir = {"" = "_deliverables/libraries/bindings/python_bindings"}
 packages = ["ml_toolbox", "ml_core"]
 include-package-data = true
 
