@@ -1,11 +1,27 @@
 #include "../headers/custom_numbers.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cctype>
+#include <cstdio>
+#include <cstdlib>
 #include <iomanip>
 #include <limits>
+#include <locale>
 #include <sstream>
 #include <stdexcept>
+
+#ifdef CUSTOM_NUMBERS_HAS_DOUBLE_CONVERSION
+#include <double-conversion/double-conversion.h>
+#endif
+
+#ifdef CUSTOM_NUMBERS_HAS_ABSEIL
+#include <absl/strings/charconv.h>
+#endif
+
+#ifdef CUSTOM_NUMBERS_HAS_FAST_FLOAT
+#include <fast_float/fast_float.h>
+#endif
 
 namespace security::custom_numbers {
 
@@ -20,7 +36,227 @@ std::uint8_t hex_value(char value) {
     throw std::invalid_argument("invalid hexadecimal digit");
 }
 
+std::string format_double_portable(double value) {
+    std::ostringstream output;
+    output.imbue(std::locale::classic());
+    output << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+    return output.str();
+}
+
+bool parse_double_portable(std::string_view text, double& value) {
+    if (text.empty() || std::any_of(text.begin(), text.end(), [](unsigned char ch) {
+            return std::isspace(ch) != 0;
+        })) {
+        return false;
+    }
+
+    const std::string input(text);
+    char* end = nullptr;
+    const double parsed = std::strtod(input.c_str(), &end);
+    if (end == input.c_str() || end != input.c_str() + input.size()) {
+        return false;
+    }
+    value = parsed;
+    return true;
+}
+
+std::string format_double_libc(double value) {
+    char buffer[64];
+    const int length = std::snprintf(buffer, sizeof(buffer), "%.17g", value);
+    if (length < 0 || static_cast<std::size_t>(length) >= sizeof(buffer)) {
+        throw std::runtime_error("libc failed to format double");
+    }
+    return std::string(buffer, static_cast<std::size_t>(length));
+}
+
+#ifdef CUSTOM_NUMBERS_HAS_DOUBLE_CONVERSION
+std::string format_double_dblconv(double value) {
+    char buffer[128];
+    double_conversion::StringBuilder builder(buffer, sizeof(buffer));
+    const double_conversion::DoubleToStringConverter converter(
+        double_conversion::DoubleToStringConverter::EMIT_POSITIVE_EXPONENT_SIGN,
+        "Infinity",
+        "NaN",
+        'e',
+        -6,
+        21,
+        6,
+        0);
+    if (!converter.ToShortest(value, &builder)) {
+        throw std::runtime_error("double-conversion failed to format double");
+    }
+    return builder.Finalize();
+}
+
+bool parse_double_dblconv(std::string_view text, double& value) {
+    const double_conversion::StringToDoubleConverter converter(
+        double_conversion::StringToDoubleConverter::NO_FLAGS,
+        0.0,
+        std::numeric_limits<double>::quiet_NaN(),
+        "Infinity",
+        "NaN");
+    int processed = 0;
+    const double parsed = converter.StringToDouble(
+        text.data(), static_cast<int>(text.size()), &processed);
+    if (processed != static_cast<int>(text.size()) || text.empty()) {
+        return false;
+    }
+    value = parsed;
+    return true;
+}
+#endif
+
 } // namespace
+
+FloatingPointConversionCapabilities floating_point_conversion_capabilities(
+    FloatingPointConversion conversion) {
+    switch (conversion) {
+        case FloatingPointConversion::Automatic:
+        case FloatingPointConversion::Dmg1997:
+        case FloatingPointConversion::Libc:
+            return {true, true};
+        case FloatingPointConversion::Dmg2017:
+#ifdef CUSTOM_NUMBERS_HAS_FLOAT_CHARCONV
+            return {true, true};
+#else
+            return {false, false};
+#endif
+        case FloatingPointConversion::Dblconv:
+#ifdef CUSTOM_NUMBERS_HAS_DOUBLE_CONVERSION
+            return {true, true};
+#else
+            return {false, false};
+#endif
+        case FloatingPointConversion::Abseil:
+#ifdef CUSTOM_NUMBERS_HAS_ABSEIL
+            return {false, true};
+#else
+            return {false, false};
+#endif
+        case FloatingPointConversion::FastFloat:
+#ifdef CUSTOM_NUMBERS_HAS_FAST_FLOAT
+            return {false, true};
+#else
+            return {false, false};
+#endif
+        case FloatingPointConversion::Uscale:
+        case FloatingPointConversion::UscaleC:
+            return {false, false};
+        default:
+            return {false, false};
+    }
+}
+
+bool floating_point_conversion_available(FloatingPointConversion conversion) {
+    const auto capabilities = floating_point_conversion_capabilities(conversion);
+    return capabilities.format && capabilities.parse;
+}
+
+FloatingPointConversion selected_floating_point_conversion(FloatingPointConversion requested) {
+    if (requested == FloatingPointConversion::Automatic) {
+        return floating_point_conversion_available(FloatingPointConversion::Dmg2017)
+                   ? FloatingPointConversion::Dmg2017
+                   : FloatingPointConversion::Dmg1997;
+    }
+    return floating_point_conversion_available(requested)
+               ? requested
+               : FloatingPointConversion::Dmg1997;
+}
+
+const char* floating_point_conversion_name(FloatingPointConversion conversion) {
+    switch (conversion) {
+        case FloatingPointConversion::Automatic: return "automatic";
+        case FloatingPointConversion::Dmg1997: return "dmg1997_profile";
+        case FloatingPointConversion::Dmg2017: return "dmg2017_profile";
+        case FloatingPointConversion::Dblconv: return "dblconv";
+        case FloatingPointConversion::Abseil: return "abseil";
+        case FloatingPointConversion::Uscale: return "uscale";
+        case FloatingPointConversion::FastFloat: return "fast_float";
+        case FloatingPointConversion::Libc: return "libc";
+        case FloatingPointConversion::UscaleC: return "uscalec";
+        default: return "unknown";
+    }
+}
+
+std::string format_double(double value, FloatingPointConversion conversion) {
+    const auto requested = conversion == FloatingPointConversion::Automatic
+                               ? selected_floating_point_conversion(conversion)
+                               : conversion;
+
+#ifdef CUSTOM_NUMBERS_HAS_DOUBLE_CONVERSION
+    if (requested == FloatingPointConversion::Dblconv) {
+        return format_double_dblconv(value);
+    }
+#endif
+
+    if (requested == FloatingPointConversion::Libc) {
+        return format_double_libc(value);
+    }
+
+#ifdef CUSTOM_NUMBERS_HAS_FLOAT_CHARCONV
+    if (requested == FloatingPointConversion::Dmg2017) {
+        char buffer[64];
+        const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
+        if (result.ec == std::errc{}) {
+            return std::string(buffer, result.ptr);
+        }
+    }
+#else
+    (void)conversion;
+#endif
+    return format_double_portable(value);
+}
+
+bool parse_double(std::string_view text, double& value, FloatingPointConversion conversion) {
+    const auto requested = conversion == FloatingPointConversion::Automatic
+                               ? selected_floating_point_conversion(conversion)
+                               : conversion;
+
+#ifdef CUSTOM_NUMBERS_HAS_DOUBLE_CONVERSION
+    if (requested == FloatingPointConversion::Dblconv) {
+        return parse_double_dblconv(text, value);
+    }
+#endif
+
+#ifdef CUSTOM_NUMBERS_HAS_ABSEIL
+    if (requested == FloatingPointConversion::Abseil) {
+        double parsed = 0.0;
+        const auto result = absl::from_chars(text.data(), text.data() + text.size(), parsed);
+        if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+            value = parsed;
+            return true;
+        }
+        return false;
+    }
+#endif
+
+#ifdef CUSTOM_NUMBERS_HAS_FAST_FLOAT
+    if (requested == FloatingPointConversion::FastFloat) {
+        double parsed = 0.0;
+        const auto result = fast_float::from_chars(text.data(), text.data() + text.size(), parsed);
+        if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+            value = parsed;
+            return true;
+        }
+        return false;
+    }
+#endif
+
+#ifdef CUSTOM_NUMBERS_HAS_FLOAT_CHARCONV
+    if (requested == FloatingPointConversion::Dmg2017) {
+        double parsed = 0.0;
+        const auto result = std::from_chars(text.data(), text.data() + text.size(), parsed);
+        if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+            value = parsed;
+            return true;
+        }
+        return false;
+    }
+#else
+    (void)conversion;
+#endif
+    return parse_double_portable(text, value);
+}
 
 BigUnsigned::BigUnsigned() = default;
 
