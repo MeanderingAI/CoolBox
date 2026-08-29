@@ -45,3 +45,12 @@ if(MYTRIX_ENABLE_METAL AND APPLE)
     )
 endif()
 
+if(BUILD_TESTING)
+    enable_testing()
+    add_executable(mytrix_cpu_optimizations_tests
+        tests/test_cpu_optimizations.cpp
+    )
+    target_link_libraries(mytrix_cpu_optimizations_tests PRIVATE mytrix)
+    add_test(NAME MytrixCpuOptimizationsTests COMMAND mytrix_cpu_optimizations_tests)
+endif()
+
