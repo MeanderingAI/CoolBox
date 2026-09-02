@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd /workspace
+
+if [ ! -d build ] || [ ! -f build/CMakeCache.txt ]; then
+  cmake -S . -B build -Wno-dev \
+    -DBUILD_BINARIES=OFF \
+    -DBUILD_PRODUCTS=ON \
+    -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON \
+    -DBUILD_IO_SQL=ON \
+    -DBUILD_TESTING=ON \
+    -DCMAKE_BUILD_TYPE=Release
+fi
+
+make test

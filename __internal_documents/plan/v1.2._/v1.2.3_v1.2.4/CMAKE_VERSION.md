@@ -1,0 +1,1 @@
+change cmake version to 4.2.3 to enable the cmake to work with VS

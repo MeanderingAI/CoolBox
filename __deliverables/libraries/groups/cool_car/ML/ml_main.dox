@@ -1,0 +1,10 @@
+/**
+ * @page ml_main Machine Learning Toolkit
+ *
+ * The Machine Learning Toolkit provides algorithms and utilities for machine learning, including:
+ * - Decision Trees
+ * - Neural Networks
+ * - Support Vector Machines
+ *
+ * See the respective pages for each algorithm for usage examples and API details.
+ */

@@ -1,0 +1,54 @@
+cmake_minimum_required(VERSION 3.12)
+
+# Add individual apps if they exist
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/lsp/CMakeLists.txt")
+    add_subdirectory(lsp)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/distribution_tag/CMakeLists.txt")
+    add_subdirectory(distribution_tag)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/distribution_storage/CMakeLists.txt")
+    add_subdirectory(distribution_storage)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/database/CMakeLists.txt")
+    add_subdirectory(database)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/database_driver/CMakeLists.txt")
+    add_subdirectory(database_driver)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/secret_gen_cli/CMakeLists.txt")
+    add_subdirectory(secret_gen_cli)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cad_builder/CMakeLists.txt")
+    add_subdirectory(cad_builder)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/screen_builder/CMakeLists.txt")
+    add_subdirectory(screen_builder)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/recording_studio/CMakeLists.txt")
+    add_subdirectory(recording_studio)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/call_center_api/CMakeLists.txt")
+    add_subdirectory(call_center_api)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/email_center_api/CMakeLists.txt")
+    add_subdirectory(email_center_api)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_simulator/CMakeLists.txt")
+    add_subdirectory(battery_simulator)
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/php_center_api/CMakeLists.txt")
+    add_subdirectory(php_center_api)
+endif()

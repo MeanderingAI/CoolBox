@@ -1,0 +1,1 @@
+{"title":"Music Synthesizer","description":"Interactive synth with oscilloscope, spectrum analyser, and piano keyboard","icon":"🎹","libraries":["audio-synth.mjs","utils::wave_generator","trekker::audio"]}

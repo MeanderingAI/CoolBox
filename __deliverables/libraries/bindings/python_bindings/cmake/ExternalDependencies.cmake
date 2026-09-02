@@ -1,0 +1,25 @@
+# Use FetchContent to manage external dependencies
+include(FetchContent)
+
+# Fetch and configure Eigen
+## Eigen removed: replaced by mytrix everywhere
+
+if(NOT DEFINED ENABLE_GSL)
+  option(ENABLE_GSL "Enable GSL (GNU Scientific Library) support" ON)
+  if(WIN32)
+    set(ENABLE_GSL OFF CACHE BOOL "Enable GSL (GNU Scientific Library) support" FORCE)
+  endif()
+endif()
+
+if(ENABLE_GSL)
+  # On Windows/vcpkg, prefer CONFIG mode to avoid CMake's FindGSL triggering
+  # a Fortran compiler search (via FindBLAS). Fall back to MODULE mode for
+  # Linux/macOS where the system-installed GSL ships a .pc / FindGSL works fine.
+  if(WIN32)
+    find_package(GSL CONFIG REQUIRED)
+  else()
+    find_package(GSL REQUIRED)
+  endif()
+else()
+  message(STATUS "GSL support is disabled for python_bindings (ENABLE_GSL=OFF). To enable, set -DENABLE_GSL=ON")
+endif()

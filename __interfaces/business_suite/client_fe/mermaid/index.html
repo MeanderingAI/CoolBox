@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mermaid · Diagrams</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #f59e0b;
+      --brand-dark: #d97706;
+      --brand-pale: #fffbeb;
+      --brand-mid:  #fde68a;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+      --white:      #ffffff;
+      --topbar-h:   54px;
+      --sidebar-w:  220px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ═══ TOP BAR ═══════════════════════════════════════════════════════════ */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--topbar-h);
+      background: #0f172a;
+      display: flex; align-items: center;
+      padding: 0 0.75rem; gap: 0.6rem;
+      z-index: 200;
+      border-bottom: 1px solid #1e293b;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 0.5rem;
+      text-decoration: none; padding: 0 0.5rem;
+    }
+    .brand-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+    }
+    .brand-text  { font-weight: 800; color: #f8fafc; font-size: 0.9rem; letter-spacing: -0.02em; }
+    .brand-text .accent { color: #fcd34d; }
+    .topbar-divider { width: 1px; height: 22px; background: #1e293b; flex-shrink: 0; }
+
+    /* Doc name */
+    .doc-name-wrap { display: flex; align-items: center; gap: 0.4rem; }
+    .doc-name {
+      background: transparent; border: none; color: #f1f5f9;
+      font-size: 0.875rem; font-weight: 600; font-family: inherit;
+      outline: none; padding: 0.3em 0.5em; border-radius: 6px;
+      min-width: 120px; cursor: text;
+      transition: background 0.12s;
+    }
+    .doc-name:hover { background: #1e293b; }
+    .doc-name:focus { background: #1e293b; box-shadow: 0 0 0 1.5px var(--brand); }
+    .doc-status { font-size: 0.68rem; color: #475569; font-weight: 600; }
+
+    .topbar-center { flex: 1; display: flex; justify-content: center; }
+
+    /* Tool groups */
+    .tool-group {
+      display: flex; align-items: center; gap: 0.15rem;
+      background: #1e293b; border-radius: 8px; padding: 0.25rem;
+    }
+    .tool-btn {
+      width: 30px; height: 30px; border: none; background: transparent;
+      color: #94a3b8; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; transition: background 0.1s, color 0.1s;
+      position: relative;
+    }
+    .tool-btn:hover { background: #334155; color: #f8fafc; }
+    .tool-btn.active { background: var(--brand); color: #0f172a; }
+    .tool-sep { width: 1px; height: 18px; background: #334155; margin: 0 0.1rem; }
+
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+    .tb-btn {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.38em 0.85em; font-size: 0.78rem; font-weight: 700;
+      font-family: inherit; border-radius: 7px; cursor: pointer;
+      border: 1.5px solid transparent; transition: background 0.1s;
+    }
+    .tb-btn-ghost  { background: transparent; border-color: #334155; color: #94a3b8; }
+    .tb-btn-ghost:hover { border-color: #475569; color: #f8fafc; }
+    .tb-btn-brand  { background: var(--brand); color: #0f172a; border-color: var(--brand); }
+    .tb-btn-brand:hover { background: var(--brand-dark); }
+    .avatar-btn {
+      width: 29px; height: 29px; border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border: 2px solid #334155;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.68rem; font-weight: 700; color: #fff; cursor: pointer;
+    }
+    .mock-badge {
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+      font-size: 0.6rem; font-weight: 700; padding: 0.1em 0.5em;
+      border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    /* ═══ LAYOUT ═══════════════════════════════════════════════════════════ */
+    .app-body {
+      margin-top: var(--topbar-h);
+      display: flex; flex: 1;
+      min-height: calc(100vh - var(--topbar-h));
+    }
+
+    /* ═══ LEFT PANEL — Shape palette ════════════════════════════════════════ */
+    .left-panel {
+      width: var(--sidebar-w);
+      background: #0f172a;
+      border-right: 1px solid #1e293b;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .panel-section { padding: 0.75rem 0.75rem 0.25rem; }
+    .panel-label {
+      font-size: 0.63rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #475569; margin-bottom: 0.5rem;
+    }
+    .shape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; }
+    .shape-btn {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.3rem; padding: 0.55rem 0.4rem;
+      background: #1e293b; border: 1.5px solid #334155;
+      border-radius: 8px; cursor: pointer; font-size: 0.65rem;
+      color: #94a3b8; font-weight: 600; transition: background 0.1s, border-color 0.1s, color 0.1s;
+      font-family: inherit;
+    }
+    .shape-btn:hover { background: #334155; border-color: var(--brand); color: var(--brand); }
+    .shape-btn .shape-icon { font-size: 1.3rem; line-height: 1; }
+
+    /* Diagrams list */
+    .diag-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.42em 0.9rem;
+      font-size: 0.8rem; color: #94a3b8; cursor: pointer;
+      border-radius: 7px; margin: 0 0.35rem;
+      transition: background 0.1s, color 0.1s;
+    }
+    .diag-item:hover { background: #1e293b; color: #f8fafc; }
+    .diag-item.active { background: #1e293b; color: #fcd34d; font-weight: 600; }
+
+    /* ═══ CANVAS AREA ════════════════════════════════════════════════════════ */
+    .canvas-wrap {
+      flex: 1; position: relative; overflow: hidden;
+      background: #0f172a;
+      background-image:
+        radial-gradient(circle, #1e293b 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Mini toolbar overlay on canvas */
+    .canvas-toolbar {
+      position: absolute; top: 0.75rem; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 0.25rem;
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; padding: 0.3rem; z-index: 10;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .ct-btn {
+      display: flex; align-items: center; gap: 0.3rem;
+      padding: 0.35em 0.75em; font-size: 0.75rem; font-weight: 600;
+      font-family: inherit; border: none; border-radius: 7px;
+      background: transparent; color: #94a3b8; cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .ct-btn:hover { background: #334155; color: #f8fafc; }
+    .ct-btn.active { background: var(--brand); color: #0f172a; }
+    .ct-sep { width: 1px; height: 18px; background: #334155; }
+
+    /* Zoom indicator */
+    .zoom-badge {
+      position: absolute; bottom: 1rem; right: 1rem;
+      background: #1e293b; border: 1px solid #334155;
+      color: #94a3b8; font-size: 0.72rem; font-weight: 700;
+      padding: 0.35em 0.75em; border-radius: 7px;
+      display: flex; align-items: center; gap: 0.4rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .zoom-btn { border: none; background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.9rem; padding: 0 0.1rem; transition: color 0.1s; }
+    .zoom-btn:hover { color: #f8fafc; }
+
+    /* ── SVG canvas ── */
+    #diagramSvg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      cursor: default;
+    }
+
+    /* Nodes */
+    .node-rect {
+      fill: #1e3a5f; stroke: #2563eb; stroke-width: 1.5;
+      rx: 8; cursor: move;
+      filter: drop-shadow(0 2px 8px rgba(37,99,235,0.25));
+      transition: fill 0.1s;
+    }
+    .node-rect:hover { fill: #1d4ed8; stroke: #60a5fa; }
+    .node-rect.selected { stroke: var(--brand); stroke-width: 2.5; fill: #2d1d0f; }
+
+    .node-diamond { fill: #1a2e1a; stroke: #16a34a; stroke-width: 1.5; cursor: move; }
+    .node-diamond:hover { fill: #14532d; stroke: #86efac; }
+
+    .node-oval { fill: #1e1a2d; stroke: #8b5cf6; stroke-width: 1.5; cursor: move; }
+    .node-oval:hover { fill: #4c1d95; stroke: #c4b5fd; }
+
+    .node-text {
+      fill: #e2e8f0; font-family: system-ui, sans-serif;
+      font-size: 13px; font-weight: 600; pointer-events: none;
+      dominant-baseline: middle; text-anchor: middle;
+    }
+
+    .connector {
+      stroke: #334155; stroke-width: 2; fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .connector.highlighted { stroke: var(--brand); }
+
+    .edge-label {
+      fill: #94a3b8; font-size: 11px; font-family: system-ui, sans-serif;
+      font-weight: 600; text-anchor: middle; pointer-events: none;
+    }
+
+    /* ═══ RIGHT PANEL — Properties ══════════════════════════════════════════ */
+    .right-panel {
+      width: 240px;
+      background: #0f172a;
+      border-left: 1px solid #1e293b;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .prop-header {
+      padding: 0.9rem 0.85rem 0.5rem;
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #475569;
+      border-bottom: 1px solid #1e293b;
+    }
+    .prop-group { padding: 0.75rem 0.85rem; border-bottom: 1px solid #1e293b; }
+    .prop-label { font-size: 0.68rem; font-weight: 700; color: #64748b; margin-bottom: 0.35rem; }
+    .prop-input {
+      width: 100%; padding: 0.45em 0.65em; font-size: 0.8rem; font-family: inherit;
+      background: #1e293b; border: 1.5px solid #334155; border-radius: 7px;
+      color: #f1f5f9; outline: none; transition: border-color 0.15s;
+    }
+    .prop-input:focus { border-color: var(--brand); }
+    .prop-input.select { appearance: none; cursor: pointer; }
+    .color-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem; }
+    .color-swatch {
+      width: 22px; height: 22px; border-radius: 5px; cursor: pointer;
+      border: 2px solid transparent; transition: border-color 0.1s, transform 0.1s;
+    }
+    .color-swatch:hover { border-color: #fff; transform: scale(1.15); }
+    .color-swatch.active { border-color: #fff; }
+
+    .prop-row { display: flex; gap: 0.4rem; }
+    .prop-row .prop-input { flex: 1; }
+
+    /* No-selection placeholder */
+    .no-selection {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 1.5rem;
+      color: #334155;
+    }
+    .no-selection .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .no-selection p { font-size: 0.78rem; line-height: 1.55; }
+
+    /* ═══ TOAST ════════════════════════════════════════════════════════════ */
+    .toast-rack { position: fixed; bottom: 1.5rem; right: 17rem; z-index: 600; display: flex; flex-direction: column; gap: 0.5rem; }
+    .toast {
+      background: #1e293b; color: #f8fafc;
+      padding: 0.6em 1em; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <a class="topbar-brand" href="../index.html">
+    <div class="brand-icon">✏️</div>
+    <div>
+      <div class="brand-text"><span class="accent">Mermaid</span></div>
+    </div>
+  </a>
+
+  <div class="topbar-divider"></div>
+
+  <div class="doc-name-wrap">
+    <input class="doc-name" id="docName" type="text" value="System Architecture" />
+    <span class="doc-status" id="docStatus">● Saved</span>
+  </div>
+
+  <div class="topbar-center">
+    <div class="tool-group">
+      <button class="tool-btn active" id="toolSelect" title="Select (V)">↖</button>
+      <button class="tool-btn" id="toolHand"   title="Pan (H)">✋</button>
+      <span class="tool-sep"></span>
+      <button class="tool-btn" id="toolRect"   title="Rectangle (R)">▭</button>
+      <button class="tool-btn" id="toolDiamond" title="Decision (D)">◇</button>
+      <button class="tool-btn" id="toolOval"   title="Oval (O)">⬭</button>
+      <button class="tool-btn" id="toolConnect" title="Connect (C)">↗</button>
+      <span class="tool-sep"></span>
+      <button class="tool-btn" id="toolText"   title="Text (T)">T</button>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <span class="mock-badge">MOCK</span>
+    <button class="tb-btn tb-btn-ghost" id="undoBtn" title="Undo">↩</button>
+    <button class="tb-btn tb-btn-ghost" id="redoBtn" title="Redo">↪</button>
+    <div class="topbar-divider"></div>
+    <button class="tb-btn tb-btn-ghost" id="exportBtn">⬇️ Export</button>
+    <button class="tb-btn tb-btn-brand" id="shareBtn">🔗 Share</button>
+    <div class="avatar-btn">SC</div>
+  </div>
+</header>
+
+<!-- ══ APP BODY ══════════════════════════════════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- LEFT PANEL -->
+  <aside class="left-panel">
+    <div class="panel-section">
+      <div class="panel-label">Shapes</div>
+      <div class="shape-grid">
+        <button class="shape-btn" data-add="rect">
+          <span class="shape-icon">▭</span> Process
+        </button>
+        <button class="shape-btn" data-add="diamond">
+          <span class="shape-icon">◇</span> Decision
+        </button>
+        <button class="shape-btn" data-add="oval">
+          <span class="shape-icon">⬭</span> Terminal
+        </button>
+        <button class="shape-btn" data-add="parallelogram">
+          <span class="shape-icon">▱</span> I/O
+        </button>
+        <button class="shape-btn" data-add="cylinder">
+          <span class="shape-icon">🗄</span> Database
+        </button>
+        <button class="shape-btn" data-add="cloud">
+          <span class="shape-icon">☁</span> Cloud
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section" style="margin-top:0.5rem;">
+      <div class="panel-label">Diagram Type</div>
+      <div class="shape-grid">
+        <button class="shape-btn" data-load="flowchart">
+          <span class="shape-icon">⬇️</span> Flowchart
+        </button>
+        <button class="shape-btn" data-load="sequence">
+          <span class="shape-icon">↔️</span> Sequence
+        </button>
+        <button class="shape-btn" data-load="org">
+          <span class="shape-icon">🏢</span> Org Chart
+        </button>
+        <button class="shape-btn" data-load="arch">
+          <span class="shape-icon">🏗️</span> Architecture
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section" style="margin-top:0.5rem;">
+      <div class="panel-label">My Diagrams</div>
+    </div>
+    <div class="diag-item active" data-diag="arch">🏗️ System Architecture</div>
+    <div class="diag-item" data-diag="flow">⬇️ Onboarding Flow</div>
+    <div class="diag-item" data-diag="seq">↔️ Auth Sequence</div>
+    <div class="diag-item" data-diag="org">🏢 Org Chart Q2</div>
+  </aside>
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap" id="canvasWrap">
+
+    <div class="canvas-toolbar">
+      <button class="ct-btn active" id="ctFlow" data-view="flow">Flowchart</button>
+      <button class="ct-btn" id="ctSeq" data-view="seq">Sequence</button>
+      <button class="ct-btn" id="ctOrg" data-view="org">Org Chart</button>
+      <button class="ct-btn" id="ctArch" data-view="arch">Architecture</button>
+      <div class="ct-sep"></div>
+      <button class="ct-btn" id="ctFitBtn">⊞ Fit</button>
+      <button class="ct-btn" id="ctClear">🗑 Clear</button>
+    </div>
+
+    <svg id="diagramSvg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
+        </marker>
+        <marker id="arrowhead-brand" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+        </marker>
+      </defs>
+      <!-- Content rendered by JS -->
+    </svg>
+
+    <div class="zoom-badge">
+      <button class="zoom-btn" id="zoomOut">−</button>
+      <span id="zoomLabel">100%</span>
+      <button class="zoom-btn" id="zoomIn">＋</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <div class="prop-header">Properties</div>
+
+    <div id="noSelection" class="no-selection">
+      <div class="icon">🖱️</div>
+      <p>Click a shape on the canvas to inspect and edit its properties.</p>
+    </div>
+
+    <div id="propPanel" style="display:none;">
+      <div class="prop-group">
+        <div class="prop-label">Label</div>
+        <input class="prop-input" id="propLabel" type="text" placeholder="Node label" />
+      </div>
+      <div class="prop-group">
+        <div class="prop-label">Shape</div>
+        <select class="prop-input select" id="propShape">
+          <option value="rect">Rectangle</option>
+          <option value="diamond">Diamond</option>
+          <option value="oval">Oval</option>
+        </select>
+      </div>
+      <div class="prop-group">
+        <div class="prop-label">Fill colour</div>
+        <div class="color-row" id="colorRow">
+          <div class="color-swatch active" style="background:#1e3a5f" data-color="#1e3a5f"></div>
+          <div class="color-swatch" style="background:#1a2e1a" data-color="#1a2e1a"></div>
+          <div class="color-swatch" style="background:#1e1a2d" data-color="#1e1a2d"></div>
+          <div class="color-swatch" style="background:#2d1d0f" data-color="#2d1d0f"></div>
+          <div class="color-swatch" style="background:#1e293b" data-color="#1e293b"></div>
+          <div class="color-swatch" style="background:#1f1f1f" data-color="#1f1f1f"></div>
+        </div>
+      </div>
+      <div class="prop-group">
+        <div class="prop-label">Position</div>
+        <div class="prop-row">
+          <input class="prop-input" id="propX" type="number" placeholder="X" />
+          <input class="prop-input" id="propY" type="number" placeholder="Y" />
+        </div>
+      </div>
+      <div class="prop-group">
+        <div class="prop-label">Size</div>
+        <div class="prop-row">
+          <input class="prop-input" id="propW" type="number" placeholder="W" />
+          <input class="prop-input" id="propH" type="number" placeholder="H" />
+        </div>
+      </div>
+      <div class="prop-group">
+        <div class="prop-label">Actions</div>
+        <button class="tb-btn tb-btn-ghost" style="width:100%;justify-content:center;margin-bottom:0.35rem;" id="propDuplicate">⧉ Duplicate</button>
+        <button class="tb-btn" style="width:100%;justify-content:center;background:#450a0a;border-color:#7f1d1d;color:#fca5a5;" id="propDelete">🗑 Delete</button>
+      </div>
+    </div>
+  </aside>
+
+</div><!-- /.app-body -->
+
+<div class="toast-rack" id="toastRack"></div>
+
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━ TOAST ━━━━━━━━━━━━━━━━━━━━━━━ */
+function toast(msg) {
+  const rack = document.getElementById('toastRack');
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  rack.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ DIAGRAM DATA ━━━━━━━━━━━━━━━━━━━━━━━ */
+const DIAGRAMS = {
+  arch: {
+    title: 'System Architecture',
+    nodes: [
+      { id:'n1',  type:'oval',    x:340, y:80,  w:160, h:50,  label:'Client Browser',   color:'#1e1a2d' },
+      { id:'n2',  type:'rect',    x:320, y:190, w:200, h:55,  label:'API Gateway (Go)', color:'#1e3a5f' },
+      { id:'n3',  type:'rect',    x:140, y:310, w:180, h:55,  label:'Auth Service',     color:'#1e3a5f' },
+      { id:'n4',  type:'rect',    x:360, y:310, w:180, h:55,  label:'File Service',     color:'#1e3a5f' },
+      { id:'n5',  type:'rect',    x:580, y:310, w:180, h:55,  label:'Compute Service',  color:'#1e3a5f' },
+      { id:'n6',  type:'cylinder',x:200, y:430, w:160, h:55,  label:'PostgreSQL',       color:'#1a2e1a' },
+      { id:'n7',  type:'cylinder',x:440, y:430, w:160, h:55,  label:'Block Store',      color:'#1a2e1a' },
+      { id:'n8',  type:'cloud',   x:620, y:430, w:160, h:55,  label:'CDN',              color:'#2d1d0f' },
+    ],
+    edges: [
+      { from:'n1', to:'n2', label:'HTTPS' },
+      { from:'n2', to:'n3', label:'JWT' },
+      { from:'n2', to:'n4', label:'REST' },
+      { from:'n2', to:'n5', label:'gRPC' },
+      { from:'n3', to:'n6', label:'' },
+      { from:'n4', to:'n7', label:'' },
+      { from:'n5', to:'n8', label:'' },
+    ],
+  },
+  flow: {
+    title: 'Onboarding Flow',
+    nodes: [
+      { id:'f1', type:'oval',    x:340, y:60,  w:160, h:50,  label:'Start',          color:'#1a2e1a' },
+      { id:'f2', type:'rect',    x:320, y:165, w:200, h:55,  label:'Fill Form',      color:'#1e3a5f' },
+      { id:'f3', type:'diamond', x:300, y:280, w:240, h:70,  label:'Valid?',         color:'#2d1d0f' },
+      { id:'f4', type:'rect',    x:120, y:390, w:200, h:55,  label:'Show Errors',    color:'#1e3a5f' },
+      { id:'f5', type:'rect',    x:520, y:390, w:200, h:55,  label:'Create Account', color:'#1e3a5f' },
+      { id:'f6', type:'oval',    x:540, y:500, w:160, h:50,  label:'Done',           color:'#1a2e1a' },
+    ],
+    edges: [
+      { from:'f1', to:'f2', label:'' },
+      { from:'f2', to:'f3', label:'' },
+      { from:'f3', to:'f4', label:'No'  },
+      { from:'f3', to:'f5', label:'Yes' },
+      { from:'f4', to:'f2', label:'Retry' },
+      { from:'f5', to:'f6', label:'' },
+    ],
+  },
+  seq: {
+    title: 'Auth Sequence',
+    nodes: [
+      { id:'s1', type:'rect', x:100, y:80,  w:130, h:50, label:'Browser',       color:'#1e3a5f' },
+      { id:'s2', type:'rect', x:280, y:80,  w:130, h:50, label:'API Gateway',   color:'#1e3a5f' },
+      { id:'s3', type:'rect', x:460, y:80,  w:130, h:50, label:'Auth Service',  color:'#1e3a5f' },
+      { id:'s4', type:'rect', x:640, y:80,  w:130, h:50, label:'Database',      color:'#1a2e1a' },
+    ],
+    edges: [
+      { from:'s1', to:'s2', label:'POST /login' },
+      { from:'s2', to:'s3', label:'Verify creds' },
+      { from:'s3', to:'s4', label:'SELECT user' },
+      { from:'s4', to:'s3', label:'User record' },
+      { from:'s3', to:'s2', label:'JWT token' },
+      { from:'s2', to:'s1', label:'200 OK + token' },
+    ],
+  },
+  org: {
+    title: 'Org Chart Q2',
+    nodes: [
+      { id:'o1', type:'rect', x:320, y:60,  w:200, h:55, label:'Sarah Chen — CEO',    color:'#1e1a2d' },
+      { id:'o2', type:'rect', x:120, y:190, w:180, h:55, label:'Alex R. — CTO',       color:'#1e3a5f' },
+      { id:'o3', type:'rect', x:340, y:190, w:180, h:55, label:'Jamie L. — CPO',      color:'#1e3a5f' },
+      { id:'o4', type:'rect', x:560, y:190, w:180, h:55, label:'Morgan K. — CFO',     color:'#1e3a5f' },
+      { id:'o5', type:'rect', x:60,  y:310, w:160, h:55, label:'Engineering Lead',    color:'#1a2e1a' },
+      { id:'o6', type:'rect', x:240, y:310, w:160, h:55, label:'Design Lead',         color:'#1a2e1a' },
+      { id:'o7', type:'rect', x:380, y:310, w:160, h:55, label:'Product Manager',     color:'#1a2e1a' },
+      { id:'o8', type:'rect', x:560, y:310, w:160, h:55, label:'Finance Analyst',     color:'#1a2e1a' },
+    ],
+    edges: [
+      { from:'o1', to:'o2', label:'' },
+      { from:'o1', to:'o3', label:'' },
+      { from:'o1', to:'o4', label:'' },
+      { from:'o2', to:'o5', label:'' },
+      { from:'o2', to:'o6', label:'' },
+      { from:'o3', to:'o7', label:'' },
+      { from:'o4', to:'o8', label:'' },
+    ],
+  },
+};
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ RENDERER ━━━━━━━━━━━━━━━━━━━━━━━ */
+let currentDiag = 'arch';
+let selectedNode = null;
+let zoom = 1;
+let panX = 0, panY = 0;
+let tool = 'select';
+
+function getCenter(n) {
+  return { x: n.x + n.w / 2, y: n.y + n.h / 2 };
+}
+
+function renderDiagram(key) {
+  currentDiag = key;
+  selectedNode = null;
+  const svg = document.getElementById('diagramSvg');
+  svg.innerHTML = `
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
+      </marker>
+    </defs>`;
+
+  const diag = DIAGRAMS[key];
+  if (!diag) return;
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('transform', `translate(${panX},${panY}) scale(${zoom})`);
+
+  // Edges first (behind nodes)
+  diag.edges.forEach(e => {
+    const from = diag.nodes.find(n => n.id === e.from);
+    const to   = diag.nodes.find(n => n.id === e.to);
+    if (!from || !to) return;
+    const fc = getCenter(from), tc = getCenter(to);
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const mx = (fc.x + tc.x) / 2, my = (fc.y + tc.y) / 2 - 20;
+    path.setAttribute('d', `M${fc.x},${fc.y} Q${mx},${my} ${tc.x},${tc.y}`);
+    path.setAttribute('class', 'connector');
+    g.appendChild(path);
+    if (e.label) {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', mx); txt.setAttribute('y', my - 4);
+      txt.setAttribute('class', 'edge-label');
+      txt.textContent = e.label;
+      g.appendChild(txt);
+    }
+  });
+
+  // Nodes
+  diag.nodes.forEach(n => {
+    const ng = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    ng.dataset.id = n.id;
+
+    if (n.type === 'rect' || n.type === 'cylinder' || n.type === 'cloud') {
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', n.x); r.setAttribute('y', n.y);
+      r.setAttribute('width', n.w); r.setAttribute('height', n.h);
+      r.setAttribute('rx', n.type === 'cloud' ? 20 : 8);
+      r.setAttribute('fill', n.color || '#1e3a5f');
+      r.setAttribute('stroke', n.type === 'cylinder' ? '#16a34a' : '#2563eb');
+      r.setAttribute('stroke-width', 1.5);
+      r.style.cursor = 'move';
+      ng.appendChild(r);
+    } else if (n.type === 'diamond') {
+      const cx = n.x + n.w/2, cy = n.y + n.h/2;
+      const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      poly.setAttribute('points', `${cx},${n.y} ${n.x+n.w},${cy} ${cx},${n.y+n.h} ${n.x},${cy}`);
+      poly.setAttribute('fill', n.color || '#2d1d0f');
+      poly.setAttribute('stroke', '#f59e0b'); poly.setAttribute('stroke-width', 1.5);
+      poly.style.cursor = 'move';
+      ng.appendChild(poly);
+    } else if (n.type === 'oval') {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+      el.setAttribute('cx', n.x + n.w/2); el.setAttribute('cy', n.y + n.h/2);
+      el.setAttribute('rx', n.w/2); el.setAttribute('ry', n.h/2);
+      el.setAttribute('fill', n.color || '#1e1a2d');
+      el.setAttribute('stroke', '#8b5cf6'); el.setAttribute('stroke-width', 1.5);
+      el.style.cursor = 'move';
+      ng.appendChild(el);
+    }
+
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', n.x + n.w/2); txt.setAttribute('y', n.y + n.h/2);
+    txt.setAttribute('class', 'node-text'); txt.textContent = n.label;
+    ng.appendChild(txt);
+
+    ng.addEventListener('click', () => selectNode(n.id));
+    g.appendChild(ng);
+  });
+
+  svg.appendChild(g);
+  updatePropPanel();
+}
+
+function selectNode(id) {
+  const diag = DIAGRAMS[currentDiag];
+  const n = diag.nodes.find(x => x.id === id);
+  selectedNode = n || null;
+  updatePropPanel();
+  if (n) {
+    document.getElementById('propLabel').value = n.label;
+    document.getElementById('propShape').value = n.type === 'cylinder' || n.type === 'cloud' ? 'rect' : n.type;
+    document.getElementById('propX').value = n.x;
+    document.getElementById('propY').value = n.y;
+    document.getElementById('propW').value = n.w;
+    document.getElementById('propH').value = n.h;
+  }
+}
+
+function updatePropPanel() {
+  document.getElementById('noSelection').style.display = selectedNode ? 'none' : '';
+  document.getElementById('propPanel').style.display   = selectedNode ? '' : 'none';
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ TOOLBAR ━━━━━━━━━━━━━━━━━━━━━━━ */
+const toolBtns = ['toolSelect','toolHand','toolRect','toolDiamond','toolOval','toolConnect','toolText'];
+toolBtns.forEach(id => {
+  document.getElementById(id).addEventListener('click', () => {
+    toolBtns.forEach(b => document.getElementById(b).classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    tool = id.replace('tool','').toLowerCase();
+    toast('Tool: ' + tool);
+  });
+});
+
+/* canvas toolbar view tabs */
+document.querySelectorAll('.ct-btn[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ct-btn[data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const viewMap = { flow:'flow', seq:'seq', org:'org', arch:'arch' };
+    const key = viewMap[btn.dataset.view] || 'arch';
+    renderDiagram(key);
+    document.getElementById('docName').value = DIAGRAMS[key]?.title || 'Diagram';
+    toast('📊 Loaded diagram: ' + DIAGRAMS[key]?.title);
+  });
+});
+
+document.getElementById('ctFitBtn').addEventListener('click', () => {
+  zoom = 1; panX = 0; panY = 0;
+  renderDiagram(currentDiag);
+  document.getElementById('zoomLabel').textContent = '100%';
+});
+document.getElementById('ctClear').addEventListener('click', () => {
+  if (confirm('Clear all shapes from canvas?')) {
+    DIAGRAMS[currentDiag].nodes = [];
+    DIAGRAMS[currentDiag].edges = [];
+    renderDiagram(currentDiag);
+    toast('🗑 Canvas cleared');
+  }
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ SHAPE PALETTE ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.querySelectorAll('[data-add]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.add;
+    const diag = DIAGRAMS[currentDiag];
+    const id = 'n' + Date.now();
+    const colors = { rect:'#1e3a5f', diamond:'#2d1d0f', oval:'#1e1a2d', cylinder:'#1a2e1a', cloud:'#2d1d0f', parallelogram:'#1e3a5f' };
+    diag.nodes.push({ id, type: type === 'parallelogram' || type === 'cylinder' || type === 'cloud' ? type : type, x:280, y:200, w:160, h:55, label:btn.textContent.trim(), color: colors[type] || '#1e3a5f' });
+    renderDiagram(currentDiag);
+    toast('➕ Added ' + btn.textContent.trim() + ' shape');
+  });
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ DIAGRAM LIST ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.querySelectorAll('[data-diag]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('[data-diag]').forEach(x => x.classList.remove('active'));
+    item.classList.add('active');
+    const key = item.dataset.diag;
+    renderDiagram(key);
+    document.getElementById('docName').value = DIAGRAMS[key]?.title || 'Diagram';
+    document.querySelectorAll('.ct-btn[data-view]').forEach(b => b.classList.remove('active'));
+    const mapView = { arch:'arch', flow:'flow', seq:'seq', org:'org' };
+    const vbtn = document.querySelector(`.ct-btn[data-view="${mapView[key] || 'flow'}"]`);
+    if (vbtn) vbtn.classList.add('active');
+    toast('📊 Opened: ' + DIAGRAMS[key]?.title);
+  });
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ LOAD DIAGRAM TYPE ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.querySelectorAll('[data-load]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const map = { flowchart:'flow', sequence:'seq', org:'org', arch:'arch' };
+    const key = map[btn.dataset.load] || 'flow';
+    renderDiagram(key);
+    document.getElementById('docName').value = DIAGRAMS[key]?.title || 'Diagram';
+    toast('🖼️ Template: ' + btn.textContent.trim());
+  });
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ PROPERTIES ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.getElementById('propLabel').addEventListener('input', e => {
+  if (!selectedNode) return;
+  selectedNode.label = e.target.value;
+  renderDiagram(currentDiag);
+  selectNode(selectedNode.id);
+});
+
+['propX','propY','propW','propH'].forEach(id => {
+  document.getElementById(id).addEventListener('change', e => {
+    if (!selectedNode) return;
+    const map = {propX:'x', propY:'y', propW:'w', propH:'h'};
+    selectedNode[map[id]] = parseInt(e.target.value) || 0;
+    renderDiagram(currentDiag);
+    selectNode(selectedNode.id);
+  });
+});
+
+document.querySelectorAll('.color-swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    if (!selectedNode) return;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    selectedNode.color = sw.dataset.color;
+    renderDiagram(currentDiag);
+    selectNode(selectedNode.id);
+  });
+});
+
+document.getElementById('propDelete').addEventListener('click', () => {
+  if (!selectedNode) return;
+  const diag = DIAGRAMS[currentDiag];
+  diag.nodes = diag.nodes.filter(n => n.id !== selectedNode.id);
+  diag.edges = diag.edges.filter(e => e.from !== selectedNode.id && e.to !== selectedNode.id);
+  selectedNode = null;
+  renderDiagram(currentDiag);
+  toast('🗑 Node deleted');
+});
+
+document.getElementById('propDuplicate').addEventListener('click', () => {
+  if (!selectedNode) return;
+  const copy = { ...selectedNode, id: 'n' + Date.now(), x: selectedNode.x + 24, y: selectedNode.y + 24 };
+  DIAGRAMS[currentDiag].nodes.push(copy);
+  renderDiagram(currentDiag);
+  toast('⧉ Duplicated "' + copy.label + '"');
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ ZOOM ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.getElementById('zoomIn').addEventListener('click', () => {
+  zoom = Math.min(zoom + 0.1, 3);
+  document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+  renderDiagram(currentDiag);
+});
+document.getElementById('zoomOut').addEventListener('click', () => {
+  zoom = Math.max(zoom - 0.1, 0.3);
+  document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+  renderDiagram(currentDiag);
+});
+document.getElementById('canvasWrap').addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  zoom = Math.max(0.3, Math.min(3, zoom + delta));
+  document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+  renderDiagram(currentDiag);
+}, { passive: false });
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ DOC NAME ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.getElementById('docName').addEventListener('input', () => {
+  document.getElementById('docStatus').textContent = '● Unsaved';
+  document.getElementById('docStatus').style.color = '#f59e0b';
+});
+document.getElementById('docName').addEventListener('blur', () => {
+  document.getElementById('docStatus').textContent = '● Saved';
+  document.getElementById('docStatus').style.color = '';
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ TOPBAR ACTIONS ━━━━━━━━━━━━━━━━━━━━━━━ */
+document.getElementById('exportBtn').addEventListener('click', () => toast('⬇️ Exporting as PNG/SVG…'));
+document.getElementById('shareBtn').addEventListener('click',  () => toast('🔗 Share link copied to clipboard'));
+document.getElementById('undoBtn').addEventListener('click',   () => toast('↩ Undo (mock)'));
+document.getElementById('redoBtn').addEventListener('click',   () => toast('↪ Redo (mock)'));
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━ INIT ━━━━━━━━━━━━━━━━━━━━━━━ */
+renderDiagram('arch');
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Purchased In-Person has pedistal.

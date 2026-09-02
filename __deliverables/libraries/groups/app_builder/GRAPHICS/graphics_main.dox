@@ -1,0 +1,13 @@
+/**
+ * @page graphics_main Graphics
+ *
+ * The Graphics module provides lightweight charting, plotting, and image
+ * export utilities used across the project.
+ *
+ * - Canvas and drawing primitives
+ * - Chart types (line, bar, scatter, polar)
+ * - Plotting helpers and visual styles
+ * - Export to PNG/JPG/BMP
+ *
+ * See the module documentation for usage and API details.
+ */

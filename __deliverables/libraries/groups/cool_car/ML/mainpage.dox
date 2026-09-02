@@ -1,0 +1,14 @@
+/**
+ * @mainpage Machine Learning Toolkit
+ *
+ * Welcome to the Machine Learning Toolkit documentation! This toolkit provides a suite of machine learning algorithms and utilities, including decision trees, neural networks, support vector machines, and advanced logging for experiments and production systems.
+ *
+ * @section modules Modules
+ * - Decision Tree
+ * - Neural Network
+ * - Support Vector Machine
+ * - Advanced Logging
+ *
+ * @section getting_started Getting Started
+ * See the individual module pages for usage examples and API documentation.
+ */

@@ -1,0 +1,36 @@
+template:
+  bootstrap: 5
+
+url: https://mehranghamaty.github.io/CoolBox/
+
+home:
+  title: coolboxr
+  description: R bindings for selected CoolBox C++ features.
+
+reference:
+  - title: Modeling
+    contents:
+      - coolbox_bayesian_network
+      - coolbox_decision_tree
+      - coolbox_hmm
+      - coolbox_knn
+      - coolbox_latent_sentiment_analysis
+      - coolbox_linear_regression
+      - coolbox_marked_point_process
+      - coolbox_multi_arm_bandit
+      - coolbox_pca
+      - coolbox_pcim
+      - coolbox_svd
+      - coolbox_svm
+      - coolbox_umap
+      - matches("^predict\\.coolbox_linear_regression$")
+      - matches("^predict\\.coolbox_decision_tree$")
+      - matches("^predict\\.coolbox_pca$")
+      - matches("^predict\\.coolbox_svm$")
+      - matches("^predict\\.coolbox_umap$")
+  - title: Time series
+    contents:
+      - coolbox_time_series_summary
+      - coolbox_time_series_transform
+      - coolbox_time_series_forecast
+      - coolbox_time_series_outliers

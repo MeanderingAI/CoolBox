@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Body Generator — Product Overview</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1f2937;
+  }
+  header {
+    background: linear-gradient(135deg, #1e1a2e 0%, #2d1045 100%);
+    color: #fff;
+    padding: 2em 2.5em 1.8em;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2em;
+  }
+  .product-icon { font-size: 3em; line-height: 1; }
+  .product-title h1 { margin: 0 0 0.15em; font-size: 1.8em; }
+  .product-title .subtitle {
+    font-size: 0.9em;
+    color: #d8b4fe;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+  }
+  .back-link {
+    margin-left: auto;
+    align-self: flex-start;
+    color: #d8b4fe;
+    text-decoration: none;
+    font-size: 0.82em;
+    border: 1px solid #d8b4fe;
+    border-radius: 5px;
+    padding: 0.3em 0.8em;
+    transition: background 0.15s;
+  }
+  .back-link:hover { background: rgba(216,180,254,0.15); }
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2em 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+  }
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    padding: 1.3em 1.6em;
+  }
+  .card h2 {
+    margin: 0 0 0.75em;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5em;
+  }
+  .card p { margin: 0 0 0.6em; font-size: 0.92em; line-height: 1.65; color: #374151; }
+  .card p:last-child { margin-bottom: 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.5em; }
+  .tag {
+    font-size: 0.72em; font-weight: 600; padding: 0.2em 0.6em;
+    border-radius: 4px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+  }
+  .tag.purple { background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe; }
+  .tag.green  { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+  .tree { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 0.82em; }
+  .tree-item { display: flex; align-items: baseline; gap: 0.5em; padding: 0.18em 0; color: #374151; }
+  .tree-item .fname { color: #0e639c; }
+  .tree-item .fdesc { color: #9ca3af; font-size: 0.9em; }
+  .target-row {
+    display: flex; align-items: center; gap: 0.6em; padding: 0.35em 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .target-row:last-child { border-bottom: none; }
+  .target-name {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.82em; font-weight: 600; color: #0e639c; flex: 1;
+  }
+  .target-type {
+    font-size: 0.7em; padding: 0.15em 0.5em; border-radius: 3px;
+    background: #eff6ff; color: #1d4ed8; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="product-icon">🧬</div>
+  <div class="product-title">
+    <h1>Body Generator</h1>
+    <div class="subtitle">_Product/body_generator</div>
+  </div>
+  <a class="back-link" href="/">← Dashboard</a>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Overview</h2>
+    <p>
+      Body Generator is a procedural geometry and body-structure generation tool.
+      It exposes both a headless command-line interface (<code>body_generator</code>)
+      and a GUI-enabled variant (<code>body_generator_ui</code>) built on the
+      <code>full_application_window</code> shell.
+    </p>
+    <p>
+      The core generation logic lives in <code>src/body_generator.cpp</code> and is
+      shared by both executables, keeping the UI variant a thin wrapper around the
+      same engine.
+    </p>
+    <div class="tags">
+      <span class="tag">C++17</span>
+      <span class="tag purple">Procedural</span>
+      <span class="tag green">GUI + CLI</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>CMake Targets</h2>
+    <div class="target-row">
+      <span class="target-name">body_generator</span>
+      <span class="target-type">Executable</span>
+    </div>
+    <div class="target-row">
+      <span class="target-name">body_generator_ui</span>
+      <span class="target-type">Executable</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Source Structure</h2>
+    <div class="tree">
+      <div class="tree-item"><span class="fname">src/main.cpp</span><span class="fdesc">— CLI entry point</span></div>
+      <div class="tree-item"><span class="fname">src/ui_main.cpp</span><span class="fdesc">— GUI entry point</span></div>
+      <div class="tree-item"><span class="fname">src/body_generator.cpp</span><span class="fdesc">— shared generation engine</span></div>
+      <div class="tree-item"><span class="fname">include/</span><span class="fdesc">— public headers for the generator API</span></div>
+      <div class="tree-item"><span class="fname">assets/</span><span class="fdesc">— bundled geometry templates and presets</span></div>
+      <div class="tree-item"><span class="fname">CMakeLists.txt</span><span class="fdesc">— build entry for both targets</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Dependencies</h2>
+    <p>
+      <strong>distribution</strong> — data distribution and serialisation utilities<br>
+      <strong>full_application_window</strong> — windowed shell (UI target only)<br>
+      Additional 3D/graphics libraries can be linked via the placeholder in CMakeLists.txt.
+    </p>
+  </div>
+
+</main>
+</body>
+</html>

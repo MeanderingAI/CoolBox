@@ -1,0 +1,6 @@
+{
+  "title": "Taylor Series & Signal Processing",
+  "description": "Interactive demonstration of Taylor series approximation combined with Fourier transform analysis",
+  "icon": "📊",
+  "libraries": ["taylor-fourier-analyzer.mjs", "signal-processor.mjs"]
+}

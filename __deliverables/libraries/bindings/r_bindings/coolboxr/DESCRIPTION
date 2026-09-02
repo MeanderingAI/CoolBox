@@ -1,0 +1,35 @@
+Package: coolboxr
+Type: Package
+Title: R Bindings for CoolBox
+Version: 0.1.0
+Authors@R: c(
+    person("CoolBox", "Maintainers", email = "opensource@example.com", role = c("aut", "cre"))
+    )
+Description: R bindings for a broad set of CoolBox C++ components.
+    The package exposes native decision trees, support vector machines,
+    Bayesian networks, hidden Markov models, linear regression, multi-arm
+    bandits, marked point processes, piecewise conditional intensity models,
+    latent sentiment analysis, singular value decomposition, principal
+    component analysis, k-nearest neighbors, UMAP, and time-series utilities
+    backed by existing CoolBox implementations.
+License: MIT + file LICENSE
+URL: https://github.com/MeanderingAI/CoolBox
+BugReports: https://github.com/MeanderingAI/CoolBox/issues
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 4.1.0)
+Imports:
+    stats,
+    utils,
+    Rcpp
+LinkingTo:
+    Rcpp
+Suggests:
+    devtools,
+    pkgdown,
+    roxygen2,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/Needs/website: pkgdown
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

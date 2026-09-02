@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taylor Expansion Components · Visual Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1018;
+      --surface: #171b28;
+      --surface2: #20263a;
+      --border: #2c3348;
+      --text: #e6edf7;
+      --muted: #7b879b;
+      --brand: #4f8cff;
+      --brand2: #24c8a5;
+      --brand3: #d16cff;
+      --warn: #f6b44a;
+      --shadow: rgba(8, 12, 22, 0.45);
+    }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(79, 140, 255, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(209, 108, 255, 0.14), transparent 22%),
+        linear-gradient(180deg, #0d1018 0%, #0b0d14 100%);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .topbar {
+      background: rgba(23, 27, 40, 0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      height: 46px;
+      flex-shrink: 0;
+      backdrop-filter: blur(10px);
+    }
+    .tb-icon { font-size: 1.18rem; }
+    .tb-title { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; }
+    .tb-sub { font-size: 0.7rem; color: var(--muted); }
+    .tb-badge {
+      margin-left: auto;
+      background: rgba(77, 136, 255, 0.15);
+      color: var(--brand);
+      border: 1px solid rgba(79, 140, 255, 0.45);
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 0.12em 0.65em;
+      letter-spacing: 0.08em;
+    }
+    .main {
+      flex: 1;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 1rem;
+      padding: 1rem;
+      min-height: 0;
+    }
+    .control-panel,
+    .viz-panel {
+      background: rgba(23, 27, 40, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 18px 50px var(--shadow);
+      min-height: 0;
+    }
+    .control-panel {
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .viz-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .ctrl-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    .ctrl-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .btn-group { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    button {
+      padding: 0.48rem 0.75rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 800;
+      transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    button:hover { background: #26304a; border-color: rgba(79, 140, 255, 0.6); transform: translateY(-1px); }
+    button.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border: none;
+      background: #2a3146;
+      border-radius: 999px;
+      accent-color: var(--brand);
+      cursor: pointer;
+      flex: 1;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #f6fbff 0%, #cde2ff 100%);
+      border: 2px solid var(--brand);
+      box-shadow: 0 4px 14px rgba(79, 140, 255, 0.35);
+    }
+    .value-display {
+      min-width: 52px;
+      text-align: right;
+      font-size: 0.73rem;
+      color: var(--brand);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .toggle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    label.toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      font-size: 0.73rem;
+      color: var(--text);
+      user-select: none;
+    }
+    .equation-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem;
+      font-size: 0.7rem;
+      color: var(--text);
+      line-height: 1.45;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      overflow: auto;
+      max-height: 150px;
+    }
+    .equation-label {
+      color: var(--muted);
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+    .equation-text {
+      white-space: normal;
+      word-break: break-word;
+    }
+    .info-box {
+      margin-top: auto;
+      background: rgba(14, 18, 30, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.8rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .info-title {
+      color: var(--brand);
+      font-weight: 800;
+      margin-bottom: 0.45rem;
+    }
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.65rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.68rem;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .viz-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.75rem 0.95rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(32, 38, 58, 0.95), rgba(23, 27, 40, 0.95));
+      flex-shrink: 0;
+    }
+    .viz-hdr strong { font-size: 0.84rem; }
+    .viz-hdr span { font-size: 0.7rem; color: var(--muted); }
+    .viz-container {
+      flex: 1 1 0%;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(79, 140, 255, 0.12), transparent 26%),
+        radial-gradient(circle at 85% 80%, rgba(209, 108, 255, 0.08), transparent 24%),
+        #0a0d14;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+    .hint {
+      margin-top: 0.2rem;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+    @media (max-width: 960px) {
+      .main { grid-template-columns: 1fr; }
+      .control-panel { order: 2; }
+      .viz-panel { min-height: 52vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="tb-icon">∑</span>
+    <div>
+      <div class="tb-title">Taylor Expansion Components</div>
+      <div class="tb-sub">Slide the number of terms to watch the partial sums converge</div>
+    </div>
+    <div class="tb-badge">DEMO</div>
+  </div>
+
+  <div class="main">
+    <aside class="control-panel">
+      <div class="ctrl-section">
+        <div class="ctrl-label">Function</div>
+        <div class="btn-group">
+          <button id="btnSin" class="active">sin(x)</button>
+          <button id="btnCos">cos(x)</button>
+          <button id="btnExp">e^x</button>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-label">Components</div>
+        <div class="ctrl-row">
+          <input type="range" id="components" min="1" max="12" value="5" />
+          <span class="value-display" id="componentsValue">5 terms</span>
+        </div>
+        <div class="hint">Each step adds one more Taylor component to the partial sum.</div>
+        <div class="equation-box">
+          <div class="equation-label">Equation</div>
+          <div class="equation-text" id="equationText">S_5(x) = x - x^3/3! + x^5/5! - x^7/7! + x^9/9!</div>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-label">X Range</div>
+        <div class="ctrl-row">
+          <input type="range" id="xRange" min="1" max="5" value="3" step="0.5" />
+          <span class="value-display" id="xRangeValue">±3.0</span>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <div class="ctrl-label">Display</div>
+        <div class="toggle-list">
+          <label class="toggle"><input type="checkbox" id="showExact" checked /> Exact function</label>
+          <label class="toggle"><input type="checkbox" id="showSelected" checked /> Selected partial sum</label>
+          <label class="toggle"><input type="checkbox" id="showTrail" checked /> Earlier partial sums</label>
+          <label class="toggle"><input type="checkbox" id="includeEquationExport" checked /> Include equation in export</label>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <button id="btnReset" style="width: 100%; padding: 0.65rem;">Reset View</button>
+        <button id="btnExportPng" style="width: 100%; padding: 0.65rem;">Export PNG</button>
+        <button id="btnExportGif" style="width: 100%; padding: 0.65rem;">Export GIF Sweep</button>
+      </div>
+
+      <div class="info-box">
+        <div class="info-title">What this shows</div>
+        Taylor series are built by adding one term at a time. Use the slider to see how each extra component changes the approximation.
+        <div class="legend">
+          <div class="legend-item"><div class="legend-color" style="background:#4f8cff;"></div><span>Exact function</span></div>
+          <div class="legend-item"><div class="legend-color" style="background:#24c8a5;"></div><span>Selected partial sum</span></div>
+          <div class="legend-item"><div class="legend-color" style="background:#d16cff;"></div><span>Earlier partial sums</span></div>
+          <div class="legend-item"><div class="legend-color" style="background:#f6b44a;"></div><span>Series error</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="viz-panel">
+      <div class="viz-hdr">
+        <div>
+          <strong id="vizTitle">sin(x) with 5 terms</strong><br />
+          <span id="vizSubtitle">Show how the approximation improves as terms are added</span>
+        </div>
+        <div style="text-align:right;">
+          <strong id="errorMetric">max error: 0.0000</strong><br />
+          <span>partial sums from 1 to N</span>
+        </div>
+      </div>
+      <div class="viz-container">
+        <canvas id="vizCanvas"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    const GIF_JS_URL = '/third_party/js_libs/gif/gif.js';
+    const GIF_WORKER_URL = '/third_party/js_libs/gif/gif.worker.js';
+
+    class TaylorComponentDemo {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.functionName = 'sin';
+        this.componentCount = 5;
+        this.xRange = 3;
+        this.showExact = true;
+        this.showSelected = true;
+        this.showTrail = true;
+        this.includeEquationExport = true;
+        this.samples = 320;
+        this.x = [];
+        this.exact = [];
+        this.partialSums = [];
+        this.maxComponentCount = 12;
+        this.gifLibraryPromise = null;
+
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+        this.updateData();
+        this.render();
+      }
+
+      handleResize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = Math.max(1, Math.floor(rect.width));
+        this.canvas.height = Math.max(1, Math.floor(rect.height));
+        this.render();
+      }
+
+      factorial(n) {
+        let result = 1;
+        for (let i = 2; i <= n; i++) result *= i;
+        return result;
+      }
+
+      exactValue(x) {
+        if (this.functionName === 'sin') return Math.sin(x);
+        if (this.functionName === 'cos') return Math.cos(x);
+        return Math.exp(Math.min(x, 8));
+      }
+
+      termValue(x, index) {
+        if (this.functionName === 'sin') {
+          const sign = index % 2 === 0 ? 1 : -1;
+          return sign * Math.pow(x, 2 * index + 1) / this.factorial(2 * index + 1);
+        }
+        if (this.functionName === 'cos') {
+          const sign = index % 2 === 0 ? 1 : -1;
+          return sign * Math.pow(x, 2 * index) / this.factorial(2 * index);
+        }
+        return Math.pow(x, index) / this.factorial(index);
+      }
+
+      seriesLabel() {
+        if (this.functionName === 'sin') return 'Taylor series for sin(x)';
+        if (this.functionName === 'cos') return 'Taylor series for cos(x)';
+        return 'Taylor series for e^x';
+      }
+
+      formatPower(power) {
+        if (power === 0) return '1';
+        if (power === 1) return 'x';
+        return `x^${power}`;
+      }
+
+      buildEquation() {
+        const parts = [];
+        if (this.functionName === 'sin') {
+          for (let n = 0; n < this.componentCount; n++) {
+            const power = 2 * n + 1;
+            const term = this.formatPower(power);
+            const denominator = `${power}!`;
+            parts.push(n % 2 === 0 ? `${term}/${denominator}` : `-${term}/${denominator}`);
+          }
+        } else if (this.functionName === 'cos') {
+          for (let n = 0; n < this.componentCount; n++) {
+            const power = 2 * n;
+            const term = this.formatPower(power);
+            if (n === 0) {
+              parts.push('1');
+            } else {
+              const denominator = `${power}!`;
+              parts.push(n % 2 === 0 ? `${term}/${denominator}` : `-${term}/${denominator}`);
+            }
+          }
+        } else {
+          for (let n = 0; n < this.componentCount; n++) {
+            const term = this.formatPower(n);
+            if (n === 0) {
+              parts.push('1');
+            } else if (n === 1) {
+              parts.push('x');
+            } else {
+              parts.push(`${term}/${n}!`);
+            }
+          }
+        }
+
+        const normalized = parts
+          .join(' ')
+          .replace(/\s- /g, ' - ')
+          .replace(/\s\+ /g, ' + ')
+          .replace(/^1\s\+\s/, '1 + ');
+
+        return `S_${this.componentCount}(x) = ${normalized}`;
+      }
+
+      updateData() {
+        this.x = [];
+        this.exact = [];
+        this.partialSums = [];
+
+        const termsNeeded = this.componentCount;
+        for (let i = 0; i < this.samples; i++) {
+          const x = -this.xRange + (2 * this.xRange * i) / (this.samples - 1);
+          this.x.push(x);
+          this.exact.push(this.exactValue(x));
+
+          const partials = [];
+          let cumulative = 0;
+          for (let n = 0; n < termsNeeded; n++) {
+            cumulative += this.termValue(x, n);
+            partials.push(cumulative);
+          }
+          this.partialSums.push(partials);
+        }
+
+        const selected = this.partialSums.map((row) => row[this.componentCount - 1]);
+        this.maxError = Math.max(...selected.map((value, idx) => Math.abs(value - this.exact[idx])));
+        this.updateUiLabels();
+      }
+
+      setFunction(name) {
+        this.functionName = name;
+        this.updateUiLabels();
+        this.updateData();
+        this.render();
+      }
+
+      setComponentCount(count) {
+        this.componentCount = Math.max(1, Math.min(this.maxComponentCount, count));
+        this.updateUiLabels();
+        this.updateData();
+        this.render();
+      }
+
+      setXRange(range) {
+        this.xRange = Math.max(1, Math.min(5, range));
+        this.updateUiLabels();
+        this.updateData();
+        this.render();
+      }
+
+      updateUiLabels() {
+        document.getElementById('vizTitle').textContent = `${this.functionName === 'exp' ? 'e^x' : `${this.functionName}(x)`} with ${this.componentCount} terms`;
+        document.getElementById('vizSubtitle').textContent = this.seriesLabel();
+        document.getElementById('errorMetric').textContent = `max error: ${this.maxError ? this.maxError.toFixed(4) : '0.0000'}`;
+        const equationText = document.getElementById('equationText');
+        if (equationText) {
+          equationText.textContent = this.buildEquation();
+        }
+      }
+
+      clear() {
+        this.ctx.fillStyle = '#0a0d14';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+
+      scalePlot(minY, maxY) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const paddingX = Math.max(44, Math.round(w * 0.06));
+        const paddingY = Math.max(36, Math.round(h * 0.08));
+        const plotW = w - paddingX * 2;
+        const plotH = h - paddingY * 2;
+        const scaleX = (x) => paddingX + ((x + this.xRange) / (2 * this.xRange)) * plotW;
+        const scaleY = (y) => h - paddingY - ((y - minY) / (maxY - minY)) * plotH;
+        return { paddingX, paddingY, plotW, plotH, scaleX, scaleY };
+      }
+
+      drawAxes(scaleX, scaleY, paddingX, paddingY) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        this.ctx.strokeStyle = '#2f3650';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(paddingX, scaleY(0));
+        this.ctx.lineTo(w - paddingX, scaleY(0));
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(scaleX(0), paddingY);
+        this.ctx.lineTo(scaleX(0), h - paddingY);
+        this.ctx.stroke();
+
+        this.ctx.strokeStyle = '#1f2840';
+        this.ctx.lineWidth = 0.8;
+        for (let i = -4; i <= 4; i++) {
+          const px = scaleX((i / 4) * this.xRange);
+          this.ctx.beginPath();
+          this.ctx.moveTo(px, h - paddingY - 4);
+          this.ctx.lineTo(px, h - paddingY + 4);
+          this.ctx.stroke();
+        }
+      }
+
+      renderCurve(values, scaleX, scaleY, color, lineWidth = 2, dash = []) {
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = lineWidth;
+        this.ctx.setLineDash(dash);
+        this.ctx.beginPath();
+        for (let i = 0; i < this.x.length; i++) {
+          const px = scaleX(this.x[i]);
+          const py = scaleY(values[i]);
+          if (i === 0) this.ctx.moveTo(px, py);
+          else this.ctx.lineTo(px, py);
+        }
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+      }
+
+      drawEquationOverlay(ctx, width, height) {
+        const text = this.buildEquation();
+        const padding = 14;
+        const boxWidth = Math.min(width - 28, Math.max(260, width * 0.72));
+        ctx.save();
+        ctx.font = '700 12px system-ui, -apple-system, Segoe UI, sans-serif';
+        const lines = [];
+        const words = text.split(' ');
+        let currentLine = 'Taylor series';
+        for (const word of words) {
+          const testLine = `${currentLine} ${word}`;
+          if (ctx.measureText(testLine).width > boxWidth - padding * 2 && currentLine !== 'Taylor series') {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        lines.push(currentLine);
+
+        const lineHeight = 16;
+        const boxHeight = padding * 2 + 18 + lines.length * lineHeight;
+        ctx.fillStyle = 'rgba(10, 13, 20, 0.88)';
+        ctx.strokeStyle = 'rgba(79, 140, 255, 0.75)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(14, 14, boxWidth, boxHeight, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#4f8cff';
+        ctx.font = '800 11px system-ui, -apple-system, Segoe UI, sans-serif';
+        ctx.fillText('Taylor Equation', 26, 34);
+        ctx.fillStyle = '#e6edf7';
+        ctx.font = '11px "Cascadia Code", Consolas, monospace';
+        for (let i = 0; i < lines.length; i++) {
+          ctx.fillText(lines[i], 26, 52 + i * lineHeight);
+        }
+        ctx.restore();
+      }
+
+      createExportCanvas(includeEquation) {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = this.canvas.width;
+        exportCanvas.height = this.canvas.height;
+        const exportCtx = exportCanvas.getContext('2d');
+        exportCtx.drawImage(this.canvas, 0, 0);
+        if (includeEquation) {
+          this.drawEquationOverlay(exportCtx, exportCanvas.width, exportCanvas.height);
+        }
+        return exportCanvas;
+      }
+
+      render() {
+        this.clear();
+
+        if (!this.x.length) return;
+
+        let minY = Math.min(...this.exact);
+        let maxY = Math.max(...this.exact);
+        const selected = this.partialSums.map((row) => row[this.componentCount - 1]);
+        minY = Math.min(minY, ...selected);
+        maxY = Math.max(maxY, ...selected);
+        const yPad = Math.max(0.1, (maxY - minY) * 0.12);
+        minY -= yPad;
+        maxY += yPad;
+
+        const { paddingX, paddingY, scaleX, scaleY } = this.scalePlot(minY, maxY);
+        this.drawAxes(scaleX, scaleY, paddingX, paddingY);
+
+        this.ctx.fillStyle = '#6f7c93';
+        this.ctx.font = '11px system-ui, -apple-system, Segoe UI, sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('x', this.canvas.width - paddingX + 14, scaleY(0) - 8);
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('y', scaleX(0) + 8, paddingY + 12);
+
+        if (this.showTrail) {
+          const trailCount = Math.max(0, Math.min(this.componentCount - 1, this.maxComponentCount));
+          for (let n = 0; n < trailCount; n++) {
+            const curve = this.partialSums.map((row) => row[n]);
+            const alpha = 0.16 + (0.55 * (n + 1)) / Math.max(1, trailCount + 1);
+            this.renderCurve(curve, scaleX, scaleY, `rgba(209, 108, 255, ${alpha.toFixed(3)})`, 1.4);
+          }
+        }
+
+        if (this.showExact) {
+          this.renderCurve(this.exact, scaleX, scaleY, '#4f8cff', 2.4);
+        }
+
+        if (this.showSelected) {
+          this.renderCurve(selected, scaleX, scaleY, '#24c8a5', 2.8, [7, 6]);
+        }
+
+        this.ctx.fillStyle = 'rgba(246, 180, 74, 0.18)';
+        this.ctx.beginPath();
+        for (let i = 0; i < this.x.length; i++) {
+          const px = scaleX(this.x[i]);
+          const py = scaleY(selected[i]);
+          if (i === 0) this.ctx.moveTo(px, py);
+          else this.ctx.lineTo(px, py);
+        }
+        this.ctx.lineTo(scaleX(this.x[this.x.length - 1]), scaleY(0));
+        this.ctx.lineTo(scaleX(this.x[0]), scaleY(0));
+        this.ctx.closePath();
+        this.ctx.fill();
+
+        this.ctx.fillStyle = '#f6b44a';
+        this.ctx.font = '700 12px system-ui, -apple-system, Segoe UI, sans-serif';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText('Series error band', paddingX + 10, paddingY + 18);
+      }
+
+      reset() {
+        this.functionName = 'sin';
+        this.componentCount = 5;
+        this.xRange = 3;
+        this.showExact = true;
+        this.showSelected = true;
+        this.showTrail = true;
+        this.includeEquationExport = true;
+        this.syncControls();
+        this.updateData();
+        this.render();
+      }
+
+      syncControls() {
+        document.getElementById('btnSin').classList.add('active');
+        document.getElementById('btnCos').classList.remove('active');
+        document.getElementById('btnExp').classList.remove('active');
+        document.getElementById('components').value = this.componentCount;
+        document.getElementById('componentsValue').textContent = `${this.componentCount} terms`;
+        document.getElementById('xRange').value = this.xRange;
+        document.getElementById('xRangeValue').textContent = `±${this.xRange.toFixed(1)}`;
+        document.getElementById('showExact').checked = this.showExact;
+        document.getElementById('showSelected').checked = this.showSelected;
+        document.getElementById('showTrail').checked = this.showTrail;
+        document.getElementById('includeEquationExport').checked = this.includeEquationExport;
+        this.updateUiLabels();
+      }
+
+      exportPng() {
+        const canvas = this.createExportCanvas(this.includeEquationExport);
+        const link = document.createElement('a');
+        link.download = `taylor_components_${this.functionName}_${this.componentCount}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+
+      loadGifLibrary() {
+        if (window.GIF) {
+          return Promise.resolve(window.GIF);
+        }
+
+        if (this.gifLibraryPromise) {
+          return this.gifLibraryPromise;
+        }
+
+        this.gifLibraryPromise = new Promise((resolve, reject) => {
+          const existingScript = document.querySelector('script[data-gif-js]');
+          if (existingScript) {
+            existingScript.addEventListener('load', () => resolve(window.GIF));
+            existingScript.addEventListener('error', () => reject(new Error('Failed to load GIF encoder.')));
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = GIF_JS_URL;
+          script.async = true;
+          script.dataset.gifJs = 'true';
+          script.onload = () => resolve(window.GIF);
+          script.onerror = () => reject(new Error('Failed to load GIF encoder.'));
+          document.head.appendChild(script);
+        });
+
+        return this.gifLibraryPromise;
+      }
+
+      async exportGifSweep() {
+        const previousState = {
+          functionName: this.functionName,
+          componentCount: this.componentCount,
+          xRange: this.xRange,
+          showExact: this.showExact,
+          showSelected: this.showSelected,
+          showTrail: this.showTrail,
+          includeEquationExport: this.includeEquationExport
+        };
+
+        const maxFrames = Math.max(1, this.componentCount);
+
+        try {
+          const GIF = await this.loadGifLibrary();
+          const gif = new GIF({
+            workers: 2,
+            quality: 10,
+            workerScript: GIF_WORKER_URL,
+            width: this.canvas.width,
+            height: this.canvas.height,
+            repeat: 0,
+            background: '#0a0d14'
+          });
+
+          const gifBlob = await new Promise((resolve, reject) => {
+            gif.on('finished', resolve);
+            gif.on('abort', () => reject(new Error('GIF render was aborted.')));
+            gif.on('error', reject);
+
+            for (let terms = 1; terms <= maxFrames; terms++) {
+              this.componentCount = terms;
+              this.updateData();
+              this.render();
+              const frameCanvas = this.createExportCanvas(this.includeEquationExport);
+              gif.addFrame(frameCanvas, { copy: true, delay: 180 });
+            }
+
+            gif.render();
+          });
+
+          const objectUrl = URL.createObjectURL(gifBlob);
+          const link = document.createElement('a');
+          link.style.display = 'none';
+          link.download = `taylor_components_${previousState.functionName}_${previousState.componentCount}.gif`;
+          link.href = objectUrl;
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(objectUrl);
+            link.remove();
+          }, 1500);
+        } catch (error) {
+          alert(`GIF export failed: ${error.message}`);
+        } finally {
+          this.functionName = previousState.functionName;
+          this.componentCount = previousState.componentCount;
+          this.xRange = previousState.xRange;
+          this.showExact = previousState.showExact;
+          this.showSelected = previousState.showSelected;
+          this.showTrail = previousState.showTrail;
+          this.includeEquationExport = previousState.includeEquationExport;
+          this.syncControls();
+          this.updateData();
+          this.render();
+        }
+      }
+    }
+
+    const demo = new TaylorComponentDemo('vizCanvas');
+
+    document.getElementById('btnSin').addEventListener('click', (e) => {
+      document.querySelectorAll('.btn-group button').forEach((btn) => btn.classList.remove('active'));
+      e.target.classList.add('active');
+      demo.setFunction('sin');
+    });
+
+    document.getElementById('btnCos').addEventListener('click', (e) => {
+      document.querySelectorAll('.btn-group button').forEach((btn) => btn.classList.remove('active'));
+      e.target.classList.add('active');
+      demo.setFunction('cos');
+    });
+
+    document.getElementById('btnExp').addEventListener('click', (e) => {
+      document.querySelectorAll('.btn-group button').forEach((btn) => btn.classList.remove('active'));
+      e.target.classList.add('active');
+      demo.setFunction('exp');
+    });
+
+    document.getElementById('components').addEventListener('input', (e) => {
+      const value = parseInt(e.target.value, 10);
+      document.getElementById('componentsValue').textContent = `${value} terms`;
+      demo.setComponentCount(value);
+    });
+
+    document.getElementById('xRange').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('xRangeValue').textContent = `±${value.toFixed(1)}`;
+      demo.setXRange(value);
+    });
+
+    document.getElementById('showExact').addEventListener('change', (e) => {
+      demo.showExact = e.target.checked;
+      demo.render();
+    });
+
+    document.getElementById('showSelected').addEventListener('change', (e) => {
+      demo.showSelected = e.target.checked;
+      demo.render();
+    });
+
+    document.getElementById('showTrail').addEventListener('change', (e) => {
+      demo.showTrail = e.target.checked;
+      demo.render();
+    });
+
+    document.getElementById('includeEquationExport').addEventListener('change', (e) => {
+      demo.includeEquationExport = e.target.checked;
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      demo.reset();
+    });
+
+    document.getElementById('btnExportPng').addEventListener('click', () => {
+      demo.exportPng();
+    });
+
+    document.getElementById('btnExportGif').addEventListener('click', async () => {
+      await demo.exportGifSweep();
+    });
+  </script>
+</body>
+</html>

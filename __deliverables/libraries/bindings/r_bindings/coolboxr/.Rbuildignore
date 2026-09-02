@@ -1,0 +1,4 @@
+^docs$
+^README\.Rmd$
+^\.github$
+^src/.*\.(o|so|dll|dylib|a|lib)$

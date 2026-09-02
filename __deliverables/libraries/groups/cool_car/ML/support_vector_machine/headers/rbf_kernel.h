@@ -1,0 +1,16 @@
+// RBFKernel.h
+#ifndef RBF_KERNEL_H
+#define RBF_KERNEL_H
+
+#include "kernel.h"
+
+class RBFKernel : public Kernel {
+public:
+    RBFKernel(double gamma) : gamma_(gamma) {}
+    double calculate(const std::vector<double>& x, const std::vector<double>& y) const override;
+private:
+    double gamma_;
+};
+
+#endif // RBF_KERNEL_H
+

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chorus · Wiki</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #16a34a;
+      --brand-dark: #15803d;
+      --brand-pale: #f0fdf4;
+      --brand-mid:  #bbf7d0;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --border:     #e2e8f0;
+      --surface:    #f8fafc;
+      --white:      #ffffff;
+      --sidebar-w:  260px;
+      --topbar-h:   56px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ═══ TOP BAR ═══════════════════════════════════════════════════════════ */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--topbar-h);
+      background: #0f172a;
+      display: flex; align-items: center;
+      padding: 0 1rem; gap: 0.75rem;
+      z-index: 200;
+      border-bottom: 1px solid #1e293b;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 0.55rem;
+      min-width: calc(var(--sidebar-w) - 1rem);
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #16a34a, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem;
+    }
+    .brand-text  { font-weight: 800; color: #f8fafc; font-size: 0.95rem; letter-spacing: -0.02em; }
+    .brand-text .accent { color: #86efac; }
+    .brand-sub   { font-size: 0.6rem; color: #475569; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 600; }
+
+    .topbar-search {
+      flex: 1; max-width: 560px; position: relative;
+    }
+    .topbar-search input {
+      width: 100%; padding: 0.5em 1em 0.5em 2.4em;
+      border-radius: 99px; border: 1.5px solid #334155;
+      background: #1e293b; color: #f1f5f9;
+      font-size: 0.85rem; font-family: inherit; outline: none;
+      transition: border-color 0.15s;
+    }
+    .topbar-search input::placeholder { color: #64748b; }
+    .topbar-search input:focus { border-color: var(--brand); }
+    .search-icon { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.85rem; pointer-events: none; }
+
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; }
+    .icon-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: transparent; color: #94a3b8; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem;
+      transition: background 0.12s, color 0.12s;
+    }
+    .icon-btn:hover { background: #1e293b; color: #f8fafc; }
+    .avatar-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #16a34a, #0ea5e9);
+      border: 2px solid #334155;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; color: #fff; cursor: pointer;
+    }
+    .mock-badge {
+      background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+      font-size: 0.62rem; font-weight: 700; padding: 0.1em 0.5em;
+      border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    /* ═══ LAYOUT ════════════════════════════════════════════════════════════ */
+    .app-body { margin-top: var(--topbar-h); display: flex; flex: 1; min-height: calc(100vh - var(--topbar-h)); }
+
+    /* ═══ SIDEBAR ═══════════════════════════════════════════════════════════ */
+    .sidebar {
+      position: fixed; top: var(--topbar-h); left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-top { padding: 1rem 0.75rem 0.5rem; }
+
+    .new-page-btn {
+      display: flex; align-items: center; gap: 0.5rem;
+      width: 100%; padding: 0.6em 1em;
+      background: var(--brand); color: #fff; border: none;
+      border-radius: 9px; font-size: 0.85rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 1px 6px rgba(22,163,74,0.25);
+      transition: background 0.12s;
+    }
+    .new-page-btn:hover { background: var(--brand-dark); }
+
+    .sidebar-section {
+      font-size: 0.67rem; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 0.9rem 1.1rem 0.3rem;
+    }
+
+    .space-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.42em 0.75em; margin: 0 0.35rem;
+      border-radius: 7px; font-size: 0.84rem; font-weight: 500;
+      color: var(--text); cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+      user-select: none;
+    }
+    .space-item:hover { background: var(--brand-pale); color: var(--brand); }
+    .space-item.active { background: var(--brand-pale); color: var(--brand); font-weight: 700; }
+    .space-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .space-count { margin-left: auto; font-size: 0.67rem; color: var(--muted); background: var(--surface); border-radius: 999px; padding: 0.1em 0.45em; font-weight: 600; }
+
+    .tree-node {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.38em 0.75em 0.38em 2rem; margin: 0 0.35rem;
+      border-radius: 7px; font-size: 0.81rem; color: var(--text);
+      cursor: pointer; transition: background 0.1s, color 0.1s;
+    }
+    .tree-node:hover { background: var(--brand-pale); color: var(--brand); }
+    .tree-node.active { background: var(--brand-pale); color: var(--brand); font-weight: 600; }
+
+    .sidebar-footer {
+      margin-top: auto; padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem; color: var(--muted);
+    }
+
+    /* ═══ MAIN ═══════════════════════════════════════════════════════════════ */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1; display: flex; min-width: 0;
+    }
+
+    /* ═══ ARTICLE AREA ══════════════════════════════════════════════════════ */
+    .article-area {
+      flex: 1; min-width: 0;
+      padding: 2.25rem 2.75rem 4rem;
+      max-width: 860px;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; color: var(--muted); margin-bottom: 1.5rem;
+    }
+    .breadcrumb a { color: var(--muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--brand); }
+    .breadcrumb .sep { color: var(--border); }
+    .breadcrumb .cur { color: var(--text); font-weight: 600; }
+
+    /* Article header */
+    .article-meta {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.78rem; color: var(--muted); margin-bottom: 0.9rem; flex-wrap: wrap;
+    }
+    .article-meta .dot { color: var(--border); }
+    .article-tag {
+      font-size: 0.68rem; font-weight: 700; padding: 0.15em 0.6em;
+      border-radius: 999px; border: 1.5px solid var(--brand-mid);
+      color: var(--brand); background: var(--brand-pale);
+    }
+
+    .article-title {
+      font-size: 2rem; font-weight: 900; letter-spacing: -0.035em;
+      color: var(--text); margin-bottom: 0.35rem; line-height: 1.2;
+    }
+    .article-deck {
+      font-size: 1.05rem; color: var(--muted); line-height: 1.6;
+      margin-bottom: 1.5rem; font-weight: 400;
+    }
+
+    /* Article toolbar */
+    .article-toolbar {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 1.75rem; padding-bottom: 1.25rem;
+      border-bottom: 1.5px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.42em 0.9em; font-size: 0.8rem; font-weight: 600;
+      font-family: inherit; border-radius: 7px; cursor: pointer;
+      border: 1.5px solid transparent; transition: background 0.12s;
+    }
+    .btn-brand  { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn-brand:hover  { background: var(--brand-dark); }
+    .btn-ghost  { background: var(--white); border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover  { background: var(--surface); }
+    .sep-dot { color: var(--border); }
+    .btn-toolbar-right { margin-left: auto; }
+
+    /* ─── Rich content body ──────────────────────────────────────────────── */
+    .article-body { line-height: 1.75; color: var(--text); }
+
+    .article-body h2 {
+      font-size: 1.25rem; font-weight: 800; letter-spacing: -0.025em;
+      margin: 2rem 0 0.65rem; color: var(--text);
+      border-bottom: 1.5px solid var(--border); padding-bottom: 0.4rem;
+    }
+    .article-body h3 {
+      font-size: 1rem; font-weight: 700; letter-spacing: -0.015em;
+      margin: 1.5rem 0 0.5rem; color: var(--text);
+    }
+    .article-body p { margin-bottom: 0.9rem; font-size: 0.925rem; }
+    .article-body ul, .article-body ol {
+      margin: 0 0 0.9rem 1.5rem; font-size: 0.925rem;
+    }
+    .article-body li { margin-bottom: 0.3rem; }
+
+    .article-body a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+
+    .article-body code {
+      background: #f1f5f9; border: 1px solid var(--border);
+      border-radius: 4px; padding: 0.1em 0.4em;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.85em; color: #be185d;
+    }
+    .article-body pre {
+      background: #0f172a; color: #e2e8f0;
+      border-radius: 10px; padding: 1.1rem 1.25rem;
+      margin: 1rem 0; overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.82rem; line-height: 1.6;
+    }
+    .article-body pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+
+    .article-body blockquote {
+      border-left: 3px solid var(--brand);
+      background: var(--brand-pale);
+      padding: 0.7rem 1rem;
+      margin: 1rem 0; border-radius: 0 8px 8px 0;
+      font-size: 0.9rem; color: var(--muted);
+    }
+
+    .callout {
+      display: flex; gap: 0.7rem; align-items: flex-start;
+      background: var(--brand-pale); border: 1.5px solid var(--brand-mid);
+      border-radius: 10px; padding: 0.85rem 1rem;
+      margin: 1rem 0; font-size: 0.88rem;
+    }
+    .callout.warn  { background: #fffbeb; border-color: #fde68a; }
+    .callout.info  { background: #eff6ff; border-color: #bfdbfe; }
+    .callout-icon  { font-size: 1.05rem; flex-shrink: 0; margin-top: 0.05rem; }
+
+    .table-wrap { overflow-x: auto; margin: 1rem 0; }
+    .article-body table {
+      border-collapse: collapse; width: 100%; font-size: 0.875rem;
+    }
+    .article-body th {
+      background: var(--surface); font-weight: 700; text-align: left;
+      padding: 0.55rem 0.75rem; border: 1px solid var(--border);
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+    }
+    .article-body td {
+      padding: 0.5rem 0.75rem; border: 1px solid var(--border); vertical-align: top;
+    }
+    .article-body tr:hover td { background: var(--surface); }
+
+    /* Inline edit mode */
+    .article-title[contenteditable="true"],
+    .article-body [contenteditable="true"] {
+      outline: none;
+      border-radius: 6px;
+    }
+    .article-title[contenteditable="true"]:focus {
+      box-shadow: 0 0 0 2px var(--brand);
+    }
+    .edit-mode .article-title,
+    .edit-mode .article-body {
+      cursor: text;
+    }
+
+    /* ═══ TOC / RIGHT RAIL ══════════════════════════════════════════════════ */
+    .right-rail {
+      width: 220px; flex-shrink: 0;
+      padding: 2.25rem 1.25rem 2rem 0.5rem;
+      position: sticky; top: var(--topbar-h);
+      align-self: flex-start;
+    }
+    .toc-title {
+      font-size: 0.67rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.6rem;
+    }
+    .toc-item {
+      display: block; font-size: 0.78rem; color: var(--muted);
+      text-decoration: none; padding: 0.3em 0.5em;
+      border-left: 2px solid var(--border);
+      margin-bottom: 0.1rem;
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .toc-item:hover   { color: var(--brand); border-color: var(--brand); }
+    .toc-item.active  { color: var(--brand); border-color: var(--brand); font-weight: 600; }
+    .toc-item.sub     { padding-left: 1.1em; }
+
+    .rail-section { margin-top: 1.5rem; }
+    .rail-label { font-size: 0.67rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.5rem; }
+    .rail-item { font-size: 0.78rem; color: var(--muted); padding: 0.25rem 0; cursor: pointer; }
+    .rail-item:hover { color: var(--brand); }
+
+    /* ═══ PAGE MODAL ════════════════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 400; display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--white); border-radius: 16px;
+      padding: 1.75rem 2rem; width: 100%; max-width: 440px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+    }
+    .modal-title { font-size: 1rem; font-weight: 800; margin-bottom: 1.25rem; }
+    .field-group { margin-bottom: 1rem; }
+    .field-label { font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 0.35rem; display: block; }
+    .field-input {
+      width: 100%; padding: 0.55em 0.85em; font-size: 0.875rem; font-family: inherit;
+      border: 1.5px solid var(--border); border-radius: 8px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color: var(--brand); }
+    .field-select { appearance: none; background: var(--white); cursor: pointer; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+
+    /* ═══ TOAST ══════════════════════════════════════════════════════════════ */
+    .toast-rack { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 600; display: flex; flex-direction: column; gap: 0.5rem; }
+    .toast {
+      background: #0f172a; color: #f8fafc;
+      padding: 0.65em 1.1em; border-radius: 9px;
+      font-size: 0.82rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      animation: slideUp 0.22s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    @media (max-width: 900px) {
+      .right-rail { display: none; }
+    }
+    @media (max-width: 680px) {
+      :root { --sidebar-w: 0px; }
+      .sidebar { display: none; }
+      .article-area { padding: 1.25rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══════════════════════════════════════════════════════════════ -->
+<header class="topbar">
+  <a class="topbar-brand" href="../index.html">
+    <div class="brand-icon">📖</div>
+    <div>
+      <div class="brand-text"><span class="accent">Chorus</span></div>
+      <div class="brand-sub">Wiki</div>
+    </div>
+  </a>
+  <div class="topbar-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search pages, spaces…" autocomplete="off" />
+  </div>
+  <div class="topbar-right">
+    <span class="mock-badge">MOCK</span>
+    <button class="icon-btn" title="Notifications">🔔</button>
+    <button class="icon-btn" title="My pages">🗒️</button>
+    <div class="avatar-btn" title="Sarah Chen">SC</div>
+  </div>
+</header>
+
+<!-- ══ APP BODY ══════════════════════════════════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <button class="new-page-btn" id="newPageBtn">＋ New Page</button>
+    </div>
+
+    <div class="sidebar-section">Spaces</div>
+
+    <div class="space-item active" data-space="engineering">
+      <span class="space-dot" style="background:#2563eb"></span>
+      Engineering
+      <span class="space-count">12</span>
+    </div>
+    <div class="space-item" data-space="product">
+      <span class="space-dot" style="background:#8b5cf6"></span>
+      Product
+      <span class="space-count">8</span>
+    </div>
+    <div class="space-item" data-space="design">
+      <span class="space-dot" style="background:#ec4899"></span>
+      Design
+      <span class="space-count">5</span>
+    </div>
+    <div class="space-item" data-space="hr">
+      <span class="space-dot" style="background:#f59e0b"></span>
+      HR &amp; People
+      <span class="space-count">6</span>
+    </div>
+    <div class="space-item" data-space="general">
+      <span class="space-dot" style="background:#16a34a"></span>
+      General
+      <span class="space-count">3</span>
+    </div>
+
+    <div class="sidebar-section">In This Space</div>
+
+    <div class="tree-node active" data-page="overview">📄 Overview</div>
+    <div class="tree-node" data-page="getting-started">📄 Getting Started</div>
+    <div class="tree-node" data-page="architecture">🏗️ Architecture</div>
+    <div class="tree-node" data-page="api-reference">📡 API Reference</div>
+    <div class="tree-node" data-page="contributing">🤝 Contributing</div>
+    <div class="tree-node" data-page="changelog">📋 Changelog</div>
+
+    <div class="sidebar-footer">
+      <div>🌿 Chorus v1.0 · <a href="../index.html" style="color:var(--brand);text-decoration:none;">← Back to FE Hub</a></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ARTICLE AREA -->
+    <article class="article-area" id="articleArea">
+
+      <nav class="breadcrumb">
+        <a href="#">Spaces</a>
+        <span class="sep">›</span>
+        <a href="#" id="spaceLink">Engineering</a>
+        <span class="sep">›</span>
+        <span class="cur" id="pageTitle">Overview</span>
+      </nav>
+
+      <div class="article-meta">
+        <span id="articleSpace">Engineering</span>
+        <span class="dot">·</span>
+        <span>Updated May 8, 2026</span>
+        <span class="dot">·</span>
+        <span>by Sarah Chen</span>
+        <span class="dot">·</span>
+        <span class="article-tag" id="articleTag">Guide</span>
+      </div>
+
+      <h1 class="article-title" id="mainTitle">Engineering Wiki — Overview</h1>
+      <p class="article-deck" id="mainDeck">
+        The central knowledge base for the Engineering team. Find architecture decisions, onboarding guides, API references, and runbooks.
+      </p>
+
+      <div class="article-toolbar">
+        <button class="btn btn-brand" id="editBtn">✏️ Edit</button>
+        <button class="btn btn-ghost" id="shareBtn">🔗 Share</button>
+        <button class="btn btn-ghost" id="watchBtn">👁️ Watch</button>
+        <span class="sep-dot">·</span>
+        <button class="btn btn-ghost" id="exportBtn">⬇️ Export</button>
+        <button class="btn btn-ghost btn-toolbar-right" id="historyBtn">🕒 History</button>
+      </div>
+
+      <div class="article-body" id="articleBody">
+        <div class="callout">
+          <span class="callout-icon">✅</span>
+          <span>This is the live Overview page for the Engineering space. Use the sidebar to navigate to other pages, or click <strong>Edit</strong> to modify this article.</span>
+        </div>
+
+        <h2 id="section-quick">Quick Links</h2>
+        <p>Jump to the most commonly accessed pages in this space:</p>
+        <ul>
+          <li><a href="#">Getting Started</a> — onboarding guide for new engineers</li>
+          <li><a href="#">Architecture Decision Records (ADRs)</a></li>
+          <li><a href="#">API Reference</a> — full endpoint documentation</li>
+          <li><a href="#">Deployment Runbook</a> — step-by-step release checklist</li>
+          <li><a href="#">Incident Response</a> — on-call playbook</li>
+        </ul>
+
+        <h2 id="section-arch">Architecture</h2>
+        <p>
+          The platform is built on a microservices architecture with a shared event bus. Services communicate via REST for synchronous calls and an internal message queue for async workflows. All services are containerised and deployed via CI/CD.
+        </p>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <span>The primary architecture diagram lives in the <a href="#">Mermaid · Diagrams</a> app. Embed a live diagram link here for always-up-to-date visuals.</span>
+        </div>
+
+        <h2 id="section-stack">Tech Stack</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Layer</th><th>Technology</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Frontend</td><td>Vanilla JS · Web Components</td><td>No build step — plain ES modules</td></tr>
+              <tr><td>API Gateway</td><td>Go / Gin</td><td>Rate limiting, JWT auth</td></tr>
+              <tr><td>Services</td><td>C++17 / Trekker</td><td>Core compute + storage libs</td></tr>
+              <tr><td>Database</td><td>PostgreSQL 16</td><td>Primary relational store</td></tr>
+              <tr><td>Cache</td><td>Redis 7</td><td>Session store, rate-limit buckets</td></tr>
+              <tr><td>Build</td><td>CMake 3.16+</td><td>CoolBox build system</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="section-contributing">Contributing to This Wiki</h2>
+        <p>Anyone on the Engineering team can edit pages. Please follow these conventions:</p>
+        <ol>
+          <li>Use clear, concise language — avoid jargon unless defined in the <a href="#">Glossary</a>.</li>
+          <li>Add your name and date to the article metadata when making significant changes.</li>
+          <li>Link related pages liberally — the value of a wiki is in its connections.</li>
+          <li>Use <strong>callout boxes</strong> to highlight warnings, tips, or important notes.</li>
+        </ol>
+
+        <h2 id="section-code">Example Code Snippet</h2>
+        <p>When documenting APIs, use fenced code blocks:</p>
+        <pre><code>// POST /api/v1/files
+{
+  "path":    "/projects/coolbox/readme.md",
+  "content": "# CoolBox\n\nDistributed computing platform.",
+  "author":  "sarah.chen"
+}</code></pre>
+
+        <blockquote>
+          "Good documentation is a force multiplier. Every hour invested saves ten hours of confusion." — Engineering Principles
+        </blockquote>
+
+        <h2 id="section-related">Related Spaces</h2>
+        <ul>
+          <li><a href="#">Product</a> — PRDs, roadmap, feature specs</li>
+          <li><a href="#">Design</a> — design system, component library, brand guidelines</li>
+          <li><a href="#">HR &amp; People</a> — onboarding, leave policy, org chart</li>
+        </ul>
+      </div>
+
+    </article>
+
+    <!-- RIGHT RAIL -->
+    <aside class="right-rail">
+      <div class="toc-title">On this page</div>
+      <a class="toc-item active" href="#section-quick">Quick Links</a>
+      <a class="toc-item" href="#section-arch">Architecture</a>
+      <a class="toc-item" href="#section-stack">Tech Stack</a>
+      <a class="toc-item" href="#section-contributing">Contributing</a>
+      <a class="toc-item" href="#section-code">Code Snippet</a>
+      <a class="toc-item" href="#section-related">Related Spaces</a>
+
+      <div class="rail-section">
+        <div class="rail-label">Contributors</div>
+        <div class="rail-item">👤 Sarah Chen</div>
+        <div class="rail-item">👤 Alex Rodriguez</div>
+        <div class="rail-item">👤 Jamie Liu</div>
+      </div>
+
+      <div class="rail-section">
+        <div class="rail-label">Tags</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.25rem;">
+          <span style="font-size:0.68rem;background:var(--brand-pale);color:var(--brand);border-radius:999px;padding:0.15em 0.6em;font-weight:700;">Guide</span>
+          <span style="font-size:0.68rem;background:var(--brand-pale);color:var(--brand);border-radius:999px;padding:0.15em 0.6em;font-weight:700;">Engineering</span>
+          <span style="font-size:0.68rem;background:#eff6ff;color:#2563eb;border-radius:999px;padding:0.15em 0.6em;font-weight:700;">Overview</span>
+        </div>
+      </div>
+    </aside>
+
+  </div><!-- /.main -->
+</div><!-- /.app-body -->
+
+<!-- NEW PAGE MODAL -->
+<div class="modal-overlay" id="newModal">
+  <div class="modal">
+    <div class="modal-title">📄 New Page</div>
+    <div class="field-group">
+      <label class="field-label">Page title</label>
+      <input class="field-input" type="text" id="newPageTitle" placeholder="e.g. Deployment Runbook" />
+    </div>
+    <div class="field-group">
+      <label class="field-label">Space</label>
+      <select class="field-input field-select" id="newPageSpace">
+        <option>Engineering</option>
+        <option>Product</option>
+        <option>Design</option>
+        <option>HR &amp; People</option>
+        <option>General</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Template</label>
+      <select class="field-input field-select">
+        <option>Blank page</option>
+        <option>How-to guide</option>
+        <option>Meeting notes</option>
+        <option>ADR (Architecture Decision Record)</option>
+        <option>Runbook</option>
+        <option>API Reference</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="cancelModal">Cancel</button>
+      <button class="btn btn-brand" id="createPageBtn">Create Page</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-rack" id="toastRack"></div>
+
+<script>
+/* ── toast ── */
+function toast(msg) {
+  const rack = document.getElementById('toastRack');
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  rack.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+/* ── sidebar nav ── */
+document.querySelectorAll('.tree-node').forEach(n => {
+  n.addEventListener('click', () => {
+    document.querySelectorAll('.tree-node').forEach(x => x.classList.remove('active'));
+    n.classList.add('active');
+    const titles = {
+      'overview':       'Engineering Wiki — Overview',
+      'getting-started':'Getting Started',
+      'architecture':   'Architecture',
+      'api-reference':  'API Reference',
+      'contributing':   'Contributing',
+      'changelog':      'Changelog',
+    };
+    const page = n.dataset.page;
+    document.getElementById('mainTitle').textContent = titles[page] || page;
+    document.getElementById('pageTitle').textContent = titles[page] || page;
+    toast('📄 Loaded "' + (titles[page] || page) + '"');
+  });
+});
+
+document.querySelectorAll('.space-item').forEach(s => {
+  s.addEventListener('click', () => {
+    document.querySelectorAll('.space-item').forEach(x => x.classList.remove('active'));
+    s.classList.add('active');
+    const name = s.textContent.trim().replace(/\d+$/, '').trim();
+    document.getElementById('articleSpace').textContent = name;
+    document.getElementById('spaceLink').textContent = name;
+    toast('🗂️ Switched to space: ' + name);
+  });
+});
+
+/* ── edit toggle ── */
+let editing = false;
+document.getElementById('editBtn').addEventListener('click', () => {
+  editing = !editing;
+  const area = document.getElementById('articleArea');
+  const btn  = document.getElementById('editBtn');
+  const title = document.getElementById('mainTitle');
+  const body  = document.getElementById('articleBody');
+  if (editing) {
+    area.classList.add('edit-mode');
+    title.contentEditable = 'true'; title.focus();
+    body.contentEditable  = 'true';
+    btn.textContent = '💾 Save';
+    btn.style.background = '#15803d';
+    toast('✏️ Editing mode on — changes are local only');
+  } else {
+    area.classList.remove('edit-mode');
+    title.contentEditable = 'false';
+    body.contentEditable  = 'false';
+    btn.innerHTML = '✏️ Edit';
+    btn.style.background = '';
+    toast('💾 Changes saved (mock)');
+  }
+});
+
+/* ── toolbar actions ── */
+document.getElementById('shareBtn').addEventListener('click',   () => toast('🔗 Share link copied'));
+document.getElementById('watchBtn').addEventListener('click',   () => toast('👁️ Watching this page'));
+document.getElementById('exportBtn').addEventListener('click',  () => toast('⬇️ Exporting as PDF…'));
+document.getElementById('historyBtn').addEventListener('click', () => toast('🕒 Version history would open here'));
+
+/* ── new page modal ── */
+document.getElementById('newPageBtn').addEventListener('click', () => {
+  document.getElementById('newModal').classList.add('open');
+  document.getElementById('newPageTitle').focus();
+});
+document.getElementById('cancelModal').addEventListener('click', () => {
+  document.getElementById('newModal').classList.remove('open');
+});
+document.getElementById('newModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('newModal'))
+    document.getElementById('newModal').classList.remove('open');
+});
+document.getElementById('createPageBtn').addEventListener('click', () => {
+  const title = document.getElementById('newPageTitle').value.trim();
+  if (!title) return;
+  const space = document.getElementById('newPageSpace').value;
+  toast(`📄 Created "${title}" in ${space}`);
+  document.getElementById('newModal').classList.remove('open');
+  document.getElementById('newPageTitle').value = '';
+  // Add to sidebar
+  const node = document.createElement('div');
+  node.className = 'tree-node'; node.textContent = '📄 ' + title;
+  node.dataset.page = title.toLowerCase().replace(/\s+/g, '-');
+  document.querySelector('.sidebar-footer').before(node);
+  node.addEventListener('click', () => {
+    document.querySelectorAll('.tree-node').forEach(x => x.classList.remove('active'));
+    node.classList.add('active');
+    document.getElementById('mainTitle').textContent = title;
+    document.getElementById('pageTitle').textContent = title;
+  });
+});
+
+/* ── search ── */
+document.getElementById('searchInput').addEventListener('input', e => {
+  if (e.target.value.trim()) toast('🔍 Searching for "' + e.target.value.trim() + '"…');
+});
+
+/* ── keyboard ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('newModal').classList.remove('open');
+});
+</script>
+</body>
+</html>

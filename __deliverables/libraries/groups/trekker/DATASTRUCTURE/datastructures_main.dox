@@ -1,0 +1,13 @@
+/**
+ * @page datastructures_main Data Structures
+ *
+ * The Data Structures module provides a variety of efficient data structures for C++ development.
+ *
+ * - Trees
+ * - Graphs
+ * - Queues
+ * - Stacks
+ * - Hash Maps
+ *
+ * See the module documentation for usage and API details.
+ */

@@ -1,0 +1,26 @@
+<screen title="Example - Split Layout" width="1280" height="800" platform="windows">
+  <vertical>
+    <layout label="TopBar">
+      <menu_bar>
+        <menu title="Examples">
+          <item label="Basic Toolbar" />
+          <item label="Inspector + AI" />
+          <item label="Split Layout" />
+        </menu>
+      </menu_bar>
+      <toolbar actions="Examples,Open,Reload,Save,Preview" />
+    </layout>
+    <layout label="Left Examples Panel">
+      <dropdown title="Example Selector">
+        <item label="basic_toolbar.xml" />
+        <item label="inspector_and_ai.xml" />
+        <item label="split_layout.xml" />
+      </dropdown>
+      <text text="Left side intended for XML example source." width="64" />
+    </layout>
+    <layout label="Right Preview Panel">
+      <toolbar actions="Select,Rectangle,Line,Arc" />
+      <text text="Right side intended for preview output." width="64" />
+    </layout>
+  </vertical>
+</screen>

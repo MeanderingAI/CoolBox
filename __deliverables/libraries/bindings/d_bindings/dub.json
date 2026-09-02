@@ -1,0 +1,17 @@
+{
+  "name": "coolbox-d-bindings",
+  "description": "D bindings for the CoolBox C API",
+  "license": "GPL-3.0-or-later",
+  "targetType": "library",
+  "sourcePaths": ["source"],
+  "importPaths": [
+    "../c_bindings/include"
+  ],
+  "lflags": [
+    "-L../c_bindings/build",
+    "-L../c_bindings/build/Release"
+  ],
+  "libs": [
+    "coolbox_c_bindings"
+  ]
+}

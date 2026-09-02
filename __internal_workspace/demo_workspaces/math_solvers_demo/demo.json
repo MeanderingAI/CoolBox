@@ -1,0 +1,5 @@
+{
+  "title": "MATH PDE/SPDE Solvers Demo",
+  "description": "Demonstrates the use of the MATH PDE and SPDE solvers with both mytrix and xarray backends.",
+  "icon": "🧮"
+}
