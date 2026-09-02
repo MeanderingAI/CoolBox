@@ -6,9 +6,7 @@ add_library(hidden_markov_model SHARED
     source/hidden_markov_model.cpp
 )
 target_include_directories(hidden_markov_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-target_include_directories(hidden_markov_model PUBLIC ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/ML/flare_mcmc/headers)
-target_link_libraries(hidden_markov_model PUBLIC mytrix)
-target_link_libraries(hidden_markov_model PUBLIC flare_mcmc)
+target_link_libraries(hidden_markov_model PUBLIC mytrix flare_mcmc)
 
 ## Tests
 enable_testing()
