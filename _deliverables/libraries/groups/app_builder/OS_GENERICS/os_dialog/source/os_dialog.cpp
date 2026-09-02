@@ -1,5 +1,6 @@
 #include "os_dialog.hpp"
 
+#include <algorithm>
 #include <filesystem>
 
 #ifdef _WIN32

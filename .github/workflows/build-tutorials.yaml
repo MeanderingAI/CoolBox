@@ -30,7 +30,7 @@ jobs:
 
       - name: Build documentation
         run: |
-          bash ./_scripts/build_documentation.sh "$(pwd)"
+          bash ./_scripts/build_scripts/build_documentation.sh "$(pwd)"
 
       - name: Normalize output to .site (fallbacks)
         run: |

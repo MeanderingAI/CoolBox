@@ -13,10 +13,13 @@ TYST_TEST(OptimizationFactoryTest, BuildsAlgorithmsFromEnumAndString) {
     auto ga = create_optimizer(kind);
     auto sa = create_optimizer(OptimizationType::SimulatedAnnealing);
     auto hc = create_optimizer(OptimizationType::HillClimbing);
+    auto qbo = create_optimizer(optimization_type_from_string("mthombare"));
 
     TYST_EXPECT_TRUE(static_cast<bool>(ga));
     TYST_EXPECT_TRUE(static_cast<bool>(sa));
     TYST_EXPECT_TRUE(static_cast<bool>(hc));
+    TYST_EXPECT_TRUE(static_cast<bool>(qbo));
+    TYST_EXPECT_EQ(to_string(OptimizationType::QuantumControlBayesianOptimization), std::string("quantum_control_bo"));
 }
 
 TYST_TEST(OptimizationFactoryTest, PolymorphicRunViaFactory) {

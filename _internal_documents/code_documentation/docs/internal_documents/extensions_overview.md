@@ -8,6 +8,7 @@ This document indexes the extension and binding packages that are maintained in 
 - Go: `docs/internal_documents/extensions/go/README.md`
 - C: `docs/internal_documents/extensions/c/README.md`
 - Java: `docs/internal_documents/extensions/java/README.md`
+- Scala: `docs/internal_documents/extensions/scala/README.md`
 - JavaScript / Emscripten: `docs/internal_documents/extensions/javascript/README.md`
 - Rust: `docs/internal_documents/extensions/rust/README.md`
 - R: `docs/internal_documents/extensions/r/README.md`
@@ -35,7 +36,10 @@ The reusable release workflows publish these extension artifact families:
 - `c-extension-*`
 - `javascript-extension-*`
 - `java-extension-*`
+- `scala-extension-*`
 - `swift-extension-*`
 - `postgres-extension-*`
+
+Scala is currently scaffolded as an in-repo Maven/JNA extension module; if a dedicated release artifact workflow is added later, it should follow the `scala-extension-*` artifact family above.
 
 These names matter because the docs publishing workflow restores artifacts by those exact names before generating the unified site.

@@ -89,7 +89,7 @@ private:
     std::string metric_;
     double learning_rate_;
     int n_epochs_;
-    int random_state_;
+    [[maybe_unused]] int random_state_;
     
     // State
     bool fitted_;

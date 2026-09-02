@@ -34,17 +34,17 @@ jobs:
 
       - name: Build C bindings required by C3 package
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
-          cmake --build _libraries/c_bindings/build --config Release
-          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+          cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -DBUILD_TESTING=ON
+          cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release
+          ctest --test-dir _deliverables/libraries/bindings/c_bindings/build --output-on-failure
 
       - name: Stage C3 bindings package
         run: |
           rm -rf release-assets staging-c3
           mkdir -p release-assets staging-c3/module staging-c3/native/include staging-c3/native/lib
-          cp -R _libraries/c3_bindings/. staging-c3/module/
-          cp -R _libraries/c_bindings/include/. staging-c3/native/include/
-          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c3/native/lib/ \;
+          cp -R _deliverables/libraries/bindings/c3_bindings/. staging-c3/module/
+          cp -R _deliverables/libraries/bindings/c_bindings/include/. staging-c3/native/include/
+          find _deliverables/libraries/bindings/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c3/native/lib/ \;
           tar -C staging-c3 -czf release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-c3 release-assets/coolbox-c3-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip

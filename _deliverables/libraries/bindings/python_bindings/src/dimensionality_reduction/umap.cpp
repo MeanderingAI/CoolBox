@@ -57,6 +57,7 @@ Eigen::VectorXd UMAP::smooth_knn_dist(
     int n_iter,
     double local_connectivity,
     double bandwidth) {
+    (void)local_connectivity;
     
     int n_samples = distances.rows();
     Eigen::VectorXd sigmas = Eigen::VectorXd::Ones(n_samples);

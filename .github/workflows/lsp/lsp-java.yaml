@@ -23,7 +23,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: pl-lsp-binaries-linux-x86_64-*
-          path: apps/lsp/dist
+          path: _deliverables/apps/lsp/dist
           merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
 
@@ -34,8 +34,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: apps/lsp
-          file: apps/lsp/docker/Dockerfile.java
+          context: _deliverables/apps/lsp
+          file: _deliverables/apps/lsp/docker/Dockerfile.java
           push: true
           tags: |
             ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
