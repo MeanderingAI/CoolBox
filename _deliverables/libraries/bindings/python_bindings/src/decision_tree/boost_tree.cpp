@@ -35,6 +35,7 @@ void BoostTree::fit(const std::vector<std::vector<double>>& X, const std::vector
 
 // Predicts the output for a single sample.
 double BoostTree::predict(const std::vector<double>& sample) const {
+    (void)sample;
     double result = initial_prediction_;
     
     // A simplified, placeholder prediction loop.

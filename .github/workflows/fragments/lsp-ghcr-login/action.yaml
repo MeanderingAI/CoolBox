@@ -1,5 +1,4 @@
 # Common GHCR login step for LSP workflows
-steps:
 name: 'lsp-ghcr-login'
 description: 'Composite action for lsp-ghcr-login'
 runs:

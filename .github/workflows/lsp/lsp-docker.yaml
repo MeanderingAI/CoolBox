@@ -27,13 +27,35 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: pl-lsp-binaries-linux-x86_64-*
-          path: apps/lsp/dist
+          path: _deliverables/apps/lsp/dist
           merge-multiple: true
           run-id: ${{ github.event.workflow_run.id }}
 
+      - name: Build LSP binaries locally if missing
+        run: |
+          set -e
+          if [ -f "_deliverables/apps/lsp/dist/plang_lsp" ] && [ -f "_deliverables/apps/lsp/dist/plrust_lsp" ] && [ -f "_deliverables/apps/lsp/dist/pljava_lsp" ] && [ -f "_deliverables/apps/lsp/dist/plscala_lsp" ] && [ -f "_deliverables/apps/lsp/dist/plpython_lsp" ] && [ -f "_deliverables/apps/lsp/dist/plvlang_lsp" ] && [ -f "_deliverables/apps/lsp/dist/plc3_lsp" ]; then
+            echo "Using downloaded LSP artifacts"
+            ls -la _deliverables/apps/lsp/dist
+            exit 0
+          fi
+
+          echo "No complete LSP artifact set found; building locally"
+          cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          mkdir -p _deliverables/apps/lsp/dist
+          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || true
+          cp build/apps/lsp/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || cp build/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || true
+          cp build/apps/lsp/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || cp build/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || true
+          cp build/apps/lsp/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || cp build/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || true
+          cp build/apps/lsp/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || cp build/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || true
+          cp build/apps/lsp/plvlang_lsp _deliverables/apps/lsp/dist/plvlang_lsp || cp build/plvlang_lsp _deliverables/apps/lsp/dist/plvlang_lsp || true
+          cp build/apps/lsp/plc3_lsp _deliverables/apps/lsp/dist/plc3_lsp || cp build/plc3_lsp _deliverables/apps/lsp/dist/plc3_lsp || true
+          ls -la _deliverables/apps/lsp/dist
+
       - name: Ensure binaries are executable
         run: |
-          chmod +x apps/lsp/dist/* || true
+          chmod +x _deliverables/apps/lsp/dist/* || true
 
       # Common GHCR login and owner normalization
       - uses: ./.github/workflows/fragments/ghcr-login.yaml
@@ -41,32 +63,37 @@ jobs:
       - name: Build & push all images
         run: |
           set -e
-          docker build -f apps/lsp/docker/Dockerfile.plang -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }} apps/lsp
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.plang -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }} _deliverables/apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:plang_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plang-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.rust -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }} apps/lsp
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.rust -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }} _deliverables/apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:plrust_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plrust-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.java -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }} apps/lsp
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.java -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }} _deliverables/apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:pljava_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/pljava-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} apps/lsp
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.scala -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }} _deliverables/apps/lsp
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }}
+          docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:plscala_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:latest
+          docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plscala-lsp:latest
+
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.python -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} _deliverables/apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:plpython_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plpython-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.vlang -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }} apps/lsp
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.vlang -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }} _deliverables/apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:plvlang_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plvlang-lsp:latest
 
-          docker build -f apps/lsp/docker/Dockerfile.c3 -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }} apps/lsp
+          docker build -f _deliverables/apps/lsp/docker/Dockerfile.c3 -t ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }} _deliverables/apps/lsp
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }}
           docker tag ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:plc3_lsp-${{ github.sha }} ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:latest
           docker push ghcr.io/${{ steps.ghcr-owner.outputs.value }}/plc3-lsp:latest

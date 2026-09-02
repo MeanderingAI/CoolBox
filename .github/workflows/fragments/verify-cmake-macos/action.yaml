@@ -1,5 +1,4 @@
 # Verify CMake configuration and cache on macOS
-steps:
 name: 'verify-cmake-macos'
 description: 'Composite action for verify-cmake-macos'
 runs:
@@ -7,6 +6,7 @@ runs:
   steps:
   - name: Show CMake cache (macOS)
     if: runner.os == 'macOS'
+    shell: bash
     run: |
       echo "=== build/CMakeCache.txt ==="
       if [ -f build/CMakeCache.txt ]; then

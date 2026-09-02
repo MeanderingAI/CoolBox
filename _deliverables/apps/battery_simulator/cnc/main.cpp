@@ -1,6 +1,8 @@
 #include <battery.h>
 #include <cli_tools.hpp>
 
+#include <optimization_factory.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -146,6 +148,14 @@ struct SimPack {
     }
 };
 
+struct ConditionReading {
+    std::string status = "OK";
+    std::string note = "within limits";
+    double terminal_voltage_v = 0.0;
+    double max_temperature_c = 0.0;
+    double min_soc = 0.0;
+};
+
 std::string trim(const std::string& text) {
     std::size_t begin = 0;
     while (begin < text.size() && std::isspace(static_cast<unsigned char>(text[begin]))) ++begin;
@@ -200,7 +210,22 @@ double clamp(double value, double lo, double hi) {
 }
 
 double parse_fraction(const std::string& value, const std::string& key) {
-    double parsed = parse_double(value, key);
+    const std::string trimmed = trim(value);
+    const std::string lowered = lower(trimmed);
+
+    if (lowered.size() >= 3 && lowered.substr(lowered.size() - 3) == "ppm") {
+        const std::string numeric = trim(trimmed.substr(0, trimmed.size() - 3));
+        double parsed = parse_double(numeric, key);
+        return clamp(parsed / 1000000.0, 0.0, 1.0);
+    }
+
+    if (!trimmed.empty() && trimmed.back() == '%') {
+        const std::string numeric = trim(trimmed.substr(0, trimmed.size() - 1));
+        double parsed = parse_double(numeric, key);
+        return clamp(parsed / 100.0, 0.0, 1.0);
+    }
+
+    double parsed = parse_double(trimmed, key);
     if (parsed > 1.0) parsed /= 100.0;
     return clamp(parsed, 0.0, 1.0);
 }
@@ -409,23 +434,27 @@ SimPack create_pack(const PackConfig& config) {
 void print_script_help(std::ostream& out) {
     out << "Script format:\n"
         << "  pack label=demo cells=8 series=4 parallel=2 chemistry=li-ion capacity_ah=3.0 soc=100 soh=100 ambient_c=25\n"
-        << "  mixture li-ion=75 lifepo4=25\n"
+    << "  mixture li-ion=75 lifepo4=25\n"
+    << "  mixture li-ion=750000ppm lifepo4=250000ppm\n"
         << "  discharge current_a=12 duration_s=900 step_s=60\n"
         << "  rest duration_s=300 step_s=60\n"
-        << "  charge current_a=4 duration_s=600 step_s=60\n\n"
+    << "  charge current_a=4 duration_s=600 step_s=60\n"
+    << "  charge mode=optimization current_a=6 duration_s=600 step_s=60 target_temp_c=40 voltage_ceiling_v=16.8\n\n"
         << "Commands:\n"
         << "  pack       Defines cell count, series/parallel layout, capacity, chemistry, SoC, SoH, ambient temp.\n"
-        << "  mixture    Optional chemistry mix. Values can be fractions or percentages.\n"
+    << "  mixture    Optional chemistry mix. Values can be fractions, percentages, or ppm.\n"
         << "  discharge  Runs a positive pack current draw.\n"
         << "  charge     Charges the pack.\n"
+    << "             Add mode=optimization to reuse the optimizer and search a safe charging current.\n"
+    << "             Optional target_temp_c and voltage_ceiling_v tighten online condition monitoring.\n"
         << "  rest       Advances time with thermal cooling and no current.\n"
-        << "  run        Generic action: mode=discharge|charge|rest current_a=... duration_s=...\n";
+    << "  run        Generic action: mode=discharge|charge|rest|optimization current_a=... duration_s=...\n";
 }
 
 void print_header(std::ostream& out, const SimPack& pack, bool csv) {
     if (csv) {
         out << "time_s,action,current_a,terminal_v,open_circuit_v,soc_pct,min_soc_pct,soh_pct,min_soh_pct,"
-            << "temp_c,max_temp_c,delivered_wh,absorbed_wh,duration_s\n";
+            << "temp_c,max_temp_c,condition,delivered_wh,absorbed_wh,duration_s\n";
         return;
     }
 
@@ -440,10 +469,82 @@ void print_header(std::ostream& out, const SimPack& pack, bool csv) {
     }
     out << "\n\n";
     out << std::fixed << std::setprecision(2);
-    out << "time_s  action      amps     term_v   ocv      soc%    min_soc% soh%    temp_c  max_c   Wh_out  Wh_in\n";
+    out << "time_s  action      amps     term_v   ocv      soc%    min_soc% soh%    temp_c  max_c   cond   Wh_out  Wh_in\n";
 }
 
-void print_status(std::ostream& out, const SimPack& pack, const std::string& action, double current_a, bool csv) {
+ConditionReading evaluate_conditions(const SimPack& pack, double current_a, double voltage_ceiling_v,
+                                     double target_temp_c) {
+    ConditionReading reading;
+    reading.terminal_voltage_v = pack.terminal_voltage(current_a);
+    reading.max_temperature_c = pack.max_temperature_c();
+    reading.min_soc = pack.min_soc();
+
+    std::vector<std::string> notes;
+    if (reading.terminal_voltage_v > voltage_ceiling_v) {
+        reading.status = "ALERT";
+        notes.push_back("voltage above ceiling");
+    } else if (reading.terminal_voltage_v > voltage_ceiling_v * 0.97) {
+        if (reading.status != "ALERT") reading.status = "WARN";
+        notes.push_back("voltage near ceiling");
+    }
+
+    if (reading.max_temperature_c > target_temp_c) {
+        reading.status = "ALERT";
+        notes.push_back("temperature above target");
+    } else if (reading.max_temperature_c > target_temp_c * 0.95) {
+        if (reading.status != "ALERT") reading.status = "WARN";
+        notes.push_back("temperature near target");
+    }
+
+    if (reading.min_soc < 0.10) {
+        if (reading.status != "ALERT") reading.status = "WARN";
+        notes.push_back("low SoC");
+    }
+
+    if (reading.status == "OK") {
+        reading.note = "within limits";
+    } else {
+        std::ostringstream summary;
+        for (std::size_t i = 0; i < notes.size(); ++i) {
+            if (i) summary << ';';
+            summary << notes[i];
+        }
+        reading.note = summary.str();
+    }
+
+    return reading;
+}
+
+double default_voltage_ceiling_for_pack(const SimPack& pack) {
+    return pack.config.series * battery::ChemistryDefaults::for_chemistry(pack.config.chemistry).max_voltage;
+}
+
+double taper_charge_limit(const SimPack& pack, double base_limit_a, double target_temp_c, double voltage_ceiling_v) {
+    const double current_voltage = pack.open_circuit_voltage();
+    const double current_temp = pack.max_temperature_c();
+    const double voltage_headroom = voltage_ceiling_v - current_voltage;
+    const double temp_headroom = target_temp_c - current_temp;
+
+    double factor = 1.0;
+    if (voltage_headroom <= 0.0) {
+        factor = std::min(factor, 0.15);
+    } else if (voltage_headroom < voltage_ceiling_v * 0.10) {
+        factor = std::min(factor, clamp(voltage_headroom / std::max(0.5, voltage_ceiling_v * 0.10), 0.15, 1.0));
+    }
+
+    if (temp_headroom <= 0.0) {
+        factor = std::min(factor, 0.15);
+    } else if (temp_headroom < 5.0) {
+        factor = std::min(factor, clamp(temp_headroom / 5.0, 0.15, 1.0));
+    }
+
+    return std::max(0.1, base_limit_a * factor);
+}
+
+void print_status(std::ostream& out, const SimPack& pack, const std::string& action, double current_a, bool csv,
+                  double voltage_ceiling_v, double target_temp_c) {
+    const ConditionReading condition = evaluate_conditions(pack, current_a, voltage_ceiling_v, target_temp_c);
+
     if (csv) {
         out << std::fixed << std::setprecision(4)
             << pack.elapsed_s << ','
@@ -457,6 +558,7 @@ void print_status(std::ostream& out, const SimPack& pack, const std::string& act
             << pack.min_soh() * 100.0 << ','
             << pack.average_temperature_c() << ','
             << pack.max_temperature_c() << ','
+            << condition.status << ':' << condition.note << ','
             << pack.delivered_wh << ','
             << pack.absorbed_wh << ','
             << pack.elapsed_s << '\n';
@@ -474,6 +576,7 @@ void print_status(std::ostream& out, const SimPack& pack, const std::string& act
         << std::setw(7) << pack.average_soh() * 100.0
         << std::setw(8) << pack.average_temperature_c()
         << std::setw(7) << pack.max_temperature_c()
+        << std::setw(7) << condition.status
         << std::setw(8) << pack.delivered_wh
         << std::setw(7) << pack.absorbed_wh
         << '\n';
@@ -527,7 +630,8 @@ void advance_pack(SimPack& pack, const std::string& action, double current_a, do
 
         apply_thermal_and_health(pack, action == "charge" ? -current_a : current_a, dt);
         pack.elapsed_s += dt;
-        print_status(std::cout, pack, action, action == "charge" ? -current_a : current_a, csv);
+        print_status(std::cout, pack, action, action == "charge" ? -current_a : current_a, csv,
+                 default_voltage_ceiling_for_pack(pack), 40.0);
         remaining -= dt;
 
         if (stop_on_empty && action == "discharge" && pack.depleted()) {
@@ -537,20 +641,118 @@ void advance_pack(SimPack& pack, const std::string& action, double current_a, do
     }
 }
 
+double default_charge_voltage_limit(const SimPack& pack) {
+    double voltage_limit = 0.0;
+    for (int s = 0; s < pack.config.series; ++s) {
+        double stage_limit = 0.0;
+        for (int p = 0; p < pack.config.parallel; ++p) {
+            stage_limit += pack.cells[pack.index(s, p)].cell.max_voltage();
+        }
+        voltage_limit += stage_limit / static_cast<double>(pack.config.parallel);
+    }
+    return voltage_limit;
+}
+
+double optimize_charge_current(const SimPack& pack, double duration_s, double step_s, double current_limit_a,
+                               double target_temp_c, double voltage_ceiling_v) {
+    const double max_current = std::max(0.1, current_limit_a);
+    opt::HillClimbing::Config config;
+    config.dimensions = 1;
+    config.max_iterations = 30;
+    config.neighbours_per_iteration = 18;
+    config.max_restarts = 3;
+    config.step_sigma = std::max(0.1, max_current / 8.0);
+    config.lower_bound = 0.0;
+    config.upper_bound = max_current;
+    config.seed = static_cast<unsigned int>(pack.elapsed_s + duration_s + step_s + pack.cells.size());
+
+    auto optimizer = opt::create_optimizer(config);
+    const double baseline_soc = pack.average_soc();
+
+    const auto objective = [&](const std::vector<double>& state) {
+        const double current = std::max(0.0, state[0]);
+        SimPack trial = pack;
+
+        const double current_per_cell = current / static_cast<double>(trial.config.parallel);
+        double absorbed_wh = 0.0;
+        for (auto& sim_cell : trial.cells) {
+            absorbed_wh += sim_cell.cell.charge(current_per_cell, duration_s);
+        }
+
+        apply_thermal_and_health(trial, -current, duration_s);
+
+        const double terminal_voltage = trial.terminal_voltage(-current);
+        const double voltage_penalty = std::max(0.0, terminal_voltage - voltage_ceiling_v);
+        const double temperature_penalty = std::max(0.0, trial.max_temperature_c() - target_temp_c);
+        const double soc_gain = std::max(0.0, trial.average_soc() - baseline_soc);
+
+        return -(absorbed_wh + soc_gain * 100.0)
+            + voltage_penalty * 1000.0
+            + temperature_penalty * 25.0
+            + current * 0.01;
+    };
+
+    const double initial_guess = std::min(max_current, std::max(0.25, pack.capacity_ah()));
+    const auto best_solution = optimizer->optimize(objective, {initial_guess});
+    if (best_solution.empty()) {
+        return initial_guess;
+    }
+
+    return clamp(best_solution.front(), 0.0, max_current);
+}
+
+void advance_optimization_charge(SimPack& pack, double duration_s, double step_s, double current_limit_a,
+                                 double target_temp_c, double voltage_ceiling_v, bool csv) {
+    if (duration_s < 0.0) throw std::runtime_error("duration_s must be non-negative");
+    if (step_s <= 0.0) throw std::runtime_error("step_s must be positive");
+
+    double remaining = duration_s;
+    while (remaining > 1e-9) {
+        const double dt = std::min(step_s, remaining);
+        const double tapered_limit = taper_charge_limit(pack, current_limit_a, target_temp_c, voltage_ceiling_v);
+        const double optimized_current = optimize_charge_current(pack, dt, step_s, tapered_limit,
+                                                                 target_temp_c, voltage_ceiling_v);
+        const double current_per_cell = optimized_current / static_cast<double>(pack.config.parallel);
+
+        for (auto& sim_cell : pack.cells) {
+            pack.absorbed_wh += sim_cell.cell.charge(current_per_cell, dt);
+        }
+        pack.throughput_ah += optimized_current * dt / 3600.0;
+
+        apply_thermal_and_health(pack, -optimized_current, dt);
+        pack.elapsed_s += dt;
+        print_status(std::cout, pack, "opt_charge", -optimized_current, csv, voltage_ceiling_v, target_temp_c);
+        if (!csv) {
+            const auto condition = evaluate_conditions(pack, -optimized_current, voltage_ceiling_v, target_temp_c);
+            std::cout << "         taper: limit=" << std::fixed << std::setprecision(2)
+                      << current_limit_a << "A -> " << tapered_limit << "A\n";
+            std::cout << "         monitor: " << condition.status << " - " << condition.note
+                      << " (target_temp=" << std::fixed << std::setprecision(1) << target_temp_c
+                      << "C, voltage_ceiling=" << voltage_ceiling_v << "V)\n";
+        }
+        remaining -= dt;
+    }
+}
+
 void execute_script(const std::vector<ScriptLine>& lines, SimPack& pack, bool csv) {
     print_header(std::cout, pack, csv);
-    print_status(std::cout, pack, "initial", 0.0, csv);
+    print_status(std::cout, pack, "initial", 0.0, csv, default_voltage_ceiling_for_pack(pack), 40.0);
 
     for (const auto& line : lines) {
         if (line.command == "pack" || line.command == "mixture" || line.command == "output") continue;
 
         std::string action = line.command;
+        const std::string mode = normalize_key(arg_string(line, "mode"));
         if (action == "run") {
-            action = normalize_key(arg_string(line, "mode", "discharge"));
+            action = mode.empty() ? "discharge" : mode;
         }
         if (action == "load") action = "discharge";
 
-        if (action != "discharge" && action != "charge" && action != "rest") {
+        if (action == "charge" && mode == "optimization") {
+            action = "optimization";
+        }
+
+        if (action != "discharge" && action != "charge" && action != "rest" && action != "optimization") {
             throw std::runtime_error("Line " + std::to_string(line.line_number) + ": unknown command '" +
                                      line.command + "'");
         }
@@ -558,13 +760,23 @@ void execute_script(const std::vector<ScriptLine>& lines, SimPack& pack, bool cs
         const double duration_s = arg_double(line, "duration_s",
             arg_double(line, "seconds", arg_double(line, "duration", 0.0)));
         const double step_s = arg_double(line, "step_s", arg_double(line, "interval_s", std::min(60.0, duration_s)));
-        const double current_a = action == "rest" ? 0.0 : arg_double(line, "current_a", arg_double(line, "amps", 0.0));
-        if (action != "rest" && current_a <= 0.0) {
+        const double current_a = action == "rest"
+            ? 0.0
+            : arg_double(line, "current_a", arg_double(line, "amps", 0.0));
+
+        if ((action == "charge" || action == "discharge") && current_a <= 0.0) {
             throw std::runtime_error("Line " + std::to_string(line.line_number) +
                                      ": current_a must be positive for " + action);
         }
 
-        advance_pack(pack, action, current_a, duration_s, step_s, true, csv);
+        if (action == "optimization") {
+            const double target_temp_c = arg_double(line, "target_temp_c", 42.0);
+            const double current_limit_a = current_a > 0.0 ? current_a : std::max(0.5, pack.capacity_ah() * 1.5);
+            const double voltage_ceiling_v = arg_double(line, "voltage_ceiling_v", arg_double(line, "voltage_limit_v", default_charge_voltage_limit(pack)));
+            advance_optimization_charge(pack, duration_s, step_s, current_limit_a, target_temp_c, voltage_ceiling_v, csv);
+        } else {
+            advance_pack(pack, action, current_a, duration_s, step_s, true, csv);
+        }
     }
 }
 
