@@ -156,6 +156,9 @@ CandidateRule evaluate_candidate(
 } // namespace
 
 int ChainedBoostingRule::evaluate(const std::vector<double>& sample) const {
+    if (feature_index >= sample.size()) {
+        throw std::out_of_range("ChainedBoostingRule feature_index out of range");
+    }
     const int base_prediction = sample[feature_index] <= threshold ? 1 : -1;
     return polarity * base_prediction;
 }
