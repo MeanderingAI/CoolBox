@@ -3,9 +3,44 @@
 #include <cstdint>
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace security::custom_numbers {
+
+// These profiles mirror the generations compared as dmg1997 and dmg2017 in
+// research.swtch.com/fp. They use standard-library facilities, not dtoa.c.
+enum class FloatingPointConversion {
+    Automatic,
+    Dmg1997,
+    Dmg2017,
+    Dblconv,
+    Abseil,
+    Uscale,
+    FastFloat,
+    Libc,
+    UscaleC
+};
+
+struct FloatingPointConversionCapabilities {
+    bool format;
+    bool parse;
+};
+
+FloatingPointConversionCapabilities floating_point_conversion_capabilities(
+    FloatingPointConversion conversion);
+bool floating_point_conversion_available(FloatingPointConversion conversion);
+FloatingPointConversion selected_floating_point_conversion(
+    FloatingPointConversion requested = FloatingPointConversion::Automatic);
+const char* floating_point_conversion_name(FloatingPointConversion conversion);
+
+std::string format_double(
+    double value,
+    FloatingPointConversion conversion = FloatingPointConversion::Automatic);
+bool parse_double(
+    std::string_view text,
+    double& value,
+    FloatingPointConversion conversion = FloatingPointConversion::Automatic);
 
 class BigUnsigned;
 
