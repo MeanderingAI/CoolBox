@@ -348,8 +348,17 @@ if(BUILD_PYTHON_BINDINGS)
     endif()
 endif()
 
-# Find and include Eigen3 globally for all targets that need it
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+# Find and include Eigen3 globally for all targets that need it.
+# ExternalDependencies.cmake already provides Eigen3::Eigen in CI/toolchains
+# where a package config is unavailable.
+if(NOT TARGET Eigen3::Eigen)
+    find_package(Eigen3 QUIET CONFIG)
+    if(NOT TARGET Eigen3::Eigen)
+        find_package(Eigen3 REQUIRED)
+    endif()
+endif()
+if(DEFINED EIGEN3_INCLUDE_DIR)
+    include_directories(${EIGEN3_INCLUDE_DIR})
+endif()
 
 # External QUIC/HTTP3 dependency support disabled for pure HTTP2 build

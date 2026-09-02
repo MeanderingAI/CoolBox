@@ -1,5 +1,4 @@
 # Run CMake configure/build for Windows (MSYS2)
-steps:
 name: 'run-cmake-windows'
 description: 'Composite action for run-cmake-windows'
 runs:
@@ -7,6 +6,6 @@ runs:
   steps:
   - name: Configure CMake (Windows)
     if: runner.os == 'Windows'
+    shell: msys2 {0}
     run: |
       cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
-    shell: msys2 {0}

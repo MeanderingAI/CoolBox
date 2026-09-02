@@ -5,7 +5,7 @@ Summary: Comprehensive C++ Machine Learning Library with Python Bindings
 Author: ML Core Team
 License-Expression: GPL-3.0-or-later
 Project-URL: Homepage, https://github.com/MeanderingAI/CoolBox
-Project-URL: Documentation, https://github.com/MeanderingAI/CoolBox/blob/main/_libraries/python_bindings/README.md
+Project-URL: Documentation, https://github.com/MeanderingAI/CoolBox/blob/main/_deliverables/libraries/bindings/python_bindings/README.md
 Project-URL: Repository, https://github.com/MeanderingAI/CoolBox
 Project-URL: Issues, https://github.com/MeanderingAI/CoolBox/issues
 Keywords: machine-learning,deep-learning,neural-networks,decision-trees,svm,bayesian-networks,distributed-training,computer-vision,nlp
@@ -43,8 +43,8 @@ Python bindings for the CoolBox C++ machine learning toolkit.
 ## Install
 
 - `pip install git+https://github.com/MeanderingAI/CoolBox.git`
-- `pip install git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings`
-- `pip install .` from `_libraries/python_bindings`
+- `pip install git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_deliverables/libraries/bindings/python_bindings`
+- `pip install .` from `_deliverables/libraries/bindings/python_bindings`
 
 If you are already at the repository root, `pip install .` also works there now.
 
@@ -78,7 +78,7 @@ From the repository root:
 
 Or directly:
 
-- `cd _libraries/python_bindings && python -m build`
+- `cd _deliverables/libraries/bindings/python_bindings && python -m build`
 
 ## Native Library Resolution
 

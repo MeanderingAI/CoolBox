@@ -13,6 +13,7 @@
 
 #include <emscripten/bind.h>
 #include "wave_generator.hpp"
+#include <complex>
 #include <vector>
 #include <cmath>
 

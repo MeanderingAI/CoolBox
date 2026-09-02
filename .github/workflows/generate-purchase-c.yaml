@@ -24,7 +24,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PLATFORM: linux-x86_64
     steps:
-      - uses: ./.github/workflows/fragments/purchase-checkout
+      - uses: actions/checkout@v6
       - uses: ./.github/workflows/fragments/purchase-install-native-build-tooling
       - uses: ./.github/workflows/fragments/purchase-configure-c-bindings
       - uses: ./.github/workflows/fragments/purchase-build-c-bindings
@@ -33,20 +33,20 @@ jobs:
 
       - name: Test C bindings
         run: |
-          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+          ctest --test-dir _deliverables/libraries/bindings/c_bindings/build --output-on-failure
 
       - name: Generate C binding docs
         run: |
-          rm -rf _libraries/c_bindings/target
-          bash _libraries/c_bindings/generate_docs.sh
+          rm -rf _deliverables/libraries/bindings/c_bindings/target
+          bash _deliverables/libraries/bindings/c_bindings/generate_docs.sh
 
       - name: Stage C bindings package
         run: |
           rm -rf release-assets staging-c
           mkdir -p release-assets staging-c/include staging-c/lib
-          cp -R _libraries/c_bindings/include/. staging-c/include/
-          cp -R _libraries/c_bindings/target/. staging-c/
-          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c/lib/ \;
+          cp -R _deliverables/libraries/bindings/c_bindings/include/. staging-c/include/
+          cp -R _deliverables/libraries/bindings/c_bindings/target/. staging-c/
+          find _deliverables/libraries/bindings/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-c/lib/ \;
           tar -C staging-c -czf release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-c release-assets/coolbox-c-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip

@@ -5,8 +5,9 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <optional>
+#include <stdexcept>
+#include <vector>
 
 // A simple Maple Tree implementation (Maple Tree is a B-tree variant used in Linux kernel)
 template <typename Key, typename Value, size_t Order = 32>

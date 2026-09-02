@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wave Generation Tutorial | CoolBox Tutorials</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0 auto; max-width: 920px; padding: 2rem 1rem 4rem; line-height: 1.6; color: #0f172a; background: #f8fafc; }
+    header, .meta-box, article { background: white; border: 1px solid #dbeafe; border-radius: 14px; padding: 1.25rem; box-shadow: 0 12px 36px rgba(15, 23, 42, 0.07); }
+    header { margin-bottom: 1rem; }
+    h1, h2, h3, h4, h5, h6 { color: #111827; line-height: 1.2; }
+    .meta-box { margin: 1rem 0 1.5rem; }
+    .meta { margin: 0.25rem 0; color: #334155; }
+    .description { color: #475569; font-size: 1.05rem; }
+    pre { overflow-x: auto; background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 12px; }
+    code { font-family: Menlo, Monaco, Consolas, monospace; }
+    .code-block { margin: 1rem 0; }
+    figure { margin: 1.25rem 0; }
+    img, video { max-width: 100%; border-radius: 12px; }
+    .muted { color: #64748b; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wave Generation Tutorial</h1>
+    
+  </header>
+  <section class="meta-box">
+    <p class="meta"><strong>Published:</strong> March 20th 2026</p>
+    
+    <p class="meta"><strong>Tags:</strong> <span>signal processing</span>, <span>numpy</span>, <span>matplotlib</span>, <span>tutorial</span></p>
+    <p class="meta"><strong>Libraries:</strong> <code>MISC/hash</code>, <code>GRAPHICS/charts</code></p>
+  </section>
+  <article>
+    <p>This tutorial demonstrates how to generate and visualize a sine wave using Python with NumPy and Matplotlib.</p>
+<h2>Introduction</h2>
+<p>Generating waveforms is a fundamental task in signal processing and scientific computing. Here, we'll create a simple sine wave and plot it.</p>
+<h2>Prerequisites</h2>
+<p>You need to have `numpy` and `matplotlib` installed. You can install them with:</p>
+<div class="code-block"><pre><code class="language-bash">pip install numpy matplotlib</code></pre></div>
+<h2>Step 1: Import Libraries</h2>
+<div class="code-block"><pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt</code></pre></div>
+<h2>Step 2: Generate the Sine Wave</h2>
+<div class="code-block"><pre><code class="language-python"># Parameters
+frequency = 5  # Hz
+sampling_rate = 500  # Hz
+duration = 2  # seconds
+t = np.linspace(0, duration, int(sampling_rate * duration), endpoint=False)
+y = np.sin(2 * np.pi * frequency * t)</code></pre></div>
+<h2>Step 3: Plot the Wave</h2>
+<div class="code-block"><pre><code class="language-python">plt.figure(figsize=(10, 4))
+plt.plot(t, y, label=f'{frequency} Hz Sine Wave')
+plt.xlabel('Time [s]')
+plt.ylabel('Amplitude')
+plt.title('Sine Wave Generation with NumPy')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()</code></pre></div>
+<h2>Conclusion</h2>
+<p>You have generated and visualized a sine wave using Python. You can modify the frequency, sampling rate, or duration to explore different waveforms.</p>
+  </article>
+</body>
+</html>

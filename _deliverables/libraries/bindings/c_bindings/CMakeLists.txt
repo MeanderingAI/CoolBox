@@ -8,6 +8,73 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+if(NOT COMMAND coolbox_stage_test_runtime_dependencies)
+    function(_coolbox_collect_runtime_dependency_targets target out_var)
+        if(NOT TARGET "${target}")
+            set(${out_var} "" PARENT_SCOPE)
+            return()
+        endif()
+
+        get_property(visited GLOBAL PROPERTY COOLBOX_RUNTIME_DEP_VISITED)
+        if(NOT visited)
+            set(visited "")
+        endif()
+
+        if("${target}" IN_LIST visited)
+            set(${out_var} "" PARENT_SCOPE)
+            return()
+        endif()
+
+        set_property(GLOBAL APPEND PROPERTY COOLBOX_RUNTIME_DEP_VISITED "${target}")
+        set(runtime_targets "")
+
+        get_target_property(target_type "${target}" TYPE)
+        if(target_type STREQUAL "SHARED_LIBRARY" OR target_type STREQUAL "MODULE_LIBRARY")
+            list(APPEND runtime_targets "${target}")
+        endif()
+
+        foreach(link_property IN ITEMS LINK_LIBRARIES INTERFACE_LINK_LIBRARIES)
+            get_target_property(linked_items "${target}" ${link_property})
+            if(linked_items AND NOT linked_items STREQUAL "linked_items-NOTFOUND")
+                foreach(linked_item IN LISTS linked_items)
+                    if(TARGET "${linked_item}")
+                        _coolbox_collect_runtime_dependency_targets("${linked_item}" dependency_targets)
+                        list(APPEND runtime_targets ${dependency_targets})
+                    endif()
+                endforeach()
+            endif()
+        endforeach()
+
+        list(REMOVE_DUPLICATES runtime_targets)
+        set(${out_var} "${runtime_targets}" PARENT_SCOPE)
+    endfunction()
+
+    function(coolbox_stage_test_runtime_dependencies test_target)
+        if(NOT WIN32 OR NOT TARGET "${test_target}")
+            return()
+        endif()
+
+        set_property(GLOBAL PROPERTY COOLBOX_RUNTIME_DEP_VISITED "")
+        _coolbox_collect_runtime_dependency_targets("${test_target}" runtime_targets)
+        list(REMOVE_ITEM runtime_targets "${test_target}")
+        list(REMOVE_DUPLICATES runtime_targets)
+
+        if(runtime_targets)
+            set(copy_sources "")
+            foreach(runtime_target IN LISTS runtime_targets)
+                list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
+            endforeach()
+
+            add_custom_command(TARGET ${test_target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${copy_sources}
+                    $<TARGET_FILE_DIR:${test_target}>
+                COMMAND_EXPAND_LISTS
+            )
+        endif()
+    endfunction()
+endif()
+
 
 # Always add the correct metadata_management subdirectory for this repo layout
 if(NOT TARGET metadata_management)
@@ -102,5 +169,6 @@ if(BUILD_TESTING)
         tests/test_coolbox_c_bindings.c
     )
     target_link_libraries(test_coolbox_c_bindings PRIVATE coolbox_c_bindings)
+    coolbox_stage_test_runtime_dependencies(test_coolbox_c_bindings)
     add_test(NAME test_coolbox_c_bindings COMMAND test_coolbox_c_bindings)
 endif()

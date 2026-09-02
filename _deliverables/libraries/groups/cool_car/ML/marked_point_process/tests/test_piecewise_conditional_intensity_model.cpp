@@ -37,3 +37,32 @@ TYST_TEST(PiecewiseConditionalIntensityModelTest, ComputesCoxIntensityFromCovari
 		2.0 * std::exp(1.0),
 		1e-12);
 }
+
+TYST_TEST(PiecewiseConditionalIntensityModelTest, InfersTip17SemanticEventsFromVisualWords) {
+	PiecewiseConditionalIntensityModel model(2, 0.1, 1);
+	model.create_uniform_intervals(0.0, 4.0, PiecewiseConditionalIntensityModel::IntensityType::CONSTANT);
+	model.set_interval_parameters(0, {0.05});
+	model.set_interval_parameters(1, {0.05});
+
+	PiecewiseConditionalIntensityModel::Tip17InferenceConfig config;
+	config.semantic_label_count = 2;
+	config.sample_count = 80;
+	config.burn_in = 10;
+	config.random_seed = 7;
+	config.visual_weight = 3.0;
+	config.base_semantic_rate = 0.02;
+	config.posterior_threshold = 0.5;
+	config.visual_word_to_semantic_label = {{42, 1}};
+
+	const auto result = model.infer_tip17_video_events({
+		{0.5, 42, 1.0},
+		{0.7, 42, 0.9},
+		{2.0, 42, 0.8}
+	}, config);
+
+	TYST_EXPECT_TRUE(result.virtual_event_count >= 0);
+	TYST_EXPECT_TRUE(!result.semantic_events.empty());
+	TYST_EXPECT_TRUE(result.semantic_label_scores[1] > result.semantic_label_scores[0]);
+	TYST_EXPECT_EQ(result.semantic_events.front().semantic_label, 1);
+	TYST_EXPECT_TRUE(result.semantic_events.front().end_time > result.semantic_events.front().start_time);
+}

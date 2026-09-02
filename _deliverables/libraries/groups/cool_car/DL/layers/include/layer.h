@@ -21,7 +21,7 @@ public:
     virtual Tensor backward(const Tensor& gradient) = 0;
     
     // Update parameters with optimizer
-    virtual void update_parameters(double learning_rate) {}
+    virtual void update_parameters(double /*learning_rate*/) {}
     
     // Getters
     virtual std::string name() const = 0;
@@ -54,7 +54,7 @@ private:
     Tensor bias_;         // Shape: [output_size]
     Tensor weight_gradient_;
     Tensor bias_gradient_;
-    size_t input_size_;
+    [[maybe_unused]] size_t input_size_;
     size_t output_size_;
 };
 
@@ -465,8 +465,8 @@ public:
     
 private:
     size_t d_model_;
-    size_t num_heads_;
-    size_t d_k_;  // d_model / num_heads
+    [[maybe_unused]] size_t num_heads_;
+    [[maybe_unused]] size_t d_k_;  // d_model / num_heads
     
     // Linear projections
     Tensor W_q_, W_k_, W_v_, W_o_;  // Shape: [d_model, d_model]
@@ -513,7 +513,7 @@ public:
     
 private:
     size_t d_model_;
-    size_t max_seq_len_;
+    [[maybe_unused]] size_t max_seq_len_;
     Tensor encoding_;  // Precomputed positional encoding table
     DropoutLayer dropout_;
 };
