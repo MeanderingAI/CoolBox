@@ -674,6 +674,38 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "build-pdf-cell-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"pdf_cell"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build-pdf-cell-studio-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"pdf_cell_studio"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
 			"label": "build-recording-studio",
 			"type": "shell",
 			"command": "cmake",
@@ -696,7 +728,7 @@
 			],
 			"dependsOrder": "sequence",
 			"isBackground": false,
-			"group": "run",
+			"group": "none",
 			"problemMatcher": []
 		},
 		{
@@ -715,58 +747,55 @@
 			},
 			"isBackground": false,
 			"problemMatcher": [],
-			"group": "run"
+			"group": "none"
+		},
+		{
+			"label": "build_all-mac-linux",
+			"type": "shell",
+			"command": "make",
+			"args": ["all"],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "build_all-windows",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"cmake --build build --config Debug"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "test_all-mac-linux",
+			"type": "shell",
+			"command": "make",
+			"args": ["test"],
+			"isBackground": false,
+			"group": "test",
+			"problemMatcher": []
+		},
+		{
+			"label": "test_all-windows",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"cmake --build build --config Debug && ctest --test-dir build --output-on-failure"
+			],
+			"isBackground": false,
+			"group": "test",
+			"problemMatcher": []
 		}
 	]
-	,
-	// Build all libraries (cross-platform)
-	{
-		"label": "build_all-mac-linux",
-		"type": "shell",
-		"command": "make",
-		"args": ["all"],
-		"isBackground": false,
-		"group": "build",
-		"problemMatcher": []
-	},
-	{
-		"label": "build_all-windows",
-		"type": "shell",
-		"command": "powershell",
-		"args": [
-			"-NoProfile",
-			"-ExecutionPolicy",
-			"Bypass",
-			"-Command",
-			"cmake --build build --config Debug"
-		],
-		"isBackground": false,
-		"group": "build",
-		"problemMatcher": []
-	},
-	// Run all tests (cross-platform)
-	{
-		"label": "test_all-mac-linux",
-		"type": "shell",
-		"command": "make",
-		"args": ["test"],
-		"isBackground": false,
-		"group": "test",
-		"problemMatcher": []
-	},
-	{
-		"label": "test_all-windows",
-		"type": "shell",
-		"command": "powershell",
-		"args": [
-			"-NoProfile",
-			"-ExecutionPolicy",
-			"Bypass",
-			"-Command",
-			"cmake --build build --config Debug && ctest --test-dir build --output-on-failure"
-		],
-		"isBackground": false,
-		"group": "test",
-		"problemMatcher": []
-	}
 }

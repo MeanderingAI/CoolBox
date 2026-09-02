@@ -250,6 +250,95 @@
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
                 "command": "cmake --build build --target recording_studio && ./build/_deliverables/apps/recording_studio/recording_studio"
+            },
+            {
+                "name": "Run pdf_cell (Prompt Input/Output)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\pdf_cell\\Debug\\pdf_cell.exe",
+                "args": [
+                    "${input:pdfCellInputPath}",
+                    "${input:pdfCellOutputPath}"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-pdf-cell-debug"
+            },
+            {
+                "name": "Run pdf_cell (Prompt Input/Output, macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target pdf_cell && ./build/_deliverables/apps/pdf_cell/pdf_cell ${input:pdfCellInputPath} ${input:pdfCellOutputPath}"
+            },
+            {
+                "name": "Run pdf_cell_studio (GUI)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\pdf_cell_studio\\Debug\\pdf_cell_studio.exe",
+                "args": [],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-pdf-cell-studio-debug"
+            },
+            {
+                "name": "Run pdf_cell_studio (GUI, macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --target pdf_cell_studio && ./build/_deliverables/apps/pdf_cell_studio/pdf_cell_studio"
+            },
+            {
+                "name": "Build All (mac/linux)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "make",
+                "args": ["all"],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build_all-mac-linux"
+            },
+            {
+                "name": "Build All (windows)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "powershell",
+                "args": [
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    "cmake --build build --config Debug"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build_all-windows"
+            },
+            {
+                "name": "Run All Tests (mac/linux)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "make",
+                "args": ["test"],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "test_all-mac-linux"
+            },
+            {
+                "name": "Run All Tests (windows)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "powershell",
+                "args": [
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    "cmake --build build --config Debug && ctest --test-dir build --output-on-failure"
+                ],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "test_all-windows"
             }
         ],
         "compounds": [
@@ -283,62 +372,6 @@
             }
         ],
         "inputs": [
-            // Build all libraries (mac/linux)
-            {
-                "name": "Build All (mac/linux)",
-                "type": "cppdbg",
-                "request": "launch",
-                "program": "make",
-                "args": ["all"],
-                "cwd": "${workspaceFolder}",
-                "console": "integratedTerminal",
-                "preLaunchTask": "build_all-mac-linux"
-            },
-            // Build all libraries (windows)
-            {
-                "name": "Build All (windows)",
-                "type": "cppvsdbg",
-                "request": "launch",
-                "program": "powershell",
-                "args": [
-                    "-NoProfile",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-Command",
-                    "cmake --build build --config Debug"
-                ],
-                "cwd": "${workspaceFolder}",
-                "console": "integratedTerminal",
-                "preLaunchTask": "build_all-windows"
-            },
-            // Run all tests (mac/linux)
-            {
-                "name": "Run All Tests (mac/linux)",
-                "type": "cppdbg",
-                "request": "launch",
-                "program": "make",
-                "args": ["test"],
-                "cwd": "${workspaceFolder}",
-                "console": "integratedTerminal",
-                "preLaunchTask": "test_all-mac-linux"
-            },
-            // Run all tests (windows)
-            {
-                "name": "Run All Tests (windows)",
-                "type": "cppvsdbg",
-                "request": "launch",
-                "program": "powershell",
-                "args": [
-                    "-NoProfile",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-Command",
-                    "cmake --build build --config Debug && ctest --test-dir build --output-on-failure"
-                ],
-                "cwd": "${workspaceFolder}",
-                "console": "integratedTerminal",
-                "preLaunchTask": "test_all-windows"
-            },
             {
                 "id": "secretGenUuidVersion",
                 "type": "promptString",
@@ -379,6 +412,18 @@
                 "type": "promptString",
                 "description": "XML file path for screen_builder",
                 "default": "_deliverables/apps/screen_builder/app_layout.xml"
+            },
+            {
+                "id": "pdfCellInputPath",
+                "type": "promptString",
+                "description": "Input credit card statement PDF path",
+                "default": "${workspaceFolder}/statement.pdf"
+            },
+            {
+                "id": "pdfCellOutputPath",
+                "type": "promptString",
+                "description": "Output .xlsx path",
+                "default": "${workspaceFolder}/statement.xlsx"
             }
         ]
 }

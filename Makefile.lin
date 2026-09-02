@@ -3,6 +3,7 @@
 PYTHON := $(if $(wildcard .venv/bin/python),$(CURDIR)/.venv/bin/python,python3)
 
 EMSDK ?= $(HOME)/emsdk
+BUILD_DIR ?= build
 
 LD_LIBRARY_PATH := $(CURDIR)/lib:$(LD_LIBRARY_PATH)
 
@@ -61,7 +62,7 @@ help:
 
 configure:
 	@echo "[Makefile.lin] Configuring CMake for Linux..."
-	@cmake -S . -B build -G "Unix Makefiles"
+	@cmake -S . -B "$(BUILD_DIR)" -G "Unix Makefiles"
 
 build: configure
 	@if [ -n "$(strip $(BUILD_KIND))" ]; then \
@@ -69,7 +70,7 @@ build: configure
 		$(PYTHON) _scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); \
 	else \
 		echo "[Makefile.lin] Building all targets..."; \
-		cmake --build build; \
+		cmake --build "$(BUILD_DIR)"; \
 	fi
 
 package: configure
@@ -90,15 +91,15 @@ run:
 
 build_libraries: configure
 	@echo "[Makefile.lin] Building all libraries..."
-	@cmake --build build
+	@cmake --build "$(BUILD_DIR)"
 
 build_apps: configure
 	@echo "[Makefile.lin] Building all apps..."
-	@cmake --build build
+	@cmake --build "$(BUILD_DIR)"
 
 build_%: configure
 	@echo "[Makefile.lin] Building target: $*"
-	@cmake --build build --target $*
+	@cmake --build "$(BUILD_DIR)" --target $*
 
 list:
 	@if [ "$(words $(MAKECMDGOALS))" = "1" ]; then \
@@ -117,9 +118,9 @@ libraries: list_libraries
 
 test: configure
 	@echo "[Makefile.lin] Building test binaries..."
-	@cmake --build build
+	@cmake --build "$(BUILD_DIR)"
 	@echo "[Makefile.lin] Running all tests..."
-	@cd build && ctest --output-on-failure || true
+	@cd "$(BUILD_DIR)" && ctest --output-on-failure || true
 
 install_system_deps:
 	@echo "[Makefile.lin] Installing system dependencies via apt-get..."

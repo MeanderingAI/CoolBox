@@ -49,10 +49,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_simulator/CMakeLists.txt")
     add_subdirectory(battery_simulator)
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/pdf_cell/CMakeLists.txt")
-    add_subdirectory(pdf_cell)
-endif()
-
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/pdf_cell_studio/CMakeLists.txt")
-    add_subdirectory(pdf_cell_studio)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/php_center_api/CMakeLists.txt")
+    add_subdirectory(php_center_api)
 endif()

@@ -77,6 +77,13 @@ else()
         /usr/local
         /usr
     )
+    set(_sqlite3_library_hints)
+    if(CMAKE_LIBRARY_ARCHITECTURE)
+        list(APPEND _sqlite3_library_hints
+            "/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}"
+            "/lib/${CMAKE_LIBRARY_ARCHITECTURE}"
+        )
+    endif()
     find_path(SQLite3_INCLUDE_DIR
         NAMES sqlite3.h
         PATHS ${_sqlite3_roots}
@@ -84,6 +91,7 @@ else()
     )
     find_library(SQLite3_LIBRARY
         NAMES sqlite3
+        HINTS ${_sqlite3_library_hints}
         PATHS ${_sqlite3_roots}
         PATH_SUFFIXES lib
     )
@@ -94,7 +102,10 @@ if(NOT SQLite3_INCLUDE_DIR)
 endif()
 
 if(NOT SQLite3_LIBRARY)
-    find_library(SQLite3_LIBRARY NAMES sqlite3 sqlite3.lib)
+    find_library(SQLite3_LIBRARY
+        NAMES sqlite3 sqlite3.lib
+        HINTS ${_sqlite3_library_hints}
+    )
 endif()
 
 include(FindPackageHandleStandardArgs)
