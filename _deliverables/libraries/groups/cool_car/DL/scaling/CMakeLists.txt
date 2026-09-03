@@ -42,16 +42,22 @@ endif()
 
 if(BUILD_TESTING)
     enable_testing()
-    add_executable(dl_scaling_tests
-        tests/test_scaling.cpp
-        ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
-    )
-    target_include_directories(dl_scaling_tests PRIVATE
-        ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
-    )
-    target_link_libraries(dl_scaling_tests PRIVATE dl_scaling)
-    if(COMMAND coolbox_stage_test_runtime_dependencies)
-        coolbox_stage_test_runtime_dependencies(dl_scaling_tests)
+    # The shared tyst target is not always in the configure graph; fall back to
+    # the framework main source when it is missing.
+    if(TARGET tyst_framework_main)
+        add_executable(dl_scaling_tests tests/test_scaling.cpp)
+        target_link_libraries(dl_scaling_tests PRIVATE dl_scaling tyst_framework_main)
+    else()
+        add_executable(dl_scaling_tests
+            tests/test_scaling.cpp
+            ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
+        )
+        target_include_directories(dl_scaling_tests PRIVATE
+            ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
+        )
+        target_link_libraries(dl_scaling_tests PRIVATE dl_scaling)
     endif()
+
+    coolbox_stage_test_runtime_dependencies(dl_scaling_tests)
     add_test(NAME DeepLearningScalingTests COMMAND dl_scaling_tests)
 endif()
