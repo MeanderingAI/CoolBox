@@ -1,0 +1,3 @@
+Attentions: 
+1. .sof files are used by BTS GUI to configure the MAX 10 device and start corresponding test. Therefore, do not to move these .sof files from the *\board_test_system\image directory.
+2. Please remember to replace corresponding .sof file with new .sof file of the reference design with some changes right before kicking off test with BTS GUI, otherwise it may run into initialization issue out of the mismatch between the .sof file configured and the .sof file the BTS GUI loaded.
