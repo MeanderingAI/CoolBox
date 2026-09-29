@@ -31,7 +31,7 @@ foreach(config IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
     )
 endforeach()
 
-if(OpenSSL_FOUND)
+if(OpenSSL_FOUND AND TARGET OpenSSL::Crypto)
     target_link_libraries(uuid_generation PUBLIC OpenSSL::Crypto)
     target_compile_definitions(uuid_generation PRIVATE COOLBOX_UUID_USE_OPENSSL=1)
 endif()

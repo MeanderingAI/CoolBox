@@ -1,5 +1,8 @@
 #include "svd.h"
 #include "lib_metadata.h"
+#include <algorithm>
+#include <cmath>
+#include <limits>
 LIBRARY_METADATA(svd, "SVD", "1.0.0", "Singular Value Decomposition", "CoolBox");
 
 namespace dimensionality_reduction {
@@ -8,9 +11,16 @@ SVD::SVD(bool compute_full_matrices)
     : compute_full_matrices_(compute_full_matrices), computed_(false) {}
 
 void SVD::compute(const Matrix& X) {
-    // TODO: Implement SVD for matrix::DenseMatrix or call external SVD routine
-    computed_ = false;
-    throw std::runtime_error("SVD::compute not implemented for DenseMatrix");
+    const auto options = compute_full_matrices_
+        ? (Eigen::ComputeFullU | Eigen::ComputeFullV)
+        : (Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(X.data, options);
+
+    U_ = Matrix(svd.matrixU());
+    V_ = Matrix(svd.matrixV());
+    const Eigen::VectorXd& sv = svd.singularValues();
+    S_.assign(sv.data(), sv.data() + sv.size());
+    computed_ = true;
 }
 
 SVD::Matrix SVD::get_U() const {
@@ -30,26 +40,54 @@ SVD::Matrix SVD::get_V() const {
 
 SVD::Matrix SVD::get_S() const {
     if (!computed_) throw std::runtime_error("SVD not computed yet");
-    // TODO: Return diagonal matrix from S_
-    return SVD::Matrix(1, 1); // stub
+    const auto n = static_cast<int>(S_.size());
+    Matrix S = Matrix::Zero(n, n);
+    for (int i = 0; i < n; ++i) {
+        S(i, i) = S_[static_cast<std::size_t>(i)];
+    }
+    return S;
 }
 
 SVD::Matrix SVD::reconstruct(int num_components) const {
     if (!computed_) throw std::runtime_error("SVD not computed yet");
-    // TODO: Implement reconstruction from U_, S_, V_
-    return SVD::Matrix(1, 1); // stub
+    const int available = static_cast<int>(S_.size());
+    const int k = (num_components <= 0 || num_components > available) ? available : num_components;
+
+    Eigen::MatrixXd U_k = U_.data.leftCols(k);
+    Eigen::MatrixXd V_k = V_.data.leftCols(k);
+    Eigen::VectorXd s_k(k);
+    for (int i = 0; i < k; ++i) {
+        s_k(i) = S_[static_cast<std::size_t>(i)];
+    }
+    return Matrix(U_k * s_k.asDiagonal() * V_k.transpose());
 }
 
 int SVD::rank(double tolerance) const {
     if (!computed_) throw std::runtime_error("SVD not computed yet");
-    // TODO: Implement rank calculation for std::vector<double>
-    return 0; // stub
+    if (S_.empty()) return 0;
+    double tol = tolerance;
+    if (tol < 0.0) {
+        const int max_dim = std::max(U_.rows(), V_.rows());
+        tol = static_cast<double>(max_dim) * S_[0] * std::numeric_limits<double>::epsilon();
+    }
+    int count = 0;
+    for (const double s : S_) {
+        if (s > tol) ++count;
+    }
+    return count;
 }
 
 SVD::Vector SVD::explained_variance_ratio() const {
     if (!computed_) throw std::runtime_error("SVD not computed yet");
-    // TODO: Implement explained variance ratio for std::vector<double>
-    return SVD::Vector(); // stub
+    double total = 0.0;
+    for (const double s : S_) total += s * s;
+    Vector ratio(S_.size(), 0.0);
+    if (total > 0.0) {
+        for (std::size_t i = 0; i < S_.size(); ++i) {
+            ratio[i] = (S_[i] * S_[i]) / total;
+        }
+    }
+    return ratio;
 }
 
 } // namespace dimensionality_reduction

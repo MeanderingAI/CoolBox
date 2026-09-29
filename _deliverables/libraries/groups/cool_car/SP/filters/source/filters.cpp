@@ -311,7 +311,10 @@ std::vector<double> frequency_response(const IirCoefficients& coeffs,
                                        std::size_t num_points) {
     std::vector<double> magnitude(num_points);
     for (std::size_t i = 0; i < num_points; ++i) {
-        const double omega = kPi * static_cast<double>(i) / static_cast<double>(num_points);
+        // Normalized frequency i/num_points spans the full 0..1 range (matching
+        // the centre_normalised convention used by e.g. biquad_notch), so the
+        // corresponding angular frequency spans 0..2*pi, not 0..pi.
+        const double omega = kTwoPi * static_cast<double>(i) / static_cast<double>(num_points);
         std::complex<double> jw(0.0, -omega);
         std::complex<double> num(0.0, 0.0);
         std::complex<double> den(0.0, 0.0);
@@ -329,9 +332,9 @@ std::vector<double> frequency_response(const IirCoefficients& coeffs,
 std::vector<double> group_delay(const IirCoefficients& coeffs, std::size_t num_points) {
     // Approximate numerical group delay: -d(phase)/d(omega)
     std::vector<double> gd(num_points, 0.0);
-    const double delta = kPi / static_cast<double>(num_points * 100U);
+    const double delta = kTwoPi / static_cast<double>(num_points * 100U);
     for (std::size_t i = 0; i < num_points; ++i) {
-        const double omega = kPi * static_cast<double>(i) / static_cast<double>(num_points);
+        const double omega = kTwoPi * static_cast<double>(i) / static_cast<double>(num_points);
         auto compute_phase = [&](double w) {
             std::complex<double> jw(0.0, -w);
             std::complex<double> num(0.0, 0.0);
