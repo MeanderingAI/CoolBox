@@ -13,7 +13,7 @@ namespace movie_editor_app {
 
 using namespace trekker; // resolves timeline::/video::/audio:: nested namespaces
 using graphics::Color;
-using namespace graphics::Colors;
+namespace Colors = graphics::Colors;
 
 namespace {
 namespace fs = std::filesystem;
