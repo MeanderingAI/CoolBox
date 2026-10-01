@@ -65,7 +65,7 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/MeanderingAI/CoolBox"
-Documentation = "https://github.com/MeanderingAI/CoolBox/blob/main/_libraries/python_bindings/README.md"
+Documentation = "https://github.com/MeanderingAI/CoolBox/blob/main/_deliverables/libraries/bindings/python_bindings/README.md"
 Repository = "https://github.com/MeanderingAI/CoolBox"
 Issues = "https://github.com/MeanderingAI/CoolBox/issues"
 

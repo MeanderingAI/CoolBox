@@ -2,6 +2,7 @@
 #include <graphics/primitives.h>
 #include <graphics/texture_loader.h>
 
+#include <cstdint>
 #include <fstream>
 #include <cstdio>
 

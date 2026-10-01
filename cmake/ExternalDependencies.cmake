@@ -1,6 +1,15 @@
 # --- pybind11 (for Python bindings) ---
 include(FetchContent)
-if(NOT TARGET pybind11::pybind11)
+set(_coolbox_skip_pybind11 FALSE)
+if(WIN32 AND CMAKE_CROSSCOMPILING)
+  if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
+    set(_coolbox_skip_pybind11 TRUE)
+  endif()
+endif()
+
+if(_coolbox_skip_pybind11)
+  message(STATUS "Skipping pybind11 FetchContent for Windows ARM64 cross-compile.")
+elseif(NOT TARGET pybind11::pybind11)
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git

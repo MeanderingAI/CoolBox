@@ -105,7 +105,11 @@ std::vector<MotionVector> estimate_motion_vectors(const VideoFrame& prev_in,
                             sad += std::abs(curr.planes[0].at(bx+x, by+y) -
                                             prev.planes[0].at(nx, ny));
                         }
-                    if (sad < best.sad) { best.sad = sad; best.dx = dx; best.dy = dy; }
+                    // On a tie, prefer the smaller displacement (closer to zero motion)
+                    // instead of whichever offset happened to be scanned first.
+                    const bool better = sad < best.sad ||
+                        (sad == best.sad && (dx*dx + dy*dy) < (best.dx*best.dx + best.dy*best.dy));
+                    if (better) { best.sad = sad; best.dx = dx; best.dy = dy; }
                 }
             mvs.push_back(best);
         }

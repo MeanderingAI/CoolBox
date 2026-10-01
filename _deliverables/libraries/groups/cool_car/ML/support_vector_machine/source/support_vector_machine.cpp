@@ -52,78 +52,103 @@ void SVM::fit(const mytrix::DenseMatrix& X, const mytrix::DenseMatrix& y, Solver
     double C = 1.0;
     alphas_.assign(n_samples, 0.0);
     bias_ = 0.0;
-    std::vector<double> E(n_samples, 0.0);
+
+    // Precompute per-sample feature vectors and the kernel (Gram) matrix once.
+    std::vector<std::vector<double>> samples(n_samples, std::vector<double>(n_features));
+    for (size_t i = 0; i < n_samples; ++i)
+        for (size_t j = 0; j < n_features; ++j)
+            samples[i][j] = X.at(i, j);
+
+    std::vector<std::vector<double>> K(n_samples, std::vector<double>(n_samples, 0.0));
+    for (size_t i = 0; i < n_samples; ++i)
+        for (size_t j = i; j < n_samples; ++j) {
+            const double kij = kernel_.calculate(samples[i], samples[j]);
+            K[i][j] = kij;
+            K[j][i] = kij;
+        }
+
+    auto decision_value = [&](size_t idx) {
+        double f = 0.0;
+        for (size_t k = 0; k < n_samples; ++k)
+            f += alphas_[k] * y.at(k, size_t(0)) * K[k][idx];
+        return f + bias_;
+    };
+
     for (size_t iter = 0; iter < max_iter; ++iter) {
         bool changed = false;
+        std::vector<double> E(n_samples);
+        for (size_t i = 0; i < n_samples; ++i) E[i] = decision_value(i) - y.at(i, size_t(0));
+
         for (size_t i = 0; i < n_samples; ++i) {
-            double f_i = 0.0;
-            std::vector<double> xi(X.cols());
-            for (size_t j = 0; j < X.cols(); ++j) xi[j] = X.at(i, j);
+            const double yi = y.at(i, size_t(0));
+            if (!((yi*E[i] < -tol && alphas_[i] < C) || (yi*E[i] > tol && alphas_[i] > 0))) continue;
+
+            // Second-choice heuristic: pick j maximizing |E_i - E_j| (Platt's SMO),
+            // rather than an adjacent-index pairing that can stall before the
+            // true optimum is reached.
+            size_t j = n_samples;
+            double best_diff = -1.0;
             for (size_t k = 0; k < n_samples; ++k) {
-                std::vector<double> xk(X.cols());
-                for (size_t j = 0; j < X.cols(); ++j) xk[j] = X.at(k, j);
-                f_i += alphas_[k] * y.at(k, size_t(0)) * kernel_.calculate(xk, xi);
+                if (k == i) continue;
+                const double diff = std::abs(E[i] - E[k]);
+                if (diff > best_diff) { best_diff = diff; j = k; }
             }
-            f_i += bias_;
-            E[i] = f_i - y.at(i, size_t(0));
-            if ((y.at(i, size_t(0))*E[i] < -tol && alphas_[i] < C) || (y.at(i, size_t(0))*E[i] > tol && alphas_[i] > 0)) {
-                size_t j = (i+1)%n_samples;
-                double f_j = 0.0;
-                std::vector<double> xj(X.cols());
-                for (size_t jj = 0; jj < X.cols(); ++jj) xj[jj] = X.at(j, jj);
-                for (size_t k = 0; k < n_samples; ++k) {
-                    std::vector<double> xk(X.cols());
-                    for (size_t jj = 0; jj < X.cols(); ++jj) xk[jj] = X.at(k, jj);
-                    f_j += alphas_[k] * y.at(k, size_t(0)) * kernel_.calculate(xk, xj);
-                }
-                f_j += bias_;
-                E[j] = f_j - y.at(j, size_t(0));
-                double alpha_i_old = alphas_[i];
-                double alpha_j_old = alphas_[j];
-                double L, H;
-                if (y.at(i, size_t(0)) != y.at(j, size_t(0))) {
-                    L = std::max(0.0, alphas_[j] - alphas_[i]);
-                    H = std::min(C, C + alphas_[j] - alphas_[i]);
-                } else {
-                    L = std::max(0.0, alphas_[i] + alphas_[j] - C);
-                    H = std::min(C, alphas_[i] + alphas_[j]);
-                }
-                if (L == H) continue;
-                std::vector<double> xi2(X.cols());
-                for (size_t jj = 0; jj < X.cols(); ++jj) xi2[jj] = X.at(i, jj);
-                std::vector<double> xj2(X.cols());
-                for (size_t jj = 0; jj < X.cols(); ++jj) xj2[jj] = X.at(j, jj);
-                double eta = 2 * kernel_.calculate(xi2, xj2) - kernel_.calculate(xi2, xi2) - kernel_.calculate(xj2, xj2);
-                if (eta >= 0) continue;
-                alphas_[j] -= y.at(j, size_t(0)) * (E[i] - E[j]) / eta;
-                if (alphas_[j] > H) alphas_[j] = H;
-                else if (alphas_[j] < L) alphas_[j] = L;
-                if (std::abs(alphas_[j] - alpha_j_old) < tol) continue;
-                alphas_[i] += y.at(i, size_t(0))*y.at(j, size_t(0))*(alpha_j_old - alphas_[j]);
-                double b1 = bias_ - E[i]
-                    - y.at(i, size_t(0))*(alphas_[i]-alpha_i_old)*kernel_.calculate(xi2, xi2)
-                    - y.at(j, size_t(0))*(alphas_[j]-alpha_j_old)*kernel_.calculate(xi2, xj2);
-                double b2 = bias_ - E[j]
-                    - y.at(i, size_t(0))*(alphas_[i]-alpha_i_old)*kernel_.calculate(xi2, xj2)
-                    - y.at(j, size_t(0))*(alphas_[j]-alpha_j_old)*kernel_.calculate(xj2, xj2);
-                if (0 < alphas_[i] && alphas_[i] < C) bias_ = b1;
-                else if (0 < alphas_[j] && alphas_[j] < C) bias_ = b2;
-                else bias_ = 0.5*(b1+b2);
-                changed = true;
+            if (j == n_samples) continue;
+
+            const double yj = y.at(j, size_t(0));
+            const double alpha_i_old = alphas_[i];
+            const double alpha_j_old = alphas_[j];
+            double L, H;
+            if (yi != yj) {
+                L = std::max(0.0, alphas_[j] - alphas_[i]);
+                H = std::min(C, C + alphas_[j] - alphas_[i]);
+            } else {
+                L = std::max(0.0, alphas_[i] + alphas_[j] - C);
+                H = std::min(C, alphas_[i] + alphas_[j]);
             }
+            if (L == H) continue;
+
+            const double eta = 2.0 * K[i][j] - K[i][i] - K[j][j];
+            if (eta >= 0) continue;
+
+            alphas_[j] -= yj * (E[i] - E[j]) / eta;
+            if (alphas_[j] > H) alphas_[j] = H;
+            else if (alphas_[j] < L) alphas_[j] = L;
+            if (std::abs(alphas_[j] - alpha_j_old) < tol) continue;
+
+            alphas_[i] += yi*yj*(alpha_j_old - alphas_[j]);
+
+            const double b1 = bias_ - E[i]
+                - yi*(alphas_[i]-alpha_i_old)*K[i][i]
+                - yj*(alphas_[j]-alpha_j_old)*K[i][j];
+            const double b2 = bias_ - E[j]
+                - yi*(alphas_[i]-alpha_i_old)*K[i][j]
+                - yj*(alphas_[j]-alpha_j_old)*K[j][j];
+            if (0 < alphas_[i] && alphas_[i] < C) bias_ = b1;
+            else if (0 < alphas_[j] && alphas_[j] < C) bias_ = b2;
+            else bias_ = 0.5*(b1+b2);
+
+            // Errors depend on alphas_/bias_ for every sample, so refresh them
+            // all after a successful update instead of only the touched pair.
+            for (size_t k = 0; k < n_samples; ++k) E[k] = decision_value(k) - y.at(k, size_t(0));
+            changed = true;
         }
         if (!changed) break;
     }
-    // Store support vectors and labels
+    // Store support vectors, their labels, and their (compacted) alphas together
+    // so predict() can index all three in lockstep by support-vector position
+    // rather than by original sample index.
     std::vector<double> flat_sv;
     std::vector<double> support_alphas;
     support_vector_labels_.clear();
+    support_vector_alphas_.clear();
     for (size_t i = 0; i < n_samples; ++i) {
         if (alphas_[i] > tol) {
             for (size_t j = 0; j < X.cols(); ++j)
                 flat_sv.push_back(X.at(i, j));
             support_alphas.push_back(alphas_[i]);
             support_vector_labels_.push_back(y.at(i, size_t(0)));
+            support_vector_alphas_.push_back(alphas_[i]);
         }
     }
 
@@ -142,6 +167,7 @@ void SVM::fit(const mytrix::DenseMatrix& X, const mytrix::DenseMatrix& y, Solver
         fit(X, y, SolverType::GradientDescent);
     }
 }
+
 
 
 double SVM::predict(const mytrix::DenseMatrix& sample) const {
@@ -165,7 +191,10 @@ double SVM::predict(const mytrix::DenseMatrix& sample) const {
         for (size_t j = 0; j < n_features; ++j) {
             sv[j] = support_vectors_.at(i, j);
         }
-        sum += alphas_[i] * support_vector_labels_[i] * kernel_.calculate(sv, sample_vec);
+        sum += support_vector_alphas_[i] * support_vector_labels_[i] * kernel_.calculate(sv, sample_vec);
     }
-    return sum + bias_ >= 0.0 ? 1.0 : -1.0;
+    const double decision = sum + bias_;
+    // predict() classifies into a label (+1/-1); use decision_function() (if needed
+    // elsewhere) for the raw, unthresholded SVM margin value.
+    return decision >= 0.0 ? 1.0 : -1.0;
 }

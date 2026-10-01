@@ -27,6 +27,7 @@ Scans `_deliverables/libraries/bindings/` and returns a flat list of binding fol
   "bindings": [
     { "name": "c_bindings",      "lang": "C",      "build_type": "cmake" },
     { "name": "go_bindings",     "lang": "Go",     "build_type": "go"    },
+    { "name": "scala_bindings",  "lang": "Scala",  "build_type": "maven" },
     { "name": "python_bindings", "lang": "Python", "build_type": "cmake" },
     { "name": "rust_bindings",   "lang": "Rust",   "build_type": "cargo" }
   ]

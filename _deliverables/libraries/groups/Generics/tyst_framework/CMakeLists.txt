@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.20)
 
 project(tyst_framework LANGUAGES CXX)
 
+add_library(tyst_framework_main STATIC
+    ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
+)
+target_include_directories(tyst_framework_main PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/headers>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_compile_features(tyst_framework_main PUBLIC cxx_std_17)
+
 
 
 

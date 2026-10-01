@@ -81,7 +81,7 @@ private:
     int hidden_size_;
     int output_size_;
     int num_layers_;
-    bool bidirectional_;
+    [[maybe_unused]] bool bidirectional_;
     double dropout_rate_;
 };
 

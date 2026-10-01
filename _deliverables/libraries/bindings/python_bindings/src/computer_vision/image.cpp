@@ -98,11 +98,13 @@ const float* Image::pixel_ptr(int row, int col) const {
 }
 
 Image Image::load(const std::string& filename) {
+    (void)filename;
     // Stub implementation - would use stb_image or similar
     throw std::runtime_error("Image loading not implemented. Use create Image manually.");
 }
 
 void Image::save(const std::string& filename) const {
+    (void)filename;
     // Stub implementation - would use stb_image_write or similar
     throw std::runtime_error("Image saving not implemented.");
 }

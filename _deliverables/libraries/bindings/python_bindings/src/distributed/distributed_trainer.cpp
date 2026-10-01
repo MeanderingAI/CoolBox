@@ -232,6 +232,7 @@ DistributedKMeansTrainer::DistributedKMeansTrainer(
 void DistributedKMeansTrainer::train_epoch(
     const std::vector<std::vector<double>>& local_data,
     const std::vector<std::vector<double>>& local_labels) {
+    (void)local_labels;
     
     if (centroids_.empty() && context_->rank() == 0) {
         initialize_centroids(local_data);
