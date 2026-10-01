@@ -688,6 +688,34 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "build-movie-editor-debug",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"movie_editor"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "run-movie-editor",
+			"type": "shell",
+			"command": "${workspaceFolder}/build/_deliverables/apps/movie_editor/movie_editor",
+			"dependsOn": [
+				"build-movie-editor-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"group": "run",
+			"problemMatcher": []
+		},
+		{
 			"label": "run-recording-studio",
 			"type": "shell",
 			"command": "${workspaceFolder}/build/_deliverables/apps/recording_studio/recording_studio",

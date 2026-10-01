@@ -250,6 +250,34 @@
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
                 "command": "cmake --build build --target recording_studio && ./build/_deliverables/apps/recording_studio/recording_studio"
+            },
+            {
+                "name": "Run movie_editor (macOS/Linux)",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "cmake --build build --target movie_editor && ./build/_deliverables/apps/movie_editor/movie_editor"
+            },
+            {
+                "name": "Debug movie_editor (gdb, Linux)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}/build/_deliverables/apps/movie_editor/movie_editor",
+                "args": [],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}",
+                "environment": [],
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "miDebuggerPath": "/usr/bin/gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ],
+                "preLaunchTask": "build-movie-editor-debug"
             }
         ],
         "compounds": [
