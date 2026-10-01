@@ -892,6 +892,16 @@ bool FullApplicationWindow::create() {
     XSelectInput(impl_->display, impl_->window, ExposureMask | KeyPressMask | StructureNotifyMask);
     impl_->delete_message = XInternAtom(impl_->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(impl_->display, impl_->window, &impl_->delete_message, 1);
+    if (impl_->config.min_width > 0 || impl_->config.min_height > 0) {
+        XSizeHints* hints = XAllocSizeHints();
+        if (hints) {
+            hints->flags = PMinSize;
+            hints->min_width = static_cast<int>(impl_->config.min_width);
+            hints->min_height = static_cast<int>(impl_->config.min_height);
+            XSetWMNormalHints(impl_->display, impl_->window, hints);
+            XFree(hints);
+        }
+    }
     if (impl_->config.visible) {
         XMapWindow(impl_->display, impl_->window);
         XFlush(impl_->display);

@@ -54,9 +54,18 @@ std::string pick_path(app_builder::os_generics::DialogAction action, const std::
 
 } // namespace
 
+namespace {
+WindowConfig make_window_config() {
+    WindowConfig cfg("CoolBox Movie Editor", 1600, 1000);
+    cfg.min_width = 1100;
+    cfg.min_height = 760;
+    return cfg;
+}
+} // namespace
+
 MovieEditorWindow::MovieEditorWindow(trekker::movie_editor::EditorProject project)
     : project_(std::move(project)),
-      window_(WindowConfig("CoolBox Movie Editor", 1280, 800)) {}
+      window_(make_window_config()) {}
 
 MovieEditorWindow::Layout MovieEditorWindow::compute_layout(int width, int height) const {
     Layout l;
@@ -309,7 +318,7 @@ void MovieEditorWindow::do_export_wav() {
 }
 
 void MovieEditorWindow::handle_click(int x, int y) {
-    int cw = 1280, ch = 800;
+    int cw = 1600, ch = 1000;
     window_.client_size(cw, ch);
     const Layout l = compute_layout(cw, ch);
 
@@ -390,10 +399,10 @@ void MovieEditorWindow::handle_click(int x, int y) {
 }
 
 void MovieEditorWindow::render_scene() {
-    int cw = 1280, ch = 800;
+    int cw = 1600, ch = 1000;
     window_.client_size(cw, ch);
-    cw = std::max(600, cw);
-    ch = std::max(400, ch);
+    cw = std::max(1100, cw);
+    ch = std::max(760, ch);
     const Layout l = compute_layout(cw, ch);
 
     // A single unified dark background avoids a mismatched "leftover" colour
