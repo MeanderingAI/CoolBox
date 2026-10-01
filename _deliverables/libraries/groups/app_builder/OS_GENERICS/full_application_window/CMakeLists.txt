@@ -32,6 +32,13 @@ if(UNIX AND NOT APPLE)
         target_compile_definitions(full_application_window PRIVATE GRAPHICS_HAVE_X11=1)
         target_include_directories(full_application_window PRIVATE ${X11_INCLUDE_DIR})
         target_link_libraries(full_application_window PRIVATE ${X11_LIBRARIES})
+    else()
+        message(WARNING
+            "X11 development headers not found (libx11-dev package on Debian/Ubuntu, "
+            "libX11-devel on Fedora). full_application_window will fall back to a "
+            "Headless backend: windows will report success from create() but no "
+            "window/content will ever actually appear on screen. Install libx11-dev "
+            "and reconfigure to enable real GUI windows on Linux.")
     endif()
 endif()
 

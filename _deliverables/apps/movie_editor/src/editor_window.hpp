@@ -38,7 +38,7 @@ private:
         int ruler_y0 = 0, ruler_y1 = 0;
         int tracks_y0 = 0, tracks_y1 = 0;
         int track_header_w = 130;
-        int lane_h = 48;
+        int lane_h = 56;
         int status_y0 = 0;
     };
 
