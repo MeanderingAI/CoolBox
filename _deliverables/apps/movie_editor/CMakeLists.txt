@@ -1,9 +1,35 @@
 cmake_minimum_required(VERSION 3.12)
 project(movie_editor_app LANGUAGES CXX)
 
+set(MOVIE_EDITOR_VERSION "0.1.0")
+
+# Best-effort short git commit hash for precise "which build is this"
+# diagnostics (falls back to "unknown" outside a git checkout, e.g. a
+# source tarball).
+find_package(Git QUIET)
+set(MOVIE_EDITOR_GIT_HASH "unknown")
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE MOVIE_EDITOR_GIT_HASH_OUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE MOVIE_EDITOR_GIT_RESULT
+    )
+    if(MOVIE_EDITOR_GIT_RESULT EQUAL 0 AND MOVIE_EDITOR_GIT_HASH_OUT)
+        set(MOVIE_EDITOR_GIT_HASH "${MOVIE_EDITOR_GIT_HASH_OUT}")
+    endif()
+endif()
+
 add_executable(movie_editor
     src/main.cpp
     src/editor_window.cpp
+)
+
+target_compile_definitions(movie_editor PRIVATE
+    MOVIE_EDITOR_VERSION="${MOVIE_EDITOR_VERSION}"
+    MOVIE_EDITOR_GIT_HASH="${MOVIE_EDITOR_GIT_HASH}"
 )
 
 target_link_libraries(movie_editor PRIVATE

@@ -31,6 +31,7 @@ public:
 private:
     struct Layout {
         int width = 0, height = 0;
+        int topbar_y1 = 0; // bottom of the File/Edit/Help topbar strip
         int media_x0 = 0, media_x1 = 0, media_y0 = 0, media_y1 = 0;
         int preview_x0 = 0, preview_x1 = 0, preview_y0 = 0, preview_y1 = 0;
         int transport_y0 = 0, transport_y1 = 0;
@@ -46,8 +47,21 @@ private:
 
     struct ButtonRect { TransportButton id; int x0, y0, x1, y1; const char* label; };
 
+    // Shared menu data: drives both the native Win32/Cocoa menu bar (via
+    // build_menu()) and the canvas-drawn topbar below (the native menu bar
+    // is a no-op on the X11 backend, so the on-canvas topbar is what
+    // actually makes these actions reachable there).
+    struct MenuItemDef { std::string label; bool divider = false; };
+    struct MenuDef { std::string title; std::vector<MenuItemDef> items; };
+    std::vector<MenuDef> menu_definitions() const;
+
+    struct TopBarButtonRect { std::size_t menu_index; int x0, y0, x1, y1; };
+    struct DropdownItemRect { std::size_t item_index; int x0, y0, x1, y1; };
+
     Layout compute_layout(int width, int height) const;
     std::vector<ButtonRect> transport_buttons(const Layout& layout) const;
+    std::vector<TopBarButtonRect> topbar_buttons(const Layout& layout) const;
+    std::vector<DropdownItemRect> dropdown_item_rects(const Layout& layout, std::size_t menu_index) const;
 
     void render_scene();
     void handle_click(int x, int y);
@@ -65,6 +79,7 @@ private:
     void do_export_avi();
     void do_export_gif();
     void do_export_wav();
+    void do_show_version();
 
     void set_status(const std::string& message);
 
@@ -78,6 +93,7 @@ private:
     std::int64_t visible_duration_us_ = 30'000'000; // fixed 30s-wide timeline view
 
     std::optional<std::string> pending_media_key_;
+    std::optional<std::size_t> open_menu_; // which topbar dropdown is currently expanded, if any
     std::optional<std::uint64_t> selected_track_id_;
     std::optional<std::uint64_t> selected_clip_id_;
 

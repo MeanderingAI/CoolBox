@@ -1,4 +1,5 @@
 #include "editor_window.hpp"
+#include "version.hpp"
 
 #include "graphics.h"
 #include "os_dialog.hpp"
@@ -22,6 +23,13 @@ using graphics::full_application_window::PointerState;
 using graphics::full_application_window::RenderEvent;
 using graphics::full_application_window::RenderHooks;
 using graphics::full_application_window::WindowConfig;
+
+// Mirrors Canvas::draw_text()'s advance: 8px glyph + 1px spacing per char,
+// times the chosen scale. Used to size/position topbar menu buttons and
+// dropdown panels so text never gets clipped.
+int text_width(const std::string& text, int scale) {
+    return static_cast<int>(text.size()) * (8 + 1) * scale;
+}
 
 std::string format_timecode(std::int64_t us) {
     if (us < 0) us = 0;
@@ -56,9 +64,9 @@ std::string pick_path(app_builder::os_generics::DialogAction action, const std::
 
 namespace {
 WindowConfig make_window_config() {
-    WindowConfig cfg("CoolBox Movie Editor", 1600, 1000);
-    cfg.min_width = 1100;
-    cfg.min_height = 760;
+    WindowConfig cfg("CoolBox Movie Editor", 1920, 1200);
+    cfg.min_width = 1500;
+    cfg.min_height = 980;
     return cfg;
 }
 } // namespace
@@ -72,31 +80,69 @@ MovieEditorWindow::Layout MovieEditorWindow::compute_layout(int width, int heigh
     l.width = width;
     l.height = height;
 
+    l.topbar_y1 = 40; // File/Edit/Help canvas-drawn menu strip
     const int top_h = static_cast<int>(height * 0.55);
     l.media_x0 = 0;
     l.media_x1 = static_cast<int>(width * 0.18);
-    l.media_y0 = 28; // below a thin title strip
+    l.media_y0 = l.topbar_y1;
     l.media_y1 = top_h;
 
     l.inspector_x1 = width;
     l.inspector_x0 = width - static_cast<int>(width * 0.20);
-    l.inspector_y0 = 28;
+    l.inspector_y0 = l.topbar_y1;
     l.inspector_y1 = top_h;
 
     l.preview_x0 = l.media_x1;
     l.preview_x1 = l.inspector_x0;
-    l.preview_y0 = 28;
+    l.preview_y0 = l.topbar_y1;
     l.transport_y0 = top_h - 72; // two rows of buttons
     l.transport_y1 = top_h;
     l.preview_y1 = l.transport_y0;
 
     l.ruler_y0 = top_h;
-    l.ruler_y1 = top_h + 26;
+    l.ruler_y1 = top_h + 36;
     l.tracks_y0 = l.ruler_y1;
-    l.status_y0 = height - 26;
+    l.status_y0 = height - 30;
     l.tracks_y1 = l.status_y0;
 
     return l;
+}
+
+std::vector<MovieEditorWindow::TopBarButtonRect> MovieEditorWindow::topbar_buttons(const Layout& l) const {
+    std::vector<TopBarButtonRect> buttons;
+    int x = 8;
+    const auto defs = menu_definitions();
+    for (std::size_t i = 0; i < defs.size(); ++i) {
+        const int w = text_width(defs[i].title, 2) + 20;
+        buttons.push_back({i, x, 4, x + w, l.topbar_y1 - 4});
+        x += w + 4;
+    }
+    return buttons;
+}
+
+std::vector<MovieEditorWindow::DropdownItemRect> MovieEditorWindow::dropdown_item_rects(const Layout& l, std::size_t menu_index) const {
+    std::vector<DropdownItemRect> rects;
+    const auto defs = menu_definitions();
+    if (menu_index >= defs.size()) return rects;
+
+    const auto top_buttons = topbar_buttons(l);
+    if (menu_index >= top_buttons.size()) return rects;
+    const auto& button = top_buttons[menu_index];
+    const int x0 = button.x0;
+
+    const auto& items = defs[menu_index].items;
+    int max_text_w = 0;
+    for (const auto& item : items) max_text_w = std::max(max_text_w, text_width(item.label, 1));
+    const int panel_w = std::max(max_text_w + 24, button.x1 - button.x0);
+    const int x1 = x0 + panel_w;
+
+    constexpr int kRowH = 28;
+    int y = l.topbar_y1;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        rects.push_back({i, x0, y, x1, y + kRowH});
+        y += kRowH;
+    }
+    return rects;
 }
 
 std::vector<MovieEditorWindow::ButtonRect> MovieEditorWindow::transport_buttons(const Layout& l) const {
@@ -138,31 +184,49 @@ void MovieEditorWindow::set_status(const std::string& message) {
     status_message_ = message;
 }
 
+std::vector<MovieEditorWindow::MenuDef> MovieEditorWindow::menu_definitions() const {
+    return {
+        {"File", {
+            {"Open Project..."},
+            {"Save Project As..."},
+            {"", true}, // divider
+            {"Import Video (Image Sequence)..."},
+            {"Import Still Image..."},
+            {"Import Audio (WAV)..."},
+            {"", true}, // divider
+            {"Export Video (AVI)..."},
+            {"Export Video Preview (GIF)..."},
+            {"Export Audio (WAV)..."},
+            {"", true}, // divider
+            {"Exit"},
+        }},
+        {"Edit", {
+            {"Add Video Track"},
+            {"Add Audio Track"},
+            {"", true}, // divider
+            {"Split Selected Track At Playhead"},
+            {"Delete Selected Clip"},
+        }},
+        {"Help", {
+            {"Version / About..."},
+        }},
+    };
+}
+
 void MovieEditorWindow::build_menu() {
-    graphics::components::MenuModel file_menu("File");
-    file_menu.add_item(graphics::components::MenuItem::action("Open Project..."));
-    file_menu.add_item(graphics::components::MenuItem::action("Save Project As..."));
-    file_menu.add_item(graphics::components::MenuItem::divider());
-    file_menu.add_item(graphics::components::MenuItem::action("Import Image Sequence Folder..."));
-    file_menu.add_item(graphics::components::MenuItem::action("Import Still Image..."));
-    file_menu.add_item(graphics::components::MenuItem::action("Import Audio (WAV)..."));
-    file_menu.add_item(graphics::components::MenuItem::divider());
-    file_menu.add_item(graphics::components::MenuItem::action("Export AVI..."));
-    file_menu.add_item(graphics::components::MenuItem::action("Export GIF..."));
-    file_menu.add_item(graphics::components::MenuItem::action("Export Audio (WAV)..."));
-    file_menu.add_item(graphics::components::MenuItem::divider());
-    file_menu.add_item(graphics::components::MenuItem::action("Exit"));
-
-    graphics::components::MenuModel edit_menu("Edit");
-    edit_menu.add_item(graphics::components::MenuItem::action("Add Video Track"));
-    edit_menu.add_item(graphics::components::MenuItem::action("Add Audio Track"));
-    edit_menu.add_item(graphics::components::MenuItem::divider());
-    edit_menu.add_item(graphics::components::MenuItem::action("Split Selected Track At Playhead"));
-    edit_menu.add_item(graphics::components::MenuItem::action("Delete Selected Clip"));
-
     graphics::components::MenuBarModel menu_bar;
-    menu_bar.add_menu(file_menu);
-    menu_bar.add_menu(edit_menu);
+    for (const auto& def : menu_definitions()) {
+        graphics::components::MenuModel menu(def.title);
+        for (const auto& item : def.items) {
+            menu.add_item(item.divider ? graphics::components::MenuItem::divider()
+                                       : graphics::components::MenuItem::action(item.label));
+        }
+        menu_bar.add_menu(menu);
+    }
+    // Native menu bar rendering only exists on the Win32 backend (see
+    // FullApplicationWindow::set_menu_bar()); on X11/Cocoa this call is a
+    // no-op and the equivalent on-canvas topbar drawn in render_scene() is
+    // what actually makes these actions reachable there.
     window_.set_menu_bar(menu_bar);
 
     window_.set_menu_command_handler([this](std::size_t menu_index, std::size_t item_index,
@@ -211,6 +275,11 @@ void MovieEditorWindow::handle_menu_command(std::size_t menu_index, std::size_t 
                     set_status("Select a clip first.");
                 }
                 return;
+            default: return;
+        }
+    } else if (menu_index == 2) { // Help
+        switch (item_index) {
+            case 0: do_show_version(); return;
             default: return;
         }
     }
@@ -317,10 +386,46 @@ void MovieEditorWindow::do_export_wav() {
     }
 }
 
+void MovieEditorWindow::do_show_version() {
+    const std::string message = "CoolBox Movie Editor\nVersion " + version_string();
+    window_.show_info_dialog("About CoolBox Movie Editor", message);
+    set_status("Version " + version_string());
+}
+
 void MovieEditorWindow::handle_click(int x, int y) {
-    int cw = 1600, ch = 1000;
+    int cw = 1920, ch = 1200;
     window_.client_size(cw, ch);
     const Layout l = compute_layout(cw, ch);
+
+    // Topbar menu dropdown (File/Edit/Help) takes priority over everything
+    // else: if a dropdown is open, resolve the click against it first (and
+    // dismiss the dropdown either way — standard click-to-dismiss behaviour)
+    // rather than letting the click "fall through" to whatever is drawn
+    // underneath the dropdown panel.
+    if (open_menu_) {
+        const auto items = dropdown_item_rects(l, *open_menu_);
+        for (const auto& item : items) {
+            if (x >= item.x0 && x < item.x1 && y >= item.y0 && y < item.y1) {
+                const std::size_t menu_index = *open_menu_;
+                open_menu_.reset();
+                handle_menu_command(menu_index, item.item_index);
+                return;
+            }
+        }
+        open_menu_.reset();
+        // Fall through: a click outside the dropdown (but still possibly on
+        // a topbar button, handled next) shouldn't be silently swallowed.
+    }
+
+    // Topbar menu buttons (File/Edit/Help).
+    for (const auto& button : topbar_buttons(l)) {
+        if (x >= button.x0 && x < button.x1 && y >= button.y0 && y < button.y1) {
+            open_menu_ = (open_menu_ && *open_menu_ == button.menu_index) ? std::nullopt
+                                                                          : std::make_optional(button.menu_index);
+            return;
+        }
+    }
+    if (y < l.topbar_y1) return; // clicked the topbar strip but missed every button
 
     // Media bin rows.
     if (x >= l.media_x0 && x < l.media_x1 && y >= l.media_y0 && y < l.media_y1) {
@@ -399,19 +504,30 @@ void MovieEditorWindow::handle_click(int x, int y) {
 }
 
 void MovieEditorWindow::render_scene() {
-    int cw = 1600, ch = 1000;
+    int cw = 1920, ch = 1200;
     window_.client_size(cw, ch);
-    cw = std::max(1100, cw);
-    ch = std::max(760, ch);
+    cw = std::max(1500, cw);
+    ch = std::max(980, ch);
     const Layout l = compute_layout(cw, ch);
 
     // A single unified dark background avoids a mismatched "leftover" colour
     // showing through in any area not explicitly covered by a panel below.
     graphics::Canvas canvas(cw, ch, Colors::Black);
 
-    // Title strip.
-    canvas.draw_rect(0, 0, l.width, l.media_y0, Colors::DarkGray, true);
-    canvas.draw_text(8, 6, "CoolBox Movie Editor", Colors::White, 2);
+    // Topbar: File/Edit/Help (the native OS menu bar set via
+    // set_menu_bar() only actually renders on the Win32 backend, so this
+    // on-canvas strip is what makes those actions reachable on X11/Cocoa).
+    canvas.draw_rect(0, 0, l.width, l.topbar_y1, Colors::DarkGray, true);
+    for (const auto& button : topbar_buttons(l)) {
+        const bool is_open = open_menu_ && *open_menu_ == button.menu_index;
+        if (is_open) canvas.draw_rect(button.x0, button.y0, button.x1 - button.x0, button.y1 - button.y0, Colors::Gray, true);
+        canvas.draw_text(button.x0 + 10, button.y0 + (button.y1 - button.y0 - 16) / 2,
+                         menu_definitions()[button.menu_index].title, Colors::White, 2);
+    }
+    {
+        const std::string title = "CoolBox Movie Editor";
+        canvas.draw_text(l.width - text_width(title, 2) - 10, (l.topbar_y1 - 16) / 2, title, Colors::LightGray, 2);
+    }
 
     // Media bin.
     canvas.draw_rect(l.media_x0, l.media_y0, l.media_x1 - l.media_x0, l.media_y1 - l.media_y0, Colors::Black, true);
@@ -438,12 +554,12 @@ void MovieEditorWindow::render_scene() {
     {
         const trekker::video::VideoFrame frame = project_.render_frame_at(playhead_us_, kPreviewWidth, kPreviewHeight);
         const int avail_w = l.preview_x1 - l.preview_x0 - 20;
-        const int avail_h = l.preview_y1 - l.preview_y0 - 30;
+        const int avail_h = l.preview_y1 - l.preview_y0 - 36;
         const double scale = std::min(static_cast<double>(avail_w) / kPreviewWidth, static_cast<double>(avail_h) / kPreviewHeight);
         const int draw_w = std::max(1, static_cast<int>(kPreviewWidth * scale));
         const int draw_h = std::max(1, static_cast<int>(kPreviewHeight * scale));
         const int off_x = l.preview_x0 + (l.preview_x1 - l.preview_x0 - draw_w) / 2;
-        const int off_y = l.preview_y0 + (l.preview_y1 - l.preview_y0 - 20 - draw_h) / 2;
+        const int off_y = l.preview_y0 + (l.preview_y1 - l.preview_y0 - 26 - draw_h) / 2;
         const auto& plane = frame.planes[0];
         for (int y = 0; y < draw_h; ++y) {
             const std::size_t sy = std::min<std::size_t>(kPreviewHeight - 1, (static_cast<std::size_t>(y) * kPreviewHeight) / draw_h);
@@ -454,7 +570,7 @@ void MovieEditorWindow::render_scene() {
             }
         }
         canvas.draw_rect(off_x - 1, off_y - 1, draw_w + 2, draw_h + 2, Colors::Gray, false);
-        canvas.draw_text(l.preview_x0 + 6, l.preview_y1 - 18, format_timecode(playhead_us_) + " / " + format_timecode(project_.duration_us()), Colors::White, 2);
+        canvas.draw_text(l.preview_x0 + 6, l.preview_y1 - 28, format_timecode(playhead_us_) + " / " + format_timecode(project_.duration_us()), Colors::White, 3);
     }
 
     // Transport buttons (two rows of four).
@@ -497,7 +613,7 @@ void MovieEditorWindow::render_scene() {
     for (std::int64_t t = 0; t <= visible_duration_us_; t += 5'000'000) {
         const int x = time_to_x(l, t);
         canvas.draw_line(x, l.ruler_y0, x, l.ruler_y1, Colors::Gray, 1);
-        canvas.draw_text(x + 3, l.ruler_y0 + 5, format_timecode(t), Colors::White, 1);
+        canvas.draw_text(x + 5, l.ruler_y0 + (l.ruler_y1 - l.ruler_y0 - 16) / 2, format_timecode(t), Colors::White, 2);
     }
 
     // Track lanes: fill the whole area first so there is no mismatched
@@ -534,6 +650,31 @@ void MovieEditorWindow::render_scene() {
     // Status bar.
     canvas.draw_rect(0, l.status_y0, l.width, l.height - l.status_y0, Colors::DarkGray, true);
     canvas.draw_text(6, l.status_y0 + 5, status_message_, Colors::White, 1);
+
+    // Open topbar dropdown (drawn absolutely last so it overlays everything
+    // else, like a real menu would).
+    if (open_menu_) {
+        const auto defs = menu_definitions();
+        const auto items = dropdown_item_rects(l, *open_menu_);
+        if (*open_menu_ < defs.size() && !items.empty()) {
+            const auto& item_defs = defs[*open_menu_].items;
+            const int panel_x0 = items.front().x0;
+            const int panel_x1 = items.front().x1;
+            const int panel_y0 = items.front().y0;
+            const int panel_y1 = items.back().y1;
+            canvas.draw_rect(panel_x0, panel_y0, panel_x1 - panel_x0, panel_y1 - panel_y0, Colors::Gray, true);
+            canvas.draw_rect(panel_x0, panel_y0, panel_x1 - panel_x0, panel_y1 - panel_y0, Colors::Black, false);
+            for (std::size_t i = 0; i < items.size() && i < item_defs.size(); ++i) {
+                const auto& r = items[i];
+                if (item_defs[i].divider) {
+                    const int mid_y = (r.y0 + r.y1) / 2;
+                    canvas.draw_line(r.x0 + 4, mid_y, r.x1 - 4, mid_y, Colors::DarkGray, 1);
+                } else {
+                    canvas.draw_text(r.x0 + 8, r.y0 + (r.y1 - r.y0 - 14) / 2, item_defs[i].label, Colors::Black, 1);
+                }
+            }
+        }
+    }
 
     window_.present_canvas(canvas);
 }

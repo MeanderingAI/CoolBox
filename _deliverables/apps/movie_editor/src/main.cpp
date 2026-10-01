@@ -1,6 +1,7 @@
 #include "cli_tools.hpp"
 #include "editor_window.hpp"
 #include "movie_editor_core.h"
+#include "version.hpp"
 
 #include <iostream>
 #include <string>
@@ -9,6 +10,7 @@ namespace {
 
 struct Options {
     bool show_help = false;
+    bool show_version = false;
     bool cli_mode = false;
     std::string project_path;
     std::string export_avi_path;
@@ -33,6 +35,7 @@ Options parse_args(int argc, const char* const argv[]) {
         "multi-track timeline, preview/scrub in a windowed GUI, and export to AVI/GIF/WAV.");
 
     parser.add_option({"help", 'h', false, false, "", "Show help and exit."});
+    parser.add_option({"version", 'v', false, false, "", "Print the binary version and exit."});
     parser.add_option({"cli", '\0', false, false, "", "Headless mode: load --project and run any requested exports, then exit (no window)."});
     parser.add_option({"project", 'p', true, false, "PATH", "Project JSON file to load."});
     parser.add_option({"export-avi", '\0', true, false, "PATH", "Export the loaded project's full timeline to an AVI file."});
@@ -58,6 +61,11 @@ Options parse_args(int argc, const char* const argv[]) {
     if (result.has_option("help")) {
         std::cout << parser.render_help() << "\n";
         options.show_help = true;
+        return options;
+    }
+    if (result.has_option("version")) {
+        std::cout << "movie_editor " << movie_editor_app::version_string() << "\n";
+        options.show_version = true;
         return options;
     }
 
@@ -135,7 +143,7 @@ int run_headless(const Options& options) {
 
 int main(int argc, char** argv) {
     const Options options = parse_args(argc, argv);
-    if (options.show_help) return 0;
+    if (options.show_help || options.show_version) return 0;
 
     const bool wants_export = !options.export_avi_path.empty() || !options.export_gif_path.empty() ||
                               !options.export_wav_path.empty();
