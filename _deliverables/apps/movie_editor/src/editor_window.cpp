@@ -132,11 +132,11 @@ std::vector<MovieEditorWindow::DropdownItemRect> MovieEditorWindow::dropdown_ite
 
     const auto& items = defs[menu_index].items;
     int max_text_w = 0;
-    for (const auto& item : items) max_text_w = std::max(max_text_w, text_width(item.label, 1));
+    for (const auto& item : items) max_text_w = std::max(max_text_w, text_width(item.label, 2));
     const int panel_w = std::max(max_text_w + 24, button.x1 - button.x0);
     const int x1 = x0 + panel_w;
 
-    constexpr int kRowH = 28;
+    constexpr int kRowH = 36;
     int y = l.topbar_y1;
     for (std::size_t i = 0; i < items.size(); ++i) {
         rects.push_back({i, x0, y, x1, y + kRowH});
@@ -191,6 +191,7 @@ std::vector<MovieEditorWindow::MenuDef> MovieEditorWindow::menu_definitions() co
             {"Save Project As..."},
             {"", true}, // divider
             {"Import Video (Image Sequence)..."},
+            {"Import Video File (GIF/AVI)..."},
             {"Import Still Image..."},
             {"Import Audio (WAV)..."},
             {"", true}, // divider
@@ -243,14 +244,15 @@ void MovieEditorWindow::handle_menu_command(std::size_t menu_index, std::size_t 
             case 1: do_save_project(); return;
             case 2: return; // divider
             case 3: do_import_image_sequence(); return;
-            case 4: do_import_still_image(); return;
-            case 5: do_import_audio(); return;
-            case 6: return; // divider
-            case 7: do_export_avi(); return;
-            case 8: do_export_gif(); return;
-            case 9: do_export_wav(); return;
-            case 10: return; // divider
-            case 11: window_.close(); return;
+            case 4: do_import_video_file(); return;
+            case 5: do_import_still_image(); return;
+            case 6: do_import_audio(); return;
+            case 7: return; // divider
+            case 8: do_export_avi(); return;
+            case 9: do_export_gif(); return;
+            case 10: do_export_wav(); return;
+            case 11: return; // divider
+            case 12: window_.close(); return;
             default: return;
         }
     } else if (menu_index == 1) { // Edit
@@ -292,6 +294,22 @@ void MovieEditorWindow::do_import_image_sequence() {
     try {
         const std::string key = project_.media_bin().import_image_sequence(dir, 24.0);
         set_status("Imported image sequence: " + key);
+    } catch (const std::exception& e) {
+        set_status(std::string("Import failed: ") + e.what());
+    }
+}
+
+void MovieEditorWindow::do_import_video_file() {
+    // Only .gif and .avi are real decodable formats here — this is a
+    // from-scratch codec stack with no H.264/H.265/VP9, so .mp4/.mov files
+    // cannot be decoded and are deliberately left out of the filter list
+    // (showing them but always failing would be worse than not listing them).
+    const std::string path = pick_path(app_builder::os_generics::DialogAction::OpenFile, "Select Video File (GIF/AVI)",
+                                       {{"Video Files", {"*.gif", "*.avi"}}, {"All Files", {"*.*"}}});
+    if (path.empty()) return;
+    try {
+        const std::string key = project_.media_bin().import_video_file(path);
+        set_status("Imported video: " + key);
     } catch (const std::exception& e) {
         set_status(std::string("Import failed: ") + e.what());
     }
@@ -540,7 +558,8 @@ void MovieEditorWindow::render_scene() {
             const bool selected = pending_media_key_ && *pending_media_key_ == asset.path;
             if (selected) canvas.draw_rect(l.media_x0, row_y - 3, l.media_x1 - l.media_x0, row_h, Colors::Blue, true);
             const char* type_tag = asset.type == trekker::movie_editor::MediaType::ImageSequence ? "[SEQ] "
-                : asset.type == trekker::movie_editor::MediaType::StillImage ? "[IMG] " : "[WAV] ";
+                : asset.type == trekker::movie_editor::MediaType::StillImage ? "[IMG] "
+                : asset.type == trekker::movie_editor::MediaType::ImportedVideo ? "[VID] " : "[WAV] ";
             std::string label = type_tag + fs::path(asset.path).filename().string();
             canvas.draw_text(l.media_x0 + 6, row_y, label, selected ? Colors::White : Colors::LightGray, 1);
             row_y += row_h;
@@ -670,7 +689,7 @@ void MovieEditorWindow::render_scene() {
                     const int mid_y = (r.y0 + r.y1) / 2;
                     canvas.draw_line(r.x0 + 4, mid_y, r.x1 - 4, mid_y, Colors::DarkGray, 1);
                 } else {
-                    canvas.draw_text(r.x0 + 8, r.y0 + (r.y1 - r.y0 - 14) / 2, item_defs[i].label, Colors::Black, 1);
+                    canvas.draw_text(r.x0 + 8, r.y0 + (r.y1 - r.y0 - 16) / 2, item_defs[i].label, Colors::Black, 2);
                 }
             }
         }

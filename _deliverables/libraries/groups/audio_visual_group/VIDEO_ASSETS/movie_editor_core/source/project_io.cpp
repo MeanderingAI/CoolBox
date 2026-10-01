@@ -19,6 +19,7 @@ const char* media_type_name(MediaType t) {
         case MediaType::ImageSequence: return "image_sequence";
         case MediaType::StillImage:    return "still_image";
         case MediaType::Audio:         return "audio";
+        case MediaType::ImportedVideo: return "imported_video";
     }
     return "still_image";
 }
@@ -26,6 +27,7 @@ const char* media_type_name(MediaType t) {
 MediaType media_type_from_name(const std::string& name) {
     if (name == "image_sequence") return MediaType::ImageSequence;
     if (name == "audio") return MediaType::Audio;
+    if (name == "imported_video") return MediaType::ImportedVideo;
     return MediaType::StillImage;
 }
 
@@ -109,6 +111,10 @@ void EditorProject::load_project(const std::string& path) {
                 fresh_bin.import_image_sequence(key, fps);
             } else if (type == MediaType::Audio) {
                 fresh_bin.import_audio(key);
+            } else if (type == MediaType::ImportedVideo) {
+                // decoded_frames are never serialized (they're in-memory
+                // only) — re-decode from the original .gif/.avi path instead.
+                fresh_bin.import_video_file(key);
             } else {
                 const std::string image_path = m.has("image_path") ? m.get("image_path").as_string() : key;
                 const std::int64_t duration_us = m.has("duration_us")

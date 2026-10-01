@@ -72,6 +72,7 @@ private:
     int time_to_x(const Layout& layout, std::int64_t time_us) const;
 
     void do_import_image_sequence();
+    void do_import_video_file();
     void do_import_still_image();
     void do_import_audio();
     void do_save_project();

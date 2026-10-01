@@ -16,7 +16,9 @@
 //
 // Both are genuine encoders (not just raw byte dumps): AVI applies DIB
 // row-padding/bottom-up conventions and RIFF index chunks, GIF performs
-// real palette reduction + LZW entropy coding.
+// real palette reduction + LZW entropy coding. Matching decoders
+// (read_gif/read_avi) are also provided so movie_editor can import GIF/AVI
+// files, not just export them.
 
 #include "../../video_codec/headers/video_codec.h"
 
@@ -95,6 +97,41 @@ private:
     struct Impl;
     Impl* impl_;
 };
+
+// ── GIF reader ────────────────────────────────────────────────────────────────
+
+struct DecodedGif {
+    std::size_t width = 0;
+    std::size_t height = 0;
+    std::vector<VideoFrame> frames;              // RGB24, one per animation frame
+    std::vector<std::int64_t> frame_delay_us;     // same length as frames
+};
+
+// Decodes a GIF89a (or GIF87a) file written by GifEncoder or any other
+// standard encoder using global/local color tables and LZW-compressed image
+// data (the vast majority of real-world GIFs). Interlaced images and
+// non-LZW extensions beyond Graphic Control are not supported. Throws
+// std::runtime_error on a malformed/unsupported file.
+DecodedGif read_gif(const std::string& path);
+
+// ── AVI reader ────────────────────────────────────────────────────────────────
+
+struct DecodedAvi {
+    std::size_t width = 0;
+    std::size_t height = 0;
+    double fps = 0.0;
+    std::vector<VideoFrame> frames; // RGB24, converted back from the BGR24 DIB
+    AviAudioConfig audio_config;     // sample_rate == 0 if the file has no audio
+    std::vector<std::int16_t> audio_pcm; // interleaved; empty if no audio
+};
+
+// Decodes an AVI file written by AviWriter (or any other encoder producing
+// uncompressed BI_RGB 24-bit video, optionally with one 16-bit PCM audio
+// stream) — i.e. the same "genuine, standards-compliant but uncompressed"
+// subset of AVI this library writes. Compressed video codecs (DivX, MJPEG,
+// H.264-in-AVI, etc.) are not supported and raise std::runtime_error with a
+// message naming the unsupported fourcc/compression.
+DecodedAvi read_avi(const std::string& path);
 
 // ── Building blocks (exposed for reuse/testing) ───────────────────────────────
 

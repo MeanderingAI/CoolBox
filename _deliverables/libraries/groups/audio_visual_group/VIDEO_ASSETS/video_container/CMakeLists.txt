@@ -5,6 +5,8 @@ add_library(video_container SHARED
     source/gif_quantize.cpp
     source/gif_encoder.cpp
     source/avi_writer.cpp
+    source/gif_reader.cpp
+    source/avi_reader.cpp
 )
 
 target_compile_features(video_container PUBLIC cxx_std_17)

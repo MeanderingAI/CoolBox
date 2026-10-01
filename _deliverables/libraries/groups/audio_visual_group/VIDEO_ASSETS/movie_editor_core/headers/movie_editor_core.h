@@ -27,7 +27,7 @@ namespace movie_editor {
 
 // ── Media bin ─────────────────────────────────────────────────────────────────
 
-enum class MediaType { ImageSequence, StillImage, Audio };
+enum class MediaType { ImageSequence, StillImage, Audio, ImportedVideo };
 
 struct MediaAsset {
     MediaType type = MediaType::StillImage;
@@ -37,6 +37,12 @@ struct MediaAsset {
     std::int64_t duration_us = 0;
     std::uint32_t audio_sample_rate = 0;   // Audio only
     std::uint32_t audio_channels = 0;      // Audio only
+
+    // ImportedVideo only (decoded GIF/AVI frames, held in memory rather than
+    // as files on disk since the source container doesn't expose individual
+    // frames as separate image files).
+    std::vector<video::VideoFrame> decoded_frames;
+    std::vector<std::int64_t> frame_start_us; // same length as decoded_frames; cumulative
 };
 
 class MediaBin {
@@ -54,6 +60,16 @@ public:
 
     // Imports a WAV file (PCM 8/16/32-bit, IEEE float, or IMA ADPCM).
     std::string import_audio(const std::string& wav_path);
+
+    // Imports a .gif or .avi file (the only "real video file" formats this
+    // from-scratch codebase can decode — see video_container's read_gif/
+    // read_avi) as a single video asset. AVI's own embedded audio track (if
+    // any) is decoded but not auto-added to the bin as a separate asset;
+    // import it again via import_audio() from an extracted WAV if needed.
+    // Throws std::runtime_error for unrecognised extensions (notably
+    // .mp4/.mov, which require codecs this library does not implement) or
+    // malformed files.
+    std::string import_video_file(const std::string& path);
 
     const MediaAsset* find(const std::string& key) const;
     const std::vector<MediaAsset>& assets() const { return assets_; }

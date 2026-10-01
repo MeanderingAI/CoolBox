@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -407,6 +408,198 @@ TYST_TEST(VideoContainerTests, AviWriterInterleavesAudioAndVideoStreams) {
     TYST_EXPECT_EQ(read_u32le(&bytes[length_field_offset]), static_cast<std::uint32_t>(8000));
 
     TYST_EXPECT_EQ(read_u32le(&bytes[idx1_hits[0] + 4]), static_cast<std::uint32_t>(4 * 16));
+
+    std::remove(path.c_str());
+}
+
+// ── Readers (round-trip with the writers above) ──────────────────────────────
+
+TYST_TEST(VideoContainerTests, ReadGifRoundTripsSolidColorFrames) {
+    const std::string path = temp_file_path("_roundtrip.gif");
+    const std::size_t w = 6, h = 4;
+    std::vector<std::array<std::uint8_t, 3>> red(w * h, {200, 10, 10});
+    std::vector<std::array<std::uint8_t, 3>> blue(w * h, {10, 10, 200});
+    const VideoFrame frame_a = make_rgb_frame(w, h, red);
+    const VideoFrame frame_b = make_rgb_frame(w, h, blue);
+
+    {
+        vc::GifEncoder encoder(path, w, h);
+        encoder.write_frame(frame_a, 150'000); // 150ms
+        encoder.write_frame(frame_b, 250'000); // 250ms
+        encoder.finish();
+    }
+
+    const vc::DecodedGif decoded = vc::read_gif(path);
+    TYST_ASSERT_EQ(decoded.width, w);
+    TYST_ASSERT_EQ(decoded.height, h);
+    TYST_ASSERT_EQ(decoded.frames.size(), static_cast<std::size_t>(2));
+    TYST_ASSERT_EQ(decoded.frame_delay_us.size(), static_cast<std::size_t>(2));
+
+    // GIF delay granularity is 1/100s, so expect the nearest 10ms multiple.
+    TYST_EXPECT_EQ(decoded.frame_delay_us[0], static_cast<std::int64_t>(150'000));
+    TYST_EXPECT_EQ(decoded.frame_delay_us[1], static_cast<std::int64_t>(250'000));
+
+    const Plane& p0 = decoded.frames[0].planes[0];
+    const Plane& p1 = decoded.frames[1].planes[0];
+    TYST_EXPECT_EQ(p0.at(0, 0), static_cast<std::uint8_t>(200));
+    TYST_EXPECT_EQ(p0.at(1, 0), static_cast<std::uint8_t>(10));
+    TYST_EXPECT_EQ(p0.at(2, 0), static_cast<std::uint8_t>(10));
+    TYST_EXPECT_EQ(p1.at(0, 0), static_cast<std::uint8_t>(10));
+    TYST_EXPECT_EQ(p1.at(1, 0), static_cast<std::uint8_t>(10));
+    TYST_EXPECT_EQ(p1.at(2, 0), static_cast<std::uint8_t>(200));
+
+    std::remove(path.c_str());
+}
+
+TYST_TEST(VideoContainerTests, ReadGifRoundTripsGradientWithinQuantizationTolerance) {
+    const std::string path = temp_file_path("_gradient.gif");
+    const std::size_t w = 16, h = 8;
+    std::vector<std::array<std::uint8_t, 3>> colors(w * h);
+    for (std::size_t y = 0; y < h; ++y) {
+        for (std::size_t x = 0; x < w; ++x) {
+            const std::uint8_t v = static_cast<std::uint8_t>((x * 255) / (w - 1));
+            colors[y * w + x] = {v, static_cast<std::uint8_t>(255 - v), 128};
+        }
+    }
+    const VideoFrame original = make_rgb_frame(w, h, colors);
+
+    {
+        vc::GifEncoder encoder(path, w, h, vc::GifOptions{0, 256});
+        encoder.write_frame(original, 100'000);
+        encoder.finish();
+    }
+
+    const vc::DecodedGif decoded = vc::read_gif(path);
+    TYST_ASSERT_EQ(decoded.frames.size(), static_cast<std::size_t>(1));
+    const Plane& out = decoded.frames[0].planes[0];
+    const Plane& in = original.planes[0];
+    // 256-color quantization of a 16-step gradient should be exact (well
+    // within the available palette budget), so require an exact match.
+    for (std::size_t y = 0; y < h; ++y) {
+        for (std::size_t x = 0; x < w; ++x) {
+            for (int c = 0; c < 3; ++c) {
+                TYST_EXPECT_EQ(out.at(x * 3 + c, y), in.at(x * 3 + c, y));
+            }
+        }
+    }
+
+    std::remove(path.c_str());
+}
+
+TYST_TEST(VideoContainerTests, ReadAviRoundTripsVideoOnlyFrames) {
+    const std::string path = temp_file_path("_roundtrip_video.avi");
+    const std::size_t w = 8, h = 6;
+    std::vector<std::array<std::uint8_t, 3>> colors_a(w * h, {12, 34, 56});
+    std::vector<std::array<std::uint8_t, 3>> colors_b(w * h, {200, 150, 100});
+    const VideoFrame frame_a = make_rgb_frame(w, h, colors_a);
+    const VideoFrame frame_b = make_rgb_frame(w, h, colors_b);
+
+    {
+        vc::AviWriter writer(path, w, h, 25.0);
+        writer.write_frame(frame_a);
+        writer.write_frame(frame_b);
+        writer.finish();
+    }
+
+    const vc::DecodedAvi decoded = vc::read_avi(path);
+    TYST_ASSERT_EQ(decoded.width, w);
+    TYST_ASSERT_EQ(decoded.height, h);
+    TYST_ASSERT_EQ(decoded.frames.size(), static_cast<std::size_t>(2));
+    TYST_EXPECT_EQ(decoded.audio_config.sample_rate, static_cast<std::uint32_t>(0));
+    TYST_EXPECT_TRUE(decoded.audio_pcm.empty());
+    TYST_EXPECT_TRUE(std::abs(decoded.fps - 25.0) < 0.01);
+
+    const Plane& p0 = decoded.frames[0].planes[0];
+    const Plane& p1 = decoded.frames[1].planes[0];
+    for (std::size_t y = 0; y < h; ++y) {
+        for (std::size_t x = 0; x < w; ++x) {
+            TYST_EXPECT_EQ(p0.at(x * 3 + 0, y), static_cast<std::uint8_t>(12));
+            TYST_EXPECT_EQ(p0.at(x * 3 + 1, y), static_cast<std::uint8_t>(34));
+            TYST_EXPECT_EQ(p0.at(x * 3 + 2, y), static_cast<std::uint8_t>(56));
+            TYST_EXPECT_EQ(p1.at(x * 3 + 0, y), static_cast<std::uint8_t>(200));
+            TYST_EXPECT_EQ(p1.at(x * 3 + 1, y), static_cast<std::uint8_t>(150));
+            TYST_EXPECT_EQ(p1.at(x * 3 + 2, y), static_cast<std::uint8_t>(100));
+        }
+    }
+
+    std::remove(path.c_str());
+}
+
+TYST_TEST(VideoContainerTests, ReadAviRoundTripsInterleavedAudio) {
+    const std::string path = temp_file_path("_roundtrip_audio.avi");
+    const std::size_t w = 4, h = 2;
+    std::vector<std::array<std::uint8_t, 3>> colors(w * h, {5, 6, 7});
+    const VideoFrame frame = make_rgb_frame(w, h, colors);
+
+    vc::AviAudioConfig audio_cfg;
+    audio_cfg.sample_rate = 8000;
+    audio_cfg.num_channels = 1;
+    audio_cfg.bits_per_sample = 16;
+    const std::vector<std::int16_t> pcm_block = {100, -200, 300, -400, 500};
+
+    {
+        vc::AviWriter writer(path, w, h, 24.0, audio_cfg);
+        writer.write_frame(frame);
+        writer.write_audio(pcm_block);
+        writer.write_frame(frame);
+        writer.write_audio(pcm_block);
+        writer.finish();
+    }
+
+    const vc::DecodedAvi decoded = vc::read_avi(path);
+    TYST_ASSERT_EQ(decoded.frames.size(), static_cast<std::size_t>(2));
+    TYST_EXPECT_EQ(decoded.audio_config.sample_rate, static_cast<std::uint32_t>(8000));
+    TYST_EXPECT_EQ(decoded.audio_config.num_channels, static_cast<std::uint16_t>(1));
+    TYST_ASSERT_EQ(decoded.audio_pcm.size(), pcm_block.size() * 2);
+    for (std::size_t i = 0; i < pcm_block.size(); ++i) {
+        TYST_EXPECT_EQ(decoded.audio_pcm[i], pcm_block[i]);
+        TYST_EXPECT_EQ(decoded.audio_pcm[pcm_block.size() + i], pcm_block[i]);
+    }
+
+    std::remove(path.c_str());
+}
+
+TYST_TEST(VideoContainerTests, ReadAviRejectsUnsupportedCompression) {
+    // Hand-craft a minimal RIFF/AVI with a bogus (non-zero) biCompression
+    // fourcc to verify read_avi() rejects it clearly instead of misreading
+    // garbage as uncompressed pixels.
+    const std::string path = temp_file_path("_bad_codec.avi");
+    const std::size_t w = 2, h = 2;
+
+    std::vector<std::array<std::uint8_t, 3>> colors(w * h, {1, 2, 3});
+    const VideoFrame frame = make_rgb_frame(w, h, colors);
+    {
+        vc::AviWriter writer(path, w, h, 24.0);
+        writer.write_frame(frame);
+        writer.finish();
+    }
+
+    auto bytes = read_whole_file(path);
+    const auto strf_hits = find_chunks(bytes, "strf");
+    TYST_ASSERT_EQ(strf_hits.size(), static_cast<std::size_t>(1));
+    // BITMAPINFOHEADER.biCompression sits 16 bytes into the chunk data
+    // (biSize, biWidth, biHeight, biPlanes+biBitCount all precede it), and
+    // the chunk data itself starts 8 bytes after find_chunks' fourcc hit
+    // (4 bytes of fourcc + 4 bytes of chunk size).
+    const std::size_t compression_offset = strf_hits[0] + 8 + 16;
+    bytes[compression_offset + 0] = 'M';
+    bytes[compression_offset + 1] = 'J';
+    bytes[compression_offset + 2] = 'P';
+    bytes[compression_offset + 3] = 'G';
+
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+    out.close();
+
+    bool threw = false;
+    try {
+        vc::read_avi(path);
+    } catch (const std::runtime_error& e) {
+        threw = true;
+        const std::string msg = e.what();
+        TYST_EXPECT_TRUE(msg.find("MJPG") != std::string::npos);
+    }
+    TYST_EXPECT_TRUE(threw);
 
     std::remove(path.c_str());
 }

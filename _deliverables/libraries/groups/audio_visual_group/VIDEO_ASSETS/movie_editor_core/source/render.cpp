@@ -64,6 +64,42 @@ const std::string* resolve_frame_file(const MediaAsset& asset, std::int64_t sour
     return &asset.frame_files[static_cast<std::size_t>(index)];
 }
 
+// Same idea as resolve_frame_file() but for ImportedVideo assets, whose
+// frames live in memory (decoded_frames) rather than on disk, and whose
+// per-frame timing may be variable (GIF delay times) rather than constant
+// fps. frame_start_us is sorted ascending, so a binary search finds the
+// last frame whose start time has already passed.
+const video::VideoFrame* resolve_decoded_frame(const MediaAsset& asset, std::int64_t source_us) {
+    if (asset.decoded_frames.empty()) return nullptr;
+    const auto& starts = asset.frame_start_us;
+    auto it = std::upper_bound(starts.begin(), starts.end(), source_us);
+    std::size_t index = it == starts.begin() ? 0 : static_cast<std::size_t>((it - starts.begin()) - 1);
+    index = std::min(index, asset.decoded_frames.size() - 1);
+    return &asset.decoded_frames[index];
+}
+
+// Nearest-neighbour resize of an already-decoded RGB24 VideoFrame (as
+// opposed to blit_to_frame() above, which converts from a graphics::Texture
+// — ImportedVideo assets skip the texture-loading path entirely since
+// their frames are already in-memory VideoFrames).
+video::VideoFrame resize_video_frame(const video::VideoFrame& src, std::size_t out_w, std::size_t out_h) {
+    if (src.width == out_w && src.height == out_h && src.format == video::PixelFormat::RGB24) return src;
+    const video::VideoFrame rgb = src.format == video::PixelFormat::RGB24 ? src : video::convert_format(src, video::PixelFormat::RGB24);
+    video::VideoFrame out = video::VideoFrame::blank(video::PixelFormat::RGB24, out_w, out_h);
+    const video::Plane& in_plane = rgb.planes[0];
+    video::Plane& out_plane = out.planes[0];
+    for (std::size_t y = 0; y < out_h; ++y) {
+        const std::size_t sy = std::min<std::size_t>(rgb.height - 1, (y * rgb.height) / out_h);
+        for (std::size_t x = 0; x < out_w; ++x) {
+            const std::size_t sx = std::min<std::size_t>(rgb.width - 1, (x * rgb.width) / out_w);
+            out_plane.at(x * 3 + 0, y) = in_plane.at(sx * 3 + 0, sy);
+            out_plane.at(x * 3 + 1, y) = in_plane.at(sx * 3 + 1, sy);
+            out_plane.at(x * 3 + 2, y) = in_plane.at(sx * 3 + 2, sy);
+        }
+    }
+    return out;
+}
+
 } // namespace
 
 video::VideoFrame EditorProject::render_frame_at(std::int64_t pts_us, std::size_t out_width, std::size_t out_height) const {
@@ -75,11 +111,18 @@ video::VideoFrame EditorProject::render_frame_at(std::int64_t pts_us, std::size_
         if (!clip || clip->muted) continue;
 
         const MediaAsset* asset = bin_.find(clip->source_path);
-        if (!asset || (asset->type != MediaType::ImageSequence && asset->type != MediaType::StillImage)) continue;
+        if (!asset || (asset->type != MediaType::ImageSequence && asset->type != MediaType::StillImage &&
+                      asset->type != MediaType::ImportedVideo)) continue;
 
         const std::int64_t elapsed_timeline_us = pts_us - clip->position_us;
         const std::int64_t source_us = clip->in_point_us +
             static_cast<std::int64_t>(elapsed_timeline_us * clip->speed);
+
+        if (asset->type == MediaType::ImportedVideo) {
+            const video::VideoFrame* frame = resolve_decoded_frame(*asset, source_us);
+            if (!frame) continue;
+            return resize_video_frame(*frame, out_width, out_height);
+        }
 
         const std::string* frame_file = resolve_frame_file(*asset, source_us);
         if (!frame_file) continue;

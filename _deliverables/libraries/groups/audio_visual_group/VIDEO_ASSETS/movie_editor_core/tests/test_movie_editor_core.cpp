@@ -64,6 +64,37 @@ std::string make_wav(std::uint32_t sample_rate, std::uint32_t channels, std::siz
     return path;
 }
 
+trekker::video::VideoFrame make_solid_video_frame(std::size_t w, std::size_t h, std::uint8_t r, std::uint8_t g, std::uint8_t b) {
+    trekker::video::VideoFrame frame = trekker::video::VideoFrame::blank(trekker::video::PixelFormat::RGB24, w, h);
+    trekker::video::Plane& plane = frame.planes[0];
+    for (std::size_t y = 0; y < h; ++y) {
+        for (std::size_t x = 0; x < w; ++x) {
+            plane.at(x * 3 + 0, y) = r;
+            plane.at(x * 3 + 1, y) = g;
+            plane.at(x * 3 + 2, y) = b;
+        }
+    }
+    return frame;
+}
+
+std::string make_test_gif(std::size_t w, std::size_t h) {
+    const std::string path = temp_dir_path("_test.gif");
+    trekker::video::container::GifEncoder encoder(path, w, h);
+    encoder.write_frame(make_solid_video_frame(w, h, 220, 20, 20), 200'000);  // red, 200ms
+    encoder.write_frame(make_solid_video_frame(w, h, 20, 20, 220), 300'000); // blue, 300ms
+    encoder.finish();
+    return path;
+}
+
+std::string make_test_avi(std::size_t w, std::size_t h, double fps) {
+    const std::string path = temp_dir_path("_test.avi");
+    trekker::video::container::AviWriter writer(path, w, h, fps);
+    writer.write_frame(make_solid_video_frame(w, h, 30, 150, 60));
+    writer.write_frame(make_solid_video_frame(w, h, 60, 30, 150));
+    writer.finish();
+    return path;
+}
+
 void remove_all(const std::string& path) {
     std::error_code ec;
     fs::remove_all(path, ec);
@@ -114,6 +145,86 @@ TYST_TEST(MovieEditorCoreTests, ImportAudioReadsWavMetadata) {
     TYST_EXPECT_EQ(asset->audio_sample_rate, static_cast<std::uint32_t>(16000));
     TYST_EXPECT_EQ(asset->audio_channels, static_cast<std::uint32_t>(2));
     remove_all(path);
+}
+
+TYST_TEST(MovieEditorCoreTests, ImportVideoFileDecodesGif) {
+    const std::string path = make_test_gif(4, 4);
+    MediaBin bin;
+    const std::string key = bin.import_video_file(path);
+    const MediaAsset* asset = bin.find(key);
+    TYST_ASSERT_TRUE(asset != nullptr);
+    TYST_EXPECT_EQ(asset->type, MediaType::ImportedVideo);
+    TYST_ASSERT_EQ(asset->decoded_frames.size(), static_cast<std::size_t>(2));
+    TYST_ASSERT_EQ(asset->frame_start_us.size(), static_cast<std::size_t>(2));
+    TYST_EXPECT_EQ(asset->frame_start_us[0], static_cast<std::int64_t>(0));
+    TYST_EXPECT_EQ(asset->frame_start_us[1], static_cast<std::int64_t>(200'000));
+    TYST_EXPECT_EQ(asset->duration_us, static_cast<std::int64_t>(500'000));
+    TYST_EXPECT_EQ(asset->decoded_frames[0].planes[0].at(0, 0), static_cast<std::uint8_t>(220));
+    TYST_EXPECT_EQ(asset->decoded_frames[1].planes[0].at(2, 0), static_cast<std::uint8_t>(220));
+    std::remove(path.c_str());
+}
+
+TYST_TEST(MovieEditorCoreTests, ImportVideoFileDecodesAvi) {
+    const std::string path = make_test_avi(4, 4, 10.0);
+    MediaBin bin;
+    const std::string key = bin.import_video_file(path);
+    const MediaAsset* asset = bin.find(key);
+    TYST_ASSERT_TRUE(asset != nullptr);
+    TYST_EXPECT_EQ(asset->type, MediaType::ImportedVideo);
+    TYST_ASSERT_EQ(asset->decoded_frames.size(), static_cast<std::size_t>(2));
+    TYST_EXPECT_EQ(asset->duration_us, static_cast<std::int64_t>(200'000)); // 2 frames @ 10fps
+    TYST_EXPECT_EQ(asset->decoded_frames[0].planes[0].at(1, 0), static_cast<std::uint8_t>(150));
+    TYST_EXPECT_EQ(asset->decoded_frames[1].planes[0].at(0, 0), static_cast<std::uint8_t>(60));
+    std::remove(path.c_str());
+}
+
+TYST_TEST(MovieEditorCoreTests, ImportVideoFileThrowsOnUnsupportedExtension) {
+    const std::string path = temp_dir_path("_fake.mp4");
+    { std::ofstream touch(path, std::ios::binary); touch << "not really a video"; }
+    MediaBin bin;
+    TYST_EXPECT_THROW(bin.import_video_file(path), std::runtime_error);
+    std::remove(path.c_str());
+}
+
+TYST_TEST(MovieEditorCoreTests, RenderFrameAtUsesImportedVideoFrames) {
+    const std::string path = make_test_gif(4, 4);
+    EditorProject project;
+    const std::string key = project.media_bin().import_video_file(path);
+    auto& track = project.add_video_track();
+    project.add_clip(track.id(), key, 0);
+
+    // First GIF frame (red) is visible for [0, 200ms); second (blue) for
+    // [200ms, 500ms).
+    const auto frame_early = project.render_frame_at(50'000, 4, 4);
+    TYST_EXPECT_EQ(frame_early.planes[0].at(0, 0), static_cast<std::uint8_t>(220));
+    const auto frame_late = project.render_frame_at(300'000, 4, 4);
+    TYST_EXPECT_EQ(frame_late.planes[0].at(2, 0), static_cast<std::uint8_t>(220));
+
+    std::remove(path.c_str());
+}
+
+TYST_TEST(MovieEditorCoreTests, SaveAndLoadProjectRoundTripsImportedVideo) {
+    const std::string path = make_test_gif(4, 4);
+    EditorProject project;
+    const std::string key = project.media_bin().import_video_file(path);
+    auto& track = project.add_video_track("v");
+    project.add_clip(track.id(), key, 0);
+
+    const std::string project_path = temp_dir_path("_video_project.json");
+    project.save_project(project_path);
+
+    const auto before = project.render_frame_at(50'000, 4, 4);
+
+    EditorProject reloaded;
+    reloaded.load_project(project_path);
+    const auto* asset = reloaded.media_bin().find(key);
+    TYST_ASSERT_TRUE(asset != nullptr);
+    TYST_EXPECT_EQ(asset->type, MediaType::ImportedVideo);
+    const auto after = reloaded.render_frame_at(50'000, 4, 4);
+    TYST_EXPECT_EQ(after.planes[0].at(0, 0), before.planes[0].at(0, 0));
+
+    std::remove(path.c_str());
+    std::remove(project_path.c_str());
 }
 
 // ── EditorProject timeline editing ───────────────────────────────────────────
