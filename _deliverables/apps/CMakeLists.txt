@@ -48,3 +48,7 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_simulator/CMakeLists.txt")
     add_subdirectory(battery_simulator)
 endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/movie_editor/CMakeLists.txt")
+    add_subdirectory(movie_editor)
+endif()

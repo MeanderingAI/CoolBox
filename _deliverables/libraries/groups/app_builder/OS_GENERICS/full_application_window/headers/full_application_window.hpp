@@ -27,6 +27,11 @@ struct WindowConfig : public ::graphics::GraphicsObject {
     std::size_t height = 640;
     bool visible = true;
     bool resizable = true;
+    // Minimum size the window manager should allow the user to resize down
+    // to (0 = no constraint). Currently enforced on the X11 backend via
+    // WM_NORMAL_HINTS; other backends ignore it for now.
+    std::size_t min_width = 0;
+    std::size_t min_height = 0;
 
     WindowConfig() = default;
     WindowConfig(std::string window_title,
