@@ -7,3 +7,4 @@ if(NOT TARGET tyst_framework_main)
 endif()
 
 add_subdirectory(memory)
+add_subdirectory(timer)
