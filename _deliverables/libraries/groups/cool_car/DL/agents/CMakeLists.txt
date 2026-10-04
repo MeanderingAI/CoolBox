@@ -12,6 +12,7 @@ add_library(dl_agents STATIC
     src/agent_citations.cpp
     src/bapo.cpp
     src/llf_helix.cpp
+    src/reflexion.cpp
     src/steerability.cpp
     src/trace_opto.cpp
 )
