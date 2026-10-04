@@ -98,6 +98,8 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/multi_arm_bandit/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/computer_vision/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/time_series/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/timer_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/synthetic_data_bindings.cpp"
 )
 file(GLOB_RECURSE ML_BINDING_SOURCES CONFIGURE_DEPENDS ${ML_BINDING_GLOBS})
 
@@ -153,6 +155,7 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/timer/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers

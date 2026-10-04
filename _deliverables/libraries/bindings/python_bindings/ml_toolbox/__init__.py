@@ -20,6 +20,9 @@ Main Modules
 - computer_vision: Image processing and CV algorithms
 - nlp: Natural language processing
 - multi_arm_bandit: Multi-armed bandit algorithms
+- timer: Monotonic timers and timing statistics
+- graphics: Native 2D and projected 3D plots
+- synthetic_data: Deterministic regression, classification, and blob datasets
 
 Quick Start
 -----------
@@ -68,6 +71,9 @@ except ImportError as e:
         "Failed to import ml_core extension. Please build the package first: python setup.py build_ext --inplace"
     ) from e
 ml_core = _ml_core
+timer = _ml_core.timer
+graphics = _ml_core.graphics
+synthetic_data = _ml_core.synthetic_data
 
 __all__ = [
     "Client",
@@ -86,4 +92,7 @@ __all__ = [
     "computer_vision",
     "nlp",
     "multi_arm_bandit",
+    "timer",
+    "graphics",
+    "synthetic_data",
 ]

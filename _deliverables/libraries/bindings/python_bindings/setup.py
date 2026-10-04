@@ -34,6 +34,7 @@ vendor_src_root = project_root / "vendor_src"
 vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
 vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
 vendor_matrix_headers_dir = project_root / "vendor_include" / "MATRIX" / "headers"
+timer_headers_dir = repo_root / "_deliverables/libraries/groups/Generics/timer/headers"
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
 
@@ -299,6 +300,7 @@ include_dirs = [
     pybind11.get_include(),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
+    str(timer_headers_dir),
     str(matrix_header_dir),
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
@@ -322,6 +324,8 @@ extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-
 source_files = [
     "py_ml_core.cpp",
     "src/pde_spde_bindings.cpp",
+    "src/timer_bindings.cpp",
+    "src/synthetic_data_bindings.cpp",
 ]
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))

@@ -125,6 +125,45 @@ void bind_graphics(py::module_& parent_module) {
         .def("add_series", &graphics::Graph::add_series, py::arg("series"))
         .def("render", &graphics::Graph::render);
 
+    py::enum_<graphics::Graph3DType>(graphics_module, "Graph3DType")
+        .value("LINE", graphics::Graph3DType::Line)
+        .value("SCATTER", graphics::Graph3DType::Scatter);
+
+    py::class_<graphics::DataSeries3D>(graphics_module, "DataSeries3D")
+        .def(py::init<>())
+        .def(py::init<
+                 std::string,
+                 std::vector<double>,
+                 std::vector<double>,
+                 std::vector<double>,
+                 graphics::Color>(),
+             py::arg("label"),
+             py::arg("x_values"),
+             py::arg("y_values"),
+             py::arg("z_values"),
+             py::arg("color") = graphics::Colors::Blue)
+        .def_readwrite("label", &graphics::DataSeries3D::label)
+        .def_readwrite("x_values", &graphics::DataSeries3D::x_values)
+        .def_readwrite("y_values", &graphics::DataSeries3D::y_values)
+        .def_readwrite("z_values", &graphics::DataSeries3D::z_values)
+        .def_readwrite("color", &graphics::DataSeries3D::color);
+
+    py::class_<graphics::Graph3D>(graphics_module, "Graph3D")
+        .def(py::init<int, int, graphics::Graph3DType>(),
+             py::arg("width") = 800,
+             py::arg("height") = 600,
+             py::arg("graph_type") = graphics::Graph3DType::Scatter)
+        .def("set_title", &graphics::Graph3D::set_title, py::arg("title"))
+        .def("set_x_label", &graphics::Graph3D::set_x_label, py::arg("label"))
+        .def("set_y_label", &graphics::Graph3D::set_y_label, py::arg("label"))
+        .def("set_z_label", &graphics::Graph3D::set_z_label, py::arg("label"))
+        .def("set_type", &graphics::Graph3D::set_type, py::arg("graph_type"))
+        .def("set_view", &graphics::Graph3D::set_view,
+             py::arg("azimuth_degrees"), py::arg("elevation_degrees"))
+        .def("set_point_radius", &graphics::Graph3D::set_point_radius, py::arg("radius"))
+        .def("add_series", &graphics::Graph3D::add_series, py::arg("series"))
+        .def("render", &graphics::Graph3D::render);
+
     py::class_<graphics::Table>(graphics_module, "Table")
         .def(py::init<>())
         .def("set_headers", &graphics::Table::set_headers, py::arg("headers"))
