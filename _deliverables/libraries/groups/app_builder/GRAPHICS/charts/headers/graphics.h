@@ -307,6 +307,48 @@ private:
 };
 
 // ===================================================================
+// Graph3D
+// ===================================================================
+
+enum class Graph3DType { Line, Scatter };
+
+struct DataSeries3D {
+    std::string label;
+    std::vector<double> x_values;
+    std::vector<double> y_values;
+    std::vector<double> z_values;
+    Color color = Colors::Blue;
+};
+
+class Graph3D {
+public:
+    explicit Graph3D(int width = 800, int height = 600,
+                     Graph3DType type = Graph3DType::Scatter);
+
+    void set_title(const std::string& title);
+    void set_x_label(const std::string& label);
+    void set_y_label(const std::string& label);
+    void set_z_label(const std::string& label);
+    void set_type(Graph3DType type);
+    void set_view(double azimuth_degrees, double elevation_degrees);
+    void set_point_radius(int radius);
+    void add_series(const DataSeries3D& series);
+
+    /** Render an orthographic 3D projection and return the resulting canvas. */
+    Canvas render() const;
+
+private:
+    int width_, height_;
+    Graph3DType type_;
+    std::string title_;
+    std::string x_label_, y_label_, z_label_;
+    double azimuth_degrees_ = 45.0;
+    double elevation_degrees_ = 25.0;
+    int point_radius_ = 4;
+    std::vector<DataSeries3D> series_;
+};
+
+// ===================================================================
 // Table
 // ===================================================================
 

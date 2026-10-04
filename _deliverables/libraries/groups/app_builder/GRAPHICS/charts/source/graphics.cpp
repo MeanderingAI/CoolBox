@@ -927,6 +927,169 @@ Canvas Graph::render() const {
 }
 
 // ===================================================================
+// Graph3D
+// ===================================================================
+
+Graph3D::Graph3D(int width, int height, Graph3DType type)
+    : width_(width), height_(height), type_(type) {}
+
+void Graph3D::set_title(const std::string& title) { title_ = title; }
+void Graph3D::set_x_label(const std::string& label) { x_label_ = label; }
+void Graph3D::set_y_label(const std::string& label) { y_label_ = label; }
+void Graph3D::set_z_label(const std::string& label) { z_label_ = label; }
+void Graph3D::set_type(Graph3DType type) { type_ = type; }
+
+void Graph3D::set_view(double azimuth_degrees, double elevation_degrees) {
+    if (elevation_degrees < -90.0 || elevation_degrees > 90.0)
+        throw std::invalid_argument("Graph3D: elevation must be between -90 and 90 degrees");
+    azimuth_degrees_ = azimuth_degrees;
+    elevation_degrees_ = elevation_degrees;
+}
+
+void Graph3D::set_point_radius(int radius) {
+    if (radius < 1)
+        throw std::invalid_argument("Graph3D: point radius must be positive");
+    point_radius_ = radius;
+}
+
+void Graph3D::add_series(const DataSeries3D& series) {
+    const std::size_t size = series.x_values.size();
+    if (size == 0)
+        throw std::invalid_argument("DataSeries3D: at least one point is required");
+    if (series.y_values.size() != size || series.z_values.size() != size)
+        throw std::invalid_argument("DataSeries3D: x, y, and z must have the same size");
+    series_.push_back(series);
+}
+
+Canvas Graph3D::render() const {
+    if (series_.empty())
+        throw std::runtime_error("Graph3D::render: no data series added");
+
+    struct Range3D {
+        double x_min = std::numeric_limits<double>::max();
+        double x_max = -std::numeric_limits<double>::max();
+        double y_min = std::numeric_limits<double>::max();
+        double y_max = -std::numeric_limits<double>::max();
+        double z_min = std::numeric_limits<double>::max();
+        double z_max = -std::numeric_limits<double>::max();
+    } range;
+
+    for (const auto& series : series_) {
+        for (double value : series.x_values) {
+            range.x_min = std::min(range.x_min, value);
+            range.x_max = std::max(range.x_max, value);
+        }
+        for (double value : series.y_values) {
+            range.y_min = std::min(range.y_min, value);
+            range.y_max = std::max(range.y_max, value);
+        }
+        for (double value : series.z_values) {
+            range.z_min = std::min(range.z_min, value);
+            range.z_max = std::max(range.z_max, value);
+        }
+    }
+
+    const auto normalize = [](double value, double minimum, double maximum) {
+        if (std::abs(maximum - minimum) < 1e-12)
+            return 0.0;
+        return 2.0 * (value - minimum) / (maximum - minimum) - 1.0;
+    };
+
+    struct ProjectedPoint {
+        int x;
+        int y;
+        double depth;
+    };
+
+    const double radians = 3.14159265358979323846 / 180.0;
+    const double azimuth = azimuth_degrees_ * radians;
+    const double elevation = elevation_degrees_ * radians;
+    const double cos_azimuth = std::cos(azimuth);
+    const double sin_azimuth = std::sin(azimuth);
+    const double cos_elevation = std::cos(elevation);
+    const double sin_elevation = std::sin(elevation);
+    const int center_x = width_ / 2;
+    const int center_y = height_ / 2 + (title_.empty() ? 0 : 10);
+    const double scale = 0.36 * static_cast<double>(std::min(width_, height_));
+
+    const auto project_normalized = [&](double x, double y, double z) {
+        const double horizontal = cos_azimuth * x - sin_azimuth * y;
+        const double rotated_depth = sin_azimuth * x + cos_azimuth * y;
+        const double vertical = cos_elevation * z - sin_elevation * rotated_depth;
+        const double depth = sin_elevation * z + cos_elevation * rotated_depth;
+        return ProjectedPoint{
+            center_x + static_cast<int>(horizontal * scale),
+            center_y - static_cast<int>(vertical * scale),
+            depth,
+        };
+    };
+
+    const auto project = [&](double x, double y, double z) {
+        return project_normalized(
+            normalize(x, range.x_min, range.x_max),
+            normalize(y, range.y_min, range.y_max),
+            normalize(z, range.z_min, range.z_max));
+    };
+
+    Canvas canvas(width_, height_, Colors::White);
+    const ProjectedPoint origin = project_normalized(-1.0, -1.0, -1.0);
+    const ProjectedPoint x_axis = project_normalized(1.0, -1.0, -1.0);
+    const ProjectedPoint y_axis = project_normalized(-1.0, 1.0, -1.0);
+    const ProjectedPoint z_axis = project_normalized(-1.0, -1.0, 1.0);
+    canvas.draw_line(origin.x, origin.y, x_axis.x, x_axis.y, Colors::DarkGray, 2);
+    canvas.draw_line(origin.x, origin.y, y_axis.x, y_axis.y, Colors::DarkGray, 2);
+    canvas.draw_line(origin.x, origin.y, z_axis.x, z_axis.y, Colors::DarkGray, 2);
+    canvas.draw_text(x_axis.x + 4, x_axis.y, x_label_.empty() ? "X" : x_label_, Colors::DarkGray);
+    canvas.draw_text(y_axis.x + 4, y_axis.y, y_label_.empty() ? "Y" : y_label_, Colors::DarkGray);
+    canvas.draw_text(z_axis.x + 4, z_axis.y, z_label_.empty() ? "Z" : z_label_, Colors::DarkGray);
+
+    if (!title_.empty()) {
+        const int title_x = (width_ - static_cast<int>(title_.size()) * 12) / 2;
+        canvas.draw_text(std::max(2, title_x), 5, title_, Colors::Black, 2);
+    }
+
+    for (const auto& series : series_) {
+        std::vector<ProjectedPoint> points;
+        points.reserve(series.x_values.size());
+        for (std::size_t index = 0; index < series.x_values.size(); ++index) {
+            points.push_back(project(
+                series.x_values[index],
+                series.y_values[index],
+                series.z_values[index]));
+        }
+
+        if (type_ == Graph3DType::Line) {
+            for (std::size_t index = 1; index < points.size(); ++index) {
+                canvas.draw_line(
+                    points[index - 1].x, points[index - 1].y,
+                    points[index].x, points[index].y,
+                    series.color, 2);
+            }
+        } else {
+            std::sort(points.begin(), points.end(), [](const ProjectedPoint& left, const ProjectedPoint& right) {
+                return left.depth < right.depth;
+            });
+        }
+
+        for (const auto& point : points) {
+            canvas.draw_circle(point.x, point.y, point_radius_, series.color, true);
+            canvas.draw_circle(point.x, point.y, point_radius_, Colors::Black, false);
+        }
+    }
+
+    int legend_y = title_.empty() ? 10 : 30;
+    for (const auto& series : series_) {
+        if (series.label.empty())
+            continue;
+        canvas.draw_rect(10, legend_y + 1, 12, 7, series.color, true);
+        canvas.draw_text(26, legend_y, series.label, Colors::Black);
+        legend_y += 14;
+    }
+
+    return canvas;
+}
+
+// ===================================================================
 // Table
 // ===================================================================
 

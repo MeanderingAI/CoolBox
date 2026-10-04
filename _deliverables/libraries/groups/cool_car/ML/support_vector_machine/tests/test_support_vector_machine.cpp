@@ -87,7 +87,10 @@ TYST_TEST(SupportVectorMachineModelTest, LinearKernelSeparatesTrainingSamples) {
 	svm.fit(mytrix::DenseMatrix(inputs), mytrix::DenseMatrix(labels));
 
 	for (Eigen::Index index = 0; index < inputs.rows(); ++index) {
-		std::vector<double> row_vec(inputs.row(index).data(), inputs.row(index).data() + inputs.cols());
+		// inputs is column-major, so inputs.row(index).data() is not a contiguous
+		// row; copy element-by-element to get the actual row values.
+		std::vector<double> row_vec(inputs.cols());
+		for (Eigen::Index col = 0; col < inputs.cols(); ++col) row_vec[col] = inputs(index, col);
 		mytrix::DenseMatrix row_matrix(row_vec, 1, inputs.cols());
 		TYST_EXPECT_EQ(svm.predict(row_matrix), labels(index));
 	}

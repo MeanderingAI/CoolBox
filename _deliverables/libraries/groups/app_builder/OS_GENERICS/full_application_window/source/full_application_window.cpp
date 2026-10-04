@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <unordered_map>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -1225,9 +1227,15 @@ void FullApplicationWindow::request_redraw() {
         InvalidateRect(impl_->hwnd, nullptr, FALSE);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
-    if (impl_->display && impl_->window) {
-        XClearArea(impl_->display, impl_->window, 0, 0, 0, 0, True);
-        XFlush(impl_->display);
+    // Render synchronously (matching the Cocoa/headless backends below)
+    // rather than XClearArea()-then-wait-for-the-next-Expose-event: that
+    // older approach blanked the window to the background pixel immediately
+    // and only repainted whenever the next Expose happened to arrive,
+    // producing a clear -> (gap) -> redraw "strobe" where the window was
+    // blank the vast majority of the time.
+    if (impl_->display && impl_->window && impl_->hooks.on_render) {
+        impl_->hooks.on_render(impl_->make_render_event(
+            static_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->hooks.on_render) {
@@ -1304,6 +1312,30 @@ bool FullApplicationWindow::query_pointer_state(PointerState& state) const {
     state.left_button_down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
     state.right_button_down = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
     return true;
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    if (!impl_->display || !impl_->window) {
+        state = PointerState{};
+        return false;
+    }
+    ::Window root_return = 0;
+    ::Window child_return = 0;
+    int root_x = 0, root_y = 0, win_x = 0, win_y = 0;
+    unsigned int mask = 0;
+    if (!XQueryPointer(impl_->display, impl_->window, &root_return, &child_return,
+                       &root_x, &root_y, &win_x, &win_y, &mask)) {
+        state = PointerState{};
+        return false;
+    }
+    int width = 0, height = 0;
+    client_size(width, height);
+    state.x = win_x;
+    state.y = win_y;
+    state.client_width = width;
+    state.client_height = height;
+    state.inside = win_x >= 0 && win_y >= 0 && win_x < width && win_y < height;
+    state.left_button_down = (mask & Button1Mask) != 0;
+    state.right_button_down = (mask & Button3Mask) != 0;
+    return true;
 #else
     state = PointerState{};
     return false;
@@ -1349,6 +1381,17 @@ bool FullApplicationWindow::client_size(int& width, int& height) const {
         width  = static_cast<int>(bounds.size.width);
         height = static_cast<int>(bounds.size.height);
     }
+    return true;
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    if (!impl_->display || !impl_->window) {
+        width = 0;
+        height = 0;
+        return false;
+    }
+    XWindowAttributes attrs{};
+    XGetWindowAttributes(impl_->display, impl_->window, &attrs);
+    width = attrs.width;
+    height = attrs.height;
     return true;
 #else
     width = 0;
@@ -1658,6 +1701,52 @@ bool FullApplicationWindow::present_canvas(const ::graphics::Canvas& canvas) con
                   SRCCOPY);
 
     ReleaseDC(impl_->hwnd, dc);
+    return true;
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    if (!impl_->display || !impl_->window) return false;
+
+    const int w = canvas.width();
+    const int h = canvas.height();
+    if (w <= 0 || h <= 0) return false;
+
+    const int screen = DefaultScreen(impl_->display);
+    Visual* visual = DefaultVisual(impl_->display, screen);
+    const int depth = DefaultDepth(impl_->display, screen);
+    if (depth != 24 && depth != 32) return false; // uncommon visual depth; bail out safely
+
+    auto shift_for_mask = [](unsigned long mask) {
+        int shift = 0;
+        while (mask != 0 && (mask & 1UL) == 0) { mask >>= 1; ++shift; }
+        return shift;
+    };
+    const int rshift = shift_for_mask(visual->red_mask);
+    const int gshift = shift_for_mask(visual->green_mask);
+    const int bshift = shift_for_mask(visual->blue_mask);
+
+    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
+    const unsigned char* src = canvas.data(); // RGBA8, row-major, top-left origin
+    for (std::size_t i = 0; i < pixels.size(); ++i) {
+        const unsigned char r = src[i * 4 + 0];
+        const unsigned char g = src[i * 4 + 1];
+        const unsigned char b = src[i * 4 + 2];
+        pixels[i] = (static_cast<std::uint32_t>(r) << rshift) |
+                   (static_cast<std::uint32_t>(g) << gshift) |
+                   (static_cast<std::uint32_t>(b) << bshift);
+    }
+
+    XImage* image = XCreateImage(impl_->display, visual, static_cast<unsigned int>(depth), ZPixmap, 0,
+                                 reinterpret_cast<char*>(pixels.data()),
+                                 static_cast<unsigned int>(w), static_cast<unsigned int>(h), 32, 0);
+    if (!image) return false;
+
+    GC gc = XCreateGC(impl_->display, impl_->window, 0, nullptr);
+    XPutImage(impl_->display, impl_->window, gc, image, 0, 0, 0, 0,
+             static_cast<unsigned int>(w), static_cast<unsigned int>(h));
+    XFreeGC(impl_->display, gc);
+
+    image->data = nullptr; // `pixels` owns the buffer; don't let XDestroyImage free it
+    XDestroyImage(image);
+    XFlush(impl_->display);
     return true;
 #else
     (void)canvas;

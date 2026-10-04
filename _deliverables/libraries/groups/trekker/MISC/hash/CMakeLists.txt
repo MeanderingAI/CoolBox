@@ -21,7 +21,7 @@ target_include_directories(password_hash_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 target_compile_features(password_hash_utils PUBLIC cxx_std_17)
 target_link_libraries(password_hash_utils PUBLIC Threads::Threads)
 
-if(OpenSSL_FOUND)
+if(OpenSSL_FOUND AND TARGET OpenSSL::Crypto)
     target_link_libraries(password_hash_utils PUBLIC OpenSSL::Crypto)
     target_compile_definitions(password_hash_utils PRIVATE COOLBOX_HASH_USE_OPENSSL_PROVIDER=1)
 endif()

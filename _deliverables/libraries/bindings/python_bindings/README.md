@@ -31,6 +31,9 @@ After installation, both import styles are supported:
 - `nlp`
 - `distributed`
 - `rest_api`
+- `graphics` (including projected 3D line and scatter plots)
+- `synthetic_data`
+- `timer`
 
 ## Build
 

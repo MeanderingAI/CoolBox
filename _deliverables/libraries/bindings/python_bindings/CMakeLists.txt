@@ -19,6 +19,14 @@ if(COOLBOX_NUMPY_IMPORT_RESULT EQUAL 0)
         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_bindings.py
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
+    # metadata_client.py loads libcoolbox_c_bindings via ctypes and otherwise only
+    # looks for a standalone out-of-source build at ../c_bindings/build; point it
+    # at the actual location this unified build produces the shared library.
+    if(TARGET coolbox_c_bindings)
+        set_tests_properties(hmm_python_bindings_test PROPERTIES
+            ENVIRONMENT "COOLBOX_C_BINDINGS_DIR=$<TARGET_FILE_DIR:coolbox_c_bindings>"
+        )
+    endif()
 else()
     message(STATUS "Skipping hmm_python_bindings_test: NumPy is not available for ${Python3_EXECUTABLE}")
 endif()
@@ -90,6 +98,8 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/multi_arm_bandit/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/computer_vision/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/time_series/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/timer_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/synthetic_data_bindings.cpp"
 )
 file(GLOB_RECURSE ML_BINDING_SOURCES CONFIGURE_DEPENDS ${ML_BINDING_GLOBS})
 
@@ -145,6 +155,7 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/timer/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/MISC/wave_generator/headers
@@ -166,6 +177,18 @@ endif()
 # Set the output directory
 set_target_properties(ml_core PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+# The ml_toolbox package (ml_toolbox/__init__.py) imports the compiled
+# extension via a relative "from . import ml_core", which requires the
+# built module to live alongside it in ml_toolbox/ rather than in the
+# top-level build directory. Copy it there after each build so the
+# package works without a separate manual "setup.py build_ext --inplace"
+# step (e.g. for hmm_python_bindings_test).
+add_custom_command(TARGET ml_core POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:ml_core>
+        ${CMAKE_CURRENT_SOURCE_DIR}/ml_toolbox/$<TARGET_FILE_NAME:ml_core>
 )
 
 # Add py_circuitry only when the circuitry API is available in headers.

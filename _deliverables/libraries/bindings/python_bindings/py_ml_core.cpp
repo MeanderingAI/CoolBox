@@ -43,6 +43,8 @@
 #include "rest_api/server.h"
 
 #include "include/pde_spde_bindings.hpp"
+#include "include/timer_bindings.hpp"
+#include "include/synthetic_data_bindings.hpp"
 
 namespace py = pybind11;
 
@@ -52,6 +54,8 @@ PYBIND11_MODULE(ml_core, m) {
     bind_graphics(m);
     bind_misc(m);
     bind_pde_spde(m);
+    bind_timer(m);
+    bind_synthetic_data(m);
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");

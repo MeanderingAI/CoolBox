@@ -234,6 +234,17 @@ if(COOLBOX_INSTALL_PACKAGE)
             )
         endif()
 
+        # Some targets use an "include" subdirectory instead of "headers"
+        # for their public headers; honor that convention too so their
+        # INTERFACE_INCLUDE_DIRECTORIES aren't silently dropped below.
+        if(EXISTS "${target_source_dir}/include")
+            file(RELATIVE_PATH rel_include "${CMAKE_SOURCE_DIR}/_deliverables/libraries" "${target_source_dir}/include")
+            list(APPEND interface_includes
+                "$<BUILD_INTERFACE:${target_source_dir}/include>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${rel_include}>"
+            )
+        endif()
+
         get_target_property(existing_interface_includes ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
         if(existing_interface_includes AND NOT existing_interface_includes STREQUAL "existing_interface_includes-NOTFOUND")
             foreach(inc_dir IN LISTS existing_interface_includes)
@@ -242,8 +253,17 @@ if(COOLBOX_INSTALL_PACKAGE)
                     continue()
                 endif()
 
+                # Plain absolute paths that point elsewhere in this source
+                # or build tree (e.g. a sibling package's "include" dir
+                # pulled in via target_include_directories) aren't valid
+                # once installed, but they're still needed to build targets
+                # (like tests) directly against this target's build tree.
+                # Wrap them in BUILD_INTERFACE instead of dropping them so
+                # in-tree consumers keep working; they're simply omitted
+                # from the installed/export interface.
                 if(IS_ABSOLUTE "${inc_dir}")
                     if(inc_dir MATCHES "^${CMAKE_SOURCE_DIR}(/|$)" OR inc_dir MATCHES "^${CMAKE_BINARY_DIR}(/|$)")
+                        list(APPEND interface_includes "$<BUILD_INTERFACE:${inc_dir}>")
                         continue()
                     endif()
                 endif()

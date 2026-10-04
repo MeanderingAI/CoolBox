@@ -5,7 +5,10 @@ add_library(hidden_markov_model SHARED
     source/hmm_flare_adapter.cpp
     source/hidden_markov_model.cpp
 )
-target_include_directories(hidden_markov_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_include_directories(hidden_markov_model PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/ALGORITHM/dynamic_programming/rank_convergence_ltdp
+)
 target_link_libraries(hidden_markov_model PUBLIC mytrix flare_mcmc)
 
 ## Tests

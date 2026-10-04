@@ -17,7 +17,7 @@ int main() {
     EXPECT_EQ(note_name_to_midi("A4"), 69);
     EXPECT_EQ(note_name_to_midi("C4"), 60);
     EXPECT_EQ(note_name_to_midi("C#4"), 61);
-    EXPECT_EQ(note_name_to_midi("Bb3"), 46);
+    EXPECT_EQ(note_name_to_midi("Bb3"), 58);
 
     // ADSR envelope: attack phase increases from 0
     {
