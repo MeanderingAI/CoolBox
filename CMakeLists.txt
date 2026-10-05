@@ -158,9 +158,13 @@ function(coolbox_stage_test_runtime_dependencies test_target)
 
     if(runtime_targets)
         set(copy_sources "")
-        foreach(runtime_target IN LISTS runtime_targets)
-            list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
-        endforeach()
+        if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.21")
+            set(copy_sources "$<TARGET_RUNTIME_DLLS:${test_target}>")
+        else()
+            foreach(runtime_target IN LISTS runtime_targets)
+                list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
+            endforeach()
+        endif()
 
         add_custom_command(TARGET ${test_target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different

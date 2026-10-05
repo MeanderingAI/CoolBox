@@ -16,5 +16,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
         tests/test_xml_screen_descriptor_parser.cpp
     )
     target_link_libraries(xml_screen_descriptor_parser_tests PRIVATE xml_screen_descriptor_parser tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(xml_screen_descriptor_parser_tests)
     add_test(NAME XmlScreenDescriptorParserTests COMMAND xml_screen_descriptor_parser_tests)
 endif()

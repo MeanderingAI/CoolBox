@@ -89,7 +89,7 @@ else
 endif
 
 build_libraries: configure
-	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building all libraries..."; cmake --build build --config Release'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building all libraries..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
 	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
 
 build_%: configure

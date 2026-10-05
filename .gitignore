@@ -40,6 +40,8 @@ external
 .venv
 _local_build_pipeline/tmp
 go*
+!_interfaces/internal_gui/go.mod
+!_interfaces/internal_gui/go.sum
 error.*
 .vs
 out

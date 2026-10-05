@@ -10,21 +10,129 @@
 using namespace ml::deep_learning::agents;
 
 // ============================================================================
-// Citations (all four papers)
+// Citations (all five papers)
 // ============================================================================
 
 TYST_TEST(AgentCitationsTest, RegistersEveryImplementedPaper) {
     const auto& citations = agent_citations();
-    TYST_ASSERT_EQ(citations.size(), 4u);
+    TYST_ASSERT_EQ(citations.size(), 5u);
 
     const std::vector<std::string> expected_ids = {
-        "2406.16218", "2505.08140", "2505.23816", "2506.10341"
+        "2303.11366", "2406.16218", "2505.08140", "2505.23816", "2506.10341"
     };
     for (size_t i = 0; i < expected_ids.size(); ++i) {
         TYST_EXPECT_EQ(citations[i].arxiv_id, expected_ids[i]);
         TYST_EXPECT_FALSE(citations[i].component.empty());
         TYST_EXPECT_FALSE(citations[i].authors.empty());
     }
+}
+
+// ============================================================================
+// Reflexion (arXiv:2303.11366)
+// ============================================================================
+
+TYST_TEST(ReflexionTest, VerbalMemoryChangesTheNextTrialAndSolvesTheTask) {
+        ReflexionActor actor = [](const std::string&, const ReflexionMemory& memory) {
+            ReflexionTrajectory trajectory;
+            const bool has_hint = !memory.empty();
+            trajectory.steps.push_back(
+                {has_hint ? "take mug from desk" : "search drawer",
+                 has_hint ? "mug acquired" : "nothing useful"});
+            trajectory.output = has_hint ? "done" : "failed";
+            return trajectory;
+        };
+        ReflexionEvaluator evaluator =
+            [](const std::string&, const ReflexionTrajectory& trajectory) {
+                const bool passed = trajectory.output == "done";
+                return ReflexionEvaluation{
+                    passed ? 1.0 : 0.0, passed, passed ? "success" : "mug not found"};
+            };
+        ReflexionSelfReflection reflector =
+            [](const std::string&, const ReflexionTrajectory&,
+               const ReflexionEvaluation& evaluation, const ReflexionMemory&) {
+                return std::string("Next time, take the visible mug. Feedback: ") +
+                       evaluation.feedback;
+            };
+
+        ReflexionAgent agent(actor, evaluator, reflector, {4, 3});
+        const ReflexionResult result = agent.run("Acquire the mug");
+
+        TYST_EXPECT_TRUE(result.passed);
+        TYST_ASSERT_EQ(result.trials.size(), 2u);
+        TYST_EXPECT_EQ(result.trials[0].trajectory.steps.size(), 1u);
+        TYST_EXPECT_FALSE(result.trials[0].reflection.empty());
+        TYST_EXPECT_TRUE(result.trials[1].reflection.empty());
+        TYST_ASSERT_EQ(result.memory.size(), 1u);
+        TYST_EXPECT_NE(result.memory[0].find("visible mug"), std::string::npos);
+}
+
+TYST_TEST(ReflexionTest, EpisodicMemoryIsBoundedAndKeepsNewestExperiences) {
+        size_t attempt = 0;
+        ReflexionAgent agent(
+            [&attempt](const std::string&, const ReflexionMemory&) {
+                ReflexionTrajectory trajectory;
+                trajectory.output = std::to_string(attempt++);
+                return trajectory;
+            },
+            [](const std::string&, const ReflexionTrajectory&) {
+                return ReflexionEvaluation{0.0, false, "failed"};
+            },
+            [](const std::string&, const ReflexionTrajectory& trajectory,
+               const ReflexionEvaluation&, const ReflexionMemory&) {
+                return std::string("lesson-") + trajectory.output;
+            },
+            {5, 3});
+
+        const ReflexionResult result = agent.run("unsolved task");
+        TYST_EXPECT_FALSE(result.passed);
+        TYST_EXPECT_EQ(result.trials.size(), 5u);
+        TYST_ASSERT_EQ(result.memory.size(), 3u);
+        TYST_EXPECT_EQ(result.memory[0], std::string("lesson-2"));
+        TYST_EXPECT_EQ(result.memory[2], std::string("lesson-4"));
+}
+
+TYST_TEST(ReflexionTest, AlfWorldHeuristicDetectsPaperFailureModes) {
+        ReflexionTrajectory stuck;
+        for (size_t i = 0; i < 4; ++i) {
+            stuck.steps.push_back({"take pan", "Nothing happens."});
+        }
+        TYST_EXPECT_EQ(
+            detect_alfworld_failure(stuck), ReflexionFailureCause::repeated_cycle);
+        const ReflexionEvaluation stuck_evaluation =
+            evaluate_alfworld_trajectory(stuck, false);
+        TYST_EXPECT_FALSE(stuck_evaluation.passed);
+        TYST_EXPECT_NE(stuck_evaluation.feedback.find("stuck"), std::string::npos);
+
+        ReflexionTrajectory long_plan;
+        long_plan.steps.resize(31);
+        TYST_EXPECT_EQ(
+            detect_alfworld_failure(long_plan), ReflexionFailureCause::action_limit);
+
+        const ReflexionEvaluation success =
+            evaluate_alfworld_trajectory(long_plan, true);
+        TYST_EXPECT_TRUE(success.passed);
+        TYST_EXPECT_NEAR(success.reward, 1.0, 1e-12);
+}
+
+TYST_TEST(ReflexionTest, RejectsInvalidConfigurationAndEmptyReflection) {
+        ReflexionActor actor = [](const std::string&, const ReflexionMemory&) {
+            return ReflexionTrajectory{};
+        };
+        ReflexionEvaluator evaluator =
+            [](const std::string&, const ReflexionTrajectory&) {
+                return ReflexionEvaluation{};
+            };
+        ReflexionSelfReflection empty_reflector =
+            [](const std::string&, const ReflexionTrajectory&,
+               const ReflexionEvaluation&, const ReflexionMemory&) {
+                return std::string();
+            };
+
+        TYST_EXPECT_THROW(
+            (void) ReflexionAgent(actor, evaluator, empty_reflector, {0, 3}),
+            std::invalid_argument);
+        ReflexionAgent agent(actor, evaluator, empty_reflector, {1, 1});
+        TYST_EXPECT_THROW((void) agent.run("task"), std::runtime_error);
 }
 
 TYST_TEST(AgentCitationsTest, LooksUpByKeyAndComponent) {
