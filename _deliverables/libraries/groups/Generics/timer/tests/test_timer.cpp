@@ -163,7 +163,7 @@ TYST_TEST(ConcurrentTimingStatsTest, AggregatesConcurrentRecordsFromManyThreads)
     std::vector<std::thread> workers;
     workers.reserve(kThreads);
     for (int t = 0; t < kThreads; ++t) {
-        workers.emplace_back([&stats, t]() {
+        workers.emplace_back([&stats, t, kSamplesPerThread]() {
             for (int i = 0; i < kSamplesPerThread; ++i) {
                 // Distinct values per thread so min/max are easy to predict,
                 // while all 8 threads hammer the same shared stats object.
