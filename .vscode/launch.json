@@ -147,6 +147,16 @@
                 "console": "integratedTerminal"
             },
             {
+                "name": "Run robot_simulator",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\robot_simulator\\Release\\robot_simulator.exe",
+                "args": [],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-robot-simulator-release"
+            },
+            {
                 "name": "Run secret_gen_cli (v7 x 10)",
                 "type": "cppvsdbg",
                 "request": "launch",
