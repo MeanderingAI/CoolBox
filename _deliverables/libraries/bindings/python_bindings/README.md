@@ -35,6 +35,18 @@ After installation, both import styles are supported:
 - `synthetic_data`
 - `timer`
 
+## Train a GAN
+
+`ml_toolbox.GAN` provides a small fully connected GAN trainer built from the
+CoolBox deep-learning layers. Pass real batches as two-dimensional
+`ml_toolbox.ml_core.deep_learning.Tensor` values scaled to `[-1, 1]`.
+`train_batch` returns the discriminator and generator binary cross-entropy
+losses; `sample(count)` generates samples.
+
+See `examples/gan_training_example.py` for a runnable toy-data example that
+plots both training losses to `gan_losses.png`. Install its plotting dependency
+with `python -m pip install matplotlib`.
+
 ## Build
 
 From the repository root:

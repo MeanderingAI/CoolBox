@@ -57,10 +57,29 @@ See the examples/ directory for comprehensive usage examples:
 __version__ = "0.2.0"
 
 
-try:
-    from ..metadata_client import Client, create_default, for_endpoint
-except ImportError:
-    from metadata_client import Client, create_default, for_endpoint
+def __getattr__(name):
+    if name == "GAN":
+        from .gan import GAN
+
+        globals()["GAN"] = GAN
+        return GAN
+    if name in {"Client", "create_default", "for_endpoint"}:
+        from metadata_client import Client, create_default, for_endpoint
+
+        exports = {
+            "Client": Client,
+            "create_default": create_default,
+            "for_endpoint": for_endpoint,
+        }
+        globals().update(exports)
+        return exports[name]
+    core = globals().get("_ml_core")
+    if core is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    try:
+        return getattr(core, name)
+    except AttributeError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
 
 
 # Patch: Import the extension directly for local development
@@ -71,14 +90,12 @@ except ImportError as e:
         "Failed to import ml_core extension. Please build the package first: python setup.py build_ext --inplace"
     ) from e
 ml_core = _ml_core
-timer = _ml_core.timer
-graphics = _ml_core.graphics
-synthetic_data = _ml_core.synthetic_data
 
 __all__ = [
     "Client",
     "create_default",
     "for_endpoint",
+    "GAN",
     "deep_learning",
     "distributed",
     "decision_tree",

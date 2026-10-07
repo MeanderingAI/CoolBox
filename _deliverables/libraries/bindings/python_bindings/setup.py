@@ -417,6 +417,7 @@ ext_modules = [
 
 setup(
     packages=["ml_toolbox"],
+    py_modules=["metadata_client"],
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext_with_move},
     zip_safe=False,

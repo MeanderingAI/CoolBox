@@ -513,6 +513,8 @@ PYBIND11_MODULE(ml_core, m) {
     // DenseLayer
     py::class_<ml::deep_learning::DenseLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::DenseLayer>>(dl_module, "DenseLayer")
         .def(py::init<size_t, size_t>())
+        .def("update_parameters", &ml::deep_learning::DenseLayer::update_parameters,
+             py::arg("learning_rate"))
         .def("weights", &ml::deep_learning::DenseLayer::weights)
         .def("bias", &ml::deep_learning::DenseLayer::bias);
 
