@@ -301,7 +301,6 @@ include_dirs = [
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
     str(timer_headers_dir),
-    str(matrix_header_dir),
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
     str(wave_generator_header.parent),
@@ -309,6 +308,9 @@ include_dirs = [
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
     *existing_dirs(repo_cool_car_root_candidates),
     *existing_dirs(repo_matrix_header_candidates),
+    # Prefer the repository MATRIX headers over the vendored copies. Mixing both
+    # copies in one translation unit bypasses #pragma once and causes redefinitions.
+    str(matrix_header_dir),
     *existing_dirs(
         [
             repo_root / "build/_deps/stb-src",
