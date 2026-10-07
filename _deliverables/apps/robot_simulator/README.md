@@ -19,7 +19,7 @@ On Linux, install the required compiler and graphics development packages:
 
 ```bash
 sudo apt-get install build-essential cmake libx11-dev libxrandr-dev \
-  libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+	libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev fonts-dejavu-core
 ```
 
 Then select **Run robot_simulator** in VS Code, or run:
@@ -31,6 +31,32 @@ Then select **Run robot_simulator** in VS Code, or run:
 The script checks prerequisites, configures the optional simulator target,
 builds it in Release mode, and starts it. Extra command-line arguments are
 passed to the simulator.
+
+On macOS, install Apple's Command Line Tools and CMake:
+
+```bash
+xcode-select --install
+brew install cmake
+```
+
+Then select **Run robot_simulator** in VS Code, or run:
+
+```bash
+bash ./_deliverables/apps/robot_simulator/run_macos.sh
+```
+
+The macOS launcher checks the compiler and SDK, builds the Release target,
+and starts it with any supplied arguments. Raylib uses native macOS graphics;
+X11 packages are not required. The executable is at
+`build/_deliverables/apps/robot_simulator/robot_simulator` with the default
+Makefiles generator, or in its `Release` subdirectory with Xcode.
+Set `COOLBOX_BUILD_DIR` to use a different build directory.
+
+The UI uses smoothly filtered TrueType text: Bahnschrift or Segoe UI on
+Windows, Arial on macOS, and DejaVu Sans, Liberation Sans, or Noto Sans on
+Linux. If no supported font is found, the startup log warns that the bitmap
+fallback is in use. On Ubuntu/Debian, install `fonts-dejavu-core` for readable
+text.
 
 ## Controls
 

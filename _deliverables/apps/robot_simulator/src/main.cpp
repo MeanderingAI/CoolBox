@@ -718,12 +718,35 @@ int runWindow(int argc, char** argv) {
     Font font = GetFontDefault();
     bool customFont = false;
 #ifdef _WIN32
-    if (FileExists("C:/Windows/Fonts/bahnschrift.ttf")) {
-        font = LoadFontEx("C:/Windows/Fonts/bahnschrift.ttf", 48, nullptr, 0);
-        customFont = IsFontValid(font);
-        if (!customFont) font = GetFontDefault();
-    }
+    const char* fontPaths[] = {"C:/Windows/Fonts/bahnschrift.ttf", "C:/Windows/Fonts/segoeui.ttf"};
+#elif defined(__APPLE__)
+    const char* fontPaths[] = {
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf"
+    };
+#else
+    const char* fontPaths[] = {
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
+    };
 #endif
+    for (const char* fontPath : fontPaths) {
+        if (!FileExists(fontPath)) continue;
+        const Font candidate = LoadFontEx(fontPath, 48, nullptr, 0);
+        if (IsFontValid(candidate) && candidate.texture.id != GetFontDefault().texture.id) {
+            font = candidate;
+            customFont = true;
+            SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+            TraceLog(LOG_INFO, "UI font: %s", fontPath);
+            break;
+        }
+    }
+    if (!customFont) TraceLog(LOG_WARNING, "No UI TrueType font found; using the bitmap fallback");
     Simulation simulation;
     simulation.setLocalizationMode(initialLocalizer);
     simulation.setExitMission(initialExitMission || initialRl);

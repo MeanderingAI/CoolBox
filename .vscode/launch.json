@@ -152,6 +152,9 @@
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
                 "command": "./_deliverables/apps/robot_simulator/run_linux.sh",
+                "osx": {
+                    "command": "bash ./_deliverables/apps/robot_simulator/run_macos.sh"
+                },
                 "windows": {
                     "command": "cmake -S . -B build -DBUILD_ROBOT_SIMULATOR=ON && cmake --build build --config Release --target robot_simulator && .\\build\\_deliverables\\apps\\robot_simulator\\Release\\robot_simulator.exe"
                 }
