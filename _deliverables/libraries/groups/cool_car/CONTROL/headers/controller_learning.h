@@ -22,6 +22,7 @@ struct ControllerEpisode {
     double seconds;
     int circles;
     bool exitReached;
+    int laps;
     double cost() const { return exitReached ? 100 - reward : -reward; }
 };
 
@@ -37,7 +38,8 @@ public:
     ControllerLearner& operator=(const ControllerLearner&) = delete;
     std::size_t selectProfile();
     std::size_t bestProfile() const;
-    void observe(std::size_t profile, double episodeReturn, double seconds = 0, int circles = 0, bool exitReached = false);
+    void observe(std::size_t profile, double episodeReturn, double seconds = 0, int circles = 0,
+                 bool exitReached = false, int laps = 0);
     std::size_t episodes() const;
     std::size_t stepLimit() const;
     double timeBudget() const;

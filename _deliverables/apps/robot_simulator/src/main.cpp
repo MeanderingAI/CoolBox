@@ -22,6 +22,8 @@ constexpr float pi = 3.14159265358979323846f;
 constexpr float timeStep = 1.0f / 120.0f;
 constexpr float trackWidth = 0.96f;
 constexpr float sensorRange = 8.0f;
+constexpr int circlePoints = 5;
+constexpr int lapPoints = 20;
 constexpr Color ink{30, 42, 42, 255};
 constexpr Color muted{101, 116, 113, 255};
 constexpr Color paper{247, 249, 247, 255};
@@ -83,6 +85,9 @@ Vector3 vectorFrom(const btVector3& value) {
 }
 float wrapAngle(float angle) { return std::atan2(std::sin(angle), std::cos(angle)); }
 float approach(float value, float target, float delta) { return value + std::clamp(target - value, -delta, delta); }
+float manualTurnCommand(bool steerLeft, bool steerRight) {
+    return (static_cast<int>(steerLeft) - static_cast<int>(steerRight)) * 1.8f;
+}
 
 struct Beam { Vector3 start{}; Vector3 end{}; float distance = sensorRange; bool hit = false; };
 struct RayCallback : btCollisionWorld::ClosestRayResultCallback {
@@ -226,9 +231,14 @@ public:
                 lastPlanningTick = -1;
             }
         }
-        navigation.predict(speed * timeStep, (leftSpeed - rightSpeed) / trackWidth * timeStep);
+        if (exitMission && laps == 0 && circlesCollected == static_cast<int>(waypoints.size())) ++laps;
+        const auto after = position();
+        const float yawDelta = wrapAngle(heading() - yaw);
+        const float midYaw = yaw + yawDelta * 0.5f;
+        const double forwardDistance = (after.x - before.x) * std::sin(midYaw) + (after.z - before.z) * std::cos(midYaw);
+        navigation.predict(forwardDistance, yawDelta);
         elapsed += timeStep;
-        distanceTravelled += Vector3Distance(before, position());
+        distanceTravelled += Vector3Distance(before, after);
         leftTravel += leftSpeed * timeStep;
         rightTravel += rightSpeed * timeStep;
         touching = false;
@@ -344,7 +354,7 @@ private:
         return {pose, simulation.ranges(), {std::sin(simulation.heading()), std::cos(simulation.heading())},
             {goal.x - pose.x, goal.z - pose.z}, (simulation.leftSpeed + simulation.rightSpeed) * 0.5,
             (simulation.leftSpeed - simulation.rightSpeed) / trackWidth, simulation.navigation.positionUncertainty(), simulation.elapsed,
-            simulation.collisionCount > 0, simulation.exitReached(), simulation.circlesCollected};
+            simulation.collisionCount > 0, simulation.exitReached(), simulation.circlesCollected, simulation.laps};
     }
     LocalizationMode mode;
     float speedLimit;
@@ -402,12 +412,14 @@ int trainController(int argc, char** argv) {
         RobotEnvironment environment(mode, static_cast<float>(ControllerLearner::speedLimit(profile)), ControllerLearner::circleRoute(profile));
         const auto trajectory = collectEpisode(environment, steps);
         const double reward = episodeReturn(trajectory);
-        learner->observe(profile, reward, environment.simulation.elapsed, environment.simulation.circlesCollected, environment.simulation.exitReached());
+        learner->observe(profile, reward, environment.simulation.elapsed, environment.simulation.circlesCollected,
+            environment.simulation.exitReached(), environment.simulation.laps);
         saveLearner(*learner, modelPath);
         std::cout << "training_episode=" << learner->episodes() << " speed=" << ControllerLearner::speedLimit(profile)
             << " route=" << (ControllerLearner::circleRoute(profile) ? "circles" : "direct")
             << " exit=" << environment.simulation.exitReached() << " contacts=" << environment.simulation.collisionCount
             << " seconds=" << environment.simulation.elapsed << " circles=" << environment.simulation.circlesCollected
+            << " laps=" << environment.simulation.laps
             << " cost=" << learner->history().back().cost() << " return=" << reward << " total_cost=" << learner->totalCost() << '\n';
     }
     auto restored = ControllerLearner::load(modelPath);
@@ -447,6 +459,10 @@ int diagnose() {
     collectible.after.elapsed = 1; collectible.after.circlesCollected = 1;
     revisit.before = collectible.after; revisit.after = revisit.before; revisit.after.elapsed = 2;
     check(std::abs(reward(collectible) - 4) < 1e-9 && std::abs(reward(revisit) + 1) < 1e-9, "Circle bonus was not one-time");
+    Transition lap{}, continued{};
+    lap.after.elapsed = 1; lap.after.lapsCompleted = 1;
+    continued.before = lap.after; continued.after = continued.before; continued.after.elapsed = 2;
+    check(std::abs(reward(lap) - 19) < 1e-9 && std::abs(reward(continued) + 1) < 1e-9, "Lap bonus was not one-time");
     cool_car::control::RobotNavigation localization(navigationMap(), lidarAngles());
     const Pose2D knownPose{-7, -4, 0};
     const auto scan = localization.expectedRanges(knownPose);
@@ -464,13 +480,17 @@ int diagnose() {
     for (int stepIndex = 0; stepIndex < 240; ++stepIndex) simulation.step(1.5f, 0);
     check(simulation.position().z - start.z > 2, "Forward drive did not advance the robot");
     check(std::abs(simulation.heading()) < 0.05f, "Straight drive changed the heading");
-    for (int stepIndex = 0; stepIndex < 240; ++stepIndex) simulation.step(0, 1.5f);
-    check(std::abs(simulation.heading()) > 2, "Differential steering did not turn the robot");
+    for (int stepIndex = 0; stepIndex < 180; ++stepIndex) simulation.step(0, manualTurnCommand(true, false));
+    check(simulation.heading() > 2, "Left steering command turned the robot right");
+    simulation.setPose(start, 0);
+    for (int stepIndex = 0; stepIndex < 180; ++stepIndex) simulation.step(0, manualTurnCommand(false, true));
+    check(simulation.heading() < -2, "Right steering command turned the robot left");
     simulation.setPose({-10, 0.42f, 10.5f}, 0);
     check(simulation.beams[5].hit && simulation.beams[5].distance < 1.5f, "Lidar failed to detect the wall");
     for (int stepIndex = 0; stepIndex < 360; ++stepIndex) simulation.step(3, 0);
     check(simulation.position().z < 11.4f, "Robot crossed the collision boundary");
     check(simulation.collisionCount > 0, "Collision telemetry did not register contact");
+    check(simulation.localizationError() < 0.3, "Localization integrated commanded motion while the wall blocked the robot");
     simulation.reset();
     check(Vector3Distance(start, simulation.position()) < 0.001f && simulation.elapsed == 0, "Reset did not restore the initial state");
     for (int stepIndex = 0; stepIndex < 9000; ++stepIndex) {
@@ -492,10 +512,12 @@ int diagnose() {
         totalReward += *transition.reward;
     }
     check(environment.simulation.circlesCollected > 0, "Driving across a circle did not collect it");
-    check(std::abs(totalReward - (100 + 5 * environment.simulation.circlesCollected - environment.simulation.elapsed)) < 0.001, "Exit return does not match time and circle points");
+    check(std::abs(totalReward - (100 + circlePoints * environment.simulation.circlesCollected
+        + lapPoints * environment.simulation.laps - environment.simulation.elapsed)) < 0.001,
+        "Exit return does not match time, circle, and lap points");
     environment.simulation.reset();
     check(environment.simulation.circlesCollected == 0, "Reset did not clear collected circles");
-    std::cout << "Robot diagnostics passed: motion, lidar, collisions, EKF/UKF/PF, exit, time cost, one-time circle reward.\n";
+    std::cout << "Robot diagnostics passed: motion, lidar, collisions, EKF/UKF/PF, exit, time cost, one-time circle and lap rewards.\n";
     return 0;
 }
 
@@ -825,7 +847,7 @@ int runWindow(int argc, char** argv) {
             const bool steerLeft = left || IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
             const bool steerRight = right || IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
             speedCommand = (static_cast<int>(forward) - static_cast<int>(reverse)) * maximumSpeed;
-            turnCommand = (static_cast<int>(steerRight) - static_cast<int>(steerLeft)) * 1.8f;
+            turnCommand = manualTurnCommand(steerLeft, steerRight);
         }
         if (!paused) {
             accumulator += std::min(GetFrameTime(), 0.1f);
@@ -841,8 +863,11 @@ int runWindow(int argc, char** argv) {
                 const double timeBudget = rlActive ? learner->timeBudget() : 120;
                 if (simulation.exitMission && (simulation.exitReached() || simulation.collisionCount > 0 || simulation.elapsed >= timeBudget)) {
                     if (trainingEpisode) {
-                        const double reward = simulation.exitReached() && simulation.collisionCount == 0 ? 100 + 5 * simulation.circlesCollected - simulation.elapsed : -100 - timeBudget;
-                        learner->observe(selectedProfile, reward, simulation.elapsed, simulation.circlesCollected, simulation.exitReached());
+                        const double reward = simulation.exitReached() && simulation.collisionCount == 0
+                            ? 100 + circlePoints * simulation.circlesCollected + lapPoints * simulation.laps - simulation.elapsed
+                            : -100 - timeBudget;
+                        learner->observe(selectedProfile, reward, simulation.elapsed, simulation.circlesCollected,
+                            simulation.exitReached(), simulation.laps);
                         saveLearner(*learner, modelPath);
                         trainingEpisode = false;
                     }
@@ -875,12 +900,14 @@ int runWindow(int argc, char** argv) {
             if (simulation.exitMission) {
                 label(font, "RETURN", sidebar + 24, 678, 13, muted);
                 const double timeBudget = rlActive ? learner->timeBudget() : 120;
-                const double score = simulation.exitReached() && simulation.collisionCount == 0 ? 100 + 5 * simulation.circlesCollected - simulation.elapsed
-                    : simulation.collisionCount > 0 || simulation.elapsed >= timeBudget ? -100 - timeBudget : 5 * simulation.circlesCollected - simulation.elapsed;
+                const double score = simulation.exitReached() && simulation.collisionCount == 0
+                    ? 100 + circlePoints * simulation.circlesCollected + lapPoints * simulation.laps - simulation.elapsed
+                    : simulation.collisionCount > 0 || simulation.elapsed >= timeBudget ? -100 - timeBudget
+                    : circlePoints * simulation.circlesCollected + lapPoints * simulation.laps - simulation.elapsed;
                 label(font, TextFormat("%+.2f", score), sidebar + 209, 676, 16);
             } else {
-                label(font, "CLEARANCE", sidebar + 24, 678, 13, muted);
-                label(font, TextFormat("%.2f m", simulation.drivePlan.clearance), sidebar + 212, 676, 16);
+                label(font, "SCORE", sidebar + 24, 678, 13, muted);
+                label(font, TextFormat("%+d", lapPoints * simulation.laps), sidebar + 209, 676, 16);
             }
         }
         Camera3D camera{};
@@ -920,7 +947,7 @@ int runWindow(int argc, char** argv) {
             label(font, TextFormat("%d", static_cast<int>(episode + 1)), columns[0], row, 13);
             label(font, TextFormat("%.1f m/s", ControllerLearner::speedLimit(trial.profile)), columns[1], row, 13);
             label(font, TextFormat("%.2f s", trial.seconds), columns[2], row, 13);
-            label(font, TextFormat("+%d", trial.circles * 5), columns[3], row, 13, accent);
+            label(font, TextFormat("+%d", trial.circles * circlePoints + trial.laps * lapPoints), columns[3], row, 13, accent);
             label(font, TextFormat("%+.2f", trial.cost()), columns[4], row, 13);
             label(font, TextFormat("%+.2f", trial.reward), columns[5], row, 13);
             label(font, trial.exitReached ? "EXIT" : "FAILED", columns[6], row, 13, trial.exitReached ? accent : coral);
@@ -930,7 +957,7 @@ int runWindow(int argc, char** argv) {
         DrawLine(0, height - 46, width, height - 46, lineColor);
         label(font, simulation.touching ? "CONTACT" : "RB-01 / READY", 24, height - 31, 15, simulation.touching ? coral : accent);
         label(font, TextFormat("T + %.1f s", simulation.elapsed), 212, height - 31, 15, muted);
-        if (simulation.exitMission) label(font, TextFormat("CIRCLES %d / 4", simulation.circlesCollected), 366, height - 31, 15, muted);
+        if (simulation.exitMission) label(font, TextFormat("CIRCLES %d / 4    LAPS %d", simulation.circlesCollected, simulation.laps), 366, height - 31, 15, muted);
         else label(font, TextFormat("WAYPOINT %d / 4    LAPS %d", static_cast<int>(simulation.waypointIndex + 1), simulation.laps), 366, height - 31, 15, muted);
         label(font, simulation.drivePlan.blocked && autonomous ? "PLANNER / BLOCKED" : trainingEpisode ? "RL / EXPLORING"
             : rlActive ? learner->episodes() > 0 ? "RL / LEARNED" : "RL / UNTRAINED" : "DWA / AVAILABLE", width - 264, height - 31, 14, muted);
@@ -996,6 +1023,7 @@ int main(int argc, char** argv) {
             std::cout << "Episode policy=" << policy << " speed=" << speedLimit << " transitions=" << trajectory.size() << " exit_reached=" << environment.simulation.exitReached()
                 << " contacts=" << environment.simulation.collisionCount << " localization_error=" << environment.simulation.localizationError()
                 << " seconds=" << environment.simulation.elapsed << " circles=" << environment.simulation.circlesCollected
+                << " laps=" << environment.simulation.laps
                 << " cost=" << (environment.simulation.exitReached() ? 100 - totalReward : -totalReward) << " return=" << totalReward << '\n';
             return environment.simulation.collisionCount == 0 && environment.simulation.exitReached() ? 0 : 1;
         }

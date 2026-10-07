@@ -43,15 +43,16 @@ std::size_t ControllerLearner::bestProfile() const {
     }
     return best;
 }
-void ControllerLearner::observe(std::size_t profile, double reward, double seconds, int circles, bool exitReached) {
+void ControllerLearner::observe(std::size_t profile, double reward, double seconds, int circles, bool exitReached, int laps) {
     const double minimum = -100 - timeBudget();
-    if (profile >= profileCount || !std::isfinite(reward) || reward < minimum - 1 || reward > 120.000001
-        || !std::isfinite(seconds) || seconds < 0 || circles < 0 || circles > 4)
+    constexpr double maximum = 140;
+    if (profile >= profileCount || !std::isfinite(reward) || reward < minimum - 1 || reward > maximum + 0.000001
+        || !std::isfinite(seconds) || seconds < 0 || circles < 0 || circles > 4 || laps < 0 || laps > 1)
         throw std::invalid_argument("Invalid exit episode return");
     if (impl->history.size() >= 100000) throw std::length_error("Controller checkpoint episode limit reached");
-    const double normalized = std::clamp((reward - minimum) / (120 - minimum), 0.0, 1.0);
+    const double normalized = std::clamp((reward - minimum) / (maximum - minimum), 0.0, 1.0);
     impl->agent.observe_reward(static_cast<int>(profile), normalized);
-    impl->history.push_back({profile, reward, seconds, circles, exitReached});
+    impl->history.push_back({profile, reward, seconds, circles, exitReached, laps});
 }
 std::size_t ControllerLearner::episodes() const { return impl->history.size(); }
 std::size_t ControllerLearner::stepLimit() const { return impl->stepLimit; }
@@ -62,7 +63,7 @@ std::vector<ControllerProfileStats> ControllerLearner::stats() const {
     for (std::size_t profile = 0; profile < profileCount; ++profile) {
         const auto& arm = statistics.bandit_results[profile];
         result.push_back({speedLimit(profile), arm.times_pulled,
-            arm.times_pulled > 0 ? arm.estimated_probability * (220 + timeBudget()) - 100 - timeBudget() : 0, circleRoute(profile)});
+            arm.times_pulled > 0 ? arm.estimated_probability * (240 + timeBudget()) - 100 - timeBudget() : 0, circleRoute(profile)});
     }
     return result;
 }
@@ -75,11 +76,12 @@ double ControllerLearner::totalCost() const {
 void ControllerLearner::save(const std::string& path) const {
     std::ofstream output(path, std::ios::trunc);
     if (!output) throw std::runtime_error("Cannot open RL checkpoint: " + path);
-    output << std::setprecision(17) << "COOLBOX_EXIT_UCB 2\n" << impl->stepLimit << ' ' << impl->exploration << '\n';
+    output << std::setprecision(17) << "COOLBOX_EXIT_UCB 3\n" << impl->stepLimit << ' ' << impl->exploration << '\n';
     for (double speed : speedProfiles) output << speed << ' ';
     output << '\n' << impl->history.size() << '\n';
     for (const auto& trial : impl->history)
-        output << trial.profile << ' ' << trial.reward << ' ' << trial.seconds << ' ' << trial.circles << ' ' << trial.exitReached << '\n';
+        output << trial.profile << ' ' << trial.reward << ' ' << trial.seconds << ' ' << trial.circles << ' '
+            << trial.exitReached << ' ' << trial.laps << '\n';
     output.flush();
     if (!output) throw std::runtime_error("Cannot write RL checkpoint: " + path);
 }
@@ -89,8 +91,8 @@ std::unique_ptr<ControllerLearner> ControllerLearner::load(const std::string& pa
     int version = 0;
     std::size_t steps = 0, count = 0;
     double coefficient = 0;
-    if (!(input >> magic >> version >> steps >> coefficient) || magic != "COOLBOX_EXIT_UCB" || version != 2)
-        throw std::runtime_error("RL checkpoint requires the circle-reward version 2; retrain into a new file: " + path);
+    if (!(input >> magic >> version >> steps >> coefficient) || magic != "COOLBOX_EXIT_UCB" || (version != 2 && version != 3))
+        throw std::runtime_error("Unsupported RL checkpoint version: " + path);
     auto learner = std::make_unique<ControllerLearner>(steps, coefficient);
     for (double expected : speedProfiles) {
         double actual = 0;
@@ -101,9 +103,11 @@ std::unique_ptr<ControllerLearner> ControllerLearner::load(const std::string& pa
         std::size_t profile = 0;
         double reward = 0;
         double seconds = 0;
-        int circles = 0, exited = 0;
-        if (!(input >> profile >> reward >> seconds >> circles >> exited) || (exited != 0 && exited != 1)) throw std::runtime_error("Truncated RL checkpoint");
-        learner->observe(profile, reward, seconds, circles, exited != 0);
+        int circles = 0, exited = 0, laps = 0;
+        if (!(input >> profile >> reward >> seconds >> circles >> exited)
+            || (version == 3 && !(input >> laps)) || (exited != 0 && exited != 1))
+            throw std::runtime_error("Truncated RL checkpoint");
+        learner->observe(profile, reward, seconds, circles, exited != 0, laps);
     }
     input >> std::ws;
     if (!input.eof()) throw std::runtime_error("Unexpected RL checkpoint data");

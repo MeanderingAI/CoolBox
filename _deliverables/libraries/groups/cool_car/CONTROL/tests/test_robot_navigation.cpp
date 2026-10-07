@@ -164,13 +164,25 @@ TYST_TEST(RobotLearningTest, CircleRewardsOnlyPayForNewCollections) {
     transition.after.elapsed = 2;
     TYST_EXPECT_NEAR(reward(transition), -1, 1e-12);
 }
+TYST_TEST(RobotLearningTest, CompletedLapsIncreaseReturnOnce) {
+    using namespace cool_car::control::learning;
+    const auto reward = exitQuicknessReward();
+    Transition transition{};
+    transition.after.elapsed = 1;
+    transition.after.lapsCompleted = 1;
+    TYST_EXPECT_NEAR(reward(transition), 19, 1e-12);
+    transition.before = transition.after;
+    transition.after.elapsed = 2;
+    TYST_EXPECT_NEAR(reward(transition), -1, 1e-12);
+}
 TYST_TEST(RobotLearningTest, TracksTotalExitCostSeparatelyFromCirclePoints) {
     using namespace cool_car::control::learning;
     ControllerLearner learner;
     learner.observe(3, 95, 10, 1, true);
-    learner.observe(4, 111, 9, 4, true);
-    TYST_EXPECT_NEAR(learner.totalCost(), -6, 1e-12);
+    learner.observe(4, 131, 9, 4, true, 1);
+    TYST_EXPECT_NEAR(learner.totalCost(), -26, 1e-12);
     TYST_EXPECT_EQ(learner.history()[1].circles, 4);
+    TYST_EXPECT_EQ(learner.history()[1].laps, 1);
 }
 
 TYST_TEST(RobotLearningTest, FailedRunForfeitsCollectedCircleBonus) {
@@ -184,4 +196,16 @@ TYST_TEST(RobotLearningTest, FailedRunForfeitsCollectedCircleBonus) {
     fail.after.elapsed = 2;
     fail.after.contact = fail.terminated = true;
     TYST_EXPECT_NEAR(reward(collect) + reward(fail), -220, 1e-12);
+}
+TYST_TEST(RobotLearningTest, FailedRunForfeitsCompletedLapBonus) {
+    using namespace cool_car::control::learning;
+    const auto reward = exitQuicknessReward();
+    Transition lap{}, fail{};
+    lap.after.elapsed = 1;
+    lap.after.lapsCompleted = 1;
+    fail.before = lap.after;
+    fail.after = fail.before;
+    fail.after.elapsed = 2;
+    fail.after.contact = fail.terminated = true;
+    TYST_EXPECT_NEAR(reward(lap) + reward(fail), -220, 1e-12);
 }

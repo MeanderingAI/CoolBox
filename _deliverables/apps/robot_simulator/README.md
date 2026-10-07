@@ -15,6 +15,23 @@ Raylib 5.5 and Bullet 3.25 are fetched on the first enabled configuration.
 On Windows the executable is at
 `build/_deliverables/apps/robot_simulator/Release/robot_simulator.exe`.
 
+On Linux, install the required compiler and graphics development packages:
+
+```bash
+sudo apt-get install build-essential cmake libx11-dev libxrandr-dev \
+  libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+```
+
+Then select **Run robot_simulator** in VS Code, or run:
+
+```bash
+./_deliverables/apps/robot_simulator/run_linux.sh
+```
+
+The script checks prerequisites, configures the optional simulator target,
+builds it in Release mode, and starts it. Extra command-line arguments are
+passed to the simulator.
+
 ## Controls
 
 - WASD or arrow keys: forward, reverse, and differential steering.
@@ -41,6 +58,10 @@ mode also shows its hypothesis cloud. The blue line is the chosen trajectory,
 and green sensor directions have clearance under the current braking check.
 ERROR compares localization with simulation ground truth for evaluation only;
 SIGMA is estimated planar uncertainty.
+
+Simulator odometry uses the motion Bullet actually resolves each physics step,
+so contact with a wall does not advance the estimated pose when the chassis is
+blocked.
 
 Localization assumes a known obstacle map and approximate starting pose.
 This is not SLAM or global relocalization. Manual driving remains unrestricted
@@ -118,13 +139,16 @@ These are deterministic simulator checks, not a broad performance benchmark.
 ### Exit Reward
 
 - Every transition costs 1 reward unit per elapsed simulated second.
+- Completing a full four-marker lap awards 20 points once per completed lap.
 - Reaching the exit without collision awards 100 once: successful return
-	is `100 - completion_time_seconds`, so faster exits score higher.
+	includes the exit, circle, and lap bonuses minus completion time, so faster
+	runs with completed laps score higher.
 - Collision or timeout costs 100 plus the unused time budget. Thus all failed
 	episodes score `-100 - time_budget_seconds`, preventing early crashes from
 	avoiding time penalties. The CLI budget is `steps * 10 / 120` seconds.
 - `ExitRewardConfig` exposes time cost, exit bonus, failure penalty, and time
-	budget for later tuning. No distance/progress shaping is added.
+	budget plus circle and lap bonuses for later tuning. No distance/progress
+	shaping is added.
 - Exit completion is verified against Bullet's actual position after the
 	entire chassis clears the gate, not against the localization estimate.
 

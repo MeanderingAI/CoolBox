@@ -23,6 +23,7 @@ struct Observation {
     bool contact = false;
     bool exitReached = false;
     int circlesCollected = 0;
+    int lapsCompleted = 0;
 };
 struct Action { double speed = 0; double turnRate = 0; };
 struct ActionSpace {
@@ -62,6 +63,7 @@ struct ExitRewardConfig {
     double failurePenalty = 100;
     double episodeTimeLimitSeconds = 120;
     double circleBonus = 5;
+    double lapBonus = 20;
 };
 
 inline RewardFunction exitQuicknessReward(ExitRewardConfig config = {}) {
@@ -69,7 +71,8 @@ inline RewardFunction exitQuicknessReward(ExitRewardConfig config = {}) {
         || !std::isfinite(config.exitBonus) || config.exitBonus < 0
         || !std::isfinite(config.failurePenalty) || config.failurePenalty < 0
         || !std::isfinite(config.episodeTimeLimitSeconds) || config.episodeTimeLimitSeconds <= 0
-        || !std::isfinite(config.circleBonus) || config.circleBonus < 0)
+        || !std::isfinite(config.circleBonus) || config.circleBonus < 0
+        || !std::isfinite(config.lapBonus) || config.lapBonus < 0)
         throw std::invalid_argument("Invalid exit reward configuration");
     return [config](const Transition& transition) {
         const double elapsed = transition.after.elapsed;
@@ -81,11 +84,15 @@ inline RewardFunction exitQuicknessReward(ExitRewardConfig config = {}) {
         if (newCircles < 0 || transition.before.circlesCollected < 0 || transition.after.circlesCollected > 4)
             throw std::invalid_argument("Circle collection must be monotonic and bounded");
         reward += config.circleBonus * newCircles;
+        const int newLaps = transition.after.lapsCompleted - transition.before.lapsCompleted;
+        if (newLaps < 0 || transition.before.lapsCompleted < 0)
+            throw std::invalid_argument("Lap completion must be monotonic");
+        reward += config.lapBonus * newLaps;
         if (transition.after.exitReached && !transition.after.contact) {
             if (!transition.before.exitReached) reward += config.exitBonus;
         } else if (transition.terminated || transition.truncated || transition.after.contact) {
             reward -= config.failurePenalty + config.timeCostPerSecond * std::max(0.0, config.episodeTimeLimitSeconds - elapsed)
-                + config.circleBonus * transition.after.circlesCollected;
+                + config.circleBonus * transition.after.circlesCollected + config.lapBonus * transition.after.lapsCompleted;
         }
         return reward;
     };
