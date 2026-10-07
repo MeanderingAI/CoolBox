@@ -7,7 +7,7 @@ A short guide on how to use the CoolBox Python machine learning package.
 
 @title2: Install CoolBox Python Bindings
 @code: bash
-pip install "git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_libraries/python_bindings"
+pip install "git+https://github.com/MeanderingAI/CoolBox.git#subdirectory=_deliverables/libraries/bindings/python_bindings"
 @endcode
 
 @title2: Example: Plotting with the Graphics Library

@@ -1,0 +1,98 @@
+% Papers implemented by _deliverables/libraries/groups/cool_car/DL/scaling.
+% The same records are available programmatically via
+% ml::deep_learning::scaling::scaling_citations() in include/scaling_citations.h.
+
+@inproceedings{rajbhandari_zero_2020,
+  title = {{ZeRO}: Memory Optimizations Toward Training Trillion Parameter Models},
+  author = {Rajbhandari, Samyam and Rasley, Jeff and Ruwase, Olatunji and He, Yuxiong},
+  booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis ({SC})},
+  year = {2020},
+  eprint = {1910.02054},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  doi = {10.1109/SC41405.2020.00024},
+  url = {https://arxiv.org/abs/1910.02054},
+  note = {Reference for the CoolBox DL/scaling ZeRO partitioning stages (zero.h)}
+}
+
+@inproceedings{tang_one_bit_lamb_2021,
+  title = {1-bit {LAMB}: Communication Efficient Large-Scale Large-Batch Training with {LAMB}'s Convergence Speed},
+  author = {Tang, Hanlin and Gan, Shaoduo and Awan, Ammar Ahmad and Rajbhandari, Samyam and Li, Conglong and Lian, Xiangru and Liu, Ji and Zhang, Ce and He, Yuxiong},
+  booktitle = {IEEE International Conference on High Performance Computing, Data, and Analytics ({HiPC})},
+  year = {2022},
+  eprint = {2104.06069},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url = {https://arxiv.org/abs/2104.06069},
+  note = {Reference for the CoolBox DL/scaling error-compensated 1-bit optimizer (one_bit_lamb.h)}
+}
+
+@inproceedings{rajbhandari_zero_infinity_2021,
+  title = {{ZeRO-Infinity}: Breaking the {GPU} Memory Wall for Extreme Scale Deep Learning},
+  author = {Rajbhandari, Samyam and Ruwase, Olatunji and Rasley, Jeff and Smith, Shaden and He, Yuxiong},
+  booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis ({SC})},
+  year = {2021},
+  eprint = {2104.07857},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.DC},
+  doi = {10.1145/3458817.3476205},
+  url = {https://arxiv.org/abs/2104.07857},
+  note = {Reference for the CoolBox DL/scaling heterogeneous offload planner (zero_infinity.h)}
+}
+
+@inproceedings{rajbhandari_deepspeed_moe_2022,
+  title = {{DeepSpeed-MoE}: Advancing Mixture-of-Experts Inference and Training to Power Next-Generation {AI} Scale},
+  author = {Rajbhandari, Samyam and Li, Conglong and Yao, Zhewei and Zhang, Minjia and Aminabadi, Reza Yazdani and Awan, Ammar Ahmad and Rasley, Jeff and He, Yuxiong},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning ({ICML})},
+  year = {2022},
+  eprint = {2201.05596},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url = {https://arxiv.org/abs/2201.05596},
+  note = {Reference for the CoolBox DL/scaling MoE layer and PR-MoE helpers (moe.h)}
+}
+
+@inproceedings{yao_zeroquant_2022,
+  title = {{ZeroQuant}: Efficient and Affordable Post-Training Quantization for Large-Scale Transformers},
+  author = {Yao, Zhewei and Aminabadi, Reza Yazdani and Zhang, Minjia and Wu, Xiaoxia and Li, Conglong and He, Yuxiong},
+  booktitle = {Advances in Neural Information Processing Systems 35 ({NeurIPS})},
+  year = {2022},
+  eprint = {2206.01861},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  url = {https://arxiv.org/abs/2206.01861},
+  note = {Reference for the CoolBox DL/scaling group-wise quantization and LKD (zero_quant.h)}
+}
+
+@article{wang_fastpersist_2024,
+  title = {{FastPersist}: Accelerating Model Checkpointing in Deep Learning},
+  author = {Wang, Guanhua and Ruwase, Olatunji and Xie, Bing and He, Yuxiong},
+  year = {2024},
+  eprint = {2406.13768},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.DC},
+  url = {https://arxiv.org/abs/2406.13768},
+  note = {Reference for the CoolBox DL/scaling parallel checkpoint writer (fast_persist.h)}
+}
+
+@article{lian_universal_checkpointing_2024,
+  title = {Universal Checkpointing: A Flexible and Efficient Distributed Checkpointing System for Large-Scale {DNN} Training with Reconfigurable Parallelism},
+  author = {Lian, Xinyu and Jacobs, Sam Ade and Kurilenko, Lev and Tanaka, Masahiro and Bekman, Stas and Ruwase, Olatunji and Zhang, Minjia},
+  year = {2024},
+  eprint = {2406.18820},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.DC},
+  url = {https://arxiv.org/abs/2406.18820},
+  note = {Reference for the CoolBox DL/scaling atom checkpoint format (universal_checkpoint.h)}
+}
+
+@article{wang_domino_2024,
+  title = {Domino: Eliminating Communication in {LLM} Training via Generic Tensor Slicing and Overlapping},
+  author = {Wang, Guanhua and Zhang, Chengming and Shen, Zheyu and Li, Ang and Ruwase, Olatunji},
+  year = {2024},
+  eprint = {2409.15241},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.DC},
+  url = {https://arxiv.org/abs/2409.15241},
+  note = {Reference for the CoolBox DL/scaling tensor slicing and overlap scheduler (domino.h)}
+}

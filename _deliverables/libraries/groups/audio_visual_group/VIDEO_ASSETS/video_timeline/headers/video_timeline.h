@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -104,7 +105,9 @@ public:
     bool         remove_track(std::uint64_t track_id);
     Track*       track(std::uint64_t track_id);
     const Track* track(std::uint64_t track_id) const;
-    const std::vector<Track>& tracks() const { return tracks_; }
+    // Note: tracks_ is a std::deque rather than std::vector so that references
+    // returned by add_track() remain valid across subsequent add_track() calls.
+    const std::deque<Track>& tracks() const { return tracks_; }
 
     // Timeline-level duration (longest track).
     std::int64_t duration_us() const;
@@ -123,7 +126,7 @@ public:
     std::string export_edl() const;
 
 private:
-    std::vector<Track>  tracks_;
+    std::deque<Track>    tracks_;
     std::uint64_t       next_track_id_ = 1;
     std::uint64_t       next_clip_id_  = 1;
 };

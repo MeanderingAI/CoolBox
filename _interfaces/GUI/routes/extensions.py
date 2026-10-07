@@ -30,6 +30,7 @@ def list_extensions():
         "emscripten_bindings": "Emscripten",
         "go_bindings":         "Go",
         "java_bindings":       "Java",
+        "scala_bindings":      "Scala",
         "postgres_bindings":   "Postgres",
         "python_bindings":     "Python",
         "r_bindings":          "R",

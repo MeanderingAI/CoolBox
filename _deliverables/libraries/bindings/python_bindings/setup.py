@@ -33,8 +33,35 @@ vendor_include_root = project_root / "vendor_include"
 vendor_src_root = project_root / "vendor_src"
 vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
 vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
+vendor_matrix_headers_dir = project_root / "vendor_include" / "MATRIX" / "headers"
+timer_headers_dir = repo_root / "_deliverables/libraries/groups/Generics/timer/headers"
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
+
+repo_graphics_header_candidates = [
+    repo_root / "_deliverables/libraries/groups/app_builder/GRAPHICS/charts/headers/graphics.h",
+    repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
+]
+repo_wave_header_candidates = [
+    repo_root / "_deliverables/libraries/groups/trekker/MISC/wave_generator/headers/wave_generator.hpp",
+    repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
+]
+repo_graphics_source_candidates = [
+    repo_root / "_deliverables/libraries/groups/app_builder/GRAPHICS/charts/source/graphics.cpp",
+    repo_root / "_libraries/packages/GRAPHICS/charts/source/graphics.cpp",
+]
+repo_wave_source_candidates = [
+    repo_root / "_deliverables/libraries/groups/trekker/MISC/wave_generator/source/wave_generator.cpp",
+    repo_root / "_libraries/packages/MISC/wave_generator/source/wave_generator.cpp",
+]
+repo_matrix_header_candidates = [
+    repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
+    project_root.parent.parent / "groups/cool_car/MATRIX/headers",
+]
+repo_cool_car_root_candidates = [
+    repo_root / "_deliverables/libraries/groups/cool_car",
+    project_root.parent.parent / "groups/cool_car",
+]
 
 module_dirs = [
     "decision_tree",
@@ -111,6 +138,31 @@ def sync_vendor_file(repo_source: Union[Path, str], vendored_path: Union[Path, s
     return vendored_path
 
 
+def sync_vendor_directory(repo_source_dir: Union[Path, str], vendored_dir: Union[Path, str], patterns) -> Path:
+    repo_source_dir = Path(repo_source_dir)
+    vendored_dir = Path(vendored_dir)
+
+    if repo_source_dir.exists():
+        vendored_dir.mkdir(parents=True, exist_ok=True)
+        for pattern in patterns:
+            for source in repo_source_dir.glob(pattern):
+                if source.is_file():
+                    shutil.copy2(source, vendored_dir / source.name)
+
+    if not vendored_dir.exists():
+        raise FileNotFoundError(f"Required vendored directory not found: {vendored_dir}")
+
+    return vendored_dir
+
+
+def resolve_repo_source(candidates) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    # Return first candidate to preserve deterministic error messages if none exist.
+    return candidates[0]
+
+
 def to_setup_relative_path(path: Union[Path, str]) -> str:
     path_obj = Path(path)
 
@@ -178,7 +230,7 @@ if sys.platform.startswith("win"):
     else:
         # Fallback: copy from repository packages if available.
         graphics_header = sync_vendor_file(
-            repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
+            resolve_repo_source(repo_graphics_header_candidates),
             project_root / vendor_graphics_header,
         )
 
@@ -188,7 +240,7 @@ if sys.platform.startswith("win"):
         wave_generator_header = wave_candidate
     else:
         wave_generator_header = sync_vendor_file(
-            repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
+            resolve_repo_source(repo_wave_header_candidates),
             project_root / vendor_wave_header,
         )
 
@@ -198,21 +250,29 @@ if sys.platform.startswith("win"):
     wave_generator_source = project_root / vendor_wave_source
 else:
     graphics_header = sync_vendor_file(
-        repo_root / "_libraries/packages/GRAPHICS/charts/headers/graphics.h",
+        resolve_repo_source(repo_graphics_header_candidates),
         project_root / vendor_graphics_header,
     )
     wave_generator_header = sync_vendor_file(
-        repo_root / "_libraries/packages/MISC/wave_generator/headers/wave_generator.hpp",
+        resolve_repo_source(repo_wave_header_candidates),
         project_root / vendor_wave_header,
     )
     graphics_source = sync_vendor_file(
-        repo_root / "_libraries/packages/GRAPHICS/charts/source/graphics.cpp",
+        resolve_repo_source(repo_graphics_source_candidates),
         project_root / vendor_graphics_source,
     )
     wave_generator_source = sync_vendor_file(
-        repo_root / "_libraries/packages/MISC/wave_generator/source/wave_generator.cpp",
+        resolve_repo_source(repo_wave_source_candidates),
         project_root / vendor_wave_source,
     )
+
+
+matrix_header_source_dir = resolve_repo_source(repo_matrix_header_candidates)
+matrix_header_dir = sync_vendor_directory(
+    matrix_header_source_dir,
+    vendor_matrix_headers_dir,
+    ["*.h", "*.hpp"],
+)
 
 
 eigen_candidates = [
@@ -240,13 +300,15 @@ include_dirs = [
     pybind11.get_include(),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
+    str(timer_headers_dir),
+    str(matrix_header_dir),
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
     str(wave_generator_header.parent),
     # cool_car group headers: mytrix_eigen_compat.hpp, DL/layers, DL/loss, DL/optimizer, DL/wrapper
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
-    str(project_root.parent.parent.parent.parent / "_deliverables" / "libraries" / "groups" / "cool_car"),
-    str(project_root.parent.parent.parent.parent / "_deliverables" / "libraries" / "groups" / "cool_car" / "MATRIX" / "headers"),
+    *existing_dirs(repo_cool_car_root_candidates),
+    *existing_dirs(repo_matrix_header_candidates),
     *existing_dirs(
         [
             repo_root / "build/_deps/stb-src",
@@ -262,6 +324,8 @@ extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-
 source_files = [
     "py_ml_core.cpp",
     "src/pde_spde_bindings.cpp",
+    "src/timer_bindings.cpp",
+    "src/synthetic_data_bindings.cpp",
 ]
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))

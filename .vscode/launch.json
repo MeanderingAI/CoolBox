@@ -96,7 +96,7 @@
                     "command": "cmake -S . -B build -DBUILD_PRODUCTS=ON && cmake --build build --config Debug --target email_center_api && ./build/_deliverables/apps/email_center_api/Debug/email_center_api.exe --port 8022"
                 },
                 {
-                    "name": "Launch GUI from _interfaces",
+                    "name": "Launch GUI from _interfaces (Windows)",
                     "type": "cppvsdbg",
                     "request": "launch",
                     "program": "powershell",
@@ -110,6 +110,13 @@
                     "cwd": "${workspaceFolder}/_interfaces/GUI",
                     "console": "integratedTerminal",
                     "preLaunchTask": "launch-gui-from-interfaces"
+                },
+                {
+                    "name": "Launch GUI from _interfaces (macOS/Linux)",
+                    "type": "node-terminal",
+                    "request": "launch",
+                    "cwd": "${workspaceFolder}/_interfaces/GUI",
+                    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File ${workspaceFolder}/_interfaces/GUI/launch_gui.ps1"
                 },
             
 
@@ -138,6 +145,29 @@
                 "args": ["pgha"],
                 "cwd": "${workspaceFolder}",
                 "console": "integratedTerminal"
+            },
+            {
+                "name": "Run robot_simulator",
+                "type": "node-terminal",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "command": "./_deliverables/apps/robot_simulator/run_linux.sh",
+                "osx": {
+                    "command": "bash ./_deliverables/apps/robot_simulator/run_macos.sh"
+                },
+                "windows": {
+                    "command": "cmake -S . -B build -DBUILD_ROBOT_SIMULATOR=ON && cmake --build build --config Release --target robot_simulator && .\\build\\_deliverables\\apps\\robot_simulator\\Release\\robot_simulator.exe"
+                }
+            },
+            {
+                "name": "Debug robot_simulator (Windows)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build\\_deliverables\\apps\\robot_simulator\\Release\\robot_simulator.exe",
+                "args": [],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
+                "preLaunchTask": "build-robot-simulator-release"
             },
             {
                 "name": "Run secret_gen_cli (v7 x 10)",

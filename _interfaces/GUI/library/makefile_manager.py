@@ -423,7 +423,14 @@ _SYSTEM_LIBS = re.compile(
     re.IGNORECASE
 )
 _LINK_KEYWORDS = frozenset({'PUBLIC', 'PRIVATE', 'INTERFACE', 'debug', 'optimized', 'general'})
-_SEARCH_DIRS = ('_libraries', 'apps', '_Product')
+_SEARCH_DIRS = (
+    '_deliverables/libraries',
+    '_deliverables/apps',
+    '_deliverables/Product',
+    '_libraries',
+    'apps',
+    '_Product',
+)
 
 
 def _scan_defined_targets(repo_root: str) -> set[str]:

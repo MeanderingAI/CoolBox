@@ -25,7 +25,7 @@ int BayesianNetwork::add_node(const std::string& node_name, const std::vector<st
  * @param child_index The index of the child node.
  */
 void BayesianNetwork::add_edge(int parent_index, int child_index) {
-    if (child_index >= 0 && child_index < nodes_.size()) {
+    if (child_index >= 0 && static_cast<size_t>(child_index) < nodes_.size()) {
         nodes_[child_index].parents.insert(parent_index);
     }
 }
@@ -80,9 +80,10 @@ double BayesianNetwork::calculate_joint_probability(const std::map<int, int>& as
     // Perform a topological sort to ensure correct calculation order
     std::set<int> visited;
     std::vector<int> sorted_nodes;
-    for (int i = 0; i < nodes_.size(); ++i) {
-        if (visited.find(i) == visited.end()) {
-            dfs_topological_sort(i, nodes_, visited, sorted_nodes);
+    for (size_t i = 0; i < nodes_.size(); ++i) {
+        const int node_idx = static_cast<int>(i);
+        if (visited.find(node_idx) == visited.end()) {
+            dfs_topological_sort(node_idx, nodes_, visited, sorted_nodes);
         }
     }
     std::reverse(sorted_nodes.begin(), sorted_nodes.end());
@@ -91,7 +92,6 @@ double BayesianNetwork::calculate_joint_probability(const std::map<int, int>& as
     
     // Iterate through nodes in topological order
     for (int node_index : sorted_nodes) {
-        const auto& node = nodes_[node_index];
         const auto& cpt = cpts_by_node_index_.at(node_index);
         
         // Find the correct probability from the CPT
@@ -115,7 +115,7 @@ void infer_recursive(
     int query_node_index,
     int query_state_index
 ) {
-    if (hidden_index == hidden_nodes.size()) {
+    if (hidden_index == static_cast<int>(hidden_nodes.size())) {
         // Base case: a full assignment for all hidden nodes has been created.
         // Now, we must iterate through all possible query states to find the
         // total probabilities for the numerator and denominator.
@@ -167,7 +167,7 @@ double sum_over_hidden_recursive(
     const BayesianNetwork& network,
     std::map<int, int> current_assignment
 ) {
-    if (hidden_index == hidden_nodes.size()) {
+    if (hidden_index == static_cast<int>(hidden_nodes.size())) {
         // Base case: all hidden nodes have been assigned states.
         // Calculate and return the joint probability of this full assignment.
         return network.calculate_joint_probability(current_assignment);
@@ -201,9 +201,10 @@ double sum_over_hidden_recursive(
 double BayesianNetwork::infer(int query_node_index, int query_state_index, const std::map<int, int>& evidence) const {
     // Identify hidden nodes (all nodes not in the evidence)
     std::vector<int> hidden_nodes_with_query;
-    for (int i = 0; i < nodes_.size(); ++i) {
-        if (evidence.find(i) == evidence.end()) {
-            hidden_nodes_with_query.push_back(i);
+    for (size_t i = 0; i < nodes_.size(); ++i) {
+        const int node_idx = static_cast<int>(i);
+        if (evidence.find(node_idx) == evidence.end()) {
+            hidden_nodes_with_query.push_back(node_idx);
         }
     }
 

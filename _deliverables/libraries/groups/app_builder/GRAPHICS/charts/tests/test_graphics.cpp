@@ -235,6 +235,50 @@ TEST(GraphTest, MultipleSeriesRender) {
     EXPECT_EQ(c.width(), 300);
 }
 
+TEST(Graph3DTest, NoSeriesThrows) {
+    Graph3D graph;
+    EXPECT_THROW(graph.render(), std::runtime_error);
+}
+
+TEST(Graph3DTest, MismatchedCoordinatesThrow) {
+    Graph3D graph;
+    DataSeries3D series;
+    series.x_values = {1, 2};
+    series.y_values = {1};
+    series.z_values = {1, 2};
+    EXPECT_THROW(graph.add_series(series), std::invalid_argument);
+}
+
+TEST(Graph3DTest, ScatterAndLineGraphsRender) {
+    const DataSeries3D series{
+        "trajectory",
+        {0, 1, 2, 3},
+        {0, 1, 0, -1},
+        {0, 1, 2, 3},
+        Colors::Purple,
+    };
+
+    Graph3D scatter(240, 180, Graph3DType::Scatter);
+    scatter.set_title("3D Scatter");
+    scatter.set_view(35.0, 20.0);
+    scatter.add_series(series);
+    Canvas scatter_canvas = scatter.render();
+    EXPECT_EQ(scatter_canvas.width(), 240);
+    EXPECT_EQ(scatter_canvas.height(), 180);
+
+    Graph3D line(200, 160, Graph3DType::Line);
+    line.add_series(series);
+    Canvas line_canvas = line.render();
+    EXPECT_EQ(line_canvas.width(), 200);
+    EXPECT_EQ(line_canvas.height(), 160);
+}
+
+TEST(Graph3DTest, InvalidViewAndRadiusThrow) {
+    Graph3D graph;
+    EXPECT_THROW(graph.set_view(45.0, 91.0), std::invalid_argument);
+    EXPECT_THROW(graph.set_point_radius(0), std::invalid_argument);
+}
+
 // ===================================================================
 // Table – construction and rendering
 // ===================================================================

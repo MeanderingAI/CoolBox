@@ -1,0 +1,6 @@
+# Example battery_simulator script.
+pack label=demo_pack cells=8 series=4 parallel=2 chemistry=li-ion capacity_ah=3.0 soc=1000000ppm soh=1000000ppm ambient_c=25
+mixture li-ion=750000ppm lifepo4=250000ppm
+discharge current_a=12 duration_s=300 step_s=60
+rest duration_s=120 step_s=60
+charge mode=optimization current_a=4 duration_s=180 step_s=60 target_temp_c=40 voltage_ceiling_v=15.8

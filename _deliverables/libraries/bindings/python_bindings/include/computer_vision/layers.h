@@ -114,9 +114,9 @@ public:
     bool is_training() const { return training_; }
 
 private:
-    int num_features_;
-    float eps_;
-    float momentum_;
+    [[maybe_unused]] int num_features_;
+    [[maybe_unused]] float eps_;
+    [[maybe_unused]] float momentum_;
     bool training_;
     
     dl::Tensor gamma_;  // Scale parameter

@@ -158,9 +158,13 @@ function(coolbox_stage_test_runtime_dependencies test_target)
 
     if(runtime_targets)
         set(copy_sources "")
-        foreach(runtime_target IN LISTS runtime_targets)
-            list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
-        endforeach()
+        if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.21")
+            set(copy_sources "$<TARGET_RUNTIME_DLLS:${test_target}>")
+        else()
+            foreach(runtime_target IN LISTS runtime_targets)
+                list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
+            endforeach()
+        endif()
 
         add_custom_command(TARGET ${test_target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -234,6 +238,17 @@ if(COOLBOX_INSTALL_PACKAGE)
             )
         endif()
 
+        # Some targets use an "include" subdirectory instead of "headers"
+        # for their public headers; honor that convention too so their
+        # INTERFACE_INCLUDE_DIRECTORIES aren't silently dropped below.
+        if(EXISTS "${target_source_dir}/include")
+            file(RELATIVE_PATH rel_include "${CMAKE_SOURCE_DIR}/_deliverables/libraries" "${target_source_dir}/include")
+            list(APPEND interface_includes
+                "$<BUILD_INTERFACE:${target_source_dir}/include>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${rel_include}>"
+            )
+        endif()
+
         get_target_property(existing_interface_includes ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
         if(existing_interface_includes AND NOT existing_interface_includes STREQUAL "existing_interface_includes-NOTFOUND")
             foreach(inc_dir IN LISTS existing_interface_includes)
@@ -242,8 +257,17 @@ if(COOLBOX_INSTALL_PACKAGE)
                     continue()
                 endif()
 
+                # Plain absolute paths that point elsewhere in this source
+                # or build tree (e.g. a sibling package's "include" dir
+                # pulled in via target_include_directories) aren't valid
+                # once installed, but they're still needed to build targets
+                # (like tests) directly against this target's build tree.
+                # Wrap them in BUILD_INTERFACE instead of dropping them so
+                # in-tree consumers keep working; they're simply omitted
+                # from the installed/export interface.
                 if(IS_ABSOLUTE "${inc_dir}")
                     if(inc_dir MATCHES "^${CMAKE_SOURCE_DIR}(/|$)" OR inc_dir MATCHES "^${CMAKE_BINARY_DIR}(/|$)")
+                        list(APPEND interface_includes "$<BUILD_INTERFACE:${inc_dir}>")
                         continue()
                     endif()
                 endif()
@@ -348,8 +372,17 @@ if(BUILD_PYTHON_BINDINGS)
     endif()
 endif()
 
-# Find and include Eigen3 globally for all targets that need it
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+# Find and include Eigen3 globally for all targets that need it.
+# ExternalDependencies.cmake already provides Eigen3::Eigen in CI/toolchains
+# where a package config is unavailable.
+if(NOT TARGET Eigen3::Eigen)
+    find_package(Eigen3 QUIET CONFIG)
+    if(NOT TARGET Eigen3::Eigen)
+        find_package(Eigen3 REQUIRED)
+    endif()
+endif()
+if(DEFINED EIGEN3_INCLUDE_DIR)
+    include_directories(${EIGEN3_INCLUDE_DIR})
+endif()
 
 # External QUIC/HTTP3 dependency support disabled for pure HTTP2 build

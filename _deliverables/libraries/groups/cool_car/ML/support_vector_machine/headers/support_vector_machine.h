@@ -66,6 +66,7 @@ public:
 private:
     mytrix::DenseMatrix support_vectors_;
     std::vector<double> support_vector_labels_;
+    std::vector<double> support_vector_alphas_;
     std::vector<double> alphas_;
     double bias_;
     const Kernel& kernel_;

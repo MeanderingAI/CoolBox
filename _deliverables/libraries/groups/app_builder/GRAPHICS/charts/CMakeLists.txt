@@ -12,8 +12,7 @@ endif()
 FetchContent_Declare(
     stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG        master
-    GIT_SHALLOW    TRUE
+    GIT_TAG        2c980bb59875b0d32144a71867fbdebb2f77cd20
 )
 FetchContent_MakeAvailable(stb)
 

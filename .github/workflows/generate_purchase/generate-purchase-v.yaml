@@ -34,17 +34,17 @@ jobs:
 
       - name: Build C bindings required by V package
         run: |
-          cmake -S _libraries/c_bindings -B _libraries/c_bindings/build -DBUILD_TESTING=ON
-          cmake --build _libraries/c_bindings/build --config Release
-          ctest --test-dir _libraries/c_bindings/build --output-on-failure
+          cmake -S _deliverables/libraries/bindings/c_bindings -B _deliverables/libraries/bindings/c_bindings/build -DBUILD_TESTING=ON
+          cmake --build _deliverables/libraries/bindings/c_bindings/build --config Release
+          ctest --test-dir _deliverables/libraries/bindings/c_bindings/build --output-on-failure
 
       - name: Stage V bindings package
         run: |
           rm -rf release-assets staging-v
           mkdir -p release-assets staging-v/module staging-v/native/include staging-v/native/lib
-          cp -R _libraries/vlang_bindings/. staging-v/module/
-          cp -R _libraries/c_bindings/include/. staging-v/native/include/
-          find _libraries/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-v/native/lib/ \;
+          cp -R _deliverables/libraries/bindings/vlang_bindings/. staging-v/module/
+          cp -R _deliverables/libraries/bindings/c_bindings/include/. staging-v/native/include/
+          find _deliverables/libraries/bindings/c_bindings/build -maxdepth 1 -type f \( -name 'libcoolbox_c_bindings.*' -o -name 'coolbox_c_bindings.lib' -o -name 'coolbox_c_bindings.dll' \) -exec cp {} staging-v/native/lib/ \;
           tar -C staging-v -czf release-assets/coolbox-v-bindings-${PLATFORM}-${GITHUB_REF_NAME}.tar.gz .
           python -c 'import pathlib,sys,zipfile; s=pathlib.Path(sys.argv[1]); z=pathlib.Path(sys.argv[2]); a=zipfile.ZipFile(z,"w",compression=zipfile.ZIP_DEFLATED); [a.write(p,p.relative_to(s)) for p in sorted(s.rglob("*")) if p.is_file()]; a.close()' \
             staging-v release-assets/coolbox-v-bindings-${PLATFORM}-${GITHUB_REF_NAME}.zip

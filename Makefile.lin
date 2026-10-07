@@ -8,12 +8,53 @@ LD_LIBRARY_PATH := $(CURDIR)/lib:$(LD_LIBRARY_PATH)
 
 .DEFAULT_GOAL := help
 
+# Support "make build app NAME" and "make build library NAME [NAME...]"
+BUILD_KIND := $(firstword $(filter app library,$(MAKECMDGOALS)))
+BUILD_NAMES := $(filter-out build app library,$(MAKECMDGOALS))
+PACKAGE_NAMES := $(filter-out package library libraries,$(MAKECMDGOALS))
+RUN_NAMES := $(filter-out run app,$(MAKECMDGOALS))
+
+ifneq ($(filter build,$(MAKECMDGOALS)),)
+  ifneq ($(strip $(BUILD_KIND)),)
+    $(eval $(BUILD_KIND):;@:)
+    $(eval $(BUILD_NAMES):;@:)
+  endif
+endif
+
+ifneq ($(filter package,$(MAKECMDGOALS)),)
+  ifneq ($(strip $(PACKAGE_NAMES)),)
+    $(eval library:;@:)
+    $(eval libraries:;@:)
+    $(eval $(PACKAGE_NAMES):;@:)
+  endif
+endif
+
+ifneq ($(filter run,$(MAKECMDGOALS)),)
+  ifneq ($(firstword $(filter app,$(MAKECMDGOALS))),)
+    $(eval app:;@:)
+    $(eval $(RUN_NAMES):;@:)
+  endif
+endif
+
+.PHONY: help configure build build_libraries build_apps package run list list_apps list_libraries apps libraries test install_system_deps clean
+
 help:
 	@echo "\nCoolBox Linux Build System"
 	@echo "----------------------------------------"
 	@echo "make configure            Configure CMake for Linux (Unix Makefiles)"
 	@echo "make build                Build all targets"
+	@echo "make build app NAME       Build one app from _deliverables/apps"
+	@echo "make build library NAME   Build a library group or individual libraries"
 	@echo "make build_libraries      Build all libraries"
+	@echo "make build_apps           Build all apps"
+	@echo "make build_NAME           Build a specific CMake target"
+	@echo "make package library NAME Build and copy libraries into lib/packages/"
+	@echo "make run app NAME          Run a built app (builds first if missing)"
+	@echo "make run app NAME TARGET   Run a specific executable for multi-target apps"
+	@echo "make list_apps            List apps in _deliverables/apps"
+	@echo "make list_libraries       List libraries in _deliverables/libraries"
+	@echo "make list apps            Alias for make list_apps"
+	@echo "make list libraries       Alias for make list_libraries"
 	@echo "make test                 Run all tests"
 	@echo "make install_system_deps  Install system dependencies via apt-get"
 	@echo "make clean                Remove build artifacts"
@@ -23,12 +64,56 @@ configure:
 	@cmake -S . -B build -G "Unix Makefiles"
 
 build: configure
-	@echo "[Makefile.lin] Building all targets..."
-	@cmake --build build
+	@if [ -n "$(strip $(BUILD_KIND))" ]; then \
+		echo "[Makefile.lin] Building deliverable $(BUILD_KIND): $(BUILD_NAMES)"; \
+		$(PYTHON) _scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); \
+	else \
+		echo "[Makefile.lin] Building all targets..."; \
+		cmake --build build; \
+	fi
+
+package: configure
+	@if [ -z "$(strip $(PACKAGE_NAMES))" ]; then \
+		echo "Usage: make package library NAME [NAME...]"; \
+		exit 1; \
+	fi
+	@echo "[Makefile.lin] Packaging libraries: $(PACKAGE_NAMES)"
+	@$(PYTHON) _scripts/package_libraries.py $(PACKAGE_NAMES)
+
+run:
+	@if [ -z "$(strip $(RUN_NAMES))" ]; then \
+		echo "Usage: make run app NAME [TARGET]"; \
+		exit 1; \
+	fi
+	@echo "[Makefile.lin] Running app: $(RUN_NAMES)"
+	@$(PYTHON) _scripts/run_deliverable.py $(RUN_NAMES)
 
 build_libraries: configure
 	@echo "[Makefile.lin] Building all libraries..."
 	@cmake --build build
+
+build_apps: configure
+	@echo "[Makefile.lin] Building all apps..."
+	@cmake --build build
+
+build_%: configure
+	@echo "[Makefile.lin] Building target: $*"
+	@cmake --build build --target $*
+
+list:
+	@if [ "$(words $(MAKECMDGOALS))" = "1" ]; then \
+		echo "Use 'make list_apps' or 'make list_libraries'."; \
+	fi
+
+list_apps:
+	@$(PYTHON) _scripts/list_deliverables.py apps
+
+list_libraries:
+	@$(PYTHON) _scripts/list_deliverables.py libraries
+
+apps: list_apps
+
+libraries: list_libraries
 
 test: configure
 	@echo "[Makefile.lin] Building test binaries..."
