@@ -44,8 +44,8 @@ CoolBox deep-learning layers. Pass real batches as two-dimensional
 losses; `sample(count)` generates samples.
 
 See `examples/gan_training_example.py` for a runnable toy-data example that
-plots both training losses to `gan_losses.png`. Install its plotting dependency
-with `python -m pip install matplotlib`.
+plots both training losses with CoolBox's built-in graphics module and saves
+the chart to `gan_losses.png`.
 
 ## Build
 

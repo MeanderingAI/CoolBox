@@ -2,8 +2,6 @@
 
 import random
 
-import matplotlib.pyplot as plt
-
 import ml_toolbox as ml
 
 
@@ -19,6 +17,7 @@ def make_real_batch(batch_size, dl):
 def main():
     random.seed(7)
     dl = ml.ml_core.deep_learning
+    graphics = ml.ml_core.graphics
     gan = ml.GAN(latent_dim=8, sample_dim=1, hidden_dims=(32, 32))
 
     discriminator_losses = []
@@ -39,15 +38,23 @@ def main():
                 f"Generator loss: {g_loss:.4f}"
             )
 
-    plt.plot(discriminator_losses, label="Discriminator loss")
-    plt.plot(generator_losses, label="Generator loss")
-    plt.xlabel("Training step")
-    plt.ylabel("Binary cross-entropy loss")
-    plt.title("CoolBox GAN training losses")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("gan_losses.png", dpi=150)
-    plt.show()
+    steps_x = list(range(1, steps + 1))
+    graph = graphics.Graph(900, 600, graphics.GraphType.LINE)
+    graph.set_title("CoolBox GAN training losses")
+    graph.set_x_label("Training step")
+    graph.set_y_label("Binary cross-entropy loss")
+    graph.add_series(
+        graphics.DataSeries(
+            "Discriminator loss", steps_x, discriminator_losses, graphics.BLUE
+        )
+    )
+    graph.add_series(
+        graphics.DataSeries("Generator loss", steps_x, generator_losses, graphics.RED)
+    )
+    canvas = graph.render()
+    if not canvas.save_png("gan_losses.png"):
+        raise RuntimeError("CoolBox failed to save gan_losses.png")
+    print("Saved loss plot to gan_losses.png")
 
 
 if __name__ == "__main__":
