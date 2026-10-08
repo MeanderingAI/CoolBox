@@ -65,7 +65,7 @@ build tree and fetched dependencies can be large.
   a nested folder and sample files, and validates that those entries are found.
 - The missing-path test now uses a path under its own temporary directory
   rather than relying on a sentinel path in the CTest working directory.
-- `FileBrowserTests` has a 30-second CTest timeout so an unexpected traversal
+- `FileBrowserTests` has a CTest timeout so an unexpected traversal
   cannot stall the test suite indefinitely.
 
 See the
@@ -78,3 +78,27 @@ and [test registration](../../../../_deliverables/libraries/groups/app_assets/fi
 - [x] No editor diagnostics were reported for the modified test or CMake file.
 - [ ] Rerun the Windows x86 Release tests after publishing the fix. The test
   executable was not available in the local macOS build directory.
+
+## Windows Release Test Timeouts
+
+Added a 300-second default timeout per test to the Windows Release CTest runner.
+This prevents a hung test from blocking the remaining suite indefinitely while
+allowing slower Windows tests more time than the previous FileBrowser-specific
+30-second limit.
+
+- The default is passed to CTest with `--timeout` by
+  [`run_release_tests.ps1`](../../../../_scripts/run_release_tests.ps1) and
+  applies to tests without their own explicit timeout.
+- The script accepts `-TimeoutSeconds` to configure a different positive
+  timeout when running it directly.
+- `FileBrowserTests` now has the same explicit 300-second limit.
+- Both `make -f Makefile.win test` and `test_logged` use this runner; filtered
+  `test-*` runs use it as well.
+
+## Verification
+
+- [x] Confirmed all Windows Makefile CTest entry points invoke the shared
+  Release test runner.
+- [x] Confirmed no other CMake tests currently set an explicit timeout.
+- [x] `git diff --check` passed.
+- [ ] Rerun the Windows x86 Release CTest workflow after publishing the change.

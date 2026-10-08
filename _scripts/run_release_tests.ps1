@@ -1,5 +1,7 @@
 param(
-    [string]$Filter
+    [string]$Filter,
+    [ValidateRange(1, 86400)]
+    [int]$TimeoutSeconds = 300
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,10 +16,11 @@ if (-not (Test-Path $buildDir)) {
 }
 
 Write-Host "[run_release_tests] Running Release tests from $buildDir"
+Write-Host "[run_release_tests] Default per-test timeout: $TimeoutSeconds seconds"
 
 Push-Location $buildDir
 try {
-    $ctestArgs = @('-C', 'Release', '--output-on-failure')
+    $ctestArgs = @('-C', 'Release', '--output-on-failure', '--timeout', "$TimeoutSeconds")
     if ($Filter) {
         $ctestArgs += @('-R', $Filter)
         Write-Host "[run_release_tests] Applying test filter: $Filter"
