@@ -361,7 +361,7 @@ endif()
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 # Add Python bindings if requested
-if(BUILD_PYTHON_BINDINGS)
+if(BUILD_PYTHON_BINDINGS AND NOT _coolbox_skip_pybind11)
     find_package(pybind11 QUIET)
     if(pybind11_FOUND)
         message(STATUS "Building Python bindings")

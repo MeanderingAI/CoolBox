@@ -1,9 +1,12 @@
 # --- pybind11 (for Python bindings) ---
 include(FetchContent)
 set(_coolbox_skip_pybind11 FALSE)
-if(WIN32 AND CMAKE_CROSSCOMPILING)
+if(WIN32)
   if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
-    set(_coolbox_skip_pybind11 TRUE)
+    # Visual Studio's -A ARM64 does not necessarily set CMAKE_CROSSCOMPILING.
+    if(CMAKE_CROSSCOMPILING OR NOT CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
+      set(_coolbox_skip_pybind11 TRUE)
+    endif()
   endif()
 endif()
 
@@ -16,7 +19,7 @@ elseif(NOT TARGET pybind11::pybind11)
     GIT_TAG        v2.13.6
   )
   # Set PYBIND11_FINDPYTHON to use modern FindPython instead of deprecated FindPythonInterp
-  set(PYBIND11_FINDPYTHON ON CACHE BOOL "Use FindPython instead of deprecated FindPythonInterp" FORCE)
+  set(PYBIND11_FINDPYTHON ON CACHE BOOL "Use FindPython instead of deprecated FindPythonInterp")
   FetchContent_MakeAvailable(pybind11)
 endif()
 # Use FetchContent to manage external dependencies

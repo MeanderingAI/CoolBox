@@ -17,4 +17,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     )
     target_link_libraries(file_browser_tests PRIVATE file_browser_lib tyst_framework_main)
     add_test(NAME FileBrowserTests COMMAND file_browser_tests)
+    # Keep a broad filesystem traversal from hanging the entire CTest suite.
+    set_tests_properties(FileBrowserTests PROPERTIES TIMEOUT 30)
 endif()
