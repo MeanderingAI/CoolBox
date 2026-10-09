@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 project(emscripten_bindings)
 
+include(FetchContent)
+
 # Root of the CoolBox project (four levels up from this CMakeLists.txt)
 get_filename_component(COOLBOX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 
@@ -26,7 +28,16 @@ function(resolve_eigen3_include_dir OUTPUT_VAR)
         return()
     endif()
 
-    message(FATAL_ERROR "Unable to locate Eigen headers for emscripten bindings")
+    FetchContent_Declare(
+        eigen
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+        GIT_TAG 3.4.0
+    )
+    FetchContent_GetProperties(eigen)
+    if(NOT eigen_POPULATED)
+        FetchContent_Populate(eigen)
+    endif()
+    set(${OUTPUT_VAR} "${eigen_SOURCE_DIR}" PARENT_SCOPE)
 endfunction()
 
 resolve_eigen3_include_dir(EIGEN3_INCLUDE_DIR)
