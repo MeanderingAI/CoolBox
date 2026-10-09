@@ -22,5 +22,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
         tests/test_cad_file_processing.cpp
     )
     target_link_libraries(cad_file_processing_tests PRIVATE cad_file_processing tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(cad_file_processing_tests)
     add_test(NAME CadFileProcessingTests COMMAND cad_file_processing_tests)
 endif()

@@ -156,16 +156,39 @@ function(coolbox_stage_test_runtime_dependencies test_target)
     list(REMOVE_ITEM runtime_targets "${test_target}")
     list(REMOVE_DUPLICATES runtime_targets)
 
+    set(copy_sources "")
     if(runtime_targets)
-        set(copy_sources "")
         if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.21")
-            set(copy_sources "$<TARGET_RUNTIME_DLLS:${test_target}>")
+            list(APPEND copy_sources "$<TARGET_RUNTIME_DLLS:${test_target}>")
         else()
             foreach(runtime_target IN LISTS runtime_targets)
                 list(APPEND copy_sources "$<TARGET_FILE:${runtime_target}>")
             endforeach()
         endif()
+    endif()
 
+    if(MINGW)
+        get_filename_component(mingw_runtime_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        set(mingw_runtime_dlls
+            "${mingw_runtime_dir}/libstdc++-6.dll"
+            "${mingw_runtime_dir}/libwinpthread-1.dll"
+        )
+        file(GLOB mingw_gcc_runtime_dlls "${mingw_runtime_dir}/libgcc_s_*.dll")
+        if(NOT mingw_gcc_runtime_dlls)
+            message(FATAL_ERROR "MinGW GCC runtime DLL not found in ${mingw_runtime_dir}")
+        endif()
+        list(APPEND mingw_runtime_dlls ${mingw_gcc_runtime_dlls})
+
+        foreach(runtime_dll IN LISTS mingw_runtime_dlls)
+            if(NOT EXISTS "${runtime_dll}")
+                message(FATAL_ERROR "Required MinGW runtime DLL not found: ${runtime_dll}")
+            endif()
+        endforeach()
+        list(APPEND copy_sources ${mingw_runtime_dlls})
+    endif()
+
+    if(copy_sources)
+        list(REMOVE_DUPLICATES copy_sources)
         add_custom_command(TARGET ${test_target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${copy_sources}

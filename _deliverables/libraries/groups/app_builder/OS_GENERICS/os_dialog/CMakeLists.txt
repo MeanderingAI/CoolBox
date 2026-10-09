@@ -20,5 +20,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
         tests/test_os_dialog.cpp
     )
     target_link_libraries(os_dialog_tests PRIVATE os_dialog tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(os_dialog_tests)
     add_test(NAME OsDialogTests COMMAND os_dialog_tests)
 endif()
