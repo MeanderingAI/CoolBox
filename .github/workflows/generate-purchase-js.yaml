@@ -121,38 +121,60 @@ jobs:
       - name: Set up Emscripten SDK (Windows)
         if: runner.os == 'Windows'
         run: |
+          $ErrorActionPreference = 'Stop'
           $EMSDK_DIR = Join-Path $env:RUNNER_TEMP 'emsdk'
           if (Test-Path $EMSDK_DIR) {
             Remove-Item -Recurse -Force $EMSDK_DIR
           }
           git clone https://github.com/emscripten-core/emsdk.git $EMSDK_DIR
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to clone Emscripten SDK (exit code $LASTEXITCODE)"
+          }
 
           Push-Location $EMSDK_DIR
-          .\emsdk.bat install latest
-          .\emsdk.bat activate latest --embedded
-          Pop-Location
+          try {
+            .\emsdk.bat install latest
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Emscripten SDK (exit code $LASTEXITCODE)"
+            }
+            .\emsdk.bat activate latest --embedded
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to activate Emscripten SDK (exit code $LASTEXITCODE)"
+            }
+            . .\emsdk_env.ps1
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to load the Emscripten environment (exit code $LASTEXITCODE)"
+            }
+          }
+          finally {
+            Pop-Location
+          }
 
           $emscriptenDir = Join-Path $EMSDK_DIR 'upstream\emscripten'
           $binaryenDir = Join-Path $EMSDK_DIR 'upstream\bin'
-          $nodeDir = Join-Path $EMSDK_DIR 'node'
-          $pythonDir = Join-Path $EMSDK_DIR 'python'
           $emConfig = Join-Path $EMSDK_DIR '.emscripten'
+          $emcmake = Join-Path $emscriptenDir 'emcmake.py'
+
+          foreach ($requiredPath in @($emscriptenDir, $binaryenDir, $emConfig, $emcmake, $env:EMSDK_NODE, $env:EMSDK_PYTHON)) {
+            if (-not $requiredPath -or -not (Test-Path $requiredPath)) {
+              throw "Required Emscripten path not found: $requiredPath"
+            }
+          }
 
           @(
             $emscriptenDir,
             $binaryenDir,
-            $nodeDir,
-            $pythonDir,
+            (Split-Path -Parent $env:EMSDK_NODE),
+            (Split-Path -Parent $env:EMSDK_PYTHON),
             $EMSDK_DIR
-          ) | ForEach-Object {
-            if (Test-Path $_) {
-              $_ | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            }
-          }
+          ) | Select-Object -Unique | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
           "EMSDK=$EMSDK_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "EM_CONFIG=$emConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "BINARYEN_ROOT=$binaryenDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EMSDK_NODE=$env:EMSDK_NODE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EMSDK_PYTHON=$env:EMSDK_PYTHON" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EMCMAKE=$emcmake" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         shell: pwsh
 
       - name: Configure JavaScript bindings (Linux/macOS)
@@ -170,11 +192,15 @@ jobs:
       - name: Configure JavaScript bindings (Windows)
         if: runner.os == 'Windows'
         run: |
-          $emcmake = Join-Path $env:RUNNER_TEMP 'emsdk\upstream\emscripten\emcmake.bat'
-          if (-not (Test-Path $emcmake)) {
-            throw "emcmake.bat not found at $emcmake"
+          foreach ($requiredPath in @($env:EMSDK_PYTHON, $env:EMCMAKE)) {
+            if (-not $requiredPath -or -not (Test-Path $requiredPath)) {
+              throw "Required Emscripten path not found: $requiredPath"
+            }
           }
-          & $emcmake cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          & $env:EMSDK_PYTHON -E $env:EMCMAKE cmake -S _deliverables/libraries/bindings/emscripten_bindings -B build-emscripten -G Ninja -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_MODULARIZE=ON
+          if ($LASTEXITCODE -ne 0) {
+            throw "Emscripten CMake configuration failed (exit code $LASTEXITCODE)"
+          }
         shell: pwsh
 
       - name: Build JavaScript bindings (Linux/macOS)
