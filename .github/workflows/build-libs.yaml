@@ -103,6 +103,7 @@ jobs:
           fi
 
       - name: Build and run tests
+        id: release-tests
         run: |
           if [ "$RUNNER_OS" = "Windows" ] && [ "${{ matrix.platform }}" = "windows-arm64" ]; then
             echo "Skipping Windows ARM64 test execution on x64 hosted runner; this job cross-compiles ARM64 artifacts with MSVC."
@@ -111,6 +112,40 @@ jobs:
           else
             make test
           fi
+
+      - name: Diagnose Windows graphics crashes
+        if: failure() && steps.release-tests.outcome == 'failure' && matrix.platform == 'windows-x86_64'
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          mkdir -p build/Testing/graphics-debug
+          diagnostic_status=0
+          for target in charts_tests fonts_tests canvas_tests; do
+            executable="$(find build -type f -name "$target.exe" -print -quit)"
+            if [ -z "$executable" ]; then
+              echo "Missing graphics test executable: $target.exe"
+              diagnostic_status=1
+              continue
+            fi
+            executable="$(realpath "$executable")"
+            status=0
+            (
+              cd "$(dirname "$executable")"
+              timeout 60s /mingw64/bin/gdb.exe --batch \
+                -ex "set pagination off" \
+                -ex "run" \
+                -ex "thread apply all bt full" \
+                -ex "info sharedlibrary" \
+                --args "$executable"
+            ) \
+              > "build/Testing/graphics-debug/$target.log" 2>&1 || status=$?
+            cat "build/Testing/graphics-debug/$target.log"
+            echo "Debugger exit status for $target: $status"
+            if [ "$status" -ne 0 ]; then
+              diagnostic_status=1
+            fi
+          done
+          exit "$diagnostic_status"
 
       - name: Upload test results
         if: always()
@@ -300,5 +335,3 @@ jobs:
               --title "Release ${GITHUB_REF_NAME}" \
               --generate-notes
           fi
-
-
