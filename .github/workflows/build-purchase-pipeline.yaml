@@ -368,7 +368,20 @@ jobs:
           fi
 
       - name: Ensure binaries are executable
-        run: chmod +x _deliverables/apps/lsp/dist/* || true
+        run: chmod +x _deliverables/apps/lsp/dist/*
+
+      - name: Upload verified LSP binaries for package publishing
+        uses: actions/upload-artifact@v7
+        with:
+          name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
+          path: |
+            _deliverables/apps/lsp/dist/plang_lsp
+            _deliverables/apps/lsp/dist/plrust_lsp
+            _deliverables/apps/lsp/dist/pljava_lsp
+            _deliverables/apps/lsp/dist/plscala_lsp
+            _deliverables/apps/lsp/dist/plpython_lsp
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -440,7 +453,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Download plang LSP artifact
+      - name: Download verified LSP binaries
         uses: actions/download-artifact@v8
         with:
           name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
@@ -450,10 +463,11 @@ jobs:
         run: |
           set -e
           mkdir -p dist/plang dist/plrust dist/pljava dist/plpython
-          cp dist/raw/plang_lsp dist/plang/ || true
-          cp dist/raw/plrust_lsp dist/plrust/ || true
-          cp dist/raw/pljava_lsp dist/pljava/ || true
-          cp dist/raw/plpython_lsp dist/plpython/ || true
+          cp dist/raw/plang_lsp dist/plang/
+          cp dist/raw/plrust_lsp dist/plrust/
+          cp dist/raw/pljava_lsp dist/pljava/
+          cp dist/raw/plpython_lsp dist/plpython/
+          rm -rf dist/raw
 
       - name: Package artifacts
         run: |
@@ -461,7 +475,7 @@ jobs:
           mkdir -p release_assets
           for d in dist/*; do
             if [ -e "$d" ]; then
-              cp -r "$d" release_assets/ || true
+              cp -r "$d" release_assets/
             fi
           done
           for entry in release_assets/*; do

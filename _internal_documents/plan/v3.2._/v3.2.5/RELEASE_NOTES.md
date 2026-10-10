@@ -15,6 +15,10 @@ binding sources and builds the extension directly. This prevents long,
 resource-intensive jobs from stalling while compiling unrelated test and
 library targets.
 
+The PDE/SPDE headers are also self-contained for isolated wheel builds. Their
+dependencies are shipped under `vendor_include` instead of being referenced
+through repository-relative paths that disappear from an extracted sdist.
+
 ### LSP Executable Staging
 
 The LSP artifact and Docker-image workflows explicitly build the executable

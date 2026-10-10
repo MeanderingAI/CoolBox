@@ -32,11 +32,9 @@ function(resolve_eigen3_include_dir OUTPUT_VAR)
         eigen
         GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
         GIT_TAG 3.4.0
+        SOURCE_SUBDIR _coolbox_header_only
     )
-    FetchContent_GetProperties(eigen)
-    if(NOT eigen_POPULATED)
-        FetchContent_Populate(eigen)
-    endif()
+    FetchContent_MakeAvailable(eigen)
     set(${OUTPUT_VAR} "${eigen_SOURCE_DIR}" PARENT_SCOPE)
 endfunction()
 

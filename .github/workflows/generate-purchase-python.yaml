@@ -209,44 +209,6 @@ jobs:
           echo "Verified vendored Python binding sources"
         shell: bash
 
-      - name: Configure and build C++ libraries (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          foreach ($requiredPath in @($env:VCPKG_TOOLCHAIN_FILE, $env:VCPKG_INSTALLED_ROOT, $env:BISON_EXECUTABLE)) {
-            if (-not $requiredPath -or -not (Test-Path $requiredPath)) {
-              throw "Required Windows build dependency not found: $requiredPath"
-            }
-          }
-
-          Remove-Item -Recurse -Force build\CMakeCache.txt,build\CMakeFiles -ErrorAction SilentlyContinue
-          $cmakeArgs = @(
-            '-S', '.',
-            '-B', 'build',
-            '-A', 'x64',
-            '-DBUILD_TESTING=ON',
-            '-DBUILD_BINARIES=ON',
-            "-DCMAKE_TOOLCHAIN_FILE=$($env:VCPKG_TOOLCHAIN_FILE)",
-            "-DCMAKE_PREFIX_PATH=$($env:CMAKE_PREFIX_PATH)",
-            "-DGSL_ROOT_DIR=$($env:VCPKG_INSTALLED_ROOT)",
-            "-DBISON_EXECUTABLE=$($env:BISON_EXECUTABLE)",
-            '-DVCPKG_TARGET_TRIPLET=x64-windows'
-          )
-
-          & cmake @cmakeArgs
-          if ($LASTEXITCODE -ne 0) {
-            throw "Windows CMake configuration failed (exit code $LASTEXITCODE)"
-          }
-          cmake --build build --config Release --parallel
-          if ($LASTEXITCODE -ne 0) {
-            throw "Windows C++ library build failed (exit code $LASTEXITCODE)"
-          }
-
-          Write-Host '--- CMake available targets ---'
-          cmake --build build --config Release --target help
-          Write-Host '--- CTest configured tests ---'
-          ctest --test-dir build -C Release -N
-        shell: pwsh
-
       - name: Set COOLBOX_LIB_DIR for Python build
         if: runner.os != 'Windows'
         run: |
@@ -256,6 +218,13 @@ jobs:
       - name: Build Windows native libraries for Python packaging
         if: runner.os == 'Windows'
         run: |
+          foreach ($requiredPath in @($env:VCPKG_TOOLCHAIN_FILE, $env:VCPKG_INSTALLED_ROOT, $env:BISON_EXECUTABLE)) {
+            if (-not $requiredPath -or -not (Test-Path $requiredPath)) {
+              throw "Required Windows build dependency not found: $requiredPath"
+            }
+          }
+
+          Remove-Item -Recurse -Force build-python-msvc\CMakeCache.txt,build-python-msvc\CMakeFiles -ErrorAction SilentlyContinue
           $cmakeArgs = @(
             '-S', '.',
             '-B', 'build-python-msvc',
@@ -273,7 +242,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Python native library configuration failed (exit code $LASTEXITCODE)"
           }
-          cmake --build build-python-msvc --config Release --target charts wave_generator_utils --parallel
+
+          foreach ($requiredTarget in @('charts', 'wave_generator_utils')) {
+            $targetProject = Get-ChildItem -Path build-python-msvc -Filter "$requiredTarget.vcxproj" -Recurse -File |
+              Select-Object -First 1
+            if (-not $targetProject) {
+              throw "Required Python native library target was not generated: $requiredTarget"
+            }
+            Write-Host "Found native target project: $($targetProject.FullName)"
+          }
+
+          cmake --build build-python-msvc --config Release --target charts wave_generator_utils --parallel 2
           if ($LASTEXITCODE -ne 0) {
             throw "Python native library build failed (exit code $LASTEXITCODE)"
           }
@@ -291,6 +270,23 @@ jobs:
         run: |
           cd _deliverables/libraries/bindings/python_bindings
           rm -rf build dist ml_toolbox.egg-info vendor_include/GRAPHICS vendor_include/MISC vendor_include/MATRIX vendor_src
+          rm -f ml_toolbox/ml_core*.so ml_toolbox/ml_core*.pyd ml_toolbox/ml_core*.dylib ml_toolbox/ml_core*.dll
+
+          if grep -R -n -F '../../../groups/' include vendor_include; then
+            echo "::error::Python package headers contain repository-relative includes"
+            exit 1
+          fi
+
+          for required_header in \
+            vendor_include/MATH/pde_solver.hpp \
+            vendor_include/MATH/spde.hpp \
+            vendor_include/MATH/xarray.h; do
+            if [ ! -f "$required_header" ]; then
+              echo "::error::Missing required vendored header: $required_header"
+              exit 1
+            fi
+          done
+
           python setup.py build
           python -m build --outdir ./dist
 

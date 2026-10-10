@@ -4,14 +4,15 @@ include(CheckIncludeFileCXX)
 include(CheckSymbolExists)
 
 find_package(OpenSSL QUIET)
-find_package(Threads REQUIRED)
 
-check_include_file_cxx("argon2.h" COOLBOX_HASH_HAS_ARGON2_HEADER)
-find_library(COOLBOX_HASH_ARGON2_LIBRARY NAMES argon2 libargon2)
-
-check_include_file_cxx("crypt.h" COOLBOX_HASH_HAS_CRYPT_HEADER)
-check_symbol_exists(crypt "unistd.h;crypt.h" COOLBOX_HASH_HAS_CRYPT_SYMBOL)
-find_library(COOLBOX_HASH_CRYPT_LIBRARY NAMES crypt)
+if(NOT WIN32)
+    find_package(Threads REQUIRED)
+    check_include_file_cxx("argon2.h" COOLBOX_HASH_HAS_ARGON2_HEADER)
+    find_library(COOLBOX_HASH_ARGON2_LIBRARY NAMES argon2 libargon2)
+    check_include_file_cxx("crypt.h" COOLBOX_HASH_HAS_CRYPT_HEADER)
+    check_symbol_exists(crypt "unistd.h;crypt.h" COOLBOX_HASH_HAS_CRYPT_SYMBOL)
+    find_library(COOLBOX_HASH_CRYPT_LIBRARY NAMES crypt)
+endif()
 
 add_library(password_hash_utils SHARED
     source/password_hash.cpp
@@ -19,7 +20,9 @@ add_library(password_hash_utils SHARED
 
 target_include_directories(password_hash_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_compile_features(password_hash_utils PUBLIC cxx_std_17)
-target_link_libraries(password_hash_utils PUBLIC Threads::Threads)
+if(TARGET Threads::Threads)
+    target_link_libraries(password_hash_utils PUBLIC Threads::Threads)
+endif()
 
 if(OpenSSL_FOUND AND TARGET OpenSSL::Crypto)
     target_link_libraries(password_hash_utils PUBLIC OpenSSL::Crypto)

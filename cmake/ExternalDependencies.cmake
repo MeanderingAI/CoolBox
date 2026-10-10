@@ -16,7 +16,7 @@ elseif(NOT TARGET pybind11::pybind11)
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG        v2.13.6
+    GIT_TAG        v3.0.1
   )
   # Set PYBIND11_FINDPYTHON to use modern FindPython instead of deprecated FindPythonInterp
   set(PYBIND11_FINDPYTHON ON CACHE BOOL "Use FindPython instead of deprecated FindPythonInterp")
@@ -34,14 +34,12 @@ if(NOT TARGET Eigen3::Eigen)
     eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
     GIT_TAG 3.4.0
+    # Eigen is consumed as headers only. A deliberately absent source
+    # subdirectory prevents its project and tests from being added.
+    SOURCE_SUBDIR _coolbox_header_only
   )
 
-  # Populate Eigen sources without add_subdirectory/MakeAvailable so Eigen's
-  # own tests are not registered into this repository's CTest run.
-  FetchContent_GetProperties(eigen)
-  if(NOT eigen_POPULATED)
-    FetchContent_Populate(eigen)
-  endif()
+  FetchContent_MakeAvailable(eigen)
 
   # Provide Eigen3::Eigen target for consumers
   if(NOT TARGET Eigen3::Eigen)

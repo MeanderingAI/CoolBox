@@ -15,6 +15,16 @@ dependency and library build because it uses the MSVC-built libraries.
 See the
 [Python purchase workflow](../../../../.github/workflows/generate-purchase-python.yaml).
 
+### Isolated Source-Distribution Builds
+
+Fixed the macOS and Ubuntu wheel builds when the Python package is compiled
+from an isolated source distribution. The PDE/SPDE binding header previously
+included `pde_solver.hpp` and `spde.hpp` through repository-relative paths,
+which are unavailable after the source archive is extracted.
+
+The required PDE, SPDE, matrix, and xarray headers are now vendored under
+`vendor_include`, and the binding uses package-local include paths.
+
 ## LSP Artifact and Image Generation
 
 LSP workflows now build the required executable targets explicitly and stage
