@@ -13,7 +13,7 @@ version = "0.2.0"
 description = "Comprehensive C++ Machine Learning Library with Python Bindings"
 readme = "README.md"
 requires-python = ">=3.7"
-license = "GPL-3.0-or-later"
+license = {text = "GPL-3.0-or-later"}
 authors = [
     {name = "ML Core Team"},
 ]

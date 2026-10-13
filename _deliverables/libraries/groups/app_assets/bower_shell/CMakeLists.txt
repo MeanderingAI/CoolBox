@@ -16,5 +16,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
         tests/test_bower_shell.cpp
     )
     target_link_libraries(bower_shell_tests PRIVATE bower_shell_lib tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(bower_shell_tests)
     add_test(NAME BowerShellTests COMMAND bower_shell_tests)
 endif()

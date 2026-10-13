@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
 project(emscripten_bindings)
 
+include(FetchContent)
+
 # Root of the CoolBox project (four levels up from this CMakeLists.txt)
 get_filename_component(COOLBOX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 
@@ -26,7 +28,14 @@ function(resolve_eigen3_include_dir OUTPUT_VAR)
         return()
     endif()
 
-    message(FATAL_ERROR "Unable to locate Eigen headers for emscripten bindings")
+    FetchContent_Declare(
+        eigen
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+        GIT_TAG 3.4.0
+        SOURCE_SUBDIR _coolbox_header_only
+    )
+    FetchContent_MakeAvailable(eigen)
+    set(${OUTPUT_VAR} "${eigen_SOURCE_DIR}" PARENT_SCOPE)
 endfunction()
 
 resolve_eigen3_include_dir(EIGEN3_INCLUDE_DIR)
@@ -36,6 +45,7 @@ set(PACKAGES_ROOT "${COOLBOX_ROOT}/_deliverables/libraries/groups")
 set(METADATA_HEADERS_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/trekker/MISC/metadata_management/headers")
 set(MATRIX_HEADERS_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/matrix/headers")
 set(MYTRIX_HEADERS_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/cool_car/MATRIX/headers")
+set(RANK_CONVERGENCE_HEADERS_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/trekker/ALGORITHM/dynamic_programming/rank_convergence_ltdp")
 
 # Option to control MODULARIZE
 option(EMSCRIPTEN_MODULARIZE "Build with MODULARIZE=1" ON)
@@ -207,7 +217,7 @@ add_emscripten_module(bayesian_network_js createBayesianNetworkModule
 add_emscripten_module(hidden_markov_model_js createHMMModule
     hidden_markov_model_bindings.cpp
     "${ML_ROOT}/hidden_markov_model/source/hidden_markov_model.cpp"
-    "${ML_ROOT}/hidden_markov_model/headers"
+    "${ML_ROOT}/hidden_markov_model/headers;${RANK_CONVERGENCE_HEADERS_DIR}"
 )
 
 # ── Distributions ────────────────────────────────────────────────
@@ -346,13 +356,4 @@ add_emscripten_module(pde_spde_js createPdeSpdeModule
     pde_spde_bindings.cpp
     ""
     "${MATH_SRC_DIR}"
-)
-
-# ── Circuitry (Electronics) ──────────────────────────────────────
-set(CIRCUITRY_SRC_DIR "${COOLBOX_ROOT}/_deliverables/libraries/groups/sim_group/ELECTRONICS/circuitry")
-
-add_emscripten_module(circuitry_js createCircuitryModule
-    circuitry_bindings.cpp
-    "${CIRCUITRY_SRC_DIR}/src/circuit.cpp"
-    "${CIRCUITRY_SRC_DIR}/include"
 )

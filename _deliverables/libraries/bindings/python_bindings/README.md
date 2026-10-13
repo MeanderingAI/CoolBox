@@ -57,6 +57,11 @@ Or directly:
 
 - `cd _deliverables/libraries/bindings/python_bindings && python -m build`
 
+CMake skips pybind11 and Python bindings when targeting Windows ARM64 from a
+non-ARM64 host, including Visual Studio `-A ARM64` builds that do not set
+`CMAKE_CROSSCOMPILING`. Native ARM64 hosts retain Python bindings support and
+require a matching ARM64 Python installation.
+
 ## Native Library Resolution
 
 - `setup.py` first tries to link against prebuilt CoolBox native libraries discovered under `COOLBOX_LIB_DIR`.
