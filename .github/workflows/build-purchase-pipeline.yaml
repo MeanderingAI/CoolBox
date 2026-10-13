@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   ci_diagnostics:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     name: CI diagnostics
     steps:
@@ -58,14 +59,14 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build-products.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     secrets: inherit
 
   post_build_check:
     needs:
       - build_libs
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ false }}
     name: Post-build diagnostics
     steps:
       - name: Checkout
@@ -108,7 +109,7 @@ jobs:
       - generate_lsp_images
       - publish_lsp_packages
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ false }}
     name: Collect diagnostics artifact
     steps:
       - name: Checkout
@@ -172,12 +173,12 @@ jobs:
 
   build_cpp_docs:
     uses: ./.github/workflows/build-cpp-docs.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     secrets: inherit
 
   build_tutorials:
     uses: ./.github/workflows/build-tutorials.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     secrets: inherit
 
 
@@ -190,24 +191,28 @@ jobs:
   generate_purchase_python:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-python.yaml
     secrets: inherit
 
   generate_purchase_js:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-js.yaml
     secrets: inherit
 
   generate_purchase_go:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-go.yaml
     secrets: inherit
 
   generate_purchase_c:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-c.yaml
     secrets: inherit
 
@@ -215,35 +220,40 @@ jobs:
     needs:
       - build_libs
       - generate_purchase_c
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-java.yaml
     secrets: inherit
 
   generate_purchase_r:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-r.yaml
     secrets: inherit
 
   generate_purchase_rust:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-rust.yaml
     secrets: inherit
 
   generate_purchase_swift:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-swift.yaml
     secrets: inherit
 
   generate_purchase_postgres:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-postgres.yaml
     secrets: inherit
 
   docs_publish:
-    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')) }}
+    if: ${{ false }}
     needs:
       - build_cpp_docs
       - build_tutorials
@@ -268,7 +278,7 @@ jobs:
   generate_lsp_images:
     needs:
       - build_libs
-    if: startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -447,7 +457,7 @@ jobs:
   publish_lsp_packages:
     needs:
       - generate_lsp_images
-    if: startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

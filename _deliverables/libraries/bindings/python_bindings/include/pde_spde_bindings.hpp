@@ -5,7 +5,7 @@
 #include <pybind11/numpy.h>
 #include "MATH/pde_solver.hpp"
 #include "MATH/spde.hpp"
-#include "MATRIX/headers/matrix_dense.h"
+#include "matrix_dense.h"
 
 namespace py = pybind11;
 

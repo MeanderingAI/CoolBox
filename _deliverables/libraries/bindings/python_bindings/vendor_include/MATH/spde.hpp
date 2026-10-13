@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <random>
-#include "MATRIX/headers/matrix_dense.h"
+#include "matrix_dense.h"
 
 namespace cool_car {
 namespace MATH {

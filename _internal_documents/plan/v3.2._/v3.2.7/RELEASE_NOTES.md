@@ -23,6 +23,19 @@ The Python package now ships package-local copies of:
 The PDE/SPDE binding includes these files through `vendor_include`, making the
 sdist independent of the surrounding CoolBox checkout.
 
+### macOS arm64 Header Identity
+
+Fixed Clang redefinition errors in the macOS arm64 checkout build. Existing ML
+headers resolved bare MATRIX includes from the repository header tree, while
+the vendored PDE/SPDE headers explicitly selected the copied MATRIX tree.
+Because the same headers were reached through different absolute paths,
+`#pragma once` could not identify them as one file and types such as
+`ComputeBackend`, `BackendConfig`, and `MatrixBase` were defined twice.
+
+PDE/SPDE now follows the existing bare MATRIX include convention. Checkout
+builds consistently use repository MATRIX headers, while extracted source
+distributions consistently use the vendored copies.
+
 ## Manifest and Wheel Integrity
 
 Removed obsolete `MANIFEST.in` patterns that referenced CoolBox directories
@@ -76,6 +89,8 @@ release can be created.
 - [x] Confirmed the archive contains the PDE, SPDE, xarray, and matrix
   headers.
 - [x] Confirmed no repository-relative PDE/SPDE includes remain.
+- [x] Confirmed PDE/SPDE no longer mixes repository and vendored MATRIX header
+  identities.
 - [x] Confirmed the Python purchase workflow YAML passes linting.
 - [x] Confirmed the Windows failure came from vcpkg `z-applocal` file
   contention in an unrelated LSP test target.
