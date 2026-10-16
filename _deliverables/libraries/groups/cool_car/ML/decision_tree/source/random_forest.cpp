@@ -1,4 +1,5 @@
 #include "random_forest.h"
+#include "tree_ensemble_utils.h"
 #include <random>
 #include <map>
 #include <algorithm>
@@ -19,16 +20,7 @@ void RandomForest::get_bootstrap_sample(
 {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<size_t> dist(0, X_in.size() - 1);
-
-    size_t n = X_in.size();
-    X_out.resize(n);
-    y_out.resize(n);
-    for (size_t i = 0; i < n; ++i) {
-        size_t idx = dist(gen);
-        X_out[i] = X_in[idx];
-        y_out[i] = y_in[idx];
-    }
+    tree_ensemble_detail::bootstrap(X_in, y_in, X_out, y_out, gen);
 }
 
 void RandomForest::fit(const std::vector<std::vector<int>>& X, const std::vector<int>& y) {

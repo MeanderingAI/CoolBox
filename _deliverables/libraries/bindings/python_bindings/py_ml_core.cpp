@@ -48,6 +48,8 @@
 
 namespace py = pybind11;
 
+void bind_tree_ensembles(py::module_& module);
+
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
 
@@ -59,6 +61,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");
+    bind_tree_ensembles(dt_module);
 
     // SplitCriterion enum
     py::enum_<SplitCriterion>(dt_module, "SplitCriterion")
@@ -74,6 +77,12 @@ PYBIND11_MODULE(ml_core, m) {
         .def("predict", &DecisionTree::predict,
              "Predict class label for a sample",
              py::arg("sample"));
+
+    py::class_<DecisionTreeRegressor>(dt_module, "DecisionTreeRegressor")
+        .def(py::init<>())
+        .def("fit", &DecisionTreeRegressor::fit,
+             py::arg("X"), py::arg("y"), py::arg("max_depth"))
+        .def("predict", &DecisionTreeRegressor::predict, py::arg("sample"));
 
     // RandomForest class (assuming it exists)
     // py::class_<RandomForest>(dt_module, "RandomForest")

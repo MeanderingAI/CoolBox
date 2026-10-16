@@ -52,10 +52,41 @@ def test_decision_tree():
         dt.fit(X, y, 3)
         
         # Test predictions
-        for sample in X:
+        for sample, expected in zip(X, y):
             pred = dt.predict(sample)
             print(f"  Input: {sample} -> Prediction: {pred}")
-            
+            assert pred == expected
+
+        regressor = ml_core.decision_tree.DecisionTreeRegressor()
+        regressor.fit([[0.1], [0.3], [0.7], [0.9]], [-2.5, -2.5, 4.5, 4.5], 1)
+        assert regressor.predict([0.2]) == -2.5
+        assert regressor.predict([0.8]) == 4.5
+        regressor.fit([[0.0], [1.0]], [1.5, 4.5], 0)
+        assert regressor.predict([0.5]) == 3.0
+
+        forest = ml_core.decision_tree.RandomForestRegressor(30, 2, seed=123)
+        forest.fit([[0.0], [0.1], [1.0], [1.1]], [-2.5, -2.5, 4.5, 4.5])
+        assert forest.predict([0.0]) < forest.predict([1.0])
+
+        params = ml_core.decision_tree.BoostTreeParameters()
+        params.num_estimators = 60
+        params.learning_rate = 0.3
+        params.max_depth = 2
+        boosted = ml_core.decision_tree.BoostTree(params)
+        boosted.fit([[0.0], [1.0]], [-2.5, 4.5])
+        assert abs(boosted.predict([0.0]) + 2.5) < 0.01
+        assert len(boosted.predict_batch([[0.0], [1.0]])) == 2
+
+        classifier = ml_core.decision_tree.BoostTreeClassifier(params)
+        classifier.fit([[-1.0], [0.0], [1.0]], [-7, 42, 99])
+        assert classifier.classes() == [-7, 42, 99]
+        for sample, label in zip([[-1.0], [0.0], [1.0]], [-7, 42, 99]):
+            assert classifier.predict(sample) == label
+            probabilities = classifier.predict_proba(sample)
+            assert len(probabilities) == 3
+            assert all(0.0 <= value <= 1.0 for value in probabilities)
+            assert abs(sum(probabilities) - 1.0) < 1e-12
+
         print("✓ Decision Tree test passed")
         return True
         

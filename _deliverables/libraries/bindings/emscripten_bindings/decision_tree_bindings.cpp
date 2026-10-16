@@ -11,16 +11,35 @@ EMSCRIPTEN_BINDINGS(decision_tree_module) {
     register_vector<std::vector<int>>("VectorVectorInt_DT");
     register_vector<std::vector<double>>("VectorVectorDouble_DT");
 
+    enum_<SplitCriterion>("SplitCriterion")
+        .value("GINI", SplitCriterion::GINI)
+        .value("ENTROPY", SplitCriterion::ENTROPY)
+    ;
+
     class_<DecisionTree>("DecisionTree")
         .constructor<>()
+        .constructor<SplitCriterion>()
         .function("fit", &DecisionTree::fit)
         .function("predict", &DecisionTree::predict)
+    ;
+
+    class_<DecisionTreeRegressor>("DecisionTreeRegressor")
+        .constructor<>()
+        .function("fit", &DecisionTreeRegressor::fit)
+        .function("predict", &DecisionTreeRegressor::predict)
     ;
 
     class_<RandomForest>("RandomForest")
         .constructor<int, int>()
         .function("fit", &RandomForest::fit)
         .function("predict", &RandomForest::predict)
+    ;
+
+    class_<RandomForestRegressor>("RandomForestRegressor")
+        .constructor<int, int>()
+        .constructor<int, int, unsigned int>()
+        .function("fit", &RandomForestRegressor::fit)
+        .function("predict", &RandomForestRegressor::predict)
     ;
 
     value_object<BoostTreeParameters>("BoostTreeParameters")
@@ -34,6 +53,17 @@ EMSCRIPTEN_BINDINGS(decision_tree_module) {
         .function("fit", &BoostTree::fit)
         .function("predict", optional_override([](const BoostTree& bt, const std::vector<double>& sample) {
             return bt.predict(sample);
+        }))
+    ;
+
+    class_<BoostTreeClassifier>("BoostTreeClassifier")
+        .constructor<>()
+        .constructor<BoostTreeParameters>()
+        .function("fit", &BoostTreeClassifier::fit)
+        .function("predict", &BoostTreeClassifier::predict)
+        .function("predict_proba", &BoostTreeClassifier::predict_proba)
+        .function("classes", optional_override([](const BoostTreeClassifier& model) {
+            return model.classes();
         }))
     ;
 }

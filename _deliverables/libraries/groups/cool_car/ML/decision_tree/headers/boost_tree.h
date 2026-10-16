@@ -2,11 +2,8 @@
 #ifndef BOOST_TREE_H
 #define BOOST_TREE_H
 
-#include "lib_metadata.h"
-// Metadata only defined in decision_tree.h to avoid duplicate symbols
-
 #include <vector>
-#include "mytrix_eigen_compat.hpp"
+#include "decision_tree_regressor.h"
 
 /**
  * @struct BoostTreeParameters
@@ -23,23 +20,19 @@ struct BoostTreeParameters {
  * @brief An interface for a Gradient Boosted Decision Tree Regressor.
  *
  * This class uses an ensemble of weak learners (Decision Trees) to build a strong
- * predictive model. It can be extended for regression and classification tasks.
+ * predictive model using squared-error residuals. max_depth controls each tree;
+ * zero produces constant learners. Invalid data/parameters throw
+ * std::invalid_argument, and prediction before fit throws std::logic_error.
+ * Failed fits preserve the previous model.
  */
 class BoostTree {
 private:
-    struct WeakLearner {
-        size_t feature_index = 0;
-        double threshold = 0.0;
-        double left_value = 0.0;
-        double right_value = 0.0;
-        bool has_split = false;
-    };
-
     // Model parameters
     BoostTreeParameters params_;
 
-    // The collection of trained weak learners.
-    std::vector<WeakLearner> estimators_;
+    // Immutable learners preserve independent refits when a fitted model is copied.
+    std::vector<std::shared_ptr<const DecisionTreeRegressor>> estimators_;
+    std::size_t num_features_ = 0;
 
     // The initial prediction, which serves as the starting point for the residuals
     double initial_prediction_ = 0.0;
@@ -80,6 +73,32 @@ public:
 private:
     // Helper function for the prediction logic on a single sample.
     double predict_single(const std::vector<double>& sample) const;
+};
+
+/**
+ * @brief Gradient boosting for binary or multiclass cross-entropy loss.
+ *
+ * Fits one regression tree per class per round to (one_hot(y) - probability).
+ * Probabilities use softmax; their order matches classes(), sorted by label.
+ * Single-class training is supported. Labels may be arbitrary integers.
+ * Shares BoostTree's parameter, validation, and failed-fit semantics.
+ */
+class BoostTreeClassifier {
+public:
+    explicit BoostTreeClassifier(const BoostTreeParameters& params = BoostTreeParameters());
+    BoostTreeClassifier(const BoostTreeClassifier&) = delete;
+    BoostTreeClassifier& operator=(const BoostTreeClassifier&) = delete;
+    void fit(const std::vector<std::vector<double>>& X, const std::vector<int>& y);
+    int predict(const std::vector<double>& sample) const;
+    std::vector<double> predict_proba(const std::vector<double>& sample) const;
+    const std::vector<int>& classes() const;
+
+private:
+    BoostTreeParameters params_;
+    std::size_t num_features_ = 0;
+    std::vector<int> classes_;
+    std::vector<double> initial_scores_;
+    std::vector<std::vector<std::unique_ptr<DecisionTreeRegressor>>> estimators_;
 };
 
 #endif // BOOST_TREE_H

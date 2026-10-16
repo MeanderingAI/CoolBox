@@ -101,6 +101,7 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/computer_vision/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/time_series/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/timer_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/tree_ensemble_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/synthetic_data_bindings.cpp"
 )
 file(GLOB_RECURSE ML_BINDING_SOURCES CONFIGURE_DEPENDS ${ML_BINDING_GLOBS})
@@ -108,6 +109,17 @@ file(GLOB_RECURSE ML_BINDING_SOURCES CONFIGURE_DEPENDS ${ML_BINDING_GLOBS})
 # Remove any accidental main/test translation units.
 list(FILTER ML_BINDING_SOURCES EXCLUDE REGEX "/main\\.cpp$")
 list(FILTER ML_BINDING_SOURCES EXCLUDE REGEX "/test_.*\\.cpp$")
+
+set(TREE_ENSEMBLE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/ML/decision_tree")
+foreach(header boost_tree.h random_forest_regressor.h decision_tree_regressor.h tree_ensemble_utils.h)
+    configure_file("${TREE_ENSEMBLE_ROOT}/headers/${header}"
+        "${CMAKE_CURRENT_BINARY_DIR}/tree_ensemble_include/tree_ensemble/${header}" COPYONLY)
+endforeach()
+set_source_files_properties(
+    "${TREE_ENSEMBLE_ROOT}/source/boost_tree.cpp"
+    "${TREE_ENSEMBLE_ROOT}/source/random_forest_regressor.cpp"
+    PROPERTIES INCLUDE_DIRECTORIES "${TREE_ENSEMBLE_ROOT}/headers"
+)
 
 # Some sources include headers as <foo.h> where foo.h lives under include/<module>/.
 # Keep this list curated to avoid shadowing cool_car DL headers like layer.h/tensor.h.
@@ -130,6 +142,9 @@ set(ML_BINDINGS_FLAT_INCLUDE_DIRS
 pybind11_add_module(ml_core 
     py_ml_core.cpp
     ${ML_BINDING_SOURCES}
+    ../../groups/cool_car/ML/decision_tree/source/decision_tree_regressor.cpp
+    ${TREE_ENSEMBLE_ROOT}/source/boost_tree.cpp
+    ${TREE_ENSEMBLE_ROOT}/source/random_forest_regressor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/GRAPHICS/charts/source/graphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/MISC/wave_generator/source/wave_generator.cpp
     ../../groups/cool_car/DL/layers/src/tensor.cpp
@@ -153,6 +168,8 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/../include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/bindings/python_bindings/include
     ${ML_BINDINGS_FLAT_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}/tree_ensemble_include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/ML/decision_tree/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
