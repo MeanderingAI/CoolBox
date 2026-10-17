@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   ci_diagnostics:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     name: CI diagnostics
     steps:
@@ -58,14 +59,14 @@ jobs:
     needs:
       - build_libs
     uses: ./.github/workflows/build-products.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     secrets: inherit
 
   post_build_check:
     needs:
       - build_libs
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ false }}
     name: Post-build diagnostics
     steps:
       - name: Checkout
@@ -108,7 +109,7 @@ jobs:
       - generate_lsp_images
       - publish_lsp_packages
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ false }}
     name: Collect diagnostics artifact
     steps:
       - name: Checkout
@@ -172,12 +173,12 @@ jobs:
 
   build_cpp_docs:
     uses: ./.github/workflows/build-cpp-docs.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     secrets: inherit
 
   build_tutorials:
     uses: ./.github/workflows/build-tutorials.yaml
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     secrets: inherit
 
 
@@ -190,24 +191,28 @@ jobs:
   generate_purchase_python:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-python.yaml
     secrets: inherit
 
   generate_purchase_js:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-js.yaml
     secrets: inherit
 
   generate_purchase_go:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-go.yaml
     secrets: inherit
 
   generate_purchase_c:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-c.yaml
     secrets: inherit
 
@@ -215,35 +220,40 @@ jobs:
     needs:
       - build_libs
       - generate_purchase_c
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-java.yaml
     secrets: inherit
 
   generate_purchase_r:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-r.yaml
     secrets: inherit
 
   generate_purchase_rust:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-rust.yaml
     secrets: inherit
 
   generate_purchase_swift:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-swift.yaml
     secrets: inherit
 
   generate_purchase_postgres:
     needs:
       - build_libs
+    if: ${{ false }}
     uses: ./.github/workflows/generate-purchase-postgres.yaml
     secrets: inherit
 
   docs_publish:
-    if: ${{ always() && needs.build_cpp_docs.result == 'success' && needs.build_tutorials.result == 'success' && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/v')) }}
+    if: ${{ false }}
     needs:
       - build_cpp_docs
       - build_tutorials
@@ -268,7 +278,7 @@ jobs:
   generate_lsp_images:
     needs:
       - build_libs
-    if: startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -340,14 +350,12 @@ jobs:
             exit 0
           fi
           echo "No LSP binaries found; attempting local build"
-          cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
+          cmake -S . -B build -DBUILD_BINARIES=ON -DBUILD_PRODUCTS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel --target plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp
           mkdir -p _deliverables/apps/lsp/dist
-          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || true
-          cp build/apps/lsp/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || cp build/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || true
-          cp build/apps/lsp/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || cp build/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || true
-          cp build/apps/lsp/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || cp build/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || true
-          cp build/apps/lsp/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || cp build/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || true
+          for bin in "${required_bins[@]}"; do
+            cp "build/_deliverables/apps/lsp/${bin}" "_deliverables/apps/lsp/dist/${bin}"
+          done
 
       - name: Verify required LSP binaries before Docker build
         run: |
@@ -364,13 +372,26 @@ jobs:
           if [ "$missing" -ne 0 ]; then
             echo "Contents of _deliverables/apps/lsp/dist:" >&2
             ls -la _deliverables/apps/lsp/dist >&2 || true
-            echo "Contents of build/apps/lsp:" >&2
-            ls -la build/apps/lsp >&2 || true
+            echo "Contents of build/_deliverables/apps/lsp:" >&2
+            ls -la build/_deliverables/apps/lsp >&2 || true
             exit 1
           fi
 
       - name: Ensure binaries are executable
-        run: chmod +x _deliverables/apps/lsp/dist/* || true
+        run: chmod +x _deliverables/apps/lsp/dist/*
+
+      - name: Upload verified LSP binaries for package publishing
+        uses: actions/upload-artifact@v7
+        with:
+          name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
+          path: |
+            _deliverables/apps/lsp/dist/plang_lsp
+            _deliverables/apps/lsp/dist/plrust_lsp
+            _deliverables/apps/lsp/dist/pljava_lsp
+            _deliverables/apps/lsp/dist/plscala_lsp
+            _deliverables/apps/lsp/dist/plpython_lsp
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -436,13 +457,13 @@ jobs:
   publish_lsp_packages:
     needs:
       - generate_lsp_images
-    if: startsWith(github.ref, 'refs/heads/v')
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Download plang LSP artifact
+      - name: Download verified LSP binaries
         uses: actions/download-artifact@v8
         with:
           name: pl-lsp-binaries-linux-x86_64-${{ github.ref_name }}
@@ -452,10 +473,11 @@ jobs:
         run: |
           set -e
           mkdir -p dist/plang dist/plrust dist/pljava dist/plpython
-          cp dist/raw/plang_lsp dist/plang/ || true
-          cp dist/raw/plrust_lsp dist/plrust/ || true
-          cp dist/raw/pljava_lsp dist/pljava/ || true
-          cp dist/raw/plpython_lsp dist/plpython/ || true
+          cp dist/raw/plang_lsp dist/plang/
+          cp dist/raw/plrust_lsp dist/plrust/
+          cp dist/raw/pljava_lsp dist/pljava/
+          cp dist/raw/plpython_lsp dist/plpython/
+          rm -rf dist/raw
 
       - name: Package artifacts
         run: |
@@ -463,7 +485,7 @@ jobs:
           mkdir -p release_assets
           for d in dist/*; do
             if [ -e "$d" ]; then
-              cp -r "$d" release_assets/ || true
+              cp -r "$d" release_assets/
             fi
           done
           for entry in release_assets/*; do

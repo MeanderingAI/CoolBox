@@ -16,5 +16,9 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
         tests/test_file_browser.cpp
     )
     target_link_libraries(file_browser_tests PRIVATE file_browser_lib tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(file_browser_tests)
     add_test(NAME FileBrowserTests COMMAND file_browser_tests)
+    # Match the Windows runner's default timeout so this test gets the same
+    # limit even though it has an explicit CTest property.
+    set_tests_properties(FileBrowserTests PROPERTIES TIMEOUT 300)
 endif()

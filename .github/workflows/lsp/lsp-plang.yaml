@@ -41,10 +41,10 @@ jobs:
           fi
 
           echo "No plang_lsp artifact found; building locally"
-          cmake -S . -B build -DBUILD_BINARIES=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
+          cmake -S . -B build -DBUILD_BINARIES=ON -DBUILD_PRODUCTS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel --target plang_lsp
           mkdir -p _deliverables/apps/lsp/dist
-          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp
+          cp build/_deliverables/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp
           ls -la _deliverables/apps/lsp/dist
 
 

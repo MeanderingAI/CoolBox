@@ -296,12 +296,36 @@ eigen_candidates = [
     r"C:\tools\msys64\mingw64\include",
 ]
 
+decision_tree_root = repo_root / "_deliverables/libraries/groups/cool_car/ML/decision_tree"
+regressor_header = sync_vendor_file(
+    decision_tree_root / "headers/decision_tree_regressor.h",
+    vendor_include_root / "decision_tree/decision_tree_regressor.h",
+)
+regressor_source = sync_vendor_file(
+    decision_tree_root / "source/decision_tree_regressor.cpp",
+    vendor_src_root / "decision_tree/decision_tree_regressor.cpp",
+)
+for header in ("boost_tree.h", "random_forest_regressor.h",
+               "decision_tree_regressor.h", "tree_ensemble_utils.h"):
+    sync_vendor_file(
+        decision_tree_root / "headers" / header,
+        vendor_include_root / "tree_ensemble" / header,
+    )
+ensemble_sources = [
+    sync_vendor_file(
+        decision_tree_root / "source" / source,
+        vendor_src_root / "tree_ensemble" / source,
+    )
+    for source in ("boost_tree.cpp", "random_forest_regressor.cpp")
+]
+
 include_dirs = [
     pybind11.get_include(),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
+    str(regressor_header.parent),
+    str(vendor_include_root / "tree_ensemble"),
     str(timer_headers_dir),
-    str(matrix_header_dir),
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
     str(wave_generator_header.parent),
@@ -309,6 +333,9 @@ include_dirs = [
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
     *existing_dirs(repo_cool_car_root_candidates),
     *existing_dirs(repo_matrix_header_candidates),
+    # Prefer the repository MATRIX headers over the vendored copies. Mixing both
+    # copies in one translation unit bypasses #pragma once and causes redefinitions.
+    str(matrix_header_dir),
     *existing_dirs(
         [
             repo_root / "build/_deps/stb-src",
@@ -323,10 +350,13 @@ extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-
 
 source_files = [
     "py_ml_core.cpp",
+    to_setup_relative_path(regressor_source),
     "src/pde_spde_bindings.cpp",
     "src/timer_bindings.cpp",
+    "src/tree_ensemble_bindings.cpp",
     "src/synthetic_data_bindings.cpp",
 ]
+source_files.extend(to_setup_relative_path(path) for path in ensemble_sources)
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
@@ -415,6 +445,7 @@ ext_modules = [
 
 setup(
     packages=["ml_toolbox"],
+    py_modules=["metadata_client"],
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext_with_move},
     zip_safe=False,

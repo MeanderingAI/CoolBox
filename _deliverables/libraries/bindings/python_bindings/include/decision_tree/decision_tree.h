@@ -1,6 +1,8 @@
 #ifndef DECISION_TREE_H
 #define DECISION_TREE_H
 
+#include <decision_tree_regressor.h>
+
 #include <vector>
 #include <map>
 #include <string>

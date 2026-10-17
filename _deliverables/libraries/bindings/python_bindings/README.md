@@ -35,6 +35,18 @@ After installation, both import styles are supported:
 - `synthetic_data`
 - `timer`
 
+## Train a GAN
+
+`ml_toolbox.GAN` provides a small fully connected GAN trainer built from the
+CoolBox deep-learning layers. Pass real batches as two-dimensional
+`ml_toolbox.ml_core.deep_learning.Tensor` values scaled to `[-1, 1]`.
+`train_batch` returns the discriminator and generator binary cross-entropy
+losses; `sample(count)` generates samples.
+
+See `examples/gan_training_example.py` for a runnable toy-data example that
+plots both training losses with CoolBox's built-in graphics module and saves
+the chart to `gan_losses.png`.
+
 ## Build
 
 From the repository root:
@@ -44,6 +56,11 @@ From the repository root:
 Or directly:
 
 - `cd _deliverables/libraries/bindings/python_bindings && python -m build`
+
+CMake skips pybind11 and Python bindings when targeting Windows ARM64 from a
+non-ARM64 host, including Visual Studio `-A ARM64` builds that do not set
+`CMAKE_CROSSCOMPILING`. Native ARM64 hosts retain Python bindings support and
+require a matching ARM64 Python installation.
 
 ## Native Library Resolution
 

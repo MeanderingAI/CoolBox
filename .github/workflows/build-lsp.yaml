@@ -73,25 +73,38 @@ jobs:
             }
           }
 
+      - name: Build LSP binaries
+        run: |
+          set -e
+          cmake --build build --config Release --parallel --target \
+            plang_lsp \
+            plrust_lsp \
+            pljava_lsp \
+            plscala_lsp \
+            plpython_lsp \
+            plvlang_lsp \
+            plc3_lsp
+
       - name: Package and upload LSP artifacts
         if: always()
         run: |
           set -e
-          mkdir -p _deliverables/apps/lsp/dist || true
-          cp build/apps/lsp/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || cp build/plang_lsp _deliverables/apps/lsp/dist/plang_lsp || true
-          cp build/apps/lsp/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || cp build/plrust_lsp _deliverables/apps/lsp/dist/plrust_lsp || true
-          cp build/apps/lsp/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || cp build/pljava_lsp _deliverables/apps/lsp/dist/pljava_lsp || true
-          cp build/apps/lsp/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || cp build/plscala_lsp _deliverables/apps/lsp/dist/plscala_lsp || true
-          cp build/apps/lsp/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || cp build/plpython_lsp _deliverables/apps/lsp/dist/plpython_lsp || true
-          cp build/apps/lsp/plvlang_lsp _deliverables/apps/lsp/dist/plvlang_lsp || cp build/plvlang_lsp _deliverables/apps/lsp/dist/plvlang_lsp || true
-          cp build/apps/lsp/plc3_lsp _deliverables/apps/lsp/dist/plc3_lsp || cp build/plc3_lsp _deliverables/apps/lsp/dist/plc3_lsp || true
-          if [ -d "_deliverables/apps/lsp/dist" ] && [ "$(ls -A _deliverables/apps/lsp/dist)" ]; then
-            mkdir -p build
-            tar -czf build/pl_lsp_dist.tar.gz -C _deliverables/apps/lsp dist
-            ls -la build/pl_lsp_dist.tar.gz || true
-          else
-            echo "Warning: _deliverables/apps/lsp/dist does not exist or is empty"
-          fi
+          mkdir -p _deliverables/apps/lsp/dist
+          for bin in plang_lsp plrust_lsp pljava_lsp plscala_lsp plpython_lsp plvlang_lsp plc3_lsp; do
+            source="build/_deliverables/apps/lsp/${bin}"
+            if [ -f "${source}.exe" ]; then
+              source="${source}.exe"
+            elif [ -f "build/_deliverables/apps/lsp/Release/${bin}.exe" ]; then
+              source="build/_deliverables/apps/lsp/Release/${bin}.exe"
+            fi
+            if [ ! -f "$source" ]; then
+              echo "Missing built LSP binary: $bin" >&2
+              exit 1
+            fi
+            cp "$source" "_deliverables/apps/lsp/dist/${bin}"
+          done
+          tar -czf build/pl_lsp_dist.tar.gz -C _deliverables/apps/lsp dist
+          ls -la build/pl_lsp_dist.tar.gz
 
       - name: Upload LSP dist archive
         uses: actions/upload-artifact@v7
