@@ -202,9 +202,13 @@ set(DL_ROOT "${COOLBOX_ROOT}/_deliverables/libraries/groups/cool_car/DL")
 # ── Decision Tree ──────────────────────────────────────────────────
 add_emscripten_module(decision_tree_js createDecisionTreeModule
     decision_tree_bindings.cpp
-    "${ML_ROOT}/decision_tree/source/decision_tree.cpp;${ML_ROOT}/decision_tree/source/random_forest.cpp;${ML_ROOT}/decision_tree/source/boost_tree.cpp;${ML_ROOT}/decision_tree/source/rule_set.cpp"
+    "${ML_ROOT}/decision_tree/source/decision_tree.cpp;${ML_ROOT}/decision_tree/source/decision_tree_regressor.cpp;${ML_ROOT}/decision_tree/source/random_forest.cpp;${ML_ROOT}/decision_tree/source/random_forest_regressor.cpp;${ML_ROOT}/decision_tree/source/boost_tree.cpp;${ML_ROOT}/decision_tree/source/rule_set.cpp"
     "${ML_ROOT}/decision_tree/headers"
 )
+if(TARGET decision_tree_js)
+    target_compile_options(decision_tree_js PRIVATE -fexceptions)
+    target_link_options(decision_tree_js PRIVATE -fexceptions)
+endif()
 
 # ── Bayesian Network ──────────────────────────────────────────────
 add_emscripten_module(bayesian_network_js createBayesianNetworkModule

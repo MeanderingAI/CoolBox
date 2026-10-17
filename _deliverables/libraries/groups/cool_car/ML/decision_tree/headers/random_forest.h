@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include "decision_tree.h"
+#include "random_forest_regressor.h"
 
 class RandomForest {
 public:
