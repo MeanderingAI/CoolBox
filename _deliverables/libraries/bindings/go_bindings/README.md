@@ -14,7 +14,10 @@ forecasters.
 The DL APIs include tensors and their arithmetic, dense/activation/convolutional/
 pooling/recurrent layers, losses, optimizers, sequential neural networks, and
 the HELiX finite-hypothesis learner. Graphics bindings include native line,
-bar, and scatter plots with RGBA access and BMP, PNG, and JPG export.
+bar, and scatter plots, single-series 2D/3D plotting helpers with X/Y/Z defaults,
+RGBA access, and BMP, PNG, and JPG export. The interactive native viewer is not
+linked into the Go bridge build; requesting `ShowWindow` returns an explicit
+unsupported-build error.
 
 The native data-structure bindings currently cover int64 singly and doubly
 linked lists (including the concurrent list), FIFO folio queues, both binary
@@ -31,7 +34,7 @@ CPU optimizations.
 
 This is not yet full Python API parity. Advanced deep-learning layers (such as
 transformers and attention), SVMs, Bayesian networks, HMMs, PCA/SVD/UMAP,
-computer vision, distributed training, trackers, 3D charts,
+computer vision, distributed training, trackers, advanced 3D chart types,
 function/parametric/polar plots, histograms, tables, other data structures
 (including B-trees, B+ trees with other key/value types and orders, and cover
 trees with custom distance functions), and the remaining NLP and time-series
@@ -187,6 +190,28 @@ if err := plot.SavePNG("loss.png"); err != nil {
 	log.Fatal(err)
 }
 ```
+
+For a direct 2D or 3D plot, use `Plot2D` or `Plot3D` and close the returned
+canvas when finished:
+
+```go
+canvas, err := coolbox.Plot2D(
+	[]float64{0, 1, 2},
+	[]float64{1, 3, 2},
+	coolbox.Plot2DOptions{Title: "Measurements"},
+)
+if err != nil {
+	log.Fatal(err)
+}
+defer canvas.Close()
+if err := canvas.SavePNG("measurements.png"); err != nil {
+	log.Fatal(err)
+}
+```
+
+The convenience helpers default to an 800x600 canvas and X/Y (plus Z for 3D)
+axis labels. `ShowWindow` is opt-in but currently reports an unsupported-build
+error in Go; the native C++ API has the interactive viewer.
 
 Data-structure example:
 

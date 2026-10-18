@@ -300,6 +300,34 @@ def test_graphics():
         pixels = canvas.to_numpy()
         print(f"  Rendered canvas shape: {pixels.shape}")
 
+        plot_2d = ml_core.graphics.plot_2d(
+            [0.0, 1.0, 2.0],
+            [2.0, 1.0, 3.0],
+            width=48,
+            height=32,
+        )
+        assert plot_2d.width() == 48
+        assert plot_2d.height() == 32
+        assert plot_2d.to_numpy().shape == (32, 48, 4)
+
+        plot_3d = ml_core.graphics.plot_3d(
+            [0.0, 1.0, 2.0],
+            [2.0, 1.0, 3.0],
+            [1.0, 2.0, 0.0],
+            width=48,
+            height=32,
+        )
+        assert plot_3d.width() == 48
+        assert plot_3d.height() == 32
+        assert plot_3d.to_numpy().shape == (32, 48, 4)
+
+        try:
+            ml_core.graphics.plot_2d([0.0], [0.0], show_window=True)
+        except RuntimeError as error:
+            assert "unavailable" in str(error)
+        else:
+            raise AssertionError("plot_2d unexpectedly opened a window in this binding build")
+
         table = ml_core.graphics.Table()
         table.set_headers(["Name", "Value"])
         table.add_row(["alpha", "1"])

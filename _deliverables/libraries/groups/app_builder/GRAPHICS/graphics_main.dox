@@ -9,5 +9,24 @@
  * - Plotting helpers and visual styles
  * - Export to PNG/JPG/BMP
  *
+ * Include `plotting.hpp` from the `full_application_window` headers for the
+ * `graphics::plot_2d` and `graphics::plot_3d` convenience functions. They use
+ * default X/Y/Z axis labels and return a rendered Canvas. Set
+ * `options.show_window = true` to open the native application window; use the
+ * mouse wheel to zoom, drag to pan, and the Save PNG button to export the
+ * original-resolution plot to `options.save_path`.
+ *
+ * @code{.cpp}
+ * #include "plotting.hpp"
+ *
+ * graphics::Plot2DOptions options;
+ * options.title = "Training loss";
+ * options.x_label = "Epoch";
+ * options.y_label = "Loss";
+ * options.show_window = true;
+ * options.save_path = "training-loss.png";
+ * auto plot = graphics::plot_2d({1, 2, 3, 4}, {0.8, 0.5, 0.25, 0.1}, options);
+ * @endcode
+ *
  * See the module documentation for usage and API details.
  */

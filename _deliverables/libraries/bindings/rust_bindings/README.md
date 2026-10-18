@@ -13,7 +13,8 @@ in Rust. Python is not required at runtime.
   moving-average/exponential-smoothing forecasting
 - Tensors, arithmetic, deep-learning layers, losses, optimizers, neural
   networks, and the HELiX learner
-- Line/bar/scatter plotting, RGBA pixel access, and BMP/PNG/JPEG export
+- Line/bar/scatter plotting, single-series 2D/3D helpers with default axis
+  labels, RGBA pixel access, and BMP/PNG/JPEG export
 - The data structures available in the Go bindings, including linked lists,
   queues, heaps, maps, ordered trees, filters, Van Emde Boas trees, arrays,
   B+ trees, radix trees, LSM and Maple trees, and cover trees
@@ -57,6 +58,29 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 ```
+
+Convenience plotting helpers:
+
+```rust
+use coolbox_rs::{plot_2d, Plot2DOptions};
+
+fn main() -> Result<(), String> {
+    let canvas = plot_2d(
+        &[0.0, 1.0, 2.0],
+        &[1.0, 3.0, 2.0],
+        Plot2DOptions {
+            title: "Measurements".to_string(),
+            ..Plot2DOptions::default()
+        },
+    )?;
+    canvas.save("measurements.png", coolbox_rs::ImageFormat::Png, 90)?;
+    Ok(())
+}
+```
+
+The helpers default to an 800x600 canvas and X/Y/Z axis labels. `show_window`
+is opt-in but currently returns an explicit unsupported-build error in the
+Rust bridge; the native C++ API has the interactive viewer.
 
 ## Build
 
