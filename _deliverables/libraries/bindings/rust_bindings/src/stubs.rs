@@ -268,36 +268,6 @@ pub struct SimulationResult {
     pub bandit_results: Vec<BanditStats>,
 }
 
-pub struct BanditArm {
-    pub true_prob: f64,
-}
-
-impl BanditArm {
-    pub fn new(true_prob: f64) -> Self {
-        Self { true_prob }
-    }
-
-    pub fn pull(&mut self) -> Result<f64, String> {
-        Err(stub_error("BanditArm::pull"))
-    }
-
-    pub fn update(&mut self, _reward: f64) -> Result<(), String> {
-        Err(stub_error("BanditArm::update"))
-    }
-
-    pub fn get_estimated_prob(&self) -> Result<f64, String> {
-        Err(stub_error("BanditArm::get_estimated_prob"))
-    }
-
-    pub fn get_pull_count(&self) -> Result<i32, String> {
-        Err(stub_error("BanditArm::get_pull_count"))
-    }
-
-    pub fn get_true_prob(&self) -> f64 {
-        self.true_prob
-    }
-}
-
 pub struct EpsilonGreedyAgent {
     pub true_probs: Vec<f64>,
     pub epsilon: f64,
