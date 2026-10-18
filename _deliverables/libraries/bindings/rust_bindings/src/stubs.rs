@@ -60,41 +60,6 @@ impl RandomForest {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct BoostTreeParameters {
-    pub num_estimators: u32,
-    pub learning_rate: f64,
-    pub max_depth: u32,
-}
-
-impl Default for BoostTreeParameters {
-    fn default() -> Self {
-        Self {
-            num_estimators: 100,
-            learning_rate: 0.1,
-            max_depth: 3,
-        }
-    }
-}
-
-pub struct BoostTree {
-    pub params: BoostTreeParameters,
-}
-
-impl BoostTree {
-    pub fn new(params: BoostTreeParameters) -> Self {
-        Self { params }
-    }
-
-    pub fn fit(&mut self, _x: &[Vec<f64>], _y: &[f64]) -> Result<(), String> {
-        Err(stub_error("BoostTree::fit"))
-    }
-
-    pub fn predict(&self, _sample: &[f64]) -> Result<f64, String> {
-        Err(stub_error("BoostTree::predict"))
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum KernelType {
     Linear,

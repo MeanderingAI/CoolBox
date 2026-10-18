@@ -7,8 +7,8 @@ in Rust. Python is not required at runtime.
 ## Coverage
 
 - Client metadata, UUID generation, and generalized linear regression
-- K-Means clustering, KNN search, decision-tree classification/regression, and
-  Bernoulli bandit arms
+- K-Means clustering, KNN search, decision-tree and boosted-tree
+  classification/regression, and Bernoulli bandit arms
 - Text processing, time-series statistics/transforms, and AR/ARMA/ARIMA and
   moving-average/exponential-smoothing forecasting
 - Tensors, arithmetic, deep-learning layers, losses, optimizers, neural
@@ -46,6 +46,27 @@ fn main() -> Result<(), String> {
     println!("weights = {:?}", model.weights());
     println!("intercept = {}", model.intercept());
     println!("predictions = {:?}", predictions);
+    Ok(())
+}
+```
+
+Boosted-tree regression and classification:
+
+```rust
+use coolbox_rs::{BoostTree, BoostTreeClassifier, BoostTreeParameters};
+
+fn main() -> Result<(), String> {
+    let params = BoostTreeParameters::default();
+    let features = vec![vec![0.0], vec![1.0], vec![2.0], vec![3.0]];
+
+    let mut regressor = BoostTree::new(params)?;
+    regressor.fit(&features, &[0.0, 1.0, 2.0, 3.0])?;
+    println!("regression predictions = {:?}", regressor.predict_batch(&features)?);
+
+    let mut classifier = BoostTreeClassifier::new(params)?;
+    classifier.fit(&features, &[-3, -3, 8, 8])?;
+    println!("classes = {:?}", classifier.classes()?);
+    println!("prediction = {}", classifier.predict(&[3.0])?);
     Ok(())
 }
 ```

@@ -6,10 +6,10 @@ K-Means and KNN. Python is not required at runtime.
 
 The Go package currently covers the metadata `Client`, UUID generation,
 `glm.LinearRegression`, K-Means clustering, KNN search, categorical decision
-trees, decision-tree regression, the Bernoulli `BanditArm`, native text
-processing, and univariate time-series statistics, transforms, windows,
-autocorrelation, and moving-average, exponential-smoothing, AR, ARMA, and ARIMA
-forecasters.
+trees, decision-tree and boosted-tree regression/classification, the Bernoulli
+`BanditArm`, native text processing, and univariate time-series statistics,
+transforms, windows, autocorrelation, and moving-average, exponential-smoothing,
+AR, ARMA, and ARIMA forecasters.
 
 The DL APIs include tensors and their arithmetic, dense/activation/convolutional/
 pooling/recurrent layers, losses, optimizers, sequential neural networks, and

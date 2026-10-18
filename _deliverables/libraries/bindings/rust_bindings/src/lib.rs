@@ -1,6 +1,7 @@
 use cxx::UniquePtr;
 use std::ffi::CStr;
 
+mod boost_tree;
 mod classical_ml;
 mod datastructures;
 mod deep_learning;
@@ -10,6 +11,7 @@ mod matrix;
 mod opt_math_finance;
 mod stubs;
 
+pub use boost_tree::*;
 pub use classical_ml::*;
 pub use datastructures::*;
 pub use deep_learning::*;
