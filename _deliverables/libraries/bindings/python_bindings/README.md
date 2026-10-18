@@ -34,6 +34,39 @@ After installation, both import styles are supported:
 - `graphics` (including projected 3D line and scatter plots)
 - `synthetic_data`
 - `timer`
+- `matrix` (dense matrices, vectors, CPU optimizations, Eigen, and optional GPU backends)
+
+Matrix API example:
+
+```python
+from ml_toolbox import matrix
+
+left = matrix.DenseMatrix.from_rows([[1.0, 2.0], [3.0, 4.0]])
+right = matrix.DenseMatrix.identity(2)
+product = left @ right
+print(product.data)
+```
+
+The matrix bindings provide dense matrix construction, indexing, addition,
+subtraction, multiplication, transpose, norms, row-wise vector addition, and
+dense-vector addition/dot products. Select `matrix.MatrixBackend.EIGEN` with
+`matrix.set_backend(...)` to run matrix operations through MATRIX's Eigen-backed
+types; `matrix.MatrixBackend.CPU` selects the existing optimized CPU kernels.
+The selection is process-wide. Eigen headers are required when building the
+native extension and can be located with `EIGEN3_INCLUDE_DIR` or
+`EIGEN_INCLUDE_DIR`. CPU optimization strategies apply when the CPU backend
+is selected. Backends are process-wide; `get_backend()` returns the requested
+backend and `get_active_backend()` reports the one resolved for the most recent
+operation. `AUTO` selects an available GPU backend and otherwise CPU. CUDA is
+available only when the native extension is compiled with nvcc and a CUDA
+device/runtime is present. Metal requires an Objective-C++ build on macOS with
+a usable Metal device, with `metal_backend.mm` and Metal/Foundation frameworks
+linked. These GPU choices currently accelerate matrix addition,
+multiplication, and transpose. Norms and scalar access remain host-side;
+unsupported vector arithmetic, matrix subtraction, and row-wise operations
+report errors instead of silently claiming GPU execution. OpenCL is listed but
+unavailable until its kernels are implemented; check `backend_available(...)`
+before selecting it.
 
 Native Go bindings are available in
 [`../go_bindings`](../go_bindings/README.md). They currently include the

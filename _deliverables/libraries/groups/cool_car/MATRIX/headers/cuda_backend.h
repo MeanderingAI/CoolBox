@@ -22,7 +22,26 @@ inline void throw_cuda_error(cudaError_t error, const char* operation) {
     }
 }
 
-__global__ void multiply_kernel_impl(const double* lhs, const double* rhs, double* out, int lhs_rows, int lhs_cols, int rhs_cols) {
+class DeviceBuffer {
+public:
+    explicit DeviceBuffer(std::size_t bytes) {
+        throw_cuda_error(cudaMalloc(reinterpret_cast<void**>(&data_), bytes), "cudaMalloc");
+    }
+
+    ~DeviceBuffer() {
+        if (data_ != nullptr) cudaFree(data_);
+    }
+
+    DeviceBuffer(const DeviceBuffer&) = delete;
+    DeviceBuffer& operator=(const DeviceBuffer&) = delete;
+
+    double* get() const noexcept { return data_; }
+
+private:
+    double* data_{nullptr};
+};
+
+static __global__ void multiply_kernel_impl(const double* lhs, const double* rhs, double* out, int lhs_rows, int lhs_cols, int rhs_cols) {
     const int row = blockIdx.y * blockDim.y + threadIdx.y;
     const int col = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -40,7 +59,7 @@ __global__ void multiply_kernel_impl(const double* lhs, const double* rhs, doubl
     out[row + col * lhs_rows] = sum;
 }
 
-__global__ void transpose_kernel_impl(const double* input, double* output, int rows, int cols) {
+static __global__ void transpose_kernel_impl(const double* input, double* output, int rows, int cols) {
     const int row = blockIdx.y * blockDim.y + threadIdx.y;
     const int col = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -51,7 +70,7 @@ __global__ void transpose_kernel_impl(const double* input, double* output, int r
     output[col + row * cols] = input[row + col * rows];
 }
 
-__global__ void add_kernel_impl(const double* lhs, const double* rhs, double* out, int rows, int cols) {
+static __global__ void add_kernel_impl(const double* lhs, const double* rhs, double* out, int rows, int cols) {
     const int row = blockIdx.y * blockDim.y + threadIdx.y;
     const int col = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -71,16 +90,18 @@ __global__ void add_kernel_impl(const double* lhs, const double* rhs, double* ou
  *
  * Provides GPU acceleration on Windows/NVIDIA via CUDA.
  * Separate kernel methods for each operation.
- * Falls back to CPU for unsupported shapes or when CUDA is unavailable.
+ * The higher-level convenience methods may use CPU for small inputs; explicit
+ * kernel calls fail when CUDA is unavailable.
  *
  * When compiled with nvcc and MYTRIX_ENABLE_CUDA, these methods launch real CUDA kernels.
- * Otherwise they transparently fall back to the CPU path.
+ * Otherwise explicit kernel calls report that CUDA support was not compiled.
  */
 class CudaBackend {
 public:
     static bool is_available() {
-#ifdef MYTRIX_ENABLE_CUDA
-        return true;
+#if defined(MYTRIX_ENABLE_CUDA) && defined(__CUDACC__)
+        int device_count = 0;
+        return cudaGetDeviceCount(&device_count) == cudaSuccess && device_count > 0;
 #else
         return false;
 #endif
@@ -105,34 +126,24 @@ public:
         const std::size_t rhs_bytes = static_cast<std::size_t>(rhs.rows()) * static_cast<std::size_t>(rhs.cols()) * sizeof(double);
         const std::size_t out_bytes = static_cast<std::size_t>(lhs_rows) * static_cast<std::size_t>(rhs_cols) * sizeof(double);
 
-        double* lhs_device = nullptr;
-        double* rhs_device = nullptr;
-        double* out_device = nullptr;
+        detail::DeviceBuffer lhs_device(lhs_bytes);
+        detail::DeviceBuffer rhs_device(rhs_bytes);
+        detail::DeviceBuffer out_device(out_bytes);
 
-        detail::throw_cuda_error(cudaMalloc(&lhs_device, lhs_bytes), "cudaMalloc(lhs)");
-        detail::throw_cuda_error(cudaMalloc(&rhs_device, rhs_bytes), "cudaMalloc(rhs)");
-        detail::throw_cuda_error(cudaMalloc(&out_device, out_bytes), "cudaMalloc(out)");
-
-        detail::throw_cuda_error(cudaMemcpy(lhs_device, lhs.data.data(), lhs_bytes, cudaMemcpyHostToDevice), "cudaMemcpy(lhs)");
-        detail::throw_cuda_error(cudaMemcpy(rhs_device, rhs.data.data(), rhs_bytes, cudaMemcpyHostToDevice), "cudaMemcpy(rhs)");
+        detail::throw_cuda_error(cudaMemcpy(lhs_device.get(), lhs.data.data(), lhs_bytes, cudaMemcpyHostToDevice), "cudaMemcpy(lhs)");
+        detail::throw_cuda_error(cudaMemcpy(rhs_device.get(), rhs.data.data(), rhs_bytes, cudaMemcpyHostToDevice), "cudaMemcpy(rhs)");
 
         dim3 block(16, 16);
         dim3 grid((rhs_cols + block.x - 1) / block.x, (lhs_rows + block.y - 1) / block.y);
-        multiply_kernel_impl<<<grid, block>>>(lhs_device, rhs_device, out_device, lhs_rows, lhs_cols, rhs_cols);
+        multiply_kernel_impl<<<grid, block>>>(lhs_device.get(), rhs_device.get(), out_device.get(), lhs_rows, lhs_cols, rhs_cols);
         detail::throw_cuda_error(cudaGetLastError(), "multiply_kernel launch");
         detail::throw_cuda_error(cudaDeviceSynchronize(), "multiply_kernel synchronize");
 
         DenseMatrix result(lhs_rows, rhs_cols);
-        detail::throw_cuda_error(cudaMemcpy(result.data.data(), out_device, out_bytes, cudaMemcpyDeviceToHost), "cudaMemcpy(result)");
-
-        cudaFree(lhs_device);
-        cudaFree(rhs_device);
-        cudaFree(out_device);
+        detail::throw_cuda_error(cudaMemcpy(result.data.data(), out_device.get(), out_bytes, cudaMemcpyDeviceToHost), "cudaMemcpy(result)");
         return result;
 #else
-        DenseMatrix result(lhs.rows(), rhs.cols());
-        result.data = lhs.data * rhs.data;
-        return result;
+        throw std::runtime_error("CUDA backend was not compiled with nvcc support");
 #endif
     }
 
@@ -148,29 +159,21 @@ public:
         const std::size_t input_bytes = static_cast<std::size_t>(rows) * static_cast<std::size_t>(cols) * sizeof(double);
         const std::size_t output_bytes = static_cast<std::size_t>(cols) * static_cast<std::size_t>(rows) * sizeof(double);
 
-        double* input_device = nullptr;
-        double* output_device = nullptr;
-
-        detail::throw_cuda_error(cudaMalloc(&input_device, input_bytes), "cudaMalloc(input)");
-        detail::throw_cuda_error(cudaMalloc(&output_device, output_bytes), "cudaMalloc(output)");
-        detail::throw_cuda_error(cudaMemcpy(input_device, mat.data.data(), input_bytes, cudaMemcpyHostToDevice), "cudaMemcpy(input)");
+        detail::DeviceBuffer input_device(input_bytes);
+        detail::DeviceBuffer output_device(output_bytes);
+        detail::throw_cuda_error(cudaMemcpy(input_device.get(), mat.data.data(), input_bytes, cudaMemcpyHostToDevice), "cudaMemcpy(input)");
 
         dim3 block(16, 16);
         dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-        transpose_kernel_impl<<<grid, block>>>(input_device, output_device, rows, cols);
+        transpose_kernel_impl<<<grid, block>>>(input_device.get(), output_device.get(), rows, cols);
         detail::throw_cuda_error(cudaGetLastError(), "transpose_kernel launch");
         detail::throw_cuda_error(cudaDeviceSynchronize(), "transpose_kernel synchronize");
 
         DenseMatrix result(cols, rows);
-        detail::throw_cuda_error(cudaMemcpy(result.data.data(), output_device, output_bytes, cudaMemcpyDeviceToHost), "cudaMemcpy(result)");
-
-        cudaFree(input_device);
-        cudaFree(output_device);
+        detail::throw_cuda_error(cudaMemcpy(result.data.data(), output_device.get(), output_bytes, cudaMemcpyDeviceToHost), "cudaMemcpy(result)");
         return result;
     #else
-        DenseMatrix result(mat.cols(), mat.rows());
-        result.data = mat.data.transpose();
-        return result;
+        throw std::runtime_error("CUDA backend was not compiled with nvcc support");
     #endif
     }
 
@@ -188,34 +191,24 @@ public:
         const int cols = lhs.cols();
         const std::size_t bytes = static_cast<std::size_t>(rows) * static_cast<std::size_t>(cols) * sizeof(double);
 
-        double* lhs_device = nullptr;
-        double* rhs_device = nullptr;
-        double* out_device = nullptr;
+        detail::DeviceBuffer lhs_device(bytes);
+        detail::DeviceBuffer rhs_device(bytes);
+        detail::DeviceBuffer out_device(bytes);
 
-        detail::throw_cuda_error(cudaMalloc(&lhs_device, bytes), "cudaMalloc(lhs)");
-        detail::throw_cuda_error(cudaMalloc(&rhs_device, bytes), "cudaMalloc(rhs)");
-        detail::throw_cuda_error(cudaMalloc(&out_device, bytes), "cudaMalloc(out)");
-
-        detail::throw_cuda_error(cudaMemcpy(lhs_device, lhs.data.data(), bytes, cudaMemcpyHostToDevice), "cudaMemcpy(lhs)");
-        detail::throw_cuda_error(cudaMemcpy(rhs_device, rhs.data.data(), bytes, cudaMemcpyHostToDevice), "cudaMemcpy(rhs)");
+        detail::throw_cuda_error(cudaMemcpy(lhs_device.get(), lhs.data.data(), bytes, cudaMemcpyHostToDevice), "cudaMemcpy(lhs)");
+        detail::throw_cuda_error(cudaMemcpy(rhs_device.get(), rhs.data.data(), bytes, cudaMemcpyHostToDevice), "cudaMemcpy(rhs)");
 
         dim3 block(16, 16);
         dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-        add_kernel_impl<<<grid, block>>>(lhs_device, rhs_device, out_device, rows, cols);
+        add_kernel_impl<<<grid, block>>>(lhs_device.get(), rhs_device.get(), out_device.get(), rows, cols);
         detail::throw_cuda_error(cudaGetLastError(), "add_kernel launch");
         detail::throw_cuda_error(cudaDeviceSynchronize(), "add_kernel synchronize");
 
         DenseMatrix result(rows, cols);
-        detail::throw_cuda_error(cudaMemcpy(result.data.data(), out_device, bytes, cudaMemcpyDeviceToHost), "cudaMemcpy(result)");
-
-        cudaFree(lhs_device);
-        cudaFree(rhs_device);
-        cudaFree(out_device);
+        detail::throw_cuda_error(cudaMemcpy(result.data.data(), out_device.get(), bytes, cudaMemcpyDeviceToHost), "cudaMemcpy(result)");
         return result;
 #else
-        DenseMatrix result(lhs.rows(), lhs.cols());
-        result.data = lhs.data + rhs.data;
-        return result;
+        throw std::runtime_error("CUDA backend was not compiled with nvcc support");
 #endif
     }
 
