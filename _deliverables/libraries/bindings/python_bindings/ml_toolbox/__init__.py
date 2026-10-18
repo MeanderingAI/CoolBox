@@ -23,6 +23,7 @@ Main Modules
 - timer: Monotonic timers and timing statistics
 - graphics: Native 2D and projected 3D plots
 - synthetic_data: Deterministic regression, classification, and blob datasets
+- data_structures: Native linked lists, queues, heaps, maps, trees, filters, and arrays
 
 Quick Start
 -----------
@@ -113,4 +114,5 @@ __all__ = [
     "graphics",
     "matrix",
     "synthetic_data",
+    "data_structures",
 ]

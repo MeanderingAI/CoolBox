@@ -347,6 +347,10 @@ include_dirs = [
             repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include",
             repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
             repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/list/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/maps/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/headers",
         ]
     ),
     *existing_dirs(repo_matrix_header_candidates),
@@ -373,6 +377,7 @@ source_files = [
     "src/opt_math_finance_bindings.cpp",
     "src/timer_bindings.cpp",
     "src/tree_ensemble_bindings.cpp",
+    "src/data_structures_bindings.cpp",
     "src/matrix_bindings.cpp",
     "src/synthetic_data_bindings.cpp",
 ]
@@ -383,6 +388,12 @@ for module_dir in source_modules:
         module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
     source_files.extend(module_sources)
 source_files.append(str(project_root.parent / "go_bindings" / "matrix_bridge.cc"))
+source_files.extend(
+    [
+        str(project_root.parent / "go_bindings" / "ds_bridge.cc"),
+        str(project_root.parent / "go_bindings" / "ds_bridge_sources.cc"),
+    ]
+)
 
 # Do not compile large C++ vendor sources into the Python extension; instead
 # link against the project's shared libraries. Users should build the C++ libs

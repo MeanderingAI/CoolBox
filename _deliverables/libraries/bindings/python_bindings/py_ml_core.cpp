@@ -49,6 +49,7 @@
 namespace py = pybind11;
 
 void bind_tree_ensembles(py::module_& module);
+void bind_data_structures(py::module_& module);
 void bind_matrix(py::module_& module);
 void bind_opt_math_finance(py::module_& module);
 
@@ -62,6 +63,9 @@ PYBIND11_MODULE(ml_core, m) {
     bind_synthetic_data(m);
     bind_matrix(m);
     bind_opt_math_finance(m);
+    py::module_ data_structures_module =
+        m.def_submodule("data_structures", "Native data structures");
+    bind_data_structures(data_structures_module);
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");

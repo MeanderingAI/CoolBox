@@ -35,6 +35,8 @@ After installation, both import styles are supported:
 - `synthetic_data`
 - `timer`
 - `matrix` (dense matrices, vectors, CPU optimizations, Eigen, and optional GPU backends)
+- `data_structures` (linked lists, queues, heaps, maps, trees, filters, arrays,
+  and metric trees)
 - `opt`, `math`, and `finance` (optimizers, heat solvers, pricing, Monte Carlo,
   and distributed model averaging)
 
@@ -69,6 +71,28 @@ unsupported vector arithmetic, matrix subtraction, and row-wise operations
 report errors instead of silently claiming GPU execution. OpenCL is listed but
 unavailable until its kernels are implemented; check `backend_available(...)`
 before selecting it.
+
+## Data structures
+
+`ml_toolbox.data_structures` exposes the native trekker data structures for
+int64 values and keys, float64 arrays and metric trees, and string-keyed radix
+trees. The module includes singly/doubly and concurrent linked lists, folio
+queues, both heap implementations, indexed priority queues, regular and
+concurrent hash maps, binary-search/red-black/splay trees, B+ and Maple trees,
+log-structured merge trees, Bloom and EGH probabilistic filters, Van Emde Boas
+trees, rank-1 through rank-4 arrays, and standard/faster cover trees.
+
+Filter membership checks are probabilistic and may return false positives.
+Cover-tree queries return `(input_index, distance, item)` tuples. Native objects
+support `close()` and Python context managers:
+
+```python
+from ml_toolbox import data_structures as ds
+
+with ds.EGHFilter(expected_insertions=10_000, false_positive_rate=0.01) as seen:
+    seen.insert(42)
+    print(seen.contains(42))
+```
 
 ## OPT, MATH, and FINANCE
 
