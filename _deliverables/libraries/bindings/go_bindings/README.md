@@ -24,6 +24,11 @@ string-keyed radix tree, int64 log-structured merge trees, standard and
 faster float64 cover trees, Bloom and EGH filters, Van Emde Boas trees, and
 one- through four-dimensional float64 xarrays.
 
+The `DenseMatrix` and `DenseVector` APIs expose the CoolBox MATRIX package's
+row-major dense operations, including matrix arithmetic, matrix products,
+transpose, norms, vector dot/add, row-wise vector broadcasting, and selectable
+CPU optimizations.
+
 This is not yet full Python API parity. Advanced deep-learning layers (such as
 transformers and attention), SVMs, Bayesian networks, HMMs, PCA/SVD/UMAP,
 computer vision, distributed training, trackers, 3D charts,
@@ -210,3 +215,20 @@ The native neural
 network implementation currently applies its own fixed learning rate when
 training; configuring an optimizer stores it on the network but does not yet
 change that training behavior.
+
+Dense matrix and vector operations have a process-wide backend selector:
+`SetMatrixBackend(BackendEigen)`, `SetMatrixBackend(BackendCPU)`, or
+`SetMatrixBackend(BackendAuto)`. `MatrixBackendAvailable` checks whether a
+backend can really run in this build; `CurrentMatrixBackend` reads the requested
+choice and `ActiveMatrixBackend` reports the resolved backend used by the most
+recent operation. `BackendAuto` selects an available GPU, otherwise CPU. CUDA
+requires compiling the native bridge with nvcc and an installed CUDA runtime
+with a device; Metal requires an Objective-C++ build and an available macOS
+Metal device, with `metal_backend.mm` and Metal/Foundation frameworks linked.
+GPU choices support matrix addition, multiplication, and
+transpose. Norms and scalar access remain host-side; unsupported vector
+arithmetic, matrix subtraction, and row-wise operations return an error rather
+than silently claiming GPU execution. OpenCL remains unavailable until kernels
+are implemented. Eigen headers are required to compile the bindings. The build checks
+`external/eigen/eigen-3.4.0` in the repository; otherwise supply the include
+directory in `CGO_CXXFLAGS` (for example, `CGO_CXXFLAGS="-I/path/to/eigen"`).

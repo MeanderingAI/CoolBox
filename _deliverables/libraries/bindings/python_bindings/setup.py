@@ -332,6 +332,7 @@ include_dirs = [
     # cool_car group headers: mytrix_eigen_compat.hpp, DL/layers, DL/loss, DL/optimizer, DL/wrapper
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
     *existing_dirs(repo_cool_car_root_candidates),
+    str(project_root.parent / "go_bindings"),
     *existing_dirs(repo_matrix_header_candidates),
     # Prefer the repository MATRIX headers over the vendored copies. Mixing both
     # copies in one translation unit bypasses #pragma once and causes redefinitions.
@@ -354,6 +355,7 @@ source_files = [
     "src/pde_spde_bindings.cpp",
     "src/timer_bindings.cpp",
     "src/tree_ensemble_bindings.cpp",
+    "src/matrix_bindings.cpp",
     "src/synthetic_data_bindings.cpp",
 ]
 source_files.extend(to_setup_relative_path(path) for path in ensemble_sources)
@@ -362,6 +364,7 @@ for module_dir in source_modules:
     if module_dir == "deep_learning":
         module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
     source_files.extend(module_sources)
+source_files.append(str(project_root.parent / "go_bindings" / "matrix_bridge.cc"))
 
 # Do not compile large C++ vendor sources into the Python extension; instead
 # link against the project's shared libraries. Users should build the C++ libs

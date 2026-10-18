@@ -49,6 +49,7 @@
 namespace py = pybind11;
 
 void bind_tree_ensembles(py::module_& module);
+void bind_matrix(py::module_& module);
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
@@ -58,6 +59,7 @@ PYBIND11_MODULE(ml_core, m) {
     bind_pde_spde(m);
     bind_timer(m);
     bind_synthetic_data(m);
+    bind_matrix(m);
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");

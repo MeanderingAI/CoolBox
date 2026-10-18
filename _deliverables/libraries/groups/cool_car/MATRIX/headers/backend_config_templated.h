@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -37,6 +38,8 @@ struct OperationOptions {
     bool boost{false};
 };
 
+bool backend_runtime_available(ComputeBackend backend) noexcept;
+
 namespace metal {
     class MetalBackend;
 }
@@ -63,7 +66,7 @@ template <ComputeBackend B, typename = void>
 struct BackendResolver;
 
 // Metal Backend Resolution (macOS)
-#ifdef MYTRIX_ENABLE_METAL
+#if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
 template <>
 struct BackendResolver<ComputeBackend::GPU_METAL> {
     using type = metal::MetalBackend;
@@ -80,7 +83,7 @@ struct BackendResolver<ComputeBackend::GPU_METAL> {
 #endif
 
 // CUDA Backend Resolution (Windows/NVIDIA)
-#ifdef MYTRIX_ENABLE_CUDA
+#if defined(MYTRIX_ENABLE_CUDA) && defined(__CUDACC__)
 template <>
 struct BackendResolver<ComputeBackend::GPU_CUDA> {
     using type = cuda::CudaBackend;
@@ -96,7 +99,7 @@ struct BackendResolver<ComputeBackend::GPU_CUDA> {
 #endif
 
 // OpenCL Backend Resolution (Linux/cross-platform)
-#ifdef MYTRIX_ENABLE_OPENCL
+#if defined(MYTRIX_ENABLE_OPENCL) && defined(MYTRIX_OPENCL_IMPLEMENTED)
 template <>
 struct BackendResolver<ComputeBackend::GPU_OPENCL> {
     using type = opencl::OpenCLBackend;
@@ -146,15 +149,15 @@ template <typename = void>
 struct DefaultPlatformBackend {
     static constexpr ComputeBackend value() {
 #ifdef MYTRIX_PLATFORM_APPLE
-    #ifdef MYTRIX_ENABLE_METAL
+    #if defined(MYTRIX_ENABLE_METAL) && defined(__APPLE__) && defined(__OBJC__)
         return ComputeBackend::GPU_METAL;
     #endif
 #elif MYTRIX_PLATFORM_WINDOWS
-    #ifdef MYTRIX_ENABLE_CUDA
+    #if defined(MYTRIX_ENABLE_CUDA) && defined(__CUDACC__)
         return ComputeBackend::GPU_CUDA;
     #endif
 #elif MYTRIX_PLATFORM_LINUX
-    #ifdef MYTRIX_ENABLE_OPENCL
+    #if defined(MYTRIX_ENABLE_OPENCL) && defined(MYTRIX_OPENCL_IMPLEMENTED)
         return ComputeBackend::GPU_OPENCL;
     #endif
 #endif
@@ -220,6 +223,9 @@ struct OperationDispatcher<ComputeBackend::GPU_OPENCL> {
 class BackendConfig {
 public:
     static void set_requested_backend(ComputeBackend backend) {
+        if (!is_backend_available(backend)) {
+            throw std::invalid_argument("requested matrix backend is unavailable");
+        }
         requested_backend_.store(backend, std::memory_order_relaxed);
     }
 
@@ -312,13 +318,13 @@ public:
                 return true;
                 
             case ComputeBackend::GPU_METAL:
-                return BackendResolver<ComputeBackend::GPU_METAL>::available;
+                return backend_runtime_available(backend);
                 
             case ComputeBackend::GPU_CUDA:
-                return BackendResolver<ComputeBackend::GPU_CUDA>::available;
+                return backend_runtime_available(backend);
                 
             case ComputeBackend::GPU_OPENCL:
-                return BackendResolver<ComputeBackend::GPU_OPENCL>::available;
+                return backend_runtime_available(backend);
                 
             case ComputeBackend::GPU_AUTO:
                 return true; // AUTO always available as fallback

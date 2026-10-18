@@ -18,6 +18,14 @@ fn main() {
         .unwrap_or_else(|_| c_bindings_build_dir.join("Release"));
     let c_bindings_release_dir =
         fs::canonicalize(&c_bindings_release_dir).unwrap_or(c_bindings_release_dir);
+    let eigen_include_dirs = ["EIGEN3_INCLUDE_DIR", "EIGEN_INCLUDE_DIR"]
+        .into_iter()
+        .filter_map(|name| env::var_os(name).map(PathBuf::from))
+        .chain(std::iter::once(
+            manifest_dir.join("../../../../external/eigen/eigen-3.4.0"),
+        ))
+        .filter(|path| path.join("Eigen/Core").exists())
+        .collect::<Vec<_>>();
 
     let mut build = cxx_build::bridge("src/lib.rs");
     build
@@ -30,6 +38,7 @@ fn main() {
         .file("../go_bindings/ds_bridge_sources.cc")
         .file("../go_bindings/forecast_bridge.cc")
         .file("../go_bindings/graphics_bridge.cc")
+        .file("../go_bindings/matrix_bridge.cc")
         .file("../go_bindings/nlp_bridge.cc")
         .file("../go_bindings/nlp_bridge_sources.cc")
         .file("../go_bindings/series_bridge.cc")
@@ -42,6 +51,7 @@ fn main() {
         .file("../../groups/cool_car/ML/generalized_linear_model/source/linear_regression.cpp")
         .include("include")
         .include("../go_bindings")
+        .include("../../groups/cool_car/MATRIX/headers")
         .include("../python_bindings/include")
         .include("../python_bindings/include/decision_tree")
         .include("../python_bindings/include/nlp")
@@ -65,6 +75,9 @@ fn main() {
         .include("../../groups/trekker/DATASTRUCTURE/filters/headers")
         .include("../../groups/trekker/DATASTRUCTURE/xarray/headers")
         .std("c++17");
+    for path in &eigen_include_dirs {
+        build.include(path);
+    }
     build.compile("coolbox_rust_bindings");
 
     println!(
@@ -79,10 +92,25 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CARGO_MANIFEST_DIR");
     println!("cargo:rerun-if-env-changed=COOLBOX_C_BINDINGS_BUILD_DIR");
     println!("cargo:rerun-if-env-changed=COOLBOX_C_BINDINGS_BUILD_CONFIG_DIR");
+    println!("cargo:rerun-if-env-changed=EIGEN3_INCLUDE_DIR");
+    println!("cargo:rerun-if-env-changed=EIGEN_INCLUDE_DIR");
 
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=src/bridge.cpp");
     println!("cargo:rerun-if-changed=include/bridge.h");
+    println!("cargo:rerun-if-changed=../go_bindings/matrix_bridge.h");
+    println!("cargo:rerun-if-changed=../../groups/cool_car/MATRIX/headers/cpu_optimizations.h");
+    println!("cargo:rerun-if-changed=../../groups/cool_car/MATRIX/headers/matrix_dense.h");
+    println!("cargo:rerun-if-changed=../../groups/cool_car/MATRIX/headers/matrix_base.h");
+    println!(
+        "cargo:rerun-if-changed=../../groups/cool_car/MATRIX/headers/backend_config_templated.h"
+    );
+    for path in &eigen_include_dirs {
+        println!(
+            "cargo:rerun-if-changed={}",
+            path.join("Eigen/Core").display()
+        );
+    }
     for source in [
         "../go_bindings/bandit_bridge.cc",
         "../go_bindings/bandit_bridge_sources.cc",
@@ -92,6 +120,7 @@ fn main() {
         "../go_bindings/ds_bridge_sources.cc",
         "../go_bindings/forecast_bridge.cc",
         "../go_bindings/graphics_bridge.cc",
+        "../go_bindings/matrix_bridge.cc",
         "../go_bindings/nlp_bridge.cc",
         "../go_bindings/nlp_bridge_sources.cc",
         "../go_bindings/series_bridge.cc",
