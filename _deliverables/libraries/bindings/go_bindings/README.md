@@ -15,9 +15,9 @@ The DL APIs include tensors and their arithmetic, dense/activation/convolutional
 pooling/recurrent layers, losses, optimizers, sequential neural networks, and
 the HELiX finite-hypothesis learner. Graphics bindings include native line,
 bar, and scatter plots, single-series 2D/3D plotting helpers with X/Y/Z defaults,
-RGBA access, and BMP, PNG, and JPG export. The interactive native viewer is not
-linked into the Go bridge build; requesting `ShowWindow` returns an explicit
-unsupported-build error.
+RGBA access, and BMP, PNG, and JPG export. `Plot2DOptions.ShowWindow` and
+`Plot3DOptions.ShowWindow` open an interactive browser window: scroll to zoom,
+drag to pan, and use Save PNG (or S) to export the original plot.
 
 The native data-structure bindings currently cover int64 singly and doubly
 linked lists (including the concurrent list), FIFO folio queues, both binary
@@ -31,6 +31,46 @@ The `DenseMatrix` and `DenseVector` APIs expose the CoolBox MATRIX package's
 row-major dense operations, including matrix arithmetic, matrix products,
 transpose, norms, vector dot/add, row-wise vector broadcasting, and selectable
 CPU optimizations.
+
+## OPT, MATH, and FINANCE
+
+The Go API exposes genetic search, simulated annealing, hill climbing, and
+quantum-control Bayesian optimization through `NewSearchOptimizer`.
+Pass a corresponding config from `DefaultGeneticSearchConfig`,
+`DefaultSimulatedAnnealingConfig`, `DefaultHillClimbingConfig`, or
+`DefaultQuantumControlConfig`, then provide an objective callback to
+`Optimize`. Quantum-control bounds and frequency warp/unwarp helpers are
+available on the optimizer. The distributed-learning bindings include naive
+parameter averaging and optimal weighted averaging for linear-regression
+models, fast leave-one-model-out cross-validation, and nonlinear optimal
+weighted averaging over deep-learning tensor layers. Configure OWA methods
+with `DefaultOwaConfig`.
+
+`SolveHeatEquation` handles the package's explicit 1D, 2D, and 3D heat solvers;
+set `stochastic` to use the matching seeded SPDE solver. `HeatGrid.Values` are
+row-major, with 3D values laid out as `[x][y][z]`.
+
+Finance functions are available through `EvaluateFinanceFormula` and the
+`FinanceFormula` constants (including Black-Scholes, digital, Asian, and
+barrier options), plus Brownian/GBM paths, Ito integral/variance, and Monte
+Carlo estimates/Greeks for built-in European, Asian, and barrier contracts.
+Custom-payoff estimates and finite-difference Greeks are also available.
+Custom payoff callbacks receive the full simulated price path, including the
+initial spot, run synchronously, and may return an error to abort calculation.
+For example:
+
+```go
+price, err := coolbox.EvaluateFinanceFormula(
+	coolbox.BlackScholesCallPrice, 100, 100, 0.05, 0.2, 1,
+)
+```
+
+`FastOwaCrossValidationLinearRegression` takes one validation fold per local
+model; each feature row must match the model parameter width.
+`NonlinearOptimalWeightedAverageLayers` accepts models as `[][]*Tensor`, and
+its callback receives copied `TensorData` values for candidate merged layers.
+The returned `NowaResult.MergedLayers` tensors are caller-owned and should be
+closed when no longer needed.
 
 This is not yet full Python API parity. Advanced deep-learning layers (such as
 transformers and attention), SVMs, Bayesian networks, HMMs, PCA/SVD/UMAP,
@@ -210,8 +250,9 @@ if err := canvas.SavePNG("measurements.png"); err != nil {
 ```
 
 The convenience helpers default to an 800x600 canvas and X/Y (plus Z for 3D)
-axis labels. `ShowWindow` is opt-in but currently reports an unsupported-build
-error in Go; the native C++ API has the interactive viewer.
+axis labels. Set `ShowWindow: true` to open the rendered plot in the system
+browser with wheel zoom, drag-to-pan, and PNG download controls. This viewer
+uses only local temporary HTML and does not upload plot data.
 
 Data-structure example:
 

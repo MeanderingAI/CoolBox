@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "../../../go_bindings/interactive_plot_viewer.hpp"
 #include "GRAPHICS/charts/headers/graphics.h"
 #include "GRAPHICS/components/headers/components.hpp"
 #include "MISC/wave_generator/headers/wave_generator.hpp"
@@ -183,15 +184,18 @@ void bind_graphics(py::module_& parent_module) {
                 if (save_path.empty()) {
                     throw std::invalid_argument("save_path must not be empty");
                 }
-                throw std::runtime_error(
-                    "interactive plot windows are unavailable in the Python binding build");
             }
             graphics::Graph graph(width, height, graph_type);
             graph.set_title(title);
             graph.set_x_label(x_label);
             graph.set_y_label(y_label);
             graph.add_series({series_label, x_values, y_values, color});
-            return graph.render();
+            auto canvas = graph.render();
+            if (show_window) {
+                coolbox_graphics::show_interactive_plot(
+                    canvas.width(), canvas.height(), canvas.data(), title, save_path);
+            }
+            return canvas;
         },
         py::arg("x_values"),
         py::arg("y_values"),
@@ -229,8 +233,6 @@ void bind_graphics(py::module_& parent_module) {
                 if (save_path.empty()) {
                     throw std::invalid_argument("save_path must not be empty");
                 }
-                throw std::runtime_error(
-                    "interactive plot windows are unavailable in the Python binding build");
             }
             graphics::Graph3D graph(width, height, graph_type);
             graph.set_title(title);
@@ -239,7 +241,12 @@ void bind_graphics(py::module_& parent_module) {
             graph.set_z_label(z_label);
             graph.set_view(azimuth_degrees, elevation_degrees);
             graph.add_series({series_label, x_values, y_values, z_values, color});
-            return graph.render();
+            auto canvas = graph.render();
+            if (show_window) {
+                coolbox_graphics::show_interactive_plot(
+                    canvas.width(), canvas.height(), canvas.data(), title, save_path);
+            }
+            return canvas;
         },
         py::arg("x_values"),
         py::arg("y_values"),

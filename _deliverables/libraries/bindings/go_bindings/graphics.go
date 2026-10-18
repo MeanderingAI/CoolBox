@@ -121,8 +121,8 @@ func NewGraph(width, height int, kind GraphType) (*Graph, error) {
 	return &Graph{handle: handle, width: width, height: height}, nil
 }
 
-// Plot2D builds and renders a simple x/y plot. ShowWindow requests the native
-// viewer and returns an unsupported-build error in the current Go bridge.
+// Plot2D renders a simple x/y plot. ShowWindow opens its interactive viewer in
+// the system browser.
 func Plot2D(x, y []float64, options Plot2DOptions) (*Canvas, error) {
 	if len(x) == 0 || len(x) != len(y) {
 		return nil, errors.New("plot x and y values must have equal, non-zero lengths")
@@ -470,8 +470,8 @@ func (c *Canvas) SaveBMP(path string) error              { return c.save(path, 0
 func (c *Canvas) SavePNG(path string) error              { return c.save(path, 1, 0) }
 func (c *Canvas) SaveJPG(path string, quality int) error { return c.save(path, 2, quality) }
 
-// ShowWindow requests the native viewer; the current Go bridge reports that
-// interactive windows are unavailable in its build.
+// ShowWindow opens the rendered canvas in the system browser's interactive
+// viewer.
 func (c *Canvas) ShowWindow(title, savePath string) error {
 	if err := c.valid(); err != nil {
 		return err

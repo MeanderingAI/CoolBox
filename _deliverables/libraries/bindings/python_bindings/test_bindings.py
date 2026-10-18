@@ -321,13 +321,6 @@ def test_graphics():
         assert plot_3d.height() == 32
         assert plot_3d.to_numpy().shape == (32, 48, 4)
 
-        try:
-            ml_core.graphics.plot_2d([0.0], [0.0], show_window=True)
-        except RuntimeError as error:
-            assert "unavailable" in str(error)
-        else:
-            raise AssertionError("plot_2d unexpectedly opened a window in this binding build")
-
         table = ml_core.graphics.Table()
         table.set_headers(["Name", "Value"])
         table.add_row(["alpha", "1"])
@@ -376,6 +369,124 @@ def test_wave_generator():
         print(f"✗ Wave Generator test failed: {e}")
         return False
 
+def test_opt_math_finance():
+    """Test optimization, heat solvers, and finance bindings."""
+    print("\nTesting OPT, MATH, and FINANCE...")
+    try:
+        import ml_core
+
+        price = ml_core.finance.evaluate(
+            ml_core.finance.Formula.BLACK_SCHOLES_CALL_PRICE,
+            [100.0, 100.0, 0.05, 0.2, 1.0],
+        )
+        assert abs(price - 10.4505835722) < 1e-6
+
+        path = ml_core.finance.brownian_motion_path([0.25, 0.25], [0.0, 2.0])
+        assert path == [0.0, 0.0, 1.0]
+
+        solution = ml_core.math.solve_heat_equation(
+            [0.0, 1.0, 0.0], (3, 1, 1), 1, 1.0, 1.0, 0.1, 1
+        )
+        assert 0.0 < solution[1] < 1.0
+
+        optimizer = ml_core.opt.Optimizer(
+            ml_core.opt.OptimizerType.HILL_CLIMBING,
+            [1, 40, 20, 1, 0.25, -10, 10, 2026],
+        )
+        candidate = optimizer.optimize(lambda point: point[0] ** 2, [4.0])
+        assert len(candidate) == 1
+        assert optimizer.best_score <= 16.0
+
+        average = ml_core.opt.naive_average_parameters([[1.0, 3.0], [3.0, 5.0]])
+        assert average == [2.0, 4.0]
+
+        config = ml_core.opt.OwaConfig()
+        config.merge_iterations = 10
+        cv = ml_core.opt.fast_owa_cross_validation_linear_regression(
+            [[0.0, 1.0], [2.0, 1.0], [4.0, 3.0]],
+            [[[1.0, 2.0]], [[2.0, 1.0]], [[1.0, 1.0]]],
+            [[2.0], [1.0], [3.0]],
+            config,
+        )
+        assert len(cv.fold_losses) == 3
+        assert np.isfinite(cv.mean_loss)
+
+        tensor = ml_core.deep_learning.Tensor
+        local_layers = [
+            [tensor([2], [1.0, 2.0]), tensor([1], [3.0])],
+            [tensor([2], [3.0, 1.0]), tensor([1], [5.0])],
+        ]
+        weighted = ml_core.opt.weighted_tensor_average(
+            [local_layers[0][0], local_layers[1][0]], [0.5, 0.5]
+        )
+        assert weighted.shape() == [2]
+        assert weighted.data() == [2.0, 1.5]
+
+        nowa = ml_core.opt.nonlinear_optimal_weighted_average_layers(
+            local_layers,
+            lambda layers: sum(sum(layer.data()) for layer in layers),
+            config,
+        )
+        assert len(nowa.merged_layers) == 2
+        assert len(nowa.layer_weights) == 2
+        assert np.isfinite(nowa.validation_loss)
+
+        def fail_validation(_layers):
+            raise ValueError("validation callback failed")
+
+        try:
+            ml_core.opt.nonlinear_optimal_weighted_average_layers(
+                local_layers, fail_validation, config
+            )
+            raise AssertionError("NOWA callback exception should propagate")
+        except ValueError as error:
+            assert str(error) == "validation callback failed"
+
+        observed_paths = []
+
+        def terminal_payoff(path):
+            observed_paths.append(path)
+            return path[-1]
+
+        custom_estimate = ml_core.finance.monte_carlo_estimate_custom_payoff(
+            100.0, 0.05, 0.2, [1.0], [[0.0]], terminal_payoff
+        )
+        assert custom_estimate.sample_count == 1
+        assert np.isfinite(custom_estimate.price)
+        assert len(observed_paths) == 1
+        assert len(observed_paths[0]) == 2
+        assert observed_paths[0][0] == 100.0
+
+        def fail_payoff(_path):
+            raise ValueError("payoff callback failed")
+
+        try:
+            ml_core.finance.monte_carlo_estimate_custom_payoff(
+                100.0, 0.05, 0.2, [1.0], [[0.0]], fail_payoff
+            )
+            raise AssertionError("payoff callback exception should propagate")
+        except ValueError as error:
+            assert str(error) == "payoff callback failed"
+
+        custom_greeks = ml_core.finance.monte_carlo_greeks_custom_payoff_fd(
+            100.0, 100.0, 0.05, 0.2, [1.0], [[0.0]],
+            lambda path: path[-1], time_bump_years=0.01,
+        )
+        assert np.isfinite(custom_greeks.delta.price)
+        try:
+            ml_core.finance.monte_carlo_greeks_custom_payoff_fd(
+                100.0, 100.0, 0.05, 0.2, [1.0], [[0.0]], fail_payoff
+            )
+            raise AssertionError("Greek payoff callback exception should propagate")
+        except ValueError as error:
+            assert str(error) == "payoff callback failed"
+
+        print("✓ OPT, MATH, and FINANCE tests passed")
+        return True
+    except Exception as e:
+        print(f"✗ OPT, MATH, and FINANCE test failed: {e}")
+        return False
+
 def main():
     """Run all tests"""
     print("Running ML Core Python Bindings Test Suite")
@@ -391,6 +502,7 @@ def main():
         test_bandit,
         test_graphics,
         test_wave_generator,
+        test_opt_math_finance,
     ]
     
     passed = 0
