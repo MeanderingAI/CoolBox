@@ -70,6 +70,7 @@ public:
 
 	T front() const;
 	T back() const;
+	T at(size_t index) const;
 
 	size_t size() const { return size_; }
 	bool empty() const { return head_ == nullptr; }

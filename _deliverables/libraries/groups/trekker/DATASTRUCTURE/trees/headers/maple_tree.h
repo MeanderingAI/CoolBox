@@ -4,6 +4,8 @@
 // License: Same as project
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -37,7 +39,18 @@ public:
 
     // Remove method for test compatibility (returns true if removed)
     bool remove(const Key& key) {
-        return remove_internal(root, key);
+        if (!find(key)) {
+            return false;
+        }
+        std::vector<std::pair<Key, Value>> entries;
+        collect_entries(root, entries);
+        root = std::make_shared<Node>(true);
+        for (const auto& entry : entries) {
+            if (entry.first != key) {
+                insert(entry.first, entry.second);
+            }
+        }
+        return true;
     }
 
     void insert(const Key& key, const Value& value) {
@@ -51,25 +64,17 @@ public:
     }
 
 private:
-    // Remove helper (simple linear search for demonstration)
-    bool remove_internal(std::shared_ptr<Node> node, const Key& key) {
-        size_t i = 0;
-        while (i < node->keys.size() && key != node->keys[i]) ++i;
-        if (i < node->keys.size()) {
-            if (node->is_leaf) {
-                node->keys.erase(node->keys.begin() + i);
-                node->values.erase(node->values.begin() + i);
-                return true;
-            } else {
-                // Not implemented: remove from internal node
-                return false;
+    void collect_entries(const std::shared_ptr<Node>& node,
+                         std::vector<std::pair<Key, Value>>& entries) const {
+        if (node->is_leaf) {
+            for (size_t i = 0; i < node->keys.size(); ++i) {
+                entries.emplace_back(node->keys[i], node->values[i]);
             }
+            return;
         }
-        if (node->is_leaf) return false;
-        for (auto& child : node->children) {
-            if (remove_internal(child, key)) return true;
+        for (const auto& child : node->children) {
+            collect_entries(child, entries);
         }
-        return false;
     }
     std::shared_ptr<Node> root;
 
@@ -85,33 +90,45 @@ private:
     }
 
     void insert_nonfull(std::shared_ptr<Node> node, const Key& key, const Value& value) {
-        size_t i = node->keys.size();
         if (node->is_leaf) {
-            node->keys.insert(node->keys.begin() + i, key);
-            node->values.insert(node->values.begin() + i, value);
-        } else {
-            while (i > 0 && key < node->keys[i - 1]) --i;
-            if (node->children[i]->keys.size() == 2 * Order - 1) {
-                split_child(node, i);
-                if (key > node->keys[i]) ++i;
+            auto position = std::lower_bound(node->keys.begin(), node->keys.end(), key);
+            const size_t index = static_cast<size_t>(position - node->keys.begin());
+            if (position != node->keys.end() && *position == key) {
+                node->values[index] = value;
+                return;
             }
-            insert_nonfull(node->children[i], key, value);
+            node->keys.insert(position, key);
+            node->values.insert(node->values.begin() + index, value);
+            return;
         }
+
+        size_t index = 0;
+        while (index < node->keys.size() && key >= node->keys[index]) ++index;
+        if (node->children[index]->keys.size() == 2 * Order - 1) {
+            split_child(node, index);
+            if (key >= node->keys[index]) ++index;
+        }
+        insert_nonfull(node->children[index], key, value);
     }
 
     void split_child(std::shared_ptr<Node> parent, size_t i) {
         auto y = parent->children[i];
         auto z = std::make_shared<Node>(y->is_leaf);
-        z->keys.assign(y->keys.begin() + Order, y->keys.end());
-        y->keys.resize(Order - 1);
         if (y->is_leaf) {
+            z->keys.assign(y->keys.begin() + Order, y->keys.end());
             z->values.assign(y->values.begin() + Order, y->values.end());
-            y->values.resize(Order - 1);
+            const Key separator = z->keys.front();
+            y->keys.resize(Order);
+            y->values.resize(Order);
+            parent->keys.insert(parent->keys.begin() + i, separator);
         } else {
+            const Key separator = y->keys[Order - 1];
+            z->keys.assign(y->keys.begin() + Order, y->keys.end());
+            y->keys.resize(Order - 1);
             z->children.assign(y->children.begin() + Order, y->children.end());
             y->children.resize(Order);
+            parent->keys.insert(parent->keys.begin() + i, separator);
         }
         parent->children.insert(parent->children.begin() + i + 1, z);
-        parent->keys.insert(parent->keys.begin() + i, y->keys[Order - 1]);
     }
 };
