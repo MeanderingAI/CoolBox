@@ -11,6 +11,9 @@ target_compile_features(full_application_window PUBLIC cxx_std_17)
 target_link_libraries(full_application_window PUBLIC components windows)
 
 if(WIN32)
+    set_target_properties(full_application_window PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+    )
     target_link_libraries(full_application_window PRIVATE user32 gdi32 Comdlg32 Shell32 Ole32 opengl32)
 endif()
 
@@ -43,4 +46,9 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     target_link_libraries(full_application_window_tests PRIVATE full_application_window tyst_framework_main)
     coolbox_stage_test_runtime_dependencies(full_application_window_tests)
     add_test(NAME FullApplicationWindowTests COMMAND full_application_window_tests)
+
+    add_executable(plotting_tests tests/test_plotting.cpp)
+    target_link_libraries(plotting_tests PRIVATE full_application_window tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(plotting_tests)
+    add_test(NAME PlottingTests COMMAND plotting_tests)
 endif()

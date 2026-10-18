@@ -23,6 +23,20 @@ int coolbox_graph_add_series(void* graph, const char* label,
                              uint8_t blue, uint8_t alpha,
                              char* error, size_t error_capacity);
 void* coolbox_graph_render(void* graph, char* error, size_t error_capacity);
+void* coolbox_plot_2d(const double* x_values, const double* y_values, size_t count,
+                      const char* title, const char* x_label, const char* y_label,
+                      const char* series_label, uint8_t red, uint8_t green,
+                      uint8_t blue, uint8_t alpha, int width, int height, int type,
+                      char* error, size_t error_capacity);
+void* coolbox_plot_3d(const double* x_values, const double* y_values,
+                      const double* z_values, size_t count, const char* title,
+                      const char* x_label, const char* y_label, const char* z_label,
+                      const char* series_label, uint8_t red, uint8_t green,
+                      uint8_t blue, uint8_t alpha, int width, int height, int type,
+                      double azimuth_degrees, double elevation_degrees,
+                      char* error, size_t error_capacity);
+int coolbox_canvas_show_window(void* canvas, const char* title, const char* save_path,
+                               char* error, size_t error_capacity);
 
 void coolbox_canvas_free(void* canvas);
 int coolbox_canvas_width(void* canvas);
