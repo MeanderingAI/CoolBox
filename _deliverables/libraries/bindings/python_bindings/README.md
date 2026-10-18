@@ -35,6 +35,15 @@ After installation, both import styles are supported:
 - `synthetic_data`
 - `timer`
 
+Native Go bindings are available in
+[`../go_bindings`](../go_bindings/README.md). They currently include the
+metadata client, UUID generation, GLM linear regression, K-Means clustering,
+KNN search, decision trees, multi-armed bandit arms, NLP text preprocessing,
+univariate time-series utilities and forecasting models, deep-learning tensors,
+layers, losses, optimizers and networks, the HELiX learner, and line/bar/scatter
+chart rendering with image export. Additional Python modules are not yet
+ported; see the Go bindings README for detailed coverage and limitations.
+
 ## Train a GAN
 
 `ml_toolbox.GAN` provides a small fully connected GAN trainer built from the

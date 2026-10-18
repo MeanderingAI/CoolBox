@@ -19,6 +19,17 @@ void NeuralNetwork::set_optimizer(std::shared_ptr<Optimizer> optimizer) {
     optimizer_ = optimizer;
 }
 
+void NeuralNetwork::set_training(bool training) {
+    training_ = training;
+    for (auto& layer : layers_) {
+        if (auto dropout = std::dynamic_pointer_cast<DropoutLayer>(layer)) {
+            dropout->set_training(training);
+        } else if (auto batch_norm = std::dynamic_pointer_cast<BatchNormLayer>(layer)) {
+            batch_norm->set_training(training);
+        }
+    }
+}
+
 Tensor NeuralNetwork::forward(const Tensor& input) {
     Tensor current = input;
     for (auto& layer : layers_) {
@@ -61,6 +72,7 @@ double NeuralNetwork::train_step(const Tensor& input, const Tensor& target) {
     if (!loss_) {
         return 0.0;
     }
+    set_training(true);
 
     Tensor output = forward(input);
     const double loss_value = loss_->compute(output, target);
@@ -79,9 +91,25 @@ double NeuralNetwork::train_step(const Tensor& input, const Tensor& target) {
     return loss_value;
 }
 
+double NeuralNetwork::evaluate(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets) {
+    if (!loss_) {
+        throw std::logic_error("loss function has not been set");
+    }
+    if (inputs.empty() || inputs.size() != targets.size()) {
+        throw std::invalid_argument("evaluation requires matching non-empty inputs and targets");
+    }
+    set_training(false);
+    double total_loss = 0.0;
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        total_loss += loss_->compute(predict(inputs[i]), targets[i]);
+    }
+    return total_loss / static_cast<double>(inputs.size());
+}
+
 void NeuralNetwork::train(const std::vector<Tensor>& inputs, const std::vector<Tensor>& targets,
                            int epochs, int batch_size, bool verbose) {
     if (!loss_) return;
+    set_training(true);
     (void)batch_size;
 
     for (int epoch = 0; epoch < epochs; ++epoch) {

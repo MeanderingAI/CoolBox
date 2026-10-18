@@ -22,29 +22,44 @@ public:
         auto node = root_;
         size_t pos = 0;
         while (pos < key.size()) {
-            bool found = false;
-            for (auto& [edge, child] : node->children) {
-                size_t match = common_prefix(key, pos, edge);
+            auto edge_it = node->children.end();
+            size_t match = 0;
+            for (auto it = node->children.begin(); it != node->children.end(); ++it) {
+                match = common_prefix(key, pos, it->first);
                 if (match > 0) {
-                    if (match < edge.size()) {
-                        // Split edge
-                        auto split = std::make_shared<Node>(*child);
-                        child->children[edge.substr(match)] = split;
-                        child->children.erase(edge);
-                        child = std::make_shared<Node>();
-                        child->children[edge.substr(match)] = split;
-                    }
-                    pos += match;
-                    node = child;
-                    found = true;
+                    edge_it = it;
                     break;
                 }
             }
-            if (!found) {
-                node->children[key.substr(pos)] = std::make_shared<Node>();
-                node = node->children[key.substr(pos)];
-                break;
+
+            if (edge_it == node->children.end()) {
+                auto leaf = std::make_shared<Node>();
+                leaf->value = value;
+                node->children.emplace(key.substr(pos), std::move(leaf));
+                return;
             }
+
+            const std::string edge = edge_it->first;
+            auto child = edge_it->second;
+            if (match == edge.size()) {
+                pos += match;
+                node = std::move(child);
+                continue;
+            }
+
+            auto branch = std::make_shared<Node>();
+            branch->children.emplace(edge.substr(match), std::move(child));
+            node->children.erase(edge_it);
+            node->children.emplace(edge.substr(0, match), branch);
+            pos += match;
+            if (pos == key.size()) {
+                branch->value = value;
+            } else {
+                auto leaf = std::make_shared<Node>();
+                leaf->value = value;
+                branch->children.emplace(key.substr(pos), std::move(leaf));
+            }
+            return;
         }
         node->value = value;
     }
