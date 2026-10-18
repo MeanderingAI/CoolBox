@@ -6,6 +6,7 @@ mod datastructures;
 mod deep_learning;
 mod graphics;
 mod machine_learning;
+mod matrix;
 mod stubs;
 
 pub use classical_ml::*;
@@ -13,6 +14,7 @@ pub use datastructures::*;
 pub use deep_learning::*;
 pub use graphics::*;
 pub use machine_learning::*;
+pub use matrix::*;
 pub use stubs::*;
 pub use stubs::{
     CheckboxGroup, DockPanel, FileTree, LayerList, PropertyInspector, RadioSelector, Toolbar,

@@ -111,5 +111,6 @@ __all__ = [
     "multi_arm_bandit",
     "timer",
     "graphics",
+    "matrix",
     "synthetic_data",
 ]
