@@ -1,4 +1,5 @@
 #include "graphics_bridge.h"
+#include "interactive_plot_viewer.hpp"
 
 #include <graphics.h>
 
@@ -16,6 +17,12 @@ struct GraphHandle {
     explicit GraphHandle(int width, int height, graphics::GraphType type)
         : value(width, height, type) {}
     graphics::Graph value;
+};
+
+struct Graph3DHandle {
+    explicit Graph3DHandle(int width, int height, graphics::Graph3DType type)
+        : value(width, height, type) {}
+    graphics::Graph3D value;
 };
 
 void write_error(char* output, size_t capacity, const char* message) {
@@ -115,6 +122,86 @@ void* coolbox_graph_render(void* handle, char* error, size_t error_capacity) {
         write_error(error, error_capacity, "unknown native exception");
     }
     return nullptr;
+}
+
+void* coolbox_plot_2d(const double* x_values, const double* y_values, size_t count,
+                      const char* title, const char* x_label, const char* y_label,
+                      const char* series_label, uint8_t red, uint8_t green,
+                      uint8_t blue, uint8_t alpha, int width, int height, int type,
+                      char* error, size_t error_capacity) {
+    try {
+        if (!x_values || !y_values || count == 0 || !title || !x_label ||
+            !y_label || !series_label) {
+            throw std::invalid_argument("plot title, labels, and non-empty x/y data are required");
+        }
+        if (type < 0 || type > 2) throw std::invalid_argument("unknown graph type");
+        GraphHandle graph_handle(width, height, static_cast<graphics::GraphType>(type));
+        graph_handle.value.set_title(title);
+        graph_handle.value.set_x_label(x_label);
+        graph_handle.value.set_y_label(y_label);
+        graphics::DataSeries series;
+        series.label = series_label;
+        series.x_values.assign(x_values, x_values + count);
+        series.y_values.assign(y_values, y_values + count);
+        series.color = {red, green, blue, alpha};
+        graph_handle.value.add_series(series);
+        return new graphics::Canvas(graph_handle.value.render());
+    } catch (const std::exception& exception) {
+        write_error(error, error_capacity, exception.what());
+    } catch (...) {
+        write_error(error, error_capacity, "unknown native exception");
+    }
+    return nullptr;
+}
+
+void* coolbox_plot_3d(const double* x_values, const double* y_values,
+                      const double* z_values, size_t count, const char* title,
+                      const char* x_label, const char* y_label, const char* z_label,
+                      const char* series_label, uint8_t red, uint8_t green,
+                      uint8_t blue, uint8_t alpha, int width, int height, int type,
+                      double azimuth_degrees, double elevation_degrees,
+                      char* error, size_t error_capacity) {
+    try {
+        if (!x_values || !y_values || !z_values || count == 0 || !title ||
+            !x_label || !y_label || !z_label || !series_label) {
+            throw std::invalid_argument(
+                "plot title, labels, and non-empty x/y/z data are required");
+        }
+        if (type < 0 || type > 1) throw std::invalid_argument("unknown 3D graph type");
+        Graph3DHandle graph_handle(width, height,
+                                  static_cast<graphics::Graph3DType>(type));
+        graph_handle.value.set_title(title);
+        graph_handle.value.set_x_label(x_label);
+        graph_handle.value.set_y_label(y_label);
+        graph_handle.value.set_z_label(z_label);
+        graph_handle.value.set_view(azimuth_degrees, elevation_degrees);
+        graphics::DataSeries3D series;
+        series.label = series_label;
+        series.x_values.assign(x_values, x_values + count);
+        series.y_values.assign(y_values, y_values + count);
+        series.z_values.assign(z_values, z_values + count);
+        series.color = {red, green, blue, alpha};
+        graph_handle.value.add_series(series);
+        return new graphics::Canvas(graph_handle.value.render());
+    } catch (const std::exception& exception) {
+        write_error(error, error_capacity, exception.what());
+    } catch (...) {
+        write_error(error, error_capacity, "unknown native exception");
+    }
+    return nullptr;
+}
+
+int coolbox_canvas_show_window(void* handle, const char* title,
+                               const char* save_path,
+                               char* error, size_t error_capacity) {
+    return invoke(error, error_capacity, [&] {
+        if (!title || !save_path) {
+            throw std::invalid_argument("plot window title and save path are required");
+        }
+        const auto& image = canvas(handle);
+        coolbox_graphics::show_interactive_plot(
+            image.width(), image.height(), image.data(), title, save_path);
+    });
 }
 
 void coolbox_canvas_free(void* handle) { delete static_cast<graphics::Canvas*>(handle); }

@@ -35,6 +35,8 @@ After installation, both import styles are supported:
 - `synthetic_data`
 - `timer`
 - `matrix` (dense matrices, vectors, CPU optimizations, Eigen, and optional GPU backends)
+- `opt`, `math`, and `finance` (optimizers, heat solvers, pricing, Monte Carlo,
+  and distributed model averaging)
 
 Matrix API example:
 
@@ -68,6 +70,24 @@ report errors instead of silently claiming GPU execution. OpenCL is listed but
 unavailable until its kernels are implemented; check `backend_available(...)`
 before selecting it.
 
+## OPT, MATH, and FINANCE
+
+The `opt` submodule exposes all four optimizers, linear-model OWA and its
+leave-one-model-out cross-validation helper, direct weighted tensor averaging,
+and nonlinear optimal averaging for deep-learning model layers. The
+`nonlinear_optimal_weighted_average_layers` callback receives the current
+candidate merged layers as a list of `deep_learning.Tensor` objects and must
+return a scalar validation loss. `OwaConfig` controls the optimization.
+
+The `math` submodule provides deterministic and seeded stochastic heat
+equation solvers. The `finance` submodule includes pricing formulas,
+Brownian/GBM paths, built-in Monte Carlo contracts and Greeks, plus
+`monte_carlo_estimate_custom_payoff` and
+`monte_carlo_greeks_custom_payoff_fd` for user-defined payoffs. Custom payoff
+callbacks receive the complete simulated price path, including the initial
+spot, and run synchronously; callback exceptions abort the calculation and
+propagate to Python.
+
 Native Go bindings are available in
 [`../go_bindings`](../go_bindings/README.md). They currently include the
 metadata client, UUID generation, GLM linear regression, K-Means clustering,
@@ -76,6 +96,11 @@ univariate time-series utilities and forecasting models, deep-learning tensors,
 layers, losses, optimizers and networks, the HELiX learner, and line/bar/scatter
 chart rendering with image export. Additional Python modules are not yet
 ported; see the Go bindings README for detailed coverage and limitations.
+
+The `graphics.plot_2d` and `graphics.plot_3d` helpers accept `show_window=True`
+to open an interactive browser window. Scroll to zoom, drag to pan, and use the
+Save PNG button (or S) to export the original plot. The viewer runs locally
+from a temporary page; plot data is not uploaded.
 
 ## Train a GAN
 

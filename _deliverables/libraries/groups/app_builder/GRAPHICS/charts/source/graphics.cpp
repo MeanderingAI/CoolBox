@@ -677,7 +677,14 @@ bool Canvas::save_jpg(const std::string& path, int quality) const {
 // ===================================================================
 
 Graph::Graph(int width, int height, GraphType type)
-    : width_(width), height_(height), type_(type) {}
+    : width_(width), height_(height), type_(type) {
+    if (width <= 0 || height <= 0)
+        throw std::invalid_argument("Graph: dimensions must be positive");
+    if (type != GraphType::Line && type != GraphType::Bar &&
+        type != GraphType::Scatter) {
+        throw std::invalid_argument("Graph: unknown chart type");
+    }
+}
 
 void Graph::set_title(const std::string& title) { title_ = title; }
 void Graph::set_x_label(const std::string& label) { x_label_ = label; }
@@ -685,8 +692,16 @@ void Graph::set_y_label(const std::string& label) { y_label_ = label; }
 void Graph::set_type(GraphType type) { type_ = type; }
 
 void Graph::add_series(const DataSeries& series) {
+    if (series.x_values.empty())
+        throw std::invalid_argument("DataSeries: at least one point is required");
     if (series.x_values.size() != series.y_values.size())
         throw std::invalid_argument("DataSeries: x and y must have same size");
+    for (std::size_t index = 0; index < series.x_values.size(); ++index) {
+        if (!std::isfinite(series.x_values[index]) ||
+            !std::isfinite(series.y_values[index])) {
+            throw std::invalid_argument("DataSeries: coordinates must be finite");
+        }
+    }
     series_.push_back(series);
 }
 
@@ -935,7 +950,12 @@ Canvas Graph::render() const {
 // ===================================================================
 
 Graph3D::Graph3D(int width, int height, Graph3DType type)
-    : width_(width), height_(height), type_(type) {}
+    : width_(width), height_(height), type_(type) {
+    if (width <= 0 || height <= 0)
+        throw std::invalid_argument("Graph3D: dimensions must be positive");
+    if (type != Graph3DType::Line && type != Graph3DType::Scatter)
+        throw std::invalid_argument("Graph3D: unknown chart type");
+}
 
 void Graph3D::set_title(const std::string& title) { title_ = title; }
 void Graph3D::set_x_label(const std::string& label) { x_label_ = label; }
@@ -962,6 +982,13 @@ void Graph3D::add_series(const DataSeries3D& series) {
         throw std::invalid_argument("DataSeries3D: at least one point is required");
     if (series.y_values.size() != size || series.z_values.size() != size)
         throw std::invalid_argument("DataSeries3D: x, y, and z must have the same size");
+    for (std::size_t index = 0; index < size; ++index) {
+        if (!std::isfinite(series.x_values[index]) ||
+            !std::isfinite(series.y_values[index]) ||
+            !std::isfinite(series.z_values[index])) {
+            throw std::invalid_argument("DataSeries3D: coordinates must be finite");
+        }
+    }
     series_.push_back(series);
 }
 

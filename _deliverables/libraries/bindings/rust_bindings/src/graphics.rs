@@ -49,6 +49,53 @@ unsafe extern "C" {
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
+    fn coolbox_plot_2d(
+        x_values: *const f64,
+        y_values: *const f64,
+        count: usize,
+        title: *const c_char,
+        x_label: *const c_char,
+        y_label: *const c_char,
+        series_label: *const c_char,
+        red: u8,
+        green: u8,
+        blue: u8,
+        alpha: u8,
+        width: c_int,
+        height: c_int,
+        kind: c_int,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> *mut c_void;
+    fn coolbox_plot_3d(
+        x_values: *const f64,
+        y_values: *const f64,
+        z_values: *const f64,
+        count: usize,
+        title: *const c_char,
+        x_label: *const c_char,
+        y_label: *const c_char,
+        z_label: *const c_char,
+        series_label: *const c_char,
+        red: u8,
+        green: u8,
+        blue: u8,
+        alpha: u8,
+        width: c_int,
+        height: c_int,
+        kind: c_int,
+        azimuth_degrees: f64,
+        elevation_degrees: f64,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> *mut c_void;
+    fn coolbox_canvas_show_window(
+        canvas: *mut c_void,
+        title: *const c_char,
+        save_path: *const c_char,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> c_int;
     fn coolbox_canvas_free(canvas: *mut c_void);
     fn coolbox_canvas_width(canvas: *mut c_void) -> c_int;
     fn coolbox_canvas_height(canvas: *mut c_void) -> c_int;
@@ -126,6 +173,12 @@ pub enum GraphType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Graph3DType {
+    Line,
+    Scatter,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub red: u8,
     pub green: u8,
@@ -140,6 +193,74 @@ impl Default for Color {
             green: 119,
             blue: 180,
             alpha: 255,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Plot2DOptions {
+    pub width: i32,
+    pub height: i32,
+    pub title: String,
+    pub x_label: String,
+    pub y_label: String,
+    pub series_label: String,
+    pub color: Color,
+    pub graph_type: GraphType,
+    pub show_window: bool,
+    pub save_path: String,
+}
+
+impl Default for Plot2DOptions {
+    fn default() -> Self {
+        Self {
+            width: 800,
+            height: 600,
+            title: String::new(),
+            x_label: "X".to_string(),
+            y_label: "Y".to_string(),
+            series_label: "Series".to_string(),
+            color: Color::default(),
+            graph_type: GraphType::Line,
+            show_window: false,
+            save_path: "plot.png".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Plot3DOptions {
+    pub width: i32,
+    pub height: i32,
+    pub title: String,
+    pub x_label: String,
+    pub y_label: String,
+    pub z_label: String,
+    pub series_label: String,
+    pub color: Color,
+    pub graph_type: Graph3DType,
+    pub azimuth_degrees: f64,
+    pub elevation_degrees: f64,
+    pub show_window: bool,
+    pub save_path: String,
+}
+
+impl Default for Plot3DOptions {
+    fn default() -> Self {
+        Self {
+            width: 800,
+            height: 600,
+            title: String::new(),
+            x_label: "X".to_string(),
+            y_label: "Y".to_string(),
+            z_label: "Z".to_string(),
+            series_label: "Series".to_string(),
+            color: Color::default(),
+            graph_type: Graph3DType::Scatter,
+            azimuth_degrees: 45.0,
+            elevation_degrees: 25.0,
+            show_window: false,
+            save_path: "plot.png".to_string(),
         }
     }
 }
@@ -162,7 +283,111 @@ impl Graph {
             handle: Handle::new(ptr, coolbox_graph_free, "graph", &error)?,
         })
     }
+}
 
+pub fn plot_2d(x: &[f64], y: &[f64], options: Plot2DOptions) -> Result<Canvas, String> {
+    if x.is_empty() || x.len() != y.len() {
+        return Err("plot x and y values must have equal, non-empty lengths".to_string());
+    }
+    let title = CString::new(options.title.as_str())
+        .map_err(|_| "plot title cannot contain a NUL byte".to_string())?;
+    let x_label = CString::new(options.x_label.as_str())
+        .map_err(|_| "x label cannot contain a NUL byte".to_string())?;
+    let y_label = CString::new(options.y_label.as_str())
+        .map_err(|_| "y label cannot contain a NUL byte".to_string())?;
+    let series_label = CString::new(options.series_label.as_str())
+        .map_err(|_| "series label cannot contain a NUL byte".to_string())?;
+    let kind = match options.graph_type {
+        GraphType::Line => 0,
+        GraphType::Bar => 1,
+        GraphType::Scatter => 2,
+    };
+    let mut error = [0; ERROR_CAPACITY];
+    let ptr = unsafe {
+        coolbox_plot_2d(
+            x.as_ptr(),
+            y.as_ptr(),
+            x.len(),
+            title.as_ptr(),
+            x_label.as_ptr(),
+            y_label.as_ptr(),
+            series_label.as_ptr(),
+            options.color.red,
+            options.color.green,
+            options.color.blue,
+            options.color.alpha,
+            options.width,
+            options.height,
+            kind,
+            error.as_mut_ptr(),
+            error.len(),
+        )
+    };
+    let canvas = Canvas {
+        handle: Handle::new(ptr, coolbox_canvas_free, "canvas", &error)?,
+    };
+    if options.show_window {
+        canvas.show_window(&options.title, &options.save_path)?;
+    }
+    Ok(canvas)
+}
+
+pub fn plot_3d(x: &[f64], y: &[f64], z: &[f64], options: Plot3DOptions) -> Result<Canvas, String> {
+    if x.is_empty() || x.len() != y.len() || x.len() != z.len() {
+        return Err("plot x, y, and z values must have equal, non-empty lengths".to_string());
+    }
+    if !options.azimuth_degrees.is_finite() || !options.elevation_degrees.is_finite() {
+        return Err("3D view angles must be finite".to_string());
+    }
+    let title = CString::new(options.title.as_str())
+        .map_err(|_| "plot title cannot contain a NUL byte".to_string())?;
+    let x_label = CString::new(options.x_label.as_str())
+        .map_err(|_| "x label cannot contain a NUL byte".to_string())?;
+    let y_label = CString::new(options.y_label.as_str())
+        .map_err(|_| "y label cannot contain a NUL byte".to_string())?;
+    let z_label = CString::new(options.z_label.as_str())
+        .map_err(|_| "z label cannot contain a NUL byte".to_string())?;
+    let series_label = CString::new(options.series_label.as_str())
+        .map_err(|_| "series label cannot contain a NUL byte".to_string())?;
+    let kind = match options.graph_type {
+        Graph3DType::Line => 0,
+        Graph3DType::Scatter => 1,
+    };
+    let mut error = [0; ERROR_CAPACITY];
+    let ptr = unsafe {
+        coolbox_plot_3d(
+            x.as_ptr(),
+            y.as_ptr(),
+            z.as_ptr(),
+            x.len(),
+            title.as_ptr(),
+            x_label.as_ptr(),
+            y_label.as_ptr(),
+            z_label.as_ptr(),
+            series_label.as_ptr(),
+            options.color.red,
+            options.color.green,
+            options.color.blue,
+            options.color.alpha,
+            options.width,
+            options.height,
+            kind,
+            options.azimuth_degrees,
+            options.elevation_degrees,
+            error.as_mut_ptr(),
+            error.len(),
+        )
+    };
+    let canvas = Canvas {
+        handle: Handle::new(ptr, coolbox_canvas_free, "canvas", &error)?,
+    };
+    if options.show_window {
+        canvas.show_window(&options.title, &options.save_path)?;
+    }
+    Ok(canvas)
+}
+
+impl Graph {
     fn set_text(
         &mut self,
         text: &str,
@@ -245,6 +470,25 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    /// Opens the rendered plot in the system browser's interactive viewer.
+    pub fn show_window(&self, title: &str, save_path: &str) -> Result<(), String> {
+        let title = CString::new(title)
+            .map_err(|_| "window title cannot contain a NUL byte".to_string())?;
+        let save_path = CString::new(save_path)
+            .map_err(|_| "save path cannot contain a NUL byte".to_string())?;
+        let mut error = [0; ERROR_CAPACITY];
+        let ok = unsafe {
+            coolbox_canvas_show_window(
+                self.handle.as_ptr(),
+                title.as_ptr(),
+                save_path.as_ptr(),
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
+        check(ok, &error, "failed to open plot window")
+    }
+
     pub fn width(&self) -> u32 {
         unsafe { coolbox_canvas_width(self.handle.as_ptr()).max(0) as u32 }
     }

@@ -7,8 +7,10 @@
 #include <cstdint>
 #include <cstring>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
+#include "../../../go_bindings/interactive_plot_viewer.hpp"
 #include "GRAPHICS/charts/headers/graphics.h"
 #include "GRAPHICS/components/headers/components.hpp"
 #include "MISC/wave_generator/headers/wave_generator.hpp"
@@ -163,6 +165,106 @@ void bind_graphics(py::module_& parent_module) {
         .def("set_point_radius", &graphics::Graph3D::set_point_radius, py::arg("radius"))
         .def("add_series", &graphics::Graph3D::add_series, py::arg("series"))
         .def("render", &graphics::Graph3D::render);
+
+    graphics_module.def(
+        "plot_2d",
+        [](const std::vector<double>& x_values,
+           const std::vector<double>& y_values,
+           const std::string& title,
+           const std::string& x_label,
+           const std::string& y_label,
+           const std::string& series_label,
+           graphics::Color color,
+           int width,
+           int height,
+           graphics::GraphType graph_type,
+           bool show_window,
+           const std::string& save_path) {
+            if (show_window) {
+                if (save_path.empty()) {
+                    throw std::invalid_argument("save_path must not be empty");
+                }
+            }
+            graphics::Graph graph(width, height, graph_type);
+            graph.set_title(title);
+            graph.set_x_label(x_label);
+            graph.set_y_label(y_label);
+            graph.add_series({series_label, x_values, y_values, color});
+            auto canvas = graph.render();
+            if (show_window) {
+                coolbox_graphics::show_interactive_plot(
+                    canvas.width(), canvas.height(), canvas.data(), title, save_path);
+            }
+            return canvas;
+        },
+        py::arg("x_values"),
+        py::arg("y_values"),
+        py::arg("title") = "",
+        py::arg("x_label") = "X",
+        py::arg("y_label") = "Y",
+        py::arg("series_label") = "Series",
+        py::arg("color") = graphics::Colors::Blue,
+        py::arg("width") = 800,
+        py::arg("height") = 600,
+        py::arg("graph_type") = graphics::GraphType::Line,
+        py::arg("show_window") = false,
+        py::arg("save_path") = "plot.png",
+        "Render a single x/y series to a Canvas; window display is not available in this build.");
+
+    graphics_module.def(
+        "plot_3d",
+        [](const std::vector<double>& x_values,
+           const std::vector<double>& y_values,
+           const std::vector<double>& z_values,
+           const std::string& title,
+           const std::string& x_label,
+           const std::string& y_label,
+           const std::string& z_label,
+           const std::string& series_label,
+           graphics::Color color,
+           int width,
+           int height,
+           graphics::Graph3DType graph_type,
+           double azimuth_degrees,
+           double elevation_degrees,
+           bool show_window,
+           const std::string& save_path) {
+            if (show_window) {
+                if (save_path.empty()) {
+                    throw std::invalid_argument("save_path must not be empty");
+                }
+            }
+            graphics::Graph3D graph(width, height, graph_type);
+            graph.set_title(title);
+            graph.set_x_label(x_label);
+            graph.set_y_label(y_label);
+            graph.set_z_label(z_label);
+            graph.set_view(azimuth_degrees, elevation_degrees);
+            graph.add_series({series_label, x_values, y_values, z_values, color});
+            auto canvas = graph.render();
+            if (show_window) {
+                coolbox_graphics::show_interactive_plot(
+                    canvas.width(), canvas.height(), canvas.data(), title, save_path);
+            }
+            return canvas;
+        },
+        py::arg("x_values"),
+        py::arg("y_values"),
+        py::arg("z_values"),
+        py::arg("title") = "",
+        py::arg("x_label") = "X",
+        py::arg("y_label") = "Y",
+        py::arg("z_label") = "Z",
+        py::arg("series_label") = "Series",
+        py::arg("color") = graphics::Colors::Blue,
+        py::arg("width") = 800,
+        py::arg("height") = 600,
+        py::arg("graph_type") = graphics::Graph3DType::Scatter,
+        py::arg("azimuth_degrees") = 45.0,
+        py::arg("elevation_degrees") = 25.0,
+        py::arg("show_window") = false,
+        py::arg("save_path") = "plot.png",
+        "Render a single 3D series to a Canvas; window display is not available in this build.");
 
     py::class_<graphics::Table>(graphics_module, "Table")
         .def(py::init<>())

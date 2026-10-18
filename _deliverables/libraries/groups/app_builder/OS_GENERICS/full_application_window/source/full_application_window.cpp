@@ -1,8 +1,10 @@
 #include "full_application_window.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <thread>
 #include <unordered_map>
 #include <stdexcept>
 #include <utility>
@@ -240,6 +242,17 @@ struct FullApplicationWindow::Impl {
             if (impl->hooks.on_resize) {
                 impl->hooks.on_resize(impl->make_render_event(reinterpret_cast<std::uintptr_t>(hwnd), impl->frame_index));
             }
+            return 0;
+        }
+
+        if (impl && message == WM_MOUSEWHEEL && impl->hooks.on_scroll) {
+            POINT point{static_cast<short>(LOWORD(lparam)),
+                        static_cast<short>(HIWORD(lparam))};
+            ScreenToClient(hwnd, &point);
+            impl->hooks.on_scroll(ScrollEvent{
+                point.x,
+                point.y,
+                static_cast<double>(static_cast<short>(HIWORD(wparam))) / WHEEL_DELTA});
             return 0;
         }
 
@@ -889,7 +902,9 @@ bool FullApplicationWindow::create() {
                                         BlackPixel(impl_->display, screen),
                                         WhitePixel(impl_->display, screen));
     XStoreName(impl_->display, impl_->window, impl_->config.title.c_str());
-    XSelectInput(impl_->display, impl_->window, ExposureMask | KeyPressMask | StructureNotifyMask);
+    XSelectInput(impl_->display, impl_->window,
+                 ExposureMask | KeyPressMask | StructureNotifyMask |
+                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
     impl_->delete_message = XInternAtom(impl_->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(impl_->display, impl_->window, &impl_->delete_message, 1);
     if (impl_->config.visible) {
@@ -1020,6 +1035,21 @@ bool FullApplicationWindow::pump_events() {
                     distant_past,
                     default_mode,
                     YES)) != nullptr) {
+            using EventTypeFn = unsigned long (*)(id, SEL);
+            using EventPointFn = CGPoint (*)(id, SEL);
+            using EventDeltaFn = double (*)(id, SEL);
+            if (impl_->hooks.on_scroll &&
+                reinterpret_cast<EventTypeFn>(objc_msgSend)(
+                    event, sel_registerName("type")) == 22UL) {
+                const CGPoint location = reinterpret_cast<EventPointFn>(objc_msgSend)(
+                    event, sel_registerName("locationInWindow"));
+                const double delta = reinterpret_cast<EventDeltaFn>(objc_msgSend)(
+                    event, sel_registerName("scrollingDeltaY"));
+                impl_->hooks.on_scroll(ScrollEvent{
+                    static_cast<int>(location.x),
+                    static_cast<int>(impl_->config.height) - static_cast<int>(location.y),
+                    delta});
+            }
             reinterpret_cast<SendEventFn>(objc_msgSend)(
                 ns_app, sel_registerName("sendEvent:"), event);
             ++drained;
@@ -1067,6 +1097,13 @@ bool FullApplicationWindow::pump_events() {
             if (impl_->hooks.on_resize) {
                 impl_->hooks.on_resize(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
             }
+        }
+        if (event.type == ButtonPress && impl_->hooks.on_scroll &&
+            (event.xbutton.button == Button4 || event.xbutton.button == Button5)) {
+            impl_->hooks.on_scroll(ScrollEvent{
+                event.xbutton.x,
+                event.xbutton.y,
+                event.xbutton.button == Button4 ? 1.0 : -1.0});
         }
         if (event.type == ClientMessage && static_cast<Atom>(event.xclient.data.l[0]) == impl_->delete_message) {
             if (impl_->hooks.on_close) {
@@ -1752,6 +1789,160 @@ bool FullApplicationWindow::present_canvas(const ::graphics::Canvas& canvas) con
     (void)canvas;
     return false;
 #endif
+}
+
+void show_canvas_window(const ::graphics::Canvas& canvas,
+                        const std::string& title,
+                        const std::string& save_path) {
+    if (save_path.empty()) {
+        throw std::invalid_argument("plot save path must not be empty");
+    }
+    if (save_path.find('\0') != std::string::npos) {
+        throw std::invalid_argument("plot save path must not contain a NUL byte");
+    }
+
+    FullApplicationWindow window(WindowConfig{
+        title.empty() ? "CoolBox Plot" : title,
+        static_cast<std::size_t>(canvas.width()),
+        static_cast<std::size_t>(canvas.height()),
+        true,
+        true});
+
+    double zoom = 1.0;
+    double pan_x = 0.0;
+    double pan_y = 0.0;
+    bool dragging = false;
+    bool pointer_was_down = false;
+    int previous_pointer_x = 0;
+    int previous_pointer_y = 0;
+    int view_width = canvas.width();
+    int view_height = canvas.height();
+    constexpr int save_button_width = 86;
+    constexpr int save_button_height = 26;
+    constexpr int save_button_margin = 8;
+
+    const auto render = [&] {
+        if (view_width <= 0 || view_height <= 0) {
+            return;
+        }
+
+        ::graphics::Canvas view(view_width, view_height, ::graphics::Colors::White);
+        const double scale = std::min(
+            static_cast<double>(view_width) / canvas.width(),
+            static_cast<double>(view_height) / canvas.height()) * zoom;
+        const double center_x = view_width / 2.0 + pan_x;
+        const double center_y = view_height / 2.0 + pan_y;
+        for (int y = 0; y < view_height; ++y) {
+            const int source_y = static_cast<int>(
+                std::floor((y - center_y) / scale + canvas.height() / 2.0));
+            if (source_y < 0 || source_y >= canvas.height()) {
+                continue;
+            }
+            for (int x = 0; x < view_width; ++x) {
+                const int source_x = static_cast<int>(
+                    std::floor((x - center_x) / scale + canvas.width() / 2.0));
+                if (source_x >= 0 && source_x < canvas.width()) {
+                    view.set_pixel(x, y, canvas.get_pixel(source_x, source_y));
+                }
+            }
+        }
+
+        const int button_x = std::max(
+            0, view_width - save_button_width - save_button_margin);
+        view.draw_rounded_rect(button_x, save_button_margin,
+                               save_button_width, save_button_height, 4,
+                               ::graphics::Colors::DarkGray, true);
+        view.draw_text(button_x + 10, save_button_margin + 9,
+                       "Save PNG", ::graphics::Colors::White);
+        view.draw_text(save_button_margin, view_height - 14,
+                       "Wheel: zoom  |  Drag: pan",
+                       ::graphics::Colors::DarkGray);
+        window.present_canvas(view);
+    };
+
+    RenderHooks hooks;
+    hooks.on_render = [&](const RenderEvent& event) {
+        view_width = static_cast<int>(event.width);
+        view_height = static_cast<int>(event.height);
+        render();
+    };
+    hooks.on_resize = [&](const RenderEvent& event) {
+        view_width = static_cast<int>(event.width);
+        view_height = static_cast<int>(event.height);
+        window.request_redraw();
+    };
+    hooks.on_scroll = [&](const ScrollEvent& event) {
+        if (!std::isfinite(event.delta) || event.delta == 0.0 ||
+            view_width <= 0 || view_height <= 0) {
+            return;
+        }
+        const double old_scale = std::min(
+            static_cast<double>(view_width) / canvas.width(),
+            static_cast<double>(view_height) / canvas.height()) * zoom;
+        const double source_x =
+            (event.x - view_width / 2.0 - pan_x) / old_scale + canvas.width() / 2.0;
+        const double source_y =
+            (event.y - view_height / 2.0 - pan_y) / old_scale + canvas.height() / 2.0;
+        zoom = std::clamp(zoom * std::pow(1.15, event.delta), 0.25, 16.0);
+        const double new_scale = std::min(
+            static_cast<double>(view_width) / canvas.width(),
+            static_cast<double>(view_height) / canvas.height()) * zoom;
+        pan_x = event.x - view_width / 2.0 -
+                (source_x - canvas.width() / 2.0) * new_scale;
+        pan_y = event.y - view_height / 2.0 -
+                (source_y - canvas.height() / 2.0) * new_scale;
+        window.request_redraw();
+    };
+    window.set_render_hooks(std::move(hooks));
+
+    if (!window.create() || window.backend() == Backend::Headless) {
+        window.close();
+        throw std::runtime_error("no native window backend is available");
+    }
+    window.show();
+
+    while (window.pump_events()) {
+        PointerState pointer;
+        if (window.query_pointer_state(pointer)) {
+            const int button_x = std::max(
+                0, pointer.client_width - save_button_width - save_button_margin);
+            const bool on_save_button =
+                pointer.x >= button_x &&
+                pointer.x < button_x + save_button_width &&
+                pointer.y >= save_button_margin &&
+                pointer.y < save_button_margin + save_button_height;
+            if (pointer.left_button_down && !pointer_was_down) {
+                if (on_save_button) {
+                    if (!canvas.save_png(save_path)) {
+                        window.show_info_dialog("Save failed",
+                            "Could not save plot to " + save_path);
+                    } else {
+                        window.show_info_dialog("Plot saved",
+                            "Saved plot to " + save_path);
+                    }
+                    dragging = false;
+                } else {
+                    dragging = true;
+                    previous_pointer_x = pointer.x;
+                    previous_pointer_y = pointer.y;
+                }
+            } else if (pointer.left_button_down && dragging) {
+                const int dx = pointer.x - previous_pointer_x;
+                const int dy = pointer.y - previous_pointer_y;
+                if (dx != 0 || dy != 0) {
+                    pan_x += dx;
+                    pan_y += dy;
+                    previous_pointer_x = pointer.x;
+                    previous_pointer_y = pointer.y;
+                    window.request_redraw();
+                }
+            } else if (!pointer.left_button_down) {
+                dragging = false;
+            }
+            pointer_was_down = pointer.left_button_down;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+    }
 }
 
 } // namespace full_application_window
