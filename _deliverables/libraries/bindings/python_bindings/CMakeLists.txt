@@ -92,6 +92,7 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nlp/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/dimensionality_reduction/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/pde_spde_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/opt_math_finance_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics_misc/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/decision_tree/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/support_vector_machine/*.cpp"
@@ -160,9 +161,14 @@ target_compile_definitions(ml_core PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
 target_compile_features(ml_core PRIVATE cxx_std_17)
 
 # Link libraries
+find_package(Threads REQUIRED)
 target_link_libraries(ml_core PRIVATE 
     Eigen3::Eigen
+    Threads::Threads
 )
+if(WIN32)
+    target_link_libraries(ml_core PRIVATE shell32)
+endif()
 
 target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/../include
@@ -170,6 +176,15 @@ target_include_directories(ml_core PRIVATE
     ${ML_BINDINGS_FLAT_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}/tree_ensemble_include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/ML/decision_tree/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/bayesian_quantum_control/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/distributed_learning/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/genetic_search/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/hill_climbing/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/optimization_factory/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/FINANCE/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATH
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include

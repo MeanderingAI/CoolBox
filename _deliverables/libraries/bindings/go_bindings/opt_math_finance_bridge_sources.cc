@@ -1,0 +1,7 @@
+#include "../../groups/cool_car/OPT/bayesian_quantum_control/source/quantum_control_bo.cpp"
+#include "../../groups/cool_car/OPT/genetic_search/source/genetic_search.cpp"
+#include "../../groups/cool_car/OPT/hill_climbing/source/hill_climbing.cpp"
+#include "../../groups/cool_car/OPT/optimization_factory/source/optimization_factory.cpp"
+#include "../../groups/cool_car/OPT/simulated_annealing/source/simulated_annealing.cpp"
+#include "../../groups/cool_car/OPT/distributed_learning/source/distributed_owa.cpp"
+#include "../../groups/cool_car/FINANCE/source/finance.cpp"

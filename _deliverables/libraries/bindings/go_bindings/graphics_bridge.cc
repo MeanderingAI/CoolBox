@@ -1,4 +1,5 @@
 #include "graphics_bridge.h"
+#include "interactive_plot_viewer.hpp"
 
 #include <graphics.h>
 
@@ -197,9 +198,9 @@ int coolbox_canvas_show_window(void* handle, const char* title,
         if (!title || !save_path) {
             throw std::invalid_argument("plot window title and save path are required");
         }
-        canvas(handle);
-        throw std::runtime_error(
-            "interactive plot windows are unavailable in the Go/Rust native bridge build");
+        const auto& image = canvas(handle);
+        coolbox_graphics::show_interactive_plot(
+            image.width(), image.height(), image.data(), title, save_path);
     });
 }
 

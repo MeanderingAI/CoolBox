@@ -333,6 +333,22 @@ include_dirs = [
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
     *existing_dirs(repo_cool_car_root_candidates),
     str(project_root.parent / "go_bindings"),
+    *existing_dirs(
+        [
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/bayesian_quantum_control/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/distributed_learning/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/genetic_search/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/hill_climbing/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/optimization_factory/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/FINANCE/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/MATH",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers",
+        ]
+    ),
     *existing_dirs(repo_matrix_header_candidates),
     # Prefer the repository MATRIX headers over the vendored copies. Mixing both
     # copies in one translation unit bypasses #pragma once and causes redefinitions.
@@ -347,12 +363,14 @@ include_dirs = [
     *resolve_eigen_include_dirs(eigen_candidates),
 ]
 
-extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall"]
+extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall", "-pthread"]
+extra_link_args = [] if sys.platform.startswith("win") else ["-pthread"]
 
 source_files = [
     "py_ml_core.cpp",
     to_setup_relative_path(regressor_source),
     "src/pde_spde_bindings.cpp",
+    "src/opt_math_finance_bindings.cpp",
     "src/timer_bindings.cpp",
     "src/tree_ensemble_bindings.cpp",
     "src/matrix_bindings.cpp",
@@ -428,6 +446,7 @@ library_dirs = existing_dirs([
 runtime_library_dirs = []
 if not sys.platform.startswith("win"):
     runtime_library_dirs = resolved_library_dirs[:]
+extension_libraries = unresolved_libraries + (["shell32"] if sys.platform.startswith("win") else [])
 
 ext_modules = [
     Pybind11Extension(
@@ -436,11 +455,12 @@ ext_modules = [
         include_dirs=include_dirs,
         cxx_std=17,
         extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
         # Link against built CoolBox C++ libraries. Set COOLBOX_LIB_DIR to
         # the build output directory containing libcharts(.a/.so/.dylib)
         # and libwave_generator_utils.
         library_dirs=library_dirs,
-        libraries=unresolved_libraries,
+        libraries=extension_libraries,
         extra_objects=resolved_extra_objects,
         runtime_library_dirs=runtime_library_dirs,
     ),

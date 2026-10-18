@@ -470,7 +470,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    /// Requests the native viewer; the current Rust bridge reports it unavailable.
+    /// Opens the rendered plot in the system browser's interactive viewer.
     pub fn show_window(&self, title: &str, save_path: &str) -> Result<(), String> {
         let title = CString::new(title)
             .map_err(|_| "window title cannot contain a NUL byte".to_string())?;

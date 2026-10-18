@@ -7,6 +7,7 @@ mod deep_learning;
 mod graphics;
 mod machine_learning;
 mod matrix;
+mod opt_math_finance;
 mod stubs;
 
 pub use classical_ml::*;
@@ -15,6 +16,7 @@ pub use deep_learning::*;
 pub use graphics::*;
 pub use machine_learning::*;
 pub use matrix::*;
+pub use opt_math_finance::*;
 pub use stubs::*;
 pub use stubs::{
     CheckboxGroup, DockPanel, FileTree, LayerList, PropertyInspector, RadioSelector, Toolbar,

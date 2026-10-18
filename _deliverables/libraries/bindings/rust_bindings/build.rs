@@ -27,6 +27,12 @@ fn main() {
         .filter(|path| path.join("Eigen/Core").exists())
         .collect::<Vec<_>>();
 
+    if env::var("CARGO_CFG_TARGET_OS").map(|os| os == "windows").unwrap_or(false) {
+        println!("cargo:rustc-link-lib=shell32");
+    } else if env::var("CARGO_CFG_TARGET_OS").map(|os| os == "linux").unwrap_or(false) {
+        println!("cargo:rustc-link-lib=pthread");
+    }
+
     let mut build = cxx_build::bridge("src/lib.rs");
     build
         .file("src/bridge.cpp")
@@ -38,6 +44,8 @@ fn main() {
         .file("../go_bindings/ds_bridge_sources.cc")
         .file("../go_bindings/forecast_bridge.cc")
         .file("../go_bindings/graphics_bridge.cc")
+        .file("../go_bindings/opt_math_finance_bridge.cc")
+        .file("../go_bindings/opt_math_finance_bridge_sources.cc")
         .file("../go_bindings/matrix_bridge.cc")
         .file("../go_bindings/nlp_bridge.cc")
         .file("../go_bindings/nlp_bridge_sources.cc")
@@ -65,6 +73,15 @@ fn main() {
         .include("../../groups/cool_car/DL/optimizer/include")
         .include("../../groups/cool_car/DL/wrapper/include")
         .include("../../groups/cool_car/DL/agents/include")
+        .include("../../groups/cool_car/OPT/headers")
+        .include("../../groups/cool_car/OPT/bayesian_quantum_control/headers")
+        .include("../../groups/cool_car/OPT/distributed_learning/headers")
+        .include("../../groups/cool_car/OPT/genetic_search/headers")
+        .include("../../groups/cool_car/OPT/hill_climbing/headers")
+        .include("../../groups/cool_car/OPT/optimization_factory/headers")
+        .include("../../groups/cool_car/OPT/simulated_annealing/headers")
+        .include("../../groups/cool_car/FINANCE/headers")
+        .include("../../groups/cool_car/MATH")
         .include("../../groups/cool_car/MATRIX/headers")
         .include("../../groups/cool_car/ML/decision_tree/headers")
         .include("../../groups/cool_car/ML/generalized_linear_model/headers")
@@ -75,6 +92,7 @@ fn main() {
         .include("../../groups/trekker/DATASTRUCTURE/filters/headers")
         .include("../../groups/trekker/DATASTRUCTURE/xarray/headers")
         .std("c++17");
+    build.flag_if_supported("-pthread");
     for path in &eigen_include_dirs {
         build.include(path);
     }
@@ -120,6 +138,8 @@ fn main() {
         "../go_bindings/ds_bridge_sources.cc",
         "../go_bindings/forecast_bridge.cc",
         "../go_bindings/graphics_bridge.cc",
+        "../go_bindings/opt_math_finance_bridge.cc",
+        "../go_bindings/opt_math_finance_bridge_sources.cc",
         "../go_bindings/matrix_bridge.cc",
         "../go_bindings/nlp_bridge.cc",
         "../go_bindings/nlp_bridge_sources.cc",
@@ -130,6 +150,7 @@ fn main() {
     ] {
         println!("cargo:rerun-if-changed={source}");
     }
+    println!("cargo:rerun-if-changed=../go_bindings/interactive_plot_viewer.hpp");
     println!("cargo:rerun-if-changed=../c_bindings/include/coolbox/coolbox_c.h");
     println!("cargo:rerun-if-changed=../../../groups/cool_car/ML/generalized_linear_model/headers/generalized_linear_model.h");
     println!("cargo:rerun-if-changed=../../../groups/cool_car/ML/generalized_linear_model/headers/linear_regression.h");

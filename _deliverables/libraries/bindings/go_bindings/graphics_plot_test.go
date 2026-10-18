@@ -1,9 +1,6 @@
 package coolbox
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 func TestPlot2DAnd3DHelpers(t *testing.T) {
 	t.Run("2D", func(t *testing.T) {
@@ -54,17 +51,5 @@ func TestPlotHelpersRejectInvalidInput(t *testing.T) {
 	}
 	if _, err := Plot3D([]float64{1}, []float64{2}, nil, Plot3DOptions{}); err == nil {
 		t.Fatal("Plot3D accepted mismatched x/y/z values")
-	}
-}
-
-func TestPlotWindowReportsUnsupportedBuild(t *testing.T) {
-	canvas, err := Plot2D([]float64{0, 1}, []float64{0, 1}, Plot2DOptions{Width: 32, Height: 24})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer canvas.Close()
-	err = canvas.ShowWindow("Plot", "plot.png")
-	if err == nil || !strings.Contains(err.Error(), "unavailable") {
-		t.Fatalf("ShowWindow() error = %v; want an explicit unsupported-build error", err)
 	}
 }
