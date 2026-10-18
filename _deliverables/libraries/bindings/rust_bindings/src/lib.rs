@@ -1,10 +1,22 @@
 use cxx::UniquePtr;
 use std::ffi::CStr;
 
+mod classical_ml;
+mod datastructures;
+mod deep_learning;
+mod graphics;
+mod machine_learning;
 mod stubs;
 
+pub use classical_ml::*;
+pub use datastructures::*;
+pub use deep_learning::*;
+pub use graphics::*;
+pub use machine_learning::*;
 pub use stubs::*;
-pub use stubs::{Toolbar, DockPanel, LayerList, PropertyInspector, FileTree, RadioSelector, CheckboxGroup};
+pub use stubs::{
+    CheckboxGroup, DockPanel, FileTree, LayerList, PropertyInspector, RadioSelector, Toolbar,
+};
 
 const DEFAULT_ENDPOINT: &str = "local://coolbox";
 
@@ -18,9 +30,15 @@ unsafe extern "C" {
 
     fn coolbox_c_uuid_v1() -> *const std::ffi::c_char;
     fn coolbox_c_uuid_v2(local_identifier: u32, local_domain: u32) -> *const std::ffi::c_char;
-    fn coolbox_c_uuid_v3(namespace_uuid: *const std::ffi::c_char, name: *const std::ffi::c_char) -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v3(
+        namespace_uuid: *const std::ffi::c_char,
+        name: *const std::ffi::c_char,
+    ) -> *const std::ffi::c_char;
     fn coolbox_c_uuid_v4() -> *const std::ffi::c_char;
-    fn coolbox_c_uuid_v5(namespace_uuid: *const std::ffi::c_char, name: *const std::ffi::c_char) -> *const std::ffi::c_char;
+    fn coolbox_c_uuid_v5(
+        namespace_uuid: *const std::ffi::c_char,
+        name: *const std::ffi::c_char,
+    ) -> *const std::ffi::c_char;
     fn coolbox_c_uuid_v6() -> *const std::ffi::c_char;
     fn coolbox_c_uuid_v8(custom_entropy_hex: *const std::ffi::c_char) -> *const std::ffi::c_char;
     fn coolbox_c_guid() -> *const std::ffi::c_char;

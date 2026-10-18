@@ -83,8 +83,8 @@ std::vector<double> ARMAModel::forecast(size_t steps) const {
         result.push_back(pred);
         history.push_back(pred);
         // Shift errors: new error is 0 for forecast
-        for (size_t i = q_ - 1; i > 0; --i)
-            errors[i] = errors[i - 1];
+        for (size_t i = q_; i > 1; --i)
+            errors[i - 1] = errors[i - 2];
         if (q_ > 0) errors[0] = 0.0;
     }
     return result;

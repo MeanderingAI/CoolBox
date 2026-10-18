@@ -714,6 +714,10 @@ static void compute_range(const std::vector<DataSeries>& series,
         for (double v : s.x_values) { x_min = std::min(x_min, v); x_max = std::max(x_max, v); }
         for (double v : s.y_values) { y_min = std::min(y_min, v); y_max = std::max(y_max, v); }
     }
+    if (std::abs(x_max - x_min) < 1e-12) {
+        x_min -= 1.0;
+        x_max += 1.0;
+    }
     // Pad y range by 5%
     double y_pad = (y_max - y_min) * 0.05;
     if (y_pad < 1e-9) y_pad = 1.0;

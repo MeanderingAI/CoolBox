@@ -2,7 +2,7 @@
 name = "coolbox-rs"
 version = "0.1.0"
 edition = "2021"
-description = "Rust bindings for selected CoolBox C++ components"
+description = "Rust bindings for CoolBox machine-learning, deep-learning, graphics, and data-structure APIs"
 license = "GPL-3.0-or-later"
 readme = "README.md"
 repository = "https://github.com/MeanderingAI/CoolBox"

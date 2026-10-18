@@ -245,6 +245,25 @@ T DoublyLinkedList<T>::back() const {
 }
 
 template<typename T>
+T DoublyLinkedList<T>::at(size_t index) const {
+    if (index >= size_) {
+        throw std::out_of_range("Index out of range");
+    }
+    if (index < size_ / 2) {
+        auto current = head_;
+        for (size_t i = 0; i < index; ++i) {
+            current = current->next;
+        }
+        return current->data;
+    }
+    auto current = tail_;
+    for (size_t i = size_ - 1; i > index; --i) {
+        current = current->prev;
+    }
+    return current->data;
+}
+
+template<typename T>
 void DoublyLinkedList<T>::clear() {
     head_ = tail_ = nullptr;
     size_ = 0;
