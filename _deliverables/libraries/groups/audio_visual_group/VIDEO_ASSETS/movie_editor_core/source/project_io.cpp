@@ -4,15 +4,60 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <cmath>
+#include <limits>
+#include <iomanip>
+#include <locale>
 
 namespace trekker {
 namespace movie_editor {
+
+void ensure_text_font_available();
 
 namespace {
 
 using dataformats::json::Array;
 using dataformats::json::Object;
 using dataformats::json::Value;
+
+// Value::to_string uses stream-default six-digit precision for numbers,
+// which changes RGB colors, microsecond timestamps, and normalized anchors.
+void write_project_json(std::ostream& out, const Value& value) {
+    if (value.is_number()) {
+        out << std::setprecision(std::numeric_limits<double>::max_digits10) << value.as_number();
+    } else if (value.is_object()) {
+        out << '{';
+        bool first = true;
+        for (const auto& entry : value.as_object()) {
+            if (!first) out << ',';
+            first = false;
+            out << Value(entry.first).to_string() << ':';
+            write_project_json(out, entry.second);
+        }
+        out << '}';
+    } else if (value.is_array()) {
+        out << '[';
+        bool first = true;
+        for (const auto& entry : value.as_array()) {
+            if (!first) out << ',';
+            first = false;
+            write_project_json(out, entry);
+        }
+        out << ']';
+    } else {
+        out << value.to_string();
+    }
+}
+
+std::int64_t text_integer(const Object& object, const char* key, std::int64_t fallback) {
+    if (!object.has(key)) return fallback;
+    const double number = object.get(key).as_number();
+    if (!std::isfinite(number) || number < 0 ||
+        static_cast<long double>(number) > std::numeric_limits<std::int64_t>::max() ||
+        std::floor(number) != number)
+        throw std::invalid_argument(std::string("Invalid text integer: ") + key);
+    return static_cast<std::int64_t>(number);
+}
 
 const char* media_type_name(MediaType t) {
     switch (t) {
@@ -78,6 +123,22 @@ void EditorProject::save_project(const std::string& path) const {
             c.set("speed", Value(static_cast<double>(clip.speed)));
             c.set("volume", Value(static_cast<double>(clip.volume)));
             c.set("muted", Value(clip.muted));
+            if (clip.text) {
+                const auto& style = *clip.text;
+                Object text;
+                text.set("text", Value(style.text));
+                text.set("background", Value(style.background));
+                text.set("background_opacity", Value(style.background_opacity));
+                text.set("opacity", Value(style.opacity));
+                text.set("color", Value(static_cast<double>(style.color)));
+                text.set("background_color", Value(static_cast<double>(style.background_color)));
+                text.set("font_size", Value(style.font_size));
+                text.set("x", Value(style.x));
+                text.set("y", Value(style.y));
+                text.set("fade_in_us", Value(static_cast<double>(style.fade_in_us)));
+                text.set("fade_out_us", Value(static_cast<double>(style.fade_out_us)));
+                c.set("text", Value(text));
+            }
             clips_array.push(Value(c));
         }
         t.set("clips", Value(clips_array));
@@ -87,7 +148,10 @@ void EditorProject::save_project(const std::string& path) const {
 
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     if (!out) throw std::runtime_error("save_project: failed to open output path: " + path);
-    out << Value(root).to_string();
+    out.imbue(std::locale::classic());
+    write_project_json(out, Value(root));
+    out.close();
+    if (!out) throw std::runtime_error("save_project: failed to finish writing: " + path);
 }
 
 void EditorProject::load_project(const std::string& path) {
@@ -147,6 +211,38 @@ void EditorProject::load_project(const std::string& path) {
                     clip.speed = c.has("speed") ? static_cast<float>(c.get("speed").as_number()) : 1.0f;
                     clip.volume = c.has("volume") ? static_cast<float>(c.get("volume").as_number()) : 1.0f;
                     clip.muted = c.has("muted") && c.get("muted").as_bool();
+                    if (c.has("text")) {
+                        const auto text = c.get("text").as_object();
+                        TextStyle style;
+                        if (text.has("text")) style.text = text.get("text").as_string();
+                        if (text.has("background")) style.background = text.get("background").as_bool();
+                        if (text.has("background_opacity")) style.background_opacity = text.get("background_opacity").as_number();
+                        if (text.has("opacity")) style.opacity = text.get("opacity").as_number();
+                        const auto color = text_integer(text, "color", style.color);
+                        const auto background = text_integer(text, "background_color", style.background_color);
+                        if (color > 0xffffff || background > 0xffffff)
+                            throw std::invalid_argument("Text colors must be 24-bit RGB.");
+                        style.color = static_cast<std::uint32_t>(color);
+                        style.background_color = static_cast<std::uint32_t>(background);
+                        if (text.has("font_size")) style.font_size = text.get("font_size").as_number();
+                        if (text.has("x")) style.x = text.get("x").as_number();
+                        if (text.has("y")) style.y = text.get("y").as_number();
+                        style.fade_in_us = text_integer(text, "fade_in_us", style.fade_in_us);
+                        style.fade_out_us = text_integer(text, "fade_out_us", style.fade_out_us);
+                        validate_text_style(style);
+                        ensure_text_font_available();
+                        clip.in_point_us = text_integer(c, "in_point_us", 0);
+                        clip.out_point_us = text_integer(c, "out_point_us", 0);
+                        clip.position_us = text_integer(c, "position_us", 0);
+                        if (track.type() != timeline::TrackType::Video ||
+                            clip.out_point_us <= clip.in_point_us ||
+                            !std::isfinite(clip.speed) || clip.speed <= 0 ||
+                            (clip.out_point_us - clip.in_point_us) / clip.speed < 1 ||
+                            static_cast<long double>(clip.out_point_us - clip.in_point_us) / clip.speed >
+                                std::numeric_limits<std::int64_t>::max() - clip.position_us)
+                            throw std::invalid_argument("Invalid text clip range or track.");
+                        clip.text = std::move(style);
+                    }
                     max_clip_id = std::max(max_clip_id, clip.id);
                     track.add_clip(clip);
                 }
@@ -159,6 +255,8 @@ void EditorProject::load_project(const std::string& path) {
     audio_cache_.clear();
     frame_cache_.clear();
     next_clip_id_ = std::max<std::uint64_t>(1'000'000, max_clip_id + 1);
+    undo_.clear();
+    redo_.clear();
 }
 
 } // namespace movie_editor

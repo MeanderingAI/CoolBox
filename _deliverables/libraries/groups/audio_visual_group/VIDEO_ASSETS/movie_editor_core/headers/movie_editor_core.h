@@ -21,29 +21,49 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 namespace trekker {
 namespace movie_editor {
+
+using TextStyle = timeline::TextStyle;
+struct TextLayout { int x, y, width, height; };
+// Pixel bounds use the same font and normalized anchors as final rendering.
+TextLayout text_layout(const TextStyle& style, std::size_t width, std::size_t height);
+
+// Throws invalid_argument for empty/NUL-containing/>16384-byte text, non-RGB colors,
+// font_size outside [1,720], nonfinite/out-of-range normalized anchors,
+// or negative fades. Font size scales with output height / 720.
+void validate_text_style(const TextStyle& style);
 
 // ── Media bin ─────────────────────────────────────────────────────────────────
 
 enum class MediaType { ImageSequence, StillImage, Audio, ImportedVideo };
 
+struct VideoImportCache {
+    std::string directory;
+    ~VideoImportCache();
+};
+
 struct MediaAsset {
     MediaType type = MediaType::StillImage;
     std::string path;                      // directory (ImageSequence) or file path
-    double fps = 24.0;                     // ImageSequence only
+    double fps = 24.0;                     // image sequence or imported video
     std::vector<std::string> frame_files;  // sorted absolute frame paths (size 1 for stills)
     std::int64_t duration_us = 0;
     std::uint32_t audio_sample_rate = 0;   // Audio only
     std::uint32_t audio_channels = 0;      // Audio only
 
-    // ImportedVideo only (decoded GIF/AVI frames, held in memory rather than
-    // as files on disk since the source container doesn't expose individual
-    // frames as separate image files).
+    // Native GIF/AVI imports retain decoded frames; FFmpeg imports instead
+    // use frame_files backed by the owned temporary import_cache.
     std::vector<video::VideoFrame> decoded_frames;
     std::vector<std::int64_t> frame_start_us; // same length as decoded_frames; cumulative
+    std::shared_ptr<VideoImportCache> import_cache;
+    std::string audio_path; // FFmpeg-extracted PCM WAV, owned by import_cache
 };
+
+// Creates lossless PNG editing frames at 24 fps and optional PCM audio using FFmpeg.
+MediaAsset decode_ffmpeg_video(const std::string& path);
 
 class MediaBin {
 public:
@@ -61,15 +81,12 @@ public:
     // Imports a WAV file (PCM 8/16/32-bit, IEEE float, or IMA ADPCM).
     std::string import_audio(const std::string& wav_path);
 
-    // Imports a .gif or .avi file (the only "real video file" formats this
-    // from-scratch codebase can decode — see video_container's read_gif/
-    // read_avi) as a single video asset. AVI's own embedded audio track (if
-    // any) is decoded but not auto-added to the bin as a separate asset;
-    // import it again via import_audio() from an extracted WAV if needed.
-    // Throws std::runtime_error for unrecognised extensions (notably
-    // .mp4/.mov, which require codecs this library does not implement) or
-    // malformed files.
+    // GIF and uncompressed AVI use the built-in readers. Other formats
+    // (including compressed AVI) use FFmpeg disk-backed editing frames and
+    // PCM audio. Throws if decoding fails or FFmpeg is unavailable.
     std::string import_video_file(const std::string& path);
+    // Transfers ownership of an asynchronously decoded media asset.
+    std::string add_asset(MediaAsset asset);
 
     const MediaAsset* find(const std::string& key) const;
     const std::vector<MediaAsset>& assets() const { return assets_; }
@@ -92,6 +109,19 @@ public:
 
     timeline::Track& add_video_track(const std::string& name = {});
     timeline::Track& add_audio_track(const std::string& name = {});
+    // Locked/missing tracks are unchanged; successful deletion is undoable.
+    bool delete_track(std::uint64_t track_id);
+    // Creating a matching track and adding its first clip is one history entry.
+    std::uint64_t add_clip_on_new_track(const std::string& media_key, std::int64_t position_us);
+
+    // Creates a highest video track and its title/overlay as one undo entry.
+    // Add/edit/load fail before mutation if a system TrueType font is unavailable.
+    std::uint64_t add_text_clip(const TextStyle& style, std::int64_t position_us,
+                                std::int64_t duration_us);
+    // Retains placement/ID, resets source range and speed to the new duration.
+    void edit_text_clip(std::uint64_t track, std::uint64_t clip,
+                        const TextStyle& style, std::int64_t duration_us);
+    const TextStyle* text_style(std::uint64_t track, std::uint64_t clip) const;
 
     // Adds a clip referencing an already-imported media asset (keyed by its
     // MediaBin path/directory) to `track_id` at `position_us`. in_us/out_us
@@ -103,21 +133,33 @@ public:
 
     bool split_clip(std::uint64_t track_id, std::int64_t pts_us);
     bool delete_clip(std::uint64_t track_id, std::uint64_t clip_id);
+    void move_clip(std::uint64_t from_track, std::uint64_t clip_id,
+                   std::uint64_t to_track, std::int64_t position_us);
+    void trim_clip(std::uint64_t track_id, std::uint64_t clip_id,
+                   std::int64_t in_us, std::int64_t out_us, std::int64_t position_us);
+    bool undo();
+    bool redo();
+    bool can_undo() const { return !undo_.empty(); }
+    bool can_redo() const { return !redo_.empty(); }
 
     std::int64_t duration_us() const { return timeline_.duration_us(); }
 
     // Renders the composited frame visible at `pts_us` at (out_width x
-    // out_height): the topmost (highest track index) unmuted video track
-    // with a clip covering pts_us wins (simple front-to-back priority, no
-    // alpha blending between tracks). Returns a solid black RGB24 frame if
-    // no video clip covers pts_us.
+    // out_height), bottom-to-top. Ordinary video is opaque; text and optional
+    // full-frame backgrounds share alpha=min(fade-in,fade-out), measured
+    // from each clip's current timeline boundaries (also after trim/split).
+    // Anchors place text within the available frame; multiline is supported.
+    // Throws if a system TrueType font cannot be loaded. Empty output is black.
     video::VideoFrame render_frame_at(std::int64_t pts_us, std::size_t out_width, std::size_t out_height) const;
+    // Drafts omit fades and replace the identified clip, or add a top layer.
+    video::VideoFrame render_text_preview(const TextStyle& style, std::int64_t pts_us,
+        std::size_t width, std::size_t height, std::uint64_t exclude_track = 0,
+        std::uint64_t exclude_clip = 0) const;
 
     // Mixes every unmuted audio clip overlapping [start_us, end_us) down to
     // one AudioBuffer at (sample_rate, channels), applying per-clip volume
-    // and resampling as needed. Clip playback speed is not applied to audio
-    // (time-stretching audio is out of scope); the clip's source samples are
-    // used at their native rate/pitch.
+    // and resampling as needed. Speed changes resample audio along with
+    // video (and change pitch); pitch-preserving time stretching is not used.
     audio::AudioBuffer render_audio_mix(std::int64_t start_us, std::int64_t end_us,
                                         std::uint32_t sample_rate, std::uint32_t channels) const;
 
@@ -136,12 +178,19 @@ public:
     // Renders the full timeline's audio mix to a WAV file.
     void export_audio(const std::string& path, audio::container::WavEncoding encoding,
                       std::uint32_t sample_rate = 48000, std::uint32_t channels = 2) const;
+    void export_mp4(const std::string& path, double fps = 24.0,
+                    std::size_t width = 1280, std::size_t height = 720) const;
 
     // ── Project persistence (JSON) ───────────────────────────────────────────
     void save_project(const std::string& path) const;
     void load_project(const std::string& path);
 
 private:
+    video::VideoFrame render_frame_excluding(std::int64_t pts_us, std::size_t width, std::size_t height,
+        std::uint64_t exclude_track, std::uint64_t exclude_clip, const TextStyle* replacement = nullptr) const;
+    void checkpoint();
+    std::vector<timeline::Timeline> undo_;
+    std::vector<timeline::Timeline> redo_;
     MediaBin bin_;
     timeline::Timeline timeline_;
     std::uint64_t next_clip_id_ = 1'000'000; // clear of Timeline::split_clip's own low ids

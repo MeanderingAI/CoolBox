@@ -275,11 +275,14 @@
                 "command": "cmake --build build --target recording_studio && ./build/_deliverables/apps/recording_studio/recording_studio"
             },
             {
-                "name": "Run movie_editor (macOS/Linux)",
+                "name": "Run movie_editor",
                 "type": "node-terminal",
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
-                "command": "cmake --build build --target movie_editor && ./build/_deliverables/apps/movie_editor/movie_editor"
+                "command": "cmake --build build --target movie_editor && ./build/_deliverables/apps/movie_editor/movie_editor",
+                "windows": {
+                    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\_scripts\\build_movie_editor_windows.ps1 -Run"
+                }
             },
             {
                 "name": "Debug movie_editor (gdb, Linux)",
@@ -300,6 +303,17 @@
                         "ignoreFailures": true
                     }
                 ],
+                "preLaunchTask": "build-movie-editor-debug"
+            },
+            {
+                "name": "Debug movie_editor (Windows)",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "program": "${workspaceFolder}\\build_windows\\_deliverables\\apps\\movie_editor\\Debug\\movie_editor.exe",
+                "envFile": "${workspaceFolder}\\build_windows\\movie_editor.env",
+                "args": [],
+                "cwd": "${workspaceFolder}",
+                "console": "integratedTerminal",
                 "preLaunchTask": "build-movie-editor-debug"
             }
         ],

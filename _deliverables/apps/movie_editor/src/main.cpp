@@ -14,6 +14,7 @@ struct Options {
     bool cli_mode = false;
     std::string project_path;
     std::string export_avi_path;
+    std::string export_mp4_path;
     std::string export_gif_path;
     std::string export_wav_path;
     double fps = 24.0;
@@ -32,13 +33,14 @@ Options parse_args(int argc, const char* const argv[]) {
     parser.set_program_name("movie_editor");
     parser.set_description(
         "CoolBox non-linear video editor: import image-sequence/still/audio media onto a "
-        "multi-track timeline, preview/scrub in a windowed GUI, and export to AVI/GIF/WAV.");
+        "multi-track timeline, preview/scrub in a windowed GUI, and export to MP4/AVI/GIF/WAV.");
 
     parser.add_option({"help", 'h', false, false, "", "Show help and exit."});
     parser.add_option({"version", 'v', false, false, "", "Print the binary version and exit."});
     parser.add_option({"cli", '\0', false, false, "", "Headless mode: load --project and run any requested exports, then exit (no window)."});
     parser.add_option({"project", 'p', true, false, "PATH", "Project JSON file to load."});
     parser.add_option({"export-avi", '\0', true, false, "PATH", "Export the loaded project's full timeline to an AVI file."});
+    parser.add_option({"export-mp4", '\0', true, false, "PATH", "Export H.264/AAC MP4 using FFmpeg."});
     parser.add_option({"export-gif", '\0', true, false, "PATH", "Export the loaded project as an animated GIF."});
     parser.add_option({"export-wav", '\0', true, false, "PATH", "Export the loaded project's audio mix to a WAV file."});
     parser.add_option({"fps", '\0', true, false, "N", "Frame rate for video export (default 24)."});
@@ -72,6 +74,7 @@ Options parse_args(int argc, const char* const argv[]) {
     options.cli_mode = result.has_option("cli");
     options.project_path = result.option_value("project");
     options.export_avi_path = result.option_value("export-avi");
+    options.export_mp4_path = result.option_value("export-mp4");
     options.export_gif_path = result.option_value("export-gif");
     options.export_wav_path = result.option_value("export-wav");
     options.fps = std::stod(result.option_value("fps", "24.0"));
@@ -107,6 +110,11 @@ int run_headless(const Options& options) {
 
     bool did_export = false;
     try {
+        if (!options.export_mp4_path.empty()) {
+            project.export_mp4(options.export_mp4_path, options.fps, options.width, options.height);
+            std::cout << "Exported MP4: " << options.export_mp4_path << "\n";
+            did_export = true;
+        }
         if (!options.export_avi_path.empty()) {
             project.export_avi(options.export_avi_path, options.fps, options.width, options.height,
                                options.audio_rate, options.audio_channels);
@@ -134,7 +142,7 @@ int run_headless(const Options& options) {
     }
 
     if (!did_export) {
-        std::cout << "(No --export-* flag given; nothing rendered. Use --export-avi/--export-gif/--export-wav.)\n";
+        std::cout << "(No --export-* flag given; nothing rendered. Use --export-mp4/--export-avi/--export-gif/--export-wav.)\n";
     }
     return 0;
 }
@@ -145,7 +153,7 @@ int main(int argc, char** argv) {
     const Options options = parse_args(argc, argv);
     if (options.show_help || options.show_version) return 0;
 
-    const bool wants_export = !options.export_avi_path.empty() || !options.export_gif_path.empty() ||
+    const bool wants_export = !options.export_mp4_path.empty() || !options.export_avi_path.empty() || !options.export_gif_path.empty() ||
                               !options.export_wav_path.empty();
 
     if (options.cli_mode || wants_export) {
@@ -162,6 +170,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    movie_editor_app::MovieEditorWindow window(std::move(project));
+    movie_editor_app::MovieEditorWindow window(std::move(project), options.project_path);
     return window.run() ? 0 : 1;
 }

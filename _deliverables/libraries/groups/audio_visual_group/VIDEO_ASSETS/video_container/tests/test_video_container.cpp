@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <string>
@@ -37,10 +38,8 @@ VideoFrame make_rgb_frame(std::size_t width, std::size_t height,
 
 std::string temp_file_path(const std::string& suffix) {
     static int counter = 0;
-    const char* tmp_dir = std::getenv("TMPDIR");
-    const std::string dir = tmp_dir ? tmp_dir : "/tmp/";
-    return dir + (dir.back() == '/' ? "" : "/") + "video_container_test_" +
-           std::to_string(++counter) + suffix;
+    return (std::filesystem::temp_directory_path() /
+            ("video_container_test_" + std::to_string(++counter) + suffix)).string();
 }
 
 std::vector<std::uint8_t> read_whole_file(const std::string& path) {

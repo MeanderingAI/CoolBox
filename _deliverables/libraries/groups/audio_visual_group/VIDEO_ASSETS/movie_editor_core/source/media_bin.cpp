@@ -1,6 +1,7 @@
 #include "../headers/movie_editor_core.h"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <stdexcept>
 
@@ -120,7 +121,15 @@ std::string MediaBin::import_video_file(const std::string& path) {
             ? 24.0
             : (static_cast<double>(asset.decoded_frames.size()) * 1'000'000.0) / static_cast<double>(asset.duration_us);
     } else if (ext == ".avi") {
-        video::container::DecodedAvi decoded = video::container::read_avi(path);
+        video::container::DecodedAvi decoded;
+        try {
+            decoded = video::container::read_avi(path);
+        } catch (const std::runtime_error& error) {
+            const std::string message = error.what();
+            if (message.find("read_avi: unsupported") != 0 &&
+                message.find("read_avi: only 16-bit PCM") != 0) throw;
+            return add_asset(decode_ffmpeg_video(path));
+        }
         asset.decoded_frames = std::move(decoded.frames);
         asset.fps = decoded.fps > 0.0 ? decoded.fps : 24.0;
         const std::int64_t frame_duration_us = static_cast<std::int64_t>(1'000'000.0 / asset.fps);
@@ -130,11 +139,13 @@ std::string MediaBin::import_video_file(const std::string& path) {
         }
         asset.duration_us = static_cast<std::int64_t>(asset.decoded_frames.size()) * frame_duration_us;
     } else {
-        throw std::runtime_error("import_video_file: unsupported video format '" + ext +
-                                 "' — only .gif and .avi can be decoded (formats like .mp4/.mov "
-                                 "require H.264/H.265 codecs this from-scratch library does not implement)");
+        asset = decode_ffmpeg_video(path);
     }
 
+    return add_asset(std::move(asset));
+}
+
+std::string MediaBin::add_asset(MediaAsset asset) {
     const auto it = index_by_path_.find(asset.path);
     if (it != index_by_path_.end()) {
         assets_[it->second] = std::move(asset);

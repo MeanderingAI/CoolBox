@@ -2,6 +2,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(CoolBoxSQL LANGUAGES C CXX)
 
+option(COOLBOX_MOVIE_EDITOR_ONLY "Configure only the movie editor and its dependencies" OFF)
+
 # Force Eigen to use at least C++11 (and respect top-level C++ standard)
 set(EIGEN_TEST_CXX11 ON CACHE BOOL "Enable C++11/17 for Eigen" FORCE)
 
@@ -9,7 +11,9 @@ set(EIGEN_TEST_CXX11 ON CACHE BOOL "Enable C++11/17 for Eigen" FORCE)
 # Ensure custom Find*.cmake modules are found before dependency checks run.
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 
-include(cmake/FindAllDependencies.cmake)
+if(NOT COOLBOX_MOVIE_EDITOR_ONLY)
+    include(cmake/FindAllDependencies.cmake)
+endif()
 
 # Option to control Emscripten MODULARIZE (default ON, can override with -DEMSCRIPTEN_MODULARIZE=OFF)
 option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async JS loading)" ON)
@@ -49,7 +53,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Include the external dependencies from the sub-directory
-include(cmake/ExternalDependencies.cmake)
+if(NOT COOLBOX_MOVIE_EDITOR_ONLY)
+    include(cmake/ExternalDependencies.cmake)
+endif()
 
 # Pass top-level source dir to gen_docs
 set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox source directory" FORCE)
@@ -197,6 +203,11 @@ function(coolbox_stage_test_runtime_dependencies test_target)
         )
     endif()
 endfunction()
+
+if(COOLBOX_MOVIE_EDITOR_ONLY)
+    include(cmake/MovieEditorBuild.cmake)
+    return()
+endif()
 
 # Option to skip building apps/services/demos
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)

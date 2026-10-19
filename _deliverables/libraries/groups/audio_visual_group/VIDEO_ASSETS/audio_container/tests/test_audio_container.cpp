@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -13,12 +14,12 @@ namespace ac = trekker::audio::container;
 
 namespace {
 
+constexpr double pi = 3.14159265358979323846;
+
 std::string temp_file_path(const std::string& suffix) {
     static int counter = 0;
-    const char* tmp_dir = std::getenv("TMPDIR");
-    const std::string dir = tmp_dir ? tmp_dir : "/tmp/";
-    return dir + (dir.back() == '/' ? "" : "/") + "audio_container_test_" +
-           std::to_string(++counter) + suffix;
+    return (std::filesystem::temp_directory_path() /
+            ("audio_container_test_" + std::to_string(++counter) + suffix)).string();
 }
 
 AudioBuffer make_sine_buffer(std::uint32_t sample_rate, std::uint32_t channels,
@@ -27,7 +28,7 @@ AudioBuffer make_sine_buffer(std::uint32_t sample_rate, std::uint32_t channels,
     for (std::uint32_t c = 0; c < channels; ++c) {
         for (std::size_t i = 0; i < num_samples; ++i) {
             const double t = static_cast<double>(i) / sample_rate;
-            buf.planes[c][i] = static_cast<float>(amplitude * std::sin(2.0 * M_PI * freq_hz * t));
+            buf.planes[c][i] = static_cast<float>(amplitude * std::sin(2.0 * pi * freq_hz * t));
         }
     }
     return buf;
@@ -67,7 +68,7 @@ double rms_error(const AudioBuffer& a, const AudioBuffer& b) {
 TYST_TEST(AudioContainerTests, ImaAdpcmNibbleRoundTripIsBoundedError) {
     std::vector<std::int16_t> samples(2000);
     for (std::size_t i = 0; i < samples.size(); ++i) {
-        samples[i] = static_cast<std::int16_t>(12000.0 * std::sin(2.0 * M_PI * 5.0 * i / samples.size()));
+        samples[i] = static_cast<std::int16_t>(12000.0 * std::sin(2.0 * pi * 5.0 * i / samples.size()));
     }
 
     ac::ImaAdpcmState enc_state;

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 add_library(movie_editor_core SHARED
     source/media_bin.cpp
+    source/ffmpeg_import.cpp
     source/editor_project.cpp
     source/render.cpp
     source/export.cpp
@@ -17,6 +18,7 @@ target_link_libraries(movie_editor_core PUBLIC
     audio_processing
     audio_container
     json
+    fonts
 )
 if(TARGET graphics_textures)
     target_link_libraries(movie_editor_core PUBLIC graphics_textures)
@@ -32,5 +34,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(movie_editor_core_tests tests/test_movie_editor_core.cpp)
     target_link_libraries(movie_editor_core_tests PRIVATE movie_editor_core charts tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(movie_editor_core_tests)
     add_test(NAME MovieEditorCoreTests COMMAND movie_editor_core_tests)
 endif()

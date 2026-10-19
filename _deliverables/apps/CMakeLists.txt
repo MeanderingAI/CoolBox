@@ -37,6 +37,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/recording_studio/CMakeLists.txt")
     add_subdirectory(recording_studio)
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/movie_editor/CMakeLists.txt")
+    add_subdirectory(movie_editor)
+endif()
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/call_center_api/CMakeLists.txt")
     add_subdirectory(call_center_api)
 endif()
