@@ -9,6 +9,15 @@ namespace agents {
 const std::vector<PaperCitation>& agent_citations() {
     static const std::vector<PaperCitation> registry = {
         {
+            "shinn_reflexion_2023",
+            "Reflexion: Language Agents with Verbal Reinforcement Learning",
+            "Shinn, Noah and Cassano, Federico and Berman, Edward and Gopinath, Ashwin and Narasimhan, Karthik and Yao, Shunyu",
+            "Advances in Neural Information Processing Systems 36 (NeurIPS)",
+            "2303.11366",
+            "https://arxiv.org/abs/2303.11366",
+            "reflexion.h"
+        },
+        {
             "cheng_trace_2024",
             "Trace is the Next AutoDiff: Generative Optimization with Rich Feedback, Execution Traces, and LLMs",
             "Cheng, Ching-An and Nie, Allen and Swaminathan, Adith",

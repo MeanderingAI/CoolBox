@@ -9,6 +9,7 @@
 
 #include <sstream>
 #include <vector>
+#include <stdexcept>
 
 TYST_TEST(BanditArmTest, UpdateTracksIncrementalAverageAndPullCount) {
 	BanditArm arm(0.75);
@@ -87,4 +88,15 @@ TYST_TEST(SimulationResultTest, StreamOutputIncludesHeadersAndArmRows) {
 	TYST_EXPECT_NE(text.find("True Prob"), std::string::npos);
 	TYST_EXPECT_NE(text.find("0.7500"), std::string::npos);
 	TYST_EXPECT_NE(text.find("0.2500"), std::string::npos);
+}
+
+TYST_TEST(UCBAgentTest, LearnsFromExternalEpisodeRewards) {
+	UCBAgent agent({0, 0}, 0);
+	TYST_EXPECT_EQ(agent.select_arm(), 0);
+	agent.observe_reward(0, 0.2);
+	TYST_EXPECT_EQ(agent.select_arm(), 1);
+	agent.observe_reward(1, 0.9);
+	TYST_EXPECT_EQ(agent.select_arm(), 1);
+	TYST_EXPECT_NEAR(agent.get_results().bandit_results[1].estimated_probability, 0.9, 1e-12);
+	TYST_EXPECT_THROW(agent.observe_reward(2, 1), std::invalid_argument);
 }

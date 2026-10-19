@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 project(tyst_framework LANGUAGES CXX)
 
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
 add_library(tyst_framework_main STATIC
     ${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
 )
@@ -11,14 +14,7 @@ target_include_directories(tyst_framework_main PUBLIC
 )
 target_compile_features(tyst_framework_main PUBLIC cxx_std_17)
 
-
-
-
 # --- CMake package config and export logic ---
-include(CMakePackageConfigHelpers)
-include(GNUInstallDirs)
-
-
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/tyst_framework_main)
 
 install(DIRECTORY headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -52,4 +48,3 @@ install(FILES
 # Content:
 # set_and_check(TYST_FRAMEWORK_MAIN_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
 # include("${CMAKE_CURRENT_LIST_DIR}/tyst_framework_mainTargets.cmake")
-

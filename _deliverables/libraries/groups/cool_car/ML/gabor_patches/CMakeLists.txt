@@ -20,6 +20,7 @@ if(BUILD_TESTING)
         ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/tyst_framework/headers
     )
     target_link_libraries(gabor_patches_tests PRIVATE gabor_patches)
+    target_compile_definitions(gabor_patches_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES>)
     coolbox_stage_test_runtime_dependencies(gabor_patches_tests)
     add_test(NAME GaborPatchesTests COMMAND gabor_patches_tests)
 endif()

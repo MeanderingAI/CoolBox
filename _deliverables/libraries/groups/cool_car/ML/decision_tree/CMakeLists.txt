@@ -1,7 +1,9 @@
 add_library(decision_tree SHARED
     source/decision_tree.cpp
+    source/decision_tree_regressor.cpp
     source/rule_set.cpp
     source/random_forest.cpp
+    source/random_forest_regressor.cpp
     source/boost_tree.cpp
     source/chained_boosting.cpp
 )

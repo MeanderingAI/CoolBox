@@ -49,6 +49,11 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/battery_simulator/CMakeLists.txt")
     add_subdirectory(battery_simulator)
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/movie_editor/CMakeLists.txt")
-    add_subdirectory(movie_editor)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/quantum_simulator/CMakeLists.txt")
+    add_subdirectory(quantum_simulator)
+endif()
+
+option(BUILD_ROBOT_SIMULATOR "Build the native 3D robot simulator" OFF)
+if(BUILD_ROBOT_SIMULATOR)
+    add_subdirectory(robot_simulator)
 endif()

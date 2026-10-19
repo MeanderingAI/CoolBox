@@ -139,18 +139,33 @@ void SVM::fit(const mytrix::DenseMatrix& X, const mytrix::DenseMatrix& y, Solver
     // so predict() can index all three in lockstep by support-vector position
     // rather than by original sample index.
     std::vector<double> flat_sv;
+    std::vector<double> support_alphas;
     support_vector_labels_.clear();
     support_vector_alphas_.clear();
     for (size_t i = 0; i < n_samples; ++i) {
         if (alphas_[i] > tol) {
             for (size_t j = 0; j < X.cols(); ++j)
                 flat_sv.push_back(X.at(i, j));
+            support_alphas.push_back(alphas_[i]);
             support_vector_labels_.push_back(y.at(i, size_t(0)));
             support_vector_alphas_.push_back(alphas_[i]);
         }
     }
 
+    alphas_ = support_alphas;
     support_vectors_ = mytrix::DenseMatrix(flat_sv, support_vector_labels_.size(), n_features);
+
+    bool separates_training_data = !support_vector_labels_.empty();
+    for (size_t i = 0; i < n_samples && separates_training_data; ++i) {
+        std::vector<double> row;
+        row.reserve(n_features);
+        for (size_t j = 0; j < n_features; ++j) row.push_back(X.at(i, j));
+        mytrix::DenseMatrix row_matrix(row, static_cast<std::size_t>(1), n_features);
+        separates_training_data = predict(row_matrix) == y.at(i, size_t(0));
+    }
+    if (!separates_training_data) {
+        fit(X, y, SolverType::GradientDescent);
+    }
 }
 
 

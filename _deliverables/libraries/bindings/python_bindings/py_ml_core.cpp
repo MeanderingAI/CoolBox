@@ -43,8 +43,15 @@
 #include "rest_api/server.h"
 
 #include "include/pde_spde_bindings.hpp"
+#include "include/timer_bindings.hpp"
+#include "include/synthetic_data_bindings.hpp"
 
 namespace py = pybind11;
+
+void bind_tree_ensembles(py::module_& module);
+void bind_data_structures(py::module_& module);
+void bind_matrix(py::module_& module);
+void bind_opt_math_finance(py::module_& module);
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
@@ -52,9 +59,17 @@ PYBIND11_MODULE(ml_core, m) {
     bind_graphics(m);
     bind_misc(m);
     bind_pde_spde(m);
+    bind_timer(m);
+    bind_synthetic_data(m);
+    bind_matrix(m);
+    bind_opt_math_finance(m);
+    py::module_ data_structures_module =
+        m.def_submodule("data_structures", "Native data structures");
+    bind_data_structures(data_structures_module);
 
     // Decision Tree Module
     py::module_ dt_module = m.def_submodule("decision_tree", "Decision Tree algorithms");
+    bind_tree_ensembles(dt_module);
 
     // SplitCriterion enum
     py::enum_<SplitCriterion>(dt_module, "SplitCriterion")
@@ -70,6 +85,12 @@ PYBIND11_MODULE(ml_core, m) {
         .def("predict", &DecisionTree::predict,
              "Predict class label for a sample",
              py::arg("sample"));
+
+    py::class_<DecisionTreeRegressor>(dt_module, "DecisionTreeRegressor")
+        .def(py::init<>())
+        .def("fit", &DecisionTreeRegressor::fit,
+             py::arg("X"), py::arg("y"), py::arg("max_depth"))
+        .def("predict", &DecisionTreeRegressor::predict, py::arg("sample"));
 
     // RandomForest class (assuming it exists)
     // py::class_<RandomForest>(dt_module, "RandomForest")
@@ -509,6 +530,8 @@ PYBIND11_MODULE(ml_core, m) {
     // DenseLayer
     py::class_<ml::deep_learning::DenseLayer, ml::deep_learning::Layer, std::shared_ptr<ml::deep_learning::DenseLayer>>(dl_module, "DenseLayer")
         .def(py::init<size_t, size_t>())
+        .def("update_parameters", &ml::deep_learning::DenseLayer::update_parameters,
+             py::arg("learning_rate"))
         .def("weights", &ml::deep_learning::DenseLayer::weights)
         .def("bias", &ml::deep_learning::DenseLayer::bias);
 

@@ -60,12 +60,19 @@ struct RenderEvent : public ::graphics::GraphicsObject {
     std::string graphics_object_name() const override { return "frame-" + std::to_string(frame_index); }
 };
 
+struct ScrollEvent {
+    int x = 0;
+    int y = 0;
+    double delta = 0.0;
+};
+
 struct RenderHooks {
     std::function<void(const RenderEvent&)> on_create;
     std::function<void(const RenderEvent&)> on_render;
     std::function<void(const RenderEvent&)> on_resize;
     std::function<void(const RenderEvent&)> on_tick;
     std::function<void(const RenderEvent&)> on_close;
+    std::function<void(const ScrollEvent&)> on_scroll;
 };
 
 struct PointerState {
@@ -142,6 +149,10 @@ private:
 
 std::string backend_name(Backend backend);
 Backend native_backend();
+
+void show_canvas_window(const ::graphics::Canvas& canvas,
+                        const std::string& title,
+                        const std::string& save_path);
 
 } // namespace full_application_window
 } // namespace graphics

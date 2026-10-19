@@ -4,6 +4,7 @@ if(BUILD_TESTING)
 		${CMAKE_SOURCE_DIR}/_tyst_main/tyst_framework_main.cpp
 	)
 	target_link_libraries(math_tests PRIVATE cool_car_math mytrix)
+	target_compile_definitions(math_tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_USE_MATH_DEFINES>)
 	target_include_directories(math_tests
 		SYSTEM PRIVATE
 			${CMAKE_CURRENT_SOURCE_DIR}

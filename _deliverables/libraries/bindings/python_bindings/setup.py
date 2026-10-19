@@ -34,6 +34,7 @@ vendor_src_root = project_root / "vendor_src"
 vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
 vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
 vendor_matrix_headers_dir = project_root / "vendor_include" / "MATRIX" / "headers"
+timer_headers_dir = repo_root / "_deliverables/libraries/groups/Generics/timer/headers"
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
 
@@ -295,18 +296,67 @@ eigen_candidates = [
     r"C:\tools\msys64\mingw64\include",
 ]
 
+decision_tree_root = repo_root / "_deliverables/libraries/groups/cool_car/ML/decision_tree"
+regressor_header = sync_vendor_file(
+    decision_tree_root / "headers/decision_tree_regressor.h",
+    vendor_include_root / "decision_tree/decision_tree_regressor.h",
+)
+regressor_source = sync_vendor_file(
+    decision_tree_root / "source/decision_tree_regressor.cpp",
+    vendor_src_root / "decision_tree/decision_tree_regressor.cpp",
+)
+for header in ("boost_tree.h", "random_forest_regressor.h",
+               "decision_tree_regressor.h", "tree_ensemble_utils.h"):
+    sync_vendor_file(
+        decision_tree_root / "headers" / header,
+        vendor_include_root / "tree_ensemble" / header,
+    )
+ensemble_sources = [
+    sync_vendor_file(
+        decision_tree_root / "source" / source,
+        vendor_src_root / "tree_ensemble" / source,
+    )
+    for source in ("boost_tree.cpp", "random_forest_regressor.cpp")
+]
+
 include_dirs = [
     pybind11.get_include(),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
-    str(matrix_header_dir),
+    str(regressor_header.parent),
+    str(vendor_include_root / "tree_ensemble"),
+    str(timer_headers_dir),
     *(str(include_root / module_dir) for module_dir in module_dirs),
     str(graphics_header.parent),
     str(wave_generator_header.parent),
     # cool_car group headers: mytrix_eigen_compat.hpp, DL/layers, DL/loss, DL/optimizer, DL/wrapper
     # Include both the root (for "DL/..." paths) and MATRIX/headers (for bare includes)
     *existing_dirs(repo_cool_car_root_candidates),
+    str(project_root.parent / "go_bindings"),
+    *existing_dirs(
+        [
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/bayesian_quantum_control/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/distributed_learning/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/genetic_search/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/hill_climbing/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/optimization_factory/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/FINANCE/headers",
+            repo_root / "_deliverables/libraries/groups/cool_car/MATH",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/list/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/maps/headers",
+            repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/headers",
+        ]
+    ),
     *existing_dirs(repo_matrix_header_candidates),
+    # Prefer the repository MATRIX headers over the vendored copies. Mixing both
+    # copies in one translation unit bypasses #pragma once and causes redefinitions.
+    str(matrix_header_dir),
     *existing_dirs(
         [
             repo_root / "build/_deps/stb-src",
@@ -317,17 +367,33 @@ include_dirs = [
     *resolve_eigen_include_dirs(eigen_candidates),
 ]
 
-extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall"]
+extra_compile_args = ["/O2", "/EHsc"] if sys.platform.startswith("win") else ["-O3", "-Wall", "-pthread"]
+extra_link_args = [] if sys.platform.startswith("win") else ["-pthread"]
 
 source_files = [
     "py_ml_core.cpp",
+    to_setup_relative_path(regressor_source),
     "src/pde_spde_bindings.cpp",
+    "src/opt_math_finance_bindings.cpp",
+    "src/timer_bindings.cpp",
+    "src/tree_ensemble_bindings.cpp",
+    "src/data_structures_bindings.cpp",
+    "src/matrix_bindings.cpp",
+    "src/synthetic_data_bindings.cpp",
 ]
+source_files.extend(to_setup_relative_path(path) for path in ensemble_sources)
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
         module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
     source_files.extend(module_sources)
+source_files.append(str(project_root.parent / "go_bindings" / "matrix_bridge.cc"))
+source_files.extend(
+    [
+        str(project_root.parent / "go_bindings" / "ds_bridge.cc"),
+        str(project_root.parent / "go_bindings" / "ds_bridge_sources.cc"),
+    ]
+)
 
 # Do not compile large C++ vendor sources into the Python extension; instead
 # link against the project's shared libraries. Users should build the C++ libs
@@ -391,6 +457,7 @@ library_dirs = existing_dirs([
 runtime_library_dirs = []
 if not sys.platform.startswith("win"):
     runtime_library_dirs = resolved_library_dirs[:]
+extension_libraries = unresolved_libraries + (["shell32"] if sys.platform.startswith("win") else [])
 
 ext_modules = [
     Pybind11Extension(
@@ -399,11 +466,12 @@ ext_modules = [
         include_dirs=include_dirs,
         cxx_std=17,
         extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
         # Link against built CoolBox C++ libraries. Set COOLBOX_LIB_DIR to
         # the build output directory containing libcharts(.a/.so/.dylib)
         # and libwave_generator_utils.
         library_dirs=library_dirs,
-        libraries=unresolved_libraries,
+        libraries=extension_libraries,
         extra_objects=resolved_extra_objects,
         runtime_library_dirs=runtime_library_dirs,
     ),
@@ -411,6 +479,7 @@ ext_modules = [
 
 setup(
     packages=["ml_toolbox"],
+    py_modules=["metadata_client"],
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext_with_move},
     zip_safe=False,

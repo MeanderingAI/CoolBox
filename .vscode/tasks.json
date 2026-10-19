@@ -744,9 +744,26 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "run"
-		}
-	]
-	,
+		},
+		{
+			"label": "build-robot-simulator-release",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Release",
+				"--target",
+				"robot_simulator"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
 	// Build all libraries (cross-platform)
 	{
 		"label": "build_all-mac-linux",
@@ -797,4 +814,5 @@
 		"group": "test",
 		"problemMatcher": []
 	}
+	]
 }

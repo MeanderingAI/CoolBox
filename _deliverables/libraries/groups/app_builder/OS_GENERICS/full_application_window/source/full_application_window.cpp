@@ -1,12 +1,15 @@
 #include "full_application_window.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <thread>
 #include <cstdlib>
 #include <unordered_map>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -240,6 +243,17 @@ struct FullApplicationWindow::Impl {
             if (impl->hooks.on_resize) {
                 impl->hooks.on_resize(impl->make_render_event(reinterpret_cast<std::uintptr_t>(hwnd), impl->frame_index));
             }
+            return 0;
+        }
+
+        if (impl && message == WM_MOUSEWHEEL && impl->hooks.on_scroll) {
+            POINT point{static_cast<short>(LOWORD(lparam)),
+                        static_cast<short>(HIWORD(lparam))};
+            ScreenToClient(hwnd, &point);
+            impl->hooks.on_scroll(ScrollEvent{
+                point.x,
+                point.y,
+                static_cast<double>(static_cast<short>(HIWORD(wparam))) / WHEEL_DELTA});
             return 0;
         }
 
@@ -889,7 +903,9 @@ bool FullApplicationWindow::create() {
                                         BlackPixel(impl_->display, screen),
                                         WhitePixel(impl_->display, screen));
     XStoreName(impl_->display, impl_->window, impl_->config.title.c_str());
-    XSelectInput(impl_->display, impl_->window, ExposureMask | KeyPressMask | StructureNotifyMask);
+    XSelectInput(impl_->display, impl_->window,
+                 ExposureMask | KeyPressMask | StructureNotifyMask |
+                     ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
     impl_->delete_message = XInternAtom(impl_->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(impl_->display, impl_->window, &impl_->delete_message, 1);
     if (impl_->config.min_width > 0 || impl_->config.min_height > 0) {
@@ -1030,6 +1046,21 @@ bool FullApplicationWindow::pump_events() {
                     distant_past,
                     default_mode,
                     YES)) != nullptr) {
+            using EventTypeFn = unsigned long (*)(id, SEL);
+            using EventPointFn = CGPoint (*)(id, SEL);
+            using EventDeltaFn = double (*)(id, SEL);
+            if (impl_->hooks.on_scroll &&
+                reinterpret_cast<EventTypeFn>(objc_msgSend)(
+                    event, sel_registerName("type")) == 22UL) {
+                const CGPoint location = reinterpret_cast<EventPointFn>(objc_msgSend)(
+                    event, sel_registerName("locationInWindow"));
+                const double delta = reinterpret_cast<EventDeltaFn>(objc_msgSend)(
+                    event, sel_registerName("scrollingDeltaY"));
+                impl_->hooks.on_scroll(ScrollEvent{
+                    static_cast<int>(location.x),
+                    static_cast<int>(impl_->config.height) - static_cast<int>(location.y),
+                    delta});
+            }
             reinterpret_cast<SendEventFn>(objc_msgSend)(
                 ns_app, sel_registerName("sendEvent:"), event);
             ++drained;
@@ -1077,6 +1108,13 @@ bool FullApplicationWindow::pump_events() {
             if (impl_->hooks.on_resize) {
                 impl_->hooks.on_resize(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
             }
+        }
+        if (event.type == ButtonPress && impl_->hooks.on_scroll &&
+            (event.xbutton.button == Button4 || event.xbutton.button == Button5)) {
+            impl_->hooks.on_scroll(ScrollEvent{
+                event.xbutton.x,
+                event.xbutton.y,
+                event.xbutton.button == Button4 ? 1.0 : -1.0});
         }
         if (event.type == ClientMessage && static_cast<Atom>(event.xclient.data.l[0]) == impl_->delete_message) {
             if (impl_->hooks.on_close) {
@@ -1237,17 +1275,12 @@ void FullApplicationWindow::request_redraw() {
         InvalidateRect(impl_->hwnd, nullptr, FALSE);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
-    // Invoke on_render synchronously (matching the Cocoa/headless backends
-    // below) rather than only clearing-and-waiting-for-an-Expose-event: the
-    // latter wipes the window to its background pixel immediately via
-    // XClearArea and only repaints on the *next* pump_events() call, which
-    // (since callers typically call request_redraw() once per loop
-    // iteration) means the window spends nearly all of its time showing a
-    // blank/cleared frame and only an instant showing real content. Calling
-    // on_render directly here means present_canvas()'s XPutImage overwrites
-    // every pixel in one step, so there is no visible blank frame at all.
-    // pump_events()'s own Expose handling still covers externally-triggered
-    // repaints (e.g. the window being uncovered by the window manager).
+    // Render synchronously (matching the Cocoa/headless backends below)
+    // rather than XClearArea()-then-wait-for-the-next-Expose-event: that
+    // older approach blanked the window to the background pixel immediately
+    // and only repainted whenever the next Expose happened to arrive,
+    // producing a clear -> (gap) -> redraw "strobe" where the window was
+    // blank the vast majority of the time.
     if (impl_->display && impl_->window && impl_->hooks.on_render) {
         impl_->hooks.on_render(impl_->make_render_event(
             static_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
@@ -1332,25 +1365,22 @@ bool FullApplicationWindow::query_pointer_state(PointerState& state) const {
         state = PointerState{};
         return false;
     }
-
-    XWindowAttributes attrs{};
-    XGetWindowAttributes(impl_->display, impl_->window, &attrs);
-
-    ::Window root_return = 0, child_return = 0;
+    ::Window root_return = 0;
+    ::Window child_return = 0;
     int root_x = 0, root_y = 0, win_x = 0, win_y = 0;
     unsigned int mask = 0;
-    const Bool same_screen = XQueryPointer(impl_->display, impl_->window, &root_return, &child_return,
-                                           &root_x, &root_y, &win_x, &win_y, &mask);
-
-    state.client_width = attrs.width;
-    state.client_height = attrs.height;
-    if (!same_screen) {
-        state.inside = false;
-        return true;
+    if (!XQueryPointer(impl_->display, impl_->window, &root_return, &child_return,
+                       &root_x, &root_y, &win_x, &win_y, &mask)) {
+        state = PointerState{};
+        return false;
     }
+    int width = 0, height = 0;
+    client_size(width, height);
     state.x = win_x;
     state.y = win_y;
-    state.inside = win_x >= 0 && win_y >= 0 && win_x < attrs.width && win_y < attrs.height;
+    state.client_width = width;
+    state.client_height = height;
+    state.inside = win_x >= 0 && win_y >= 0 && win_x < width && win_y < height;
     state.left_button_down = (mask & Button1Mask) != 0;
     state.right_button_down = (mask & Button3Mask) != 0;
     return true;
@@ -1407,11 +1437,7 @@ bool FullApplicationWindow::client_size(int& width, int& height) const {
         return false;
     }
     XWindowAttributes attrs{};
-    if (!XGetWindowAttributes(impl_->display, impl_->window, &attrs)) {
-        width = 0;
-        height = 0;
-        return false;
-    }
+    XGetWindowAttributes(impl_->display, impl_->window, &attrs);
     width = attrs.width;
     height = attrs.height;
     return true;
@@ -1725,67 +1751,209 @@ bool FullApplicationWindow::present_canvas(const ::graphics::Canvas& canvas) con
     ReleaseDC(impl_->hwnd, dc);
     return true;
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
-    if (!impl_->display || !impl_->window) {
-        return false;
-    }
+    if (!impl_->display || !impl_->window) return false;
 
-    const int cw = canvas.width();
-    const int ch = canvas.height();
-    if (cw <= 0 || ch <= 0) {
-        return false;
-    }
+    const int w = canvas.width();
+    const int h = canvas.height();
+    if (w <= 0 || h <= 0) return false;
 
     const int screen = DefaultScreen(impl_->display);
     Visual* visual = DefaultVisual(impl_->display, screen);
     const int depth = DefaultDepth(impl_->display, screen);
-    if (depth < 24) {
-        return false; // unsupported low-colour visual
-    }
+    if (depth != 24 && depth != 32) return false; // uncommon visual depth; bail out safely
 
-    // Figure out each channel's bit position from the visual's colour masks
-    // so this works regardless of the server's exact RGB/BGR byte order.
-    auto mask_shift = [](unsigned long mask) {
+    auto shift_for_mask = [](unsigned long mask) {
         int shift = 0;
-        while (mask != 0 && (mask & 1UL) == 0UL) { mask >>= 1; ++shift; }
+        while (mask != 0 && (mask & 1UL) == 0) { mask >>= 1; ++shift; }
         return shift;
     };
-    const int rshift = mask_shift(visual->red_mask);
-    const int gshift = mask_shift(visual->green_mask);
-    const int bshift = mask_shift(visual->blue_mask);
+    const int rshift = shift_for_mask(visual->red_mask);
+    const int gshift = shift_for_mask(visual->green_mask);
+    const int bshift = shift_for_mask(visual->blue_mask);
 
-    const std::size_t pixel_count = static_cast<std::size_t>(cw) * static_cast<std::size_t>(ch);
-    auto* pixels = static_cast<std::uint32_t*>(std::malloc(pixel_count * sizeof(std::uint32_t)));
-    if (!pixels) {
-        return false;
-    }
-    const std::uint8_t* src = canvas.data(); // RGBA8, row-major, top-left origin
-    for (std::size_t i = 0; i < pixel_count; ++i) {
-        const std::uint8_t* p = src + i * 4;
-        pixels[i] = (static_cast<std::uint32_t>(p[0]) << rshift) |
-                    (static_cast<std::uint32_t>(p[1]) << gshift) |
-                    (static_cast<std::uint32_t>(p[2]) << bshift);
+    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
+    const unsigned char* src = canvas.data(); // RGBA8, row-major, top-left origin
+    for (std::size_t i = 0; i < pixels.size(); ++i) {
+        const unsigned char r = src[i * 4 + 0];
+        const unsigned char g = src[i * 4 + 1];
+        const unsigned char b = src[i * 4 + 2];
+        pixels[i] = (static_cast<std::uint32_t>(r) << rshift) |
+                   (static_cast<std::uint32_t>(g) << gshift) |
+                   (static_cast<std::uint32_t>(b) << bshift);
     }
 
     XImage* image = XCreateImage(impl_->display, visual, static_cast<unsigned int>(depth), ZPixmap, 0,
-                                 reinterpret_cast<char*>(pixels), static_cast<unsigned int>(cw),
-                                 static_cast<unsigned int>(ch), 32, 0);
-    if (!image) {
-        std::free(pixels);
-        return false;
-    }
-    // image->data now owns `pixels`; XDestroyImage() will free() it for us.
+                                 reinterpret_cast<char*>(pixels.data()),
+                                 static_cast<unsigned int>(w), static_cast<unsigned int>(h), 32, 0);
+    if (!image) return false;
 
     GC gc = XCreateGC(impl_->display, impl_->window, 0, nullptr);
     XPutImage(impl_->display, impl_->window, gc, image, 0, 0, 0, 0,
-             static_cast<unsigned int>(cw), static_cast<unsigned int>(ch));
+             static_cast<unsigned int>(w), static_cast<unsigned int>(h));
     XFreeGC(impl_->display, gc);
-    XDestroyImage(image); // also frees `pixels` via free()
+
+    image->data = nullptr; // `pixels` owns the buffer; don't let XDestroyImage free it
+    XDestroyImage(image);
     XFlush(impl_->display);
     return true;
 #else
     (void)canvas;
     return false;
 #endif
+}
+
+void show_canvas_window(const ::graphics::Canvas& canvas,
+                        const std::string& title,
+                        const std::string& save_path) {
+    if (save_path.empty()) {
+        throw std::invalid_argument("plot save path must not be empty");
+    }
+    if (save_path.find('\0') != std::string::npos) {
+        throw std::invalid_argument("plot save path must not contain a NUL byte");
+    }
+
+    FullApplicationWindow window(WindowConfig{
+        title.empty() ? "CoolBox Plot" : title,
+        static_cast<std::size_t>(canvas.width()),
+        static_cast<std::size_t>(canvas.height()),
+        true,
+        true});
+
+    double zoom = 1.0;
+    double pan_x = 0.0;
+    double pan_y = 0.0;
+    bool dragging = false;
+    bool pointer_was_down = false;
+    int previous_pointer_x = 0;
+    int previous_pointer_y = 0;
+    int view_width = canvas.width();
+    int view_height = canvas.height();
+    constexpr int save_button_width = 86;
+    constexpr int save_button_height = 26;
+    constexpr int save_button_margin = 8;
+
+    const auto render = [&] {
+        if (view_width <= 0 || view_height <= 0) {
+            return;
+        }
+
+        ::graphics::Canvas view(view_width, view_height, ::graphics::Colors::White);
+        const double scale = std::min(
+            static_cast<double>(view_width) / canvas.width(),
+            static_cast<double>(view_height) / canvas.height()) * zoom;
+        const double center_x = view_width / 2.0 + pan_x;
+        const double center_y = view_height / 2.0 + pan_y;
+        for (int y = 0; y < view_height; ++y) {
+            const int source_y = static_cast<int>(
+                std::floor((y - center_y) / scale + canvas.height() / 2.0));
+            if (source_y < 0 || source_y >= canvas.height()) {
+                continue;
+            }
+            for (int x = 0; x < view_width; ++x) {
+                const int source_x = static_cast<int>(
+                    std::floor((x - center_x) / scale + canvas.width() / 2.0));
+                if (source_x >= 0 && source_x < canvas.width()) {
+                    view.set_pixel(x, y, canvas.get_pixel(source_x, source_y));
+                }
+            }
+        }
+
+        const int button_x = std::max(
+            0, view_width - save_button_width - save_button_margin);
+        view.draw_rounded_rect(button_x, save_button_margin,
+                               save_button_width, save_button_height, 4,
+                               ::graphics::Colors::DarkGray, true);
+        view.draw_text(button_x + 10, save_button_margin + 9,
+                       "Save PNG", ::graphics::Colors::White);
+        view.draw_text(save_button_margin, view_height - 14,
+                       "Wheel: zoom  |  Drag: pan",
+                       ::graphics::Colors::DarkGray);
+        window.present_canvas(view);
+    };
+
+    RenderHooks hooks;
+    hooks.on_render = [&](const RenderEvent& event) {
+        view_width = static_cast<int>(event.width);
+        view_height = static_cast<int>(event.height);
+        render();
+    };
+    hooks.on_resize = [&](const RenderEvent& event) {
+        view_width = static_cast<int>(event.width);
+        view_height = static_cast<int>(event.height);
+        window.request_redraw();
+    };
+    hooks.on_scroll = [&](const ScrollEvent& event) {
+        if (!std::isfinite(event.delta) || event.delta == 0.0 ||
+            view_width <= 0 || view_height <= 0) {
+            return;
+        }
+        const double old_scale = std::min(
+            static_cast<double>(view_width) / canvas.width(),
+            static_cast<double>(view_height) / canvas.height()) * zoom;
+        const double source_x =
+            (event.x - view_width / 2.0 - pan_x) / old_scale + canvas.width() / 2.0;
+        const double source_y =
+            (event.y - view_height / 2.0 - pan_y) / old_scale + canvas.height() / 2.0;
+        zoom = std::clamp(zoom * std::pow(1.15, event.delta), 0.25, 16.0);
+        const double new_scale = std::min(
+            static_cast<double>(view_width) / canvas.width(),
+            static_cast<double>(view_height) / canvas.height()) * zoom;
+        pan_x = event.x - view_width / 2.0 -
+                (source_x - canvas.width() / 2.0) * new_scale;
+        pan_y = event.y - view_height / 2.0 -
+                (source_y - canvas.height() / 2.0) * new_scale;
+        window.request_redraw();
+    };
+    window.set_render_hooks(std::move(hooks));
+
+    if (!window.create() || window.backend() == Backend::Headless) {
+        window.close();
+        throw std::runtime_error("no native window backend is available");
+    }
+    window.show();
+
+    while (window.pump_events()) {
+        PointerState pointer;
+        if (window.query_pointer_state(pointer)) {
+            const int button_x = std::max(
+                0, pointer.client_width - save_button_width - save_button_margin);
+            const bool on_save_button =
+                pointer.x >= button_x &&
+                pointer.x < button_x + save_button_width &&
+                pointer.y >= save_button_margin &&
+                pointer.y < save_button_margin + save_button_height;
+            if (pointer.left_button_down && !pointer_was_down) {
+                if (on_save_button) {
+                    if (!canvas.save_png(save_path)) {
+                        window.show_info_dialog("Save failed",
+                            "Could not save plot to " + save_path);
+                    } else {
+                        window.show_info_dialog("Plot saved",
+                            "Saved plot to " + save_path);
+                    }
+                    dragging = false;
+                } else {
+                    dragging = true;
+                    previous_pointer_x = pointer.x;
+                    previous_pointer_y = pointer.y;
+                }
+            } else if (pointer.left_button_down && dragging) {
+                const int dx = pointer.x - previous_pointer_x;
+                const int dy = pointer.y - previous_pointer_y;
+                if (dx != 0 || dy != 0) {
+                    pan_x += dx;
+                    pan_y += dy;
+                    previous_pointer_x = pointer.x;
+                    previous_pointer_y = pointer.y;
+                    window.request_redraw();
+                }
+            } else if (!pointer.left_button_down) {
+                dragging = false;
+            }
+            pointer_was_down = pointer.left_button_down;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+    }
 }
 
 } // namespace full_application_window

@@ -20,6 +20,10 @@ Main Modules
 - computer_vision: Image processing and CV algorithms
 - nlp: Natural language processing
 - multi_arm_bandit: Multi-armed bandit algorithms
+- timer: Monotonic timers and timing statistics
+- graphics: Native 2D and projected 3D plots
+- synthetic_data: Deterministic regression, classification, and blob datasets
+- data_structures: Native linked lists, queues, heaps, maps, trees, filters, and arrays
 
 Quick Start
 -----------
@@ -54,10 +58,29 @@ See the examples/ directory for comprehensive usage examples:
 __version__ = "0.2.0"
 
 
-try:
-    from ..metadata_client import Client, create_default, for_endpoint
-except ImportError:
-    from metadata_client import Client, create_default, for_endpoint
+def __getattr__(name):
+    if name == "GAN":
+        from .gan import GAN
+
+        globals()["GAN"] = GAN
+        return GAN
+    if name in {"Client", "create_default", "for_endpoint"}:
+        from metadata_client import Client, create_default, for_endpoint
+
+        exports = {
+            "Client": Client,
+            "create_default": create_default,
+            "for_endpoint": for_endpoint,
+        }
+        globals().update(exports)
+        return exports[name]
+    core = globals().get("_ml_core")
+    if core is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    try:
+        return getattr(core, name)
+    except AttributeError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
 
 
 # Patch: Import the extension directly for local development
@@ -73,6 +96,7 @@ __all__ = [
     "Client",
     "create_default",
     "for_endpoint",
+    "GAN",
     "deep_learning",
     "distributed",
     "decision_tree",
@@ -86,4 +110,9 @@ __all__ = [
     "computer_vision",
     "nlp",
     "multi_arm_bandit",
+    "timer",
+    "graphics",
+    "matrix",
+    "synthetic_data",
+    "data_structures",
 ]

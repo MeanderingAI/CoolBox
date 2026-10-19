@@ -1,8 +1,11 @@
 #include "unscented_kalman_filter.h"
 #include <cmath>
+#include <Eigen/Cholesky>
+#include <stdexcept>
 
 UnscentedKalmanFilter::UnscentedKalmanFilter(int state_dim, int meas_dim)
     : n_x_(state_dim), n_z_(meas_dim) {
+    if (state_dim <= 0 || meas_dim <= 0) throw std::invalid_argument("UKF dimensions must be positive");
     x_ = mytrix::Vector(std::vector<double>(n_x_, 0.0), n_x_);
     P_ = mytrix::Matrix::Identity(n_x_);
     Q_ = mytrix::Matrix::Identity(n_x_);
@@ -19,6 +22,10 @@ UnscentedKalmanFilter::UnscentedKalmanFilter(int state_dim, int meas_dim)
 }
 
 void UnscentedKalmanFilter::initialize(const Vector& x0, const Matrix& P0) {
+    if (x0.size() != static_cast<std::size_t>(n_x_) || P0.rows() != static_cast<std::size_t>(n_x_)
+        || P0.cols() != static_cast<std::size_t>(n_x_) || !P0.data.allFinite()) throw std::invalid_argument("Invalid UKF initial state/covariance");
+    for (std::size_t index = 0; index < x0.size(); ++index)
+        if (!std::isfinite(x0.at(index))) throw std::invalid_argument("UKF state must be finite");
     x_ = x0;
     P_ = P0;
 }
@@ -48,13 +55,11 @@ void UnscentedKalmanFilter::generateSigmaPoints() {
     int n_sigma = 2 * n_x_ + 1;
     sigma_points_.resize(n_sigma);
     
-    // Manual Cholesky not implemented; just use identity for L for now
-    Matrix L = Matrix::Identity(n_x_);
-    // Scale L by sqrt(n_x_ + lambda_)
-    double scale = std::sqrt(n_x_ + lambda_);
-    for (size_t r = 0; r < L.rows(); ++r)
-        for (size_t c = 0; c < L.cols(); ++c)
-            L.at(r, c) *= scale;
+    Eigen::MatrixXd symmetric = 0.5 * (P_.data + P_.data.transpose());
+    symmetric.diagonal().array() += 1e-10;
+    Eigen::LLT<Eigen::MatrixXd> decomposition(symmetric);
+    if (decomposition.info() != Eigen::Success) throw std::runtime_error("UKF covariance is not positive definite");
+    Matrix L(Eigen::MatrixXd(decomposition.matrixL()) * std::sqrt(n_x_ + lambda_));
 
     sigma_points_[0] = x_;
     for (int i = 0; i < n_x_; ++i) {
@@ -73,6 +78,7 @@ void UnscentedKalmanFilter::generateSigmaPoints() {
 }
 
 void UnscentedKalmanFilter::predict() {
+    if (!f_) throw std::logic_error("UKF process model is not configured");
     generateSigmaPoints();
     int n_sigma = 2 * n_x_ + 1;
     
@@ -111,6 +117,11 @@ void UnscentedKalmanFilter::predict() {
 }
 
 void UnscentedKalmanFilter::update(const Vector& z) {
+    if (!h_) throw std::logic_error("UKF measurement model is not configured");
+    if (z.size() != static_cast<std::size_t>(n_z_)) throw std::invalid_argument("UKF measurement dimension mismatch");
+    for (std::size_t index = 0; index < z.size(); ++index)
+        if (!std::isfinite(z.at(index))) throw std::invalid_argument("UKF measurement must be finite");
+    generateSigmaPoints();
     z_ = z;
     int n_sigma = 2 * n_x_ + 1;
     
@@ -155,8 +166,10 @@ void UnscentedKalmanFilter::update(const Vector& z) {
         }
     }
 
-    // Kalman gain (stub S.inverse with identity for now if not implemented)
-    Matrix S_inv = Matrix::Identity(n_z_); // TODO: Replace with real inverse
+    Eigen::MatrixXd innovationCovariance = 0.5 * (S.data + S.data.transpose());
+    Eigen::LDLT<Eigen::MatrixXd> decomposition(innovationCovariance);
+    if (decomposition.info() != Eigen::Success || !decomposition.isPositive()) throw std::runtime_error("UKF innovation covariance is not positive definite");
+    Matrix S_inv(decomposition.solve(Eigen::MatrixXd::Identity(n_z_, n_z_)));
     Matrix K(n_x_, n_z_);
     // K = Pxz * S_inv
     for (int r = 0; r < n_x_; ++r) {
@@ -179,8 +192,9 @@ void UnscentedKalmanFilter::update(const Vector& z) {
         x_.at(r) += update;
     }
 
-    // P_ = P_ - K * S * K.transpose(); (approximate, since S_inv is identity)
-    // For now, skip this or implement a manual version if needed
+    Eigen::MatrixXd posterior = P_.data - K.data * innovationCovariance * K.data.transpose();
+    P_.data = 0.5 * (posterior + posterior.transpose());
+    P_.data.diagonal().array() += 1e-10;
 }
 
 const UnscentedKalmanFilter::Vector& UnscentedKalmanFilter::state() const { return x_; }

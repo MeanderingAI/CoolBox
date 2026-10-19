@@ -38,9 +38,48 @@
  * t.render().save_bmp("grades.bmp");
  * @endcode
  */
-#ifndef COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
-#define COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
-
+#ifndef COOLBOX__LIBRARIES_PACKAGES_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
+#define COOLBOX__LIBRARIES_PACKAGES_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
+/**
+ * @file graphics.h
+ * @brief Lightweight charting & table-rendering library with image export.
+ *
+ * Provides a pixel-based Canvas with drawing primitives, plus higher-level
+ * Graph and Table renderers that produce publication-ready images.
+ *
+ * Export formats:
+ *   - BMP  (built-in, zero dependencies)
+ *   - PNG  (via stb_image_write, fetched by CMake)
+ *   - JPG  (via stb_image_write, fetched by CMake)
+ *
+ * Usage:
+ * @code{.cpp}
+ * using namespace graphics;
+ *
+ * // --- Line graph ---
+ * Graph g(800, 600, GraphType::Line);
+ * g.set_title("Training Loss");
+ * g.set_x_label("Epoch");
+ * g.set_y_label("Loss");
+ * g.add_series({"train", {1,2,3,4,5}, {0.9,0.7,0.4,0.2,0.1}, Colors::Blue});
+ * g.add_series({"valid", {1,2,3,4,5}, {0.95,0.8,0.6,0.4,0.3}, Colors::Red});
+ * Canvas c = g.render();
+ * c.save_png("loss.png");
+ *
+ * // --- Bar chart ---
+ * Graph bar(600, 400, GraphType::Bar);
+ * bar.set_title("Scores");
+ * bar.add_series({"scores", {1,2,3}, {85,92,78}, Colors::Green});
+ * bar.render().save_jpg("scores.jpg", 90);
+ *
+ * // --- Table ---
+ * Table t;
+ * t.set_headers({"Name", "Score", "Grade"});
+ * t.add_row({"Alice", "95", "A"});
+ * t.add_row({"Bob",   "82", "B"});
+ * t.render().save_bmp("grades.bmp");
+ * @endcode
+ */
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -48,10 +87,7 @@
 
 namespace graphics {
 
-// ===================================================================
-// Color
-// ===================================================================
-
+// Color and Canvas definitions
 struct Color {
     uint8_t r = 0, g = 0, b = 0, a = 255;
 
@@ -75,10 +111,7 @@ namespace Colors {
     inline constexpr Color LightGray{230, 230, 230, 255};
 }
 
-// ===================================================================
 // Canvas – pixel buffer with drawing primitives
-// ===================================================================
-
 class Canvas {
 public:
     Canvas(int width, int height, Color bg = Colors::White);
@@ -97,8 +130,13 @@ public:
     void draw_line(int x0, int y0, int x1, int y1, Color c, int thickness = 1);
     void draw_rect(int x, int y, int w, int h, Color c, bool filled = false);
     void draw_circle(int cx, int cy, int radius, Color c, bool filled = false);
+    void draw_arc(int cx, int cy, int radius,
+                  double start_angle_deg, double end_angle_deg,
+                  Color c, int thickness = 1);
+    void draw_rounded_rect(int x, int y, int w, int h, int radius,
+                           Color c, bool filled = false);
 
-    // Polygon / plane drawing (kept minimal for bindings header)
+    // Polygon / plane drawing
     enum class FillStyle { Solid, VerticalGradient, Hatch };
     void draw_polygon(const std::vector<std::pair<int,int>>& pts,
                       Color outline,
@@ -108,7 +146,6 @@ public:
                       Color fill_color2 = Colors::White,
                       int hatch_spacing = 6);
 
-    /** Draw a string using a built-in 5×7 bitmap font. Scale multiplies size. */
     void draw_text(int x, int y, const std::string& text, Color c, int scale = 1);
 
     // Export
@@ -122,6 +159,95 @@ private:
 
     void blend_pixel(int x, int y, Color c);
 };
+
+// ===================================================================
+// Color
+// ===================================================================
+
+// ===================================================================
+// Fractal and Plotting Primitives (NEW)
+
+// Fractal types
+enum class FractalType { Mandelbrot, Julia };
+
+class Fractal {
+public:
+    Fractal(int width, int height, FractalType type);
+
+    void set_params(double param1, double param2 = 0.0); // e.g., Julia c = (param1, param2)
+    void set_max_iter(int max_iter);
+    void set_bounds(double x_min, double x_max, double y_min, double y_max);
+    Canvas render() const;
+private:
+    int width_, height_, max_iter_ = 1000;
+    FractalType type_;
+    double param1_ = 0.0, param2_ = 0.0;
+    double x_min_ = -2.0, x_max_ = 2.0, y_min_ = -2.0, y_max_ = 2.0;
+};
+
+// Function plotter (y = f(x))
+class FunctionPlot {
+public:
+    FunctionPlot(int width, int height);
+    void set_equation(const std::string& expr); // e.g., "sin(x) + x^2"
+    void set_range(double x_min, double x_max);
+    void set_samples(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, samples_ = 500;
+    std::string expr_;
+    double x_min_ = -10.0, x_max_ = 10.0;
+    Color color_ = Colors::Blue;
+};
+
+// Parametric plotter (x = f(t), y = g(t))
+class ParametricPlot {
+public:
+    ParametricPlot(int width, int height);
+    void set_equations(const std::string& x_expr, const std::string& y_expr); // e.g., "cos(t)", "sin(t)"
+    void set_t_range(double t_min, double t_max);
+    void set_samples(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, samples_ = 500;
+    std::string x_expr_, y_expr_;
+    double t_min_ = 0.0, t_max_ = 2 * 3.141592653589793;
+    Color color_ = Colors::Red;
+};
+
+// Polar plotter (r = f(theta))
+class PolarPlot {
+public:
+    PolarPlot(int width, int height);
+    void set_equation(const std::string& expr); // e.g., "1 + sin(5*theta)"
+    void set_theta_range(double theta_min, double theta_max);
+    void set_samples(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, samples_ = 500;
+    std::string expr_;
+    double theta_min_ = 0.0, theta_max_ = 2 * 3.141592653589793;
+    Color color_ = Colors::Purple;
+};
+
+// Histogram
+class HistogramPlot {
+public:
+    HistogramPlot(int width, int height);
+    void set_data(const std::vector<double>& values);
+    void set_bins(int n);
+    void set_color(Color c);
+    Canvas render() const;
+private:
+    int width_, height_, bins_ = 20;
+    std::vector<double> values_;
+    Color color_ = Colors::Orange;
+};
+
+// (moved Color/Colors earlier to make them visible to types that use them)
 
 // ===================================================================
 // Graph
@@ -181,6 +307,48 @@ private:
 };
 
 // ===================================================================
+// Graph3D
+// ===================================================================
+
+enum class Graph3DType { Line, Scatter };
+
+struct DataSeries3D {
+    std::string label;
+    std::vector<double> x_values;
+    std::vector<double> y_values;
+    std::vector<double> z_values;
+    Color color = Colors::Blue;
+};
+
+class Graph3D {
+public:
+    explicit Graph3D(int width = 800, int height = 600,
+                     Graph3DType type = Graph3DType::Scatter);
+
+    void set_title(const std::string& title);
+    void set_x_label(const std::string& label);
+    void set_y_label(const std::string& label);
+    void set_z_label(const std::string& label);
+    void set_type(Graph3DType type);
+    void set_view(double azimuth_degrees, double elevation_degrees);
+    void set_point_radius(int radius);
+    void add_series(const DataSeries3D& series);
+
+    /** Render an orthographic 3D projection and return the resulting canvas. */
+    Canvas render() const;
+
+private:
+    int width_, height_;
+    Graph3DType type_;
+    std::string title_;
+    std::string x_label_, y_label_, z_label_;
+    double azimuth_degrees_ = 45.0;
+    double elevation_degrees_ = 25.0;
+    int point_radius_ = 4;
+    std::vector<DataSeries3D> series_;
+};
+
+// ===================================================================
 // Table
 // ===================================================================
 
@@ -214,4 +382,4 @@ private:
 };
 
 } // namespace graphics
-#endif  // COOLBOX__LIBRARIES_PYTHON_BINDINGS_VENDOR_INCLUDE_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H
+#endif  // COOLBOX__LIBRARIES_PACKAGES_GRAPHICS_CHARTS_HEADERS_GRAPHICS_H

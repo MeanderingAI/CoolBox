@@ -37,4 +37,6 @@ TYST_TEST(UnscentedKalmanFilterTest, HandlesSimpleLinearModels) {
 	TYST_EXPECT_GT(filter.state()(0), 1.0);
 	TYST_EXPECT_LT(filter.state()(0), 1.2);
 	TYST_EXPECT_GT(filter.covariance()(0, 0), 0.0);
+	TYST_EXPECT_NEAR(filter.state()(0), 1.181981981981982, 1e-6);
+	TYST_EXPECT_NEAR(filter.covariance()(0, 0), 0.090990990990991, 1e-6);
 }

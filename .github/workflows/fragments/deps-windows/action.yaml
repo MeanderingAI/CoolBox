@@ -87,7 +87,7 @@ runs:
           exit 0
         fi
         set -e
-        pacman -S --noconfirm --needed mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison
+        pacman -S --noconfirm --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-gsl mingw-w64-x86_64-sqlite3 bison
 
     - name: Install MinGW and make (Windows ARM64)
       shell: msys2 {0}
@@ -121,7 +121,11 @@ runs:
           echo "Skipping x86_64 CMake configure"
           exit 0
         fi
-        cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
+        set -e
+        # Use the compiler and runtime from the same MSYS2 installation.
+        mingw_bin="$(cygpath -m /mingw64/bin)"
+        cygpath -w /mingw64/bin >> "$GITHUB_PATH"
+        cmake -S . -B build -Wno-dev -G 'MinGW Makefiles' -DCMAKE_C_COMPILER="$mingw_bin/gcc.exe" -DCMAKE_CXX_COMPILER="$mingw_bin/g++.exe" '-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -g' -DBUILD_BINARIES=OFF -DBUILD_PRODUCTS=ON -DBUILD_PRODUCT_INSTALLER_ABSTRACTIONS=ON -DBUILD_IO_SQL=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH='/mingw64'
 
     - name: Configure CMake (Windows ARM64 / MinGW preferred)
       shell: pwsh

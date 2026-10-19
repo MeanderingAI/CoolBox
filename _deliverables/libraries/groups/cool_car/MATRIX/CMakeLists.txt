@@ -25,14 +25,35 @@ endif()
 
 if(MYTRIX_ENABLE_OPENCL)
     target_compile_definitions(mytrix INTERFACE MYTRIX_ENABLE_OPENCL=1)
+    message(WARNING
+        "MATRIX OpenCL kernels are not implemented; the OpenCL backend will remain unavailable."
+    )
 endif()
 
 if(MYTRIX_ENABLE_CUDA)
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(NOT CMAKE_CUDA_COMPILER)
+        message(FATAL_ERROR "MYTRIX_ENABLE_CUDA requires an nvcc-compatible CUDA compiler.")
+    endif()
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
     target_compile_definitions(mytrix INTERFACE MYTRIX_ENABLE_CUDA=1)
+    target_link_libraries(mytrix INTERFACE CUDA::cudart)
 endif()
 
 if(MYTRIX_ENABLE_METAL)
+    if(NOT APPLE)
+        message(FATAL_ERROR "MYTRIX_ENABLE_METAL is only supported on Apple platforms.")
+    endif()
+    enable_language(OBJCXX)
+    find_library(METAL_FRAMEWORK Metal REQUIRED)
+    find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
     target_compile_definitions(mytrix INTERFACE MYTRIX_ENABLE_METAL=1)
+    target_link_libraries(mytrix INTERFACE
+        ${METAL_FRAMEWORK}
+        ${FOUNDATION_FRAMEWORK}
+    )
 endif()
 
 if(MYTRIX_ENABLE_METAL AND APPLE)
@@ -52,5 +73,15 @@ if(BUILD_TESTING)
     )
     target_link_libraries(mytrix_cpu_optimizations_tests PRIVATE mytrix)
     add_test(NAME MytrixCpuOptimizationsTests COMMAND mytrix_cpu_optimizations_tests)
-endif()
 
+    add_executable(mytrix_backend_selection_tests
+        tests/test_backend_selection.cpp
+    )
+    if(MYTRIX_ENABLE_CUDA)
+        set_source_files_properties(tests/test_backend_selection.cpp PROPERTIES LANGUAGE CUDA)
+    elseif(MYTRIX_ENABLE_METAL)
+        set_source_files_properties(tests/test_backend_selection.cpp PROPERTIES LANGUAGE OBJCXX)
+    endif()
+    target_link_libraries(mytrix_backend_selection_tests PRIVATE mytrix)
+    add_test(NAME MytrixBackendSelectionTests COMMAND mytrix_backend_selection_tests)
+endif()

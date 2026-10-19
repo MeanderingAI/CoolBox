@@ -13,6 +13,46 @@
  * int label = tree.predict(sample);
  * @endcode
  *
+ * Numeric regression uses a separate API, leaving the categorical classifier
+ * and its integer labels unchanged. Include decision_tree.h or
+ * decision_tree_regressor.h.
+ * @code{.cpp}
+ * DecisionTreeRegressor regressor;
+ * regressor.fit({{0.0}, {1.0}, {2.0}, {3.0}}, {0.5, 0.5, 4.5, 4.5}, 2);
+ * double value = regressor.predict({2.5}); // 4.5
+ * @endcode
+ * Python exposes ml_core.decision_tree.DecisionTreeRegressor with the same
+ * fit(X, y, max_depth) and predict(sample) methods. JavaScript exposes
+ * Module.DecisionTreeRegressor using VectorVectorDouble_DT and VectorDouble_DT.
+ * Regression uses numeric threshold splits minimizing squared error and mean
+ * leaf predictions. max_depth=0 predicts the overall mean. Invalid training
+ * data or samples throw exceptions; prediction before fitting is an error.
+ *
+ * @subsection tree_ensembles Tree Ensembles
+ * Include random_forest.h for RandomForest (integer/categorical classification)
+ * and RandomForestRegressor (numeric regression). The latter averages
+ * bootstrapped trees and accepts an optional reproducible seed.
+ * Include boost_tree.h for BoostTree (squared-error regression) and
+ * BoostTreeClassifier (binary/multiclass cross-entropy classification).
+ * Both boosting variants fit DecisionTreeRegressor learners, honoring
+ * BoostTreeParameters::max_depth rather than restricting learners to stumps.
+ * BoostTreeClassifier::predict_proba returns probabilities in the sorted
+ * integer-label order returned by classes(). Ties select the first label.
+ * @code{.cpp}
+ * BoostTreeParameters params;
+ * params.max_depth = 2;
+ * BoostTreeClassifier classifier(params);
+ * classifier.fit({{0.0}, {1.0}, {2.0}}, {-1, 4, 9});
+ * auto probabilities = classifier.predict_proba({1.0});
+ * RandomForestRegressor forest(50, 3, 123);
+ * forest.fit({{0.0}, {1.0}}, {1.5, 4.5});
+ * double prediction = forest.predict({0.8});
+ * @endcode
+ * Python exposes these numeric ensemble classes under ml_core.decision_tree;
+ * JavaScript exposes them on Module. BoostTree's Python batch prediction is
+ * predict_batch(X). As with the existing forest, regression forests use all
+ * features per split, not random feature subsampling.
+ *
  * @subsection python_example_decision_tree Python Example
  * @code{.python}
  * from ml_core.decision_tree import DecisionTree, SplitCriterion
@@ -47,6 +87,7 @@
 #define DECISION_TREE_H
 
 #include "lib_metadata.h"
+#include "decision_tree_regressor.h"
 // Metadata only defined in decision_tree.cpp to avoid duplicate symbols
 
 #include <vector>

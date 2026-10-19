@@ -13,8 +13,6 @@ FetchContent_Declare(
     stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
     GIT_TAG        2c980bb59875b0d32144a71867fbdebb2f77cd20
-    GIT_SHALLOW    TRUE
-    UPDATE_DISCONNECTED TRUE
 )
 FetchContent_MakeAvailable(stb)
 
@@ -37,5 +35,6 @@ if(BUILD_TESTING AND TARGET tyst_framework_main)
     enable_testing()
     add_executable(charts_tests tests/test_graphics.cpp)
     target_link_libraries(charts_tests PRIVATE charts tyst_framework_main)
+    coolbox_stage_test_runtime_dependencies(charts_tests)
     add_test(NAME ChartsTests COMMAND charts_tests)
 endif()
