@@ -34,6 +34,7 @@ vendor_src_root = project_root / "vendor_src"
 vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
 vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
 vendor_matrix_headers_dir = project_root / "vendor_include" / "MATRIX" / "headers"
+binding_matrix_headers_dir = project_root.parent / "groups" / "cool_car" / "MATRIX" / "headers"
 timer_headers_dir = repo_root / "_deliverables/libraries/groups/Generics/timer/headers"
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
@@ -273,6 +274,11 @@ matrix_header_dir = sync_vendor_directory(
     vendor_matrix_headers_dir,
     ["*.h", "*.hpp"],
 )
+sync_vendor_directory(
+    matrix_header_source_dir,
+    binding_matrix_headers_dir,
+    ["*.h", "*.hpp"],
+)
 
 
 eigen_candidates = [
@@ -458,12 +464,22 @@ runtime_library_dirs = []
 if not sys.platform.startswith("win"):
     runtime_library_dirs = resolved_library_dirs[:]
 extension_libraries = unresolved_libraries + (["shell32"] if sys.platform.startswith("win") else [])
+openblas_enabled = env_flag("MYTRIX_ENABLE_OPENBLAS")
+if openblas_enabled:
+    extension_libraries.append("openblas")
+    if os.environ.get("OPENBLAS_INCLUDE_DIR"):
+        include_dirs.append(os.environ["OPENBLAS_INCLUDE_DIR"])
+    if os.environ.get("OPENBLAS_LIBRARY_DIR"):
+        library_dirs.append(os.environ["OPENBLAS_LIBRARY_DIR"])
+        if not sys.platform.startswith("win"):
+            runtime_library_dirs.append(os.environ["OPENBLAS_LIBRARY_DIR"])
 
 ext_modules = [
     Pybind11Extension(
         "ml_toolbox.ml_core",
         source_files,
         include_dirs=include_dirs,
+        define_macros=[("MYTRIX_ENABLE_OPENBLAS", "1")] if openblas_enabled else [],
         cxx_std=17,
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,

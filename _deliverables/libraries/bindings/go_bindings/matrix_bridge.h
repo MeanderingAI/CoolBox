@@ -21,6 +21,7 @@ enum class MatrixBackend {
     OpenCl,
     Cuda,
     Metal,
+    OpenBlas,
 };
 
 class DenseVector {
@@ -66,6 +67,8 @@ private:
 
 const char* cpu_optimization_name(CpuOptimization optimization) noexcept;
 bool cpu_optimization_available(CpuOptimization optimization) noexcept;
+void set_cpu_threads(size_t count);
+size_t cpu_threads() noexcept;
 void set_matrix_backend(MatrixBackend backend);
 MatrixBackend matrix_backend() noexcept;
 MatrixBackend active_matrix_backend() noexcept;
@@ -116,6 +119,8 @@ void* coolbox_vector_add(const void* lhs, const void* rhs, int optimization,
 void* coolbox_vector_transpose(const void* vector, char* error, size_t error_capacity);
 const char* coolbox_cpu_optimization_name(int optimization);
 int coolbox_cpu_optimization_available(int optimization);
+void coolbox_matrix_set_cpu_threads(size_t count);
+size_t coolbox_matrix_cpu_threads(void);
 int coolbox_matrix_set_backend(int backend, char* error, size_t error_capacity);
 int coolbox_matrix_get_backend(void);
 int coolbox_matrix_get_active_backend(void);

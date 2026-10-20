@@ -118,11 +118,23 @@ unsafe extern "C" {
     ) -> *mut c_void;
     fn coolbox_cpu_optimization_name(optimization: i32) -> *const c_char;
     fn coolbox_cpu_optimization_available(optimization: i32) -> i32;
+    fn coolbox_matrix_set_cpu_threads(count: usize);
+    fn coolbox_matrix_cpu_threads() -> usize;
     fn coolbox_matrix_set_backend(backend: i32, error: *mut c_char, error_capacity: usize) -> i32;
     fn coolbox_matrix_get_backend() -> i32;
     fn coolbox_matrix_get_active_backend() -> i32;
     fn coolbox_matrix_backend_name(backend: i32) -> *const c_char;
     fn coolbox_matrix_backend_available(backend: i32) -> i32;
+}
+
+/// Set the process-wide CPU multiplication thread budget (0 selects hardware concurrency).
+pub fn set_cpu_threads(count: usize) {
+    unsafe { coolbox_matrix_set_cpu_threads(count) };
+}
+
+/// Resolved CPU thread budget. Small matrix products stay single-threaded.
+pub fn cpu_threads() -> usize {
+    unsafe { coolbox_matrix_cpu_threads() }
 }
 
 struct Handle {
@@ -215,6 +227,7 @@ pub enum MatrixBackend {
     OpenCl = 3,
     Cuda = 4,
     Metal = 5,
+    OpenBlas = 6,
 }
 
 impl MatrixBackend {
@@ -241,6 +254,7 @@ impl MatrixBackend {
             3 => Ok(Self::OpenCl),
             4 => Ok(Self::Cuda),
             5 => Ok(Self::Metal),
+            6 => Ok(Self::OpenBlas),
             value => Err(format!("unknown native matrix backend {value}")),
         }
     }
