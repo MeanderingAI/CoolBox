@@ -56,7 +56,14 @@ subtraction, multiplication, transpose, norms, row-wise vector addition, and
 dense-vector addition/dot products. Select `matrix.MatrixBackend.EIGEN` with
 `matrix.set_backend(...)` to run matrix operations through MATRIX's Eigen-backed
 types; `matrix.MatrixBackend.CPU` selects the existing optimized CPU kernels.
-The selection is process-wide. Eigen headers are required when building the
+The backend selection and CPU thread limit are process-wide. Control CPU
+parallelism with `matrix.set_cpu_threads(n)`: `0` selects automatic sizing,
+`1` forces serial execution, and larger values cap the CPU worker count.
+`matrix.cpu_threads()` reports the resolved CPU thread budget; automatic mode
+resolves to the available hardware concurrency. Small products may still run
+serially. Matrix multiplication currently retains the Python GIL while the
+native kernel runs, avoiding concurrent Python-side mutation of input matrices.
+Eigen headers are required when building the
 native extension and can be located with `EIGEN3_INCLUDE_DIR` or
 `EIGEN_INCLUDE_DIR`. CPU optimization strategies apply when the CPU backend
 is selected. Backends are process-wide; `get_backend()` returns the requested
@@ -71,6 +78,42 @@ unsupported vector arithmetic, matrix subtraction, and row-wise operations
 report errors instead of silently claiming GPU execution. OpenCL is listed but
 unavailable until its kernels are implemented; check `backend_available(...)`
 before selecting it.
+
+To compare native CPU multiplication against NumPy with correctness checks
+outside the timed regions, run
+`python benchmarks/benchmark_matrix_numpy.py --sizes 32 64 128 256 512 1024
+--backends cpu eigen --threads auto 1 2 4`. The script prints JSON containing medians, speedups,
+platform details, configured CoolBox thread limits, and NumPy BLAS thread-pool
+metadata when `threadpoolctl` is installed. NumPy's own threading follows its
+BLAS configuration and environment variables; the comparison does not assume
+CoolBox is faster for every matrix size or machine.
+
+### OpenBLAS (optional)
+
+For `setup.py` / pip builds, enable `MYTRIX_ENABLE_OPENBLAS=1` in the build
+environment and install OpenBLAS development headers/libraries first. Optional
+`OPENBLAS_INCLUDE_DIR` and `OPENBLAS_LIBRARY_DIR` select a nonstandard installation.
+CMake builds use `-DMYTRIX_ENABLE_OPENBLAS=ON` and optionally `-DOpenBLAS_ROOT=...`.
+The OS must be able to load OpenBLAS and its runtime dependencies.
+
+```python
+from ml_toolbox import matrix
+
+if not matrix.backend_available(matrix.MatrixBackend.OPENBLAS):
+    raise RuntimeError("Rebuild CoolBox with OpenBLAS enabled")
+matrix.set_backend(matrix.MatrixBackend.OPENBLAS)
+matrix.set_cpu_threads(8)  # OpenBLAS manages its own worker scheduling
+result = left @ right
+```
+
+OpenBLAS handles matrix multiplication directly on native buffers. Other
+operations use host CPU kernels and report CPU as the active backend.
+The default backend/Auto policy is unchanged. OpenBLAS thread settings are
+global; CoolBox serializes its OpenBLAS calls and restores the previous setting.
+External code must not change that library's thread configuration concurrently.
+This uses the installed library, which may differ from NumPy's private OpenBLAS.
+To compare, run the benchmark with `--backends cpu eigen openblas --threads 8`
+and set `OPENBLAS_NUM_THREADS=8` before starting Python.
 
 ## Data structures
 

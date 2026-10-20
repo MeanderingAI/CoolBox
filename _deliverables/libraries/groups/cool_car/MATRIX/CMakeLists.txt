@@ -18,6 +18,10 @@ if(TARGET Eigen3::Eigen)
 endif()
 
 target_compile_features(mytrix INTERFACE cxx_std_17)
+find_package(Threads REQUIRED)
+target_link_libraries(mytrix INTERFACE Threads::Threads)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenBLAS.cmake)
+mytrix_link_openblas(mytrix INTERFACE)
 
 if(MYTRIX_ENABLE_GPU)
     target_compile_definitions(mytrix INTERFACE MYTRIX_ENABLE_GPU=1)

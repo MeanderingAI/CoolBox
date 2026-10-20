@@ -203,3 +203,18 @@ scalar access remain host-side; unsupported vector arithmetic, matrix
 subtraction, and row-wise operations return errors instead of silently
 claiming GPU execution. OpenCL remains unavailable until its kernels are
 implemented.
+
+`coolbox_rs::set_cpu_threads(8)` sets the process-wide CPU/Eigen multiplication
+thread budget; `1` forces serial execution and `0` selects hardware concurrency.
+`coolbox_rs::cpu_threads()` returns the resolved budget. Small products stay
+serial to avoid scheduling overhead. Do not mutate matrices during concurrent
+reads.
+
+For optional OpenBLAS multiplication, build with `MYTRIX_ENABLE_OPENBLAS=1`
+and installed OpenBLAS development files. `OPENBLAS_INCLUDE_DIR` and
+`OPENBLAS_LIBRARY_DIR` support nonstandard installations; ensure the runtime
+loader can also locate the library. Check `MatrixBackend::OpenBlas.is_available()`
+before `MatrixBackend::OpenBlas.set()`. The CPU thread budget controls OpenBLAS's
+own scheduler. Other operations use CPU kernels and report CPU as active.
+CoolBox serializes OpenBLAS calls and restores its previous global thread setting;
+external code must not change that setting concurrently.

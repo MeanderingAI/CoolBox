@@ -4,6 +4,28 @@ use std::sync::Mutex;
 static MATRIX_BACKEND_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
+fn cpu_thread_budget() {
+    let _guard = MATRIX_BACKEND_LOCK.lock().unwrap();
+    coolbox_rs::set_cpu_threads(0);
+    assert!(coolbox_rs::cpu_threads() >= 1);
+    for backend in [MatrixBackend::Cpu, MatrixBackend::Eigen] {
+        backend.set().unwrap();
+        let values: Vec<f64> = (0..513 * 513).map(|i| (i % 7) as f64 - 3.0).collect();
+        let matrix = DenseMatrix::from_data(513, 513, &values).unwrap();
+        coolbox_rs::set_cpu_threads(1);
+        let serial = matrix.multiply(&matrix, CpuOptimization::Auto).unwrap().data().unwrap();
+        coolbox_rs::set_cpu_threads(3);
+        assert_eq!(coolbox_rs::cpu_threads(), 3);
+        let parallel = matrix.multiply(&matrix, CpuOptimization::Auto).unwrap().data().unwrap();
+        for (a, b) in serial.iter().zip(parallel.iter()) {
+            assert!((a - b).abs() < 1e-10);
+        }
+    }
+    MatrixBackend::Cpu.set().unwrap();
+    coolbox_rs::set_cpu_threads(0);
+}
+
+#[test]
 fn dense_matrix_operations() {
     let _guard = MATRIX_BACKEND_LOCK.lock().unwrap();
     MatrixBackend::Eigen.set().unwrap();
@@ -32,6 +54,10 @@ fn matrix_backend_metadata() {
     assert_eq!(MatrixBackend::Eigen.name(), "eigen");
     assert!(!MatrixBackend::OpenCl.is_available());
     assert!(MatrixBackend::OpenCl.set().is_err());
+    assert_eq!(MatrixBackend::OpenBlas.name(), "openblas");
+    if !MatrixBackend::OpenBlas.is_available() {
+        assert!(MatrixBackend::OpenBlas.set().is_err());
+    }
     MatrixBackend::Eigen.set().unwrap();
     assert_eq!(MatrixBackend::current().unwrap(), MatrixBackend::Eigen);
     MatrixBackend::Cpu.set().unwrap();

@@ -282,6 +282,12 @@ network implementation currently applies its own fixed learning rate when
 training; configuring an optimizer stores it on the network but does not yet
 change that training behavior.
 
+For CPU and Eigen matrix multiplication, `SetMatrixCPUThreads(8)` sets a
+process-wide thread budget; `1` forces serial execution and `0` selects hardware
+concurrency. `MatrixCPUThreads()` returns the resolved budget. Small products
+remain serial to avoid scheduling overhead. Do not modify matrices during
+concurrent reads.
+
 Dense matrix and vector operations have a process-wide backend selector:
 `SetMatrixBackend(BackendEigen)`, `SetMatrixBackend(BackendCPU)`, or
 `SetMatrixBackend(BackendAuto)`. `MatrixBackendAvailable` checks whether a
@@ -298,3 +304,12 @@ than silently claiming GPU execution. OpenCL remains unavailable until kernels
 are implemented. Eigen headers are required to compile the bindings. The build checks
 `external/eigen/eigen-3.4.0` in the repository; otherwise supply the include
 directory in `CGO_CXXFLAGS` (for example, `CGO_CXXFLAGS="-I/path/to/eigen"`).
+
+Optional OpenBLAS multiplication is available with the `coolbox_openblas` build
+tag and installed OpenBLAS development files. For nonstandard installations add
+the header/library search paths using `CGO_CXXFLAGS` / `CGO_LDFLAGS` and configure
+the runtime loader. Check `MatrixBackendAvailable(BackendOpenBLAS)`, then select
+`SetMatrixBackend(BackendOpenBLAS)`. `SetMatrixCPUThreads` controls OpenBLAS's
+thread budget; other operations use CPU kernels and report CPU as active.
+CoolBox serializes its OpenBLAS calls and restores the previous global library
+thread setting. Do not change that setting concurrently from external code.

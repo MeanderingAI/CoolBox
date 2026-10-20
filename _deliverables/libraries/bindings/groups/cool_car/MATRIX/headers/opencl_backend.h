@@ -8,23 +8,15 @@ namespace mytrix {
 namespace opencl {
 
 /**
- * @brief OpenCL compute backend for matrix operations.
+ * @brief OpenCL backend placeholder for matrix operations.
  *
- * Provides cross-platform GPU acceleration via OpenCL.
- * Works on AMD, Intel, NVIDIA, and other OpenCL-compliant devices.
- * Separate kernel methods for each operation.
- * Falls back to CPU when OpenCL is unavailable.
- *
- * TODO: Implement actual OpenCL kernels and device management.
+ * No OpenCL kernels or device management are implemented yet. This backend
+ * must remain unavailable until it can execute operations on an OpenCL device.
  */
 class OpenCLBackend {
 public:
     static bool is_available() {
-#ifdef MYTRIX_ENABLE_OPENCL
-        return true;
-#else
         return false;
-#endif
     }
 
     /**
@@ -37,11 +29,7 @@ public:
         if (lhs.cols() != rhs.rows()) {
             throw std::invalid_argument("opencl multiply_kernel: incompatible dimensions");
         }
-        // TODO: Implement OpenCL matrix multiplication kernel
-        // For now, fallback to CPU
-        auto result = std::make_unique<DenseMatrix>(lhs.rows(), rhs.cols());
-        result->data = lhs.data * rhs.data;
-        return *result;
+        throw std::runtime_error("OpenCL backend is not implemented");
     }
 
     /**
@@ -50,11 +38,7 @@ public:
      * Optimized for efficient global memory access patterns.
      */
     static DenseMatrix transpose_kernel(const DenseMatrix& mat) {
-        // TODO: Implement OpenCL transpose kernel with local memory optimization
-        // For now, fallback to CPU
-        auto result = std::make_unique<DenseMatrix>(mat.cols(), mat.rows());
-        result->data = mat.data.transpose();
-        return *result;
+        throw std::runtime_error("OpenCL backend is not implemented");
     }
 
     /**
@@ -66,11 +50,7 @@ public:
         if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols()) {
             throw std::invalid_argument("opencl add_kernel: dimension mismatch");
         }
-        // TODO: Implement OpenCL element-wise addition kernel
-        // For now, fallback to CPU
-        auto result = std::make_unique<DenseMatrix>(lhs.rows(), lhs.cols());
-        result->data = lhs.data + rhs.data;
-        return *result;
+        throw std::runtime_error("OpenCL backend is not implemented");
     }
 
     /**
@@ -78,40 +58,21 @@ public:
      * Routes through kernel with size-based threshold heuristic.
      */
     static DenseMatrix multiply(const DenseMatrix& lhs, const DenseMatrix& rhs) {
-        const int gpu_threshold = 256;
-        if (lhs.rows() * rhs.cols() > gpu_threshold * gpu_threshold) {
-            return multiply_kernel(lhs, rhs);
-        }
-        // CPU fallback for small matrices
-        auto result = std::make_unique<DenseMatrix>(lhs.rows(), rhs.cols());
-        result->data = lhs.data * rhs.data;
-        return *result;
+        return multiply_kernel(lhs, rhs);
     }
 
     /**
      * @brief Public dispatch method for transpose.
      */
     static DenseMatrix transpose(const DenseMatrix& mat) {
-        const int gpu_threshold = 256;
-        if (mat.rows() * mat.cols() > gpu_threshold * gpu_threshold) {
-            return transpose_kernel(mat);
-        }
-        auto result = std::make_unique<DenseMatrix>(mat.cols(), mat.rows());
-        result->data = mat.data.transpose();
-        return *result;
+        return transpose_kernel(mat);
     }
 
     /**
      * @brief Public dispatch method for addition.
      */
     static DenseMatrix add(const DenseMatrix& lhs, const DenseMatrix& rhs) {
-        const int gpu_threshold = 256;
-        if (lhs.rows() * lhs.cols() > gpu_threshold * gpu_threshold) {
-            return add_kernel(lhs, rhs);
-        }
-        auto result = std::make_unique<DenseMatrix>(lhs.rows(), lhs.cols());
-        result->data = lhs.data + rhs.data;
-        return *result;
+        return add_kernel(lhs, rhs);
     }
 };
 

@@ -30,7 +30,8 @@ enum class ComputeBackend {
     GPU_AUTO,
     GPU_OPENCL,
     GPU_CUDA,
-    GPU_METAL
+    GPU_METAL,
+    OPENBLAS
 };
 
 struct OperationOptions {
@@ -134,6 +135,17 @@ struct BackendResolver<ComputeBackend::EIGEN> {
     struct EigenBackend {};
     using type = EigenBackend;
     static constexpr bool available = true;
+};
+
+template <>
+struct BackendResolver<ComputeBackend::OPENBLAS> {
+    struct OpenBlasBackend {};
+    using type = OpenBlasBackend;
+#ifdef MYTRIX_ENABLE_OPENBLAS
+    static constexpr bool available = true;
+#else
+    static constexpr bool available = false;
+#endif
 };
 
 /**
@@ -277,11 +289,15 @@ public:
 
             case ComputeBackend::EIGEN:
                 return ComputeBackend::EIGEN;
+            case ComputeBackend::OPENBLAS:
+                if (!is_backend_available(requested))
+                    throw std::invalid_argument("requested OpenBLAS matrix backend is unavailable");
+                return ComputeBackend::OPENBLAS;
                 
             case ComputeBackend::GPU_AUTO: {
                 // Use compile-time platform preference
                 const auto preferred = DefaultPlatformBackend<>::value();
-                if (is_backend_available(preferred)) {
+                if (preferred != ComputeBackend::GPU_AUTO && is_backend_available(preferred)) {
                     return preferred;
                 }
                 // Fallback chain: Metal → CUDA → OpenCL → CPU
@@ -319,6 +335,8 @@ public:
                 
             case ComputeBackend::GPU_METAL:
                 return backend_runtime_available(backend);
+            case ComputeBackend::OPENBLAS:
+                return backend_runtime_available(backend);
                 
             case ComputeBackend::GPU_CUDA:
                 return backend_runtime_available(backend);
@@ -339,6 +357,7 @@ public:
             case ComputeBackend::CPU: return "cpu";
             case ComputeBackend::BOOST: return "boost";
             case ComputeBackend::EIGEN: return "eigen";
+            case ComputeBackend::OPENBLAS: return "openblas";
             case ComputeBackend::GPU_AUTO: return "gpu_auto";
             case ComputeBackend::GPU_OPENCL: return "gpu_opencl";
             case ComputeBackend::GPU_CUDA: return "gpu_cuda";

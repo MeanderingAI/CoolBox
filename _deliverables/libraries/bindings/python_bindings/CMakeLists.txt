@@ -21,6 +21,21 @@ if(COOLBOX_NUMPY_IMPORT_RESULT EQUAL 0)
         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_bindings.py
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import pytest"
+        RESULT_VARIABLE COOLBOX_PYTEST_IMPORT_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(COOLBOX_PYTEST_IMPORT_RESULT EQUAL 0)
+        add_test(NAME matrix_python_bindings_test
+            COMMAND Python3::Interpreter -m pytest -q
+                ${CMAKE_CURRENT_SOURCE_DIR}/test/test_matrix_bindings.py
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+    else()
+        message(STATUS "Skipping matrix_python_bindings_test: pytest is unavailable")
+    endif()
     # metadata_client.py loads libcoolbox_c_bindings via ctypes and otherwise only
     # looks for a standalone out-of-source build at ../c_bindings/build; point it
     # at the actual location this unified build produces the shared library.
@@ -143,6 +158,7 @@ set(ML_BINDINGS_FLAT_INCLUDE_DIRS
 pybind11_add_module(ml_core 
     py_ml_core.cpp
     ${ML_BINDING_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/matrix_bridge.cc
     ../../groups/cool_car/ML/decision_tree/source/decision_tree_regressor.cpp
     ${TREE_ENSEMBLE_ROOT}/source/boost_tree.cpp
     ${TREE_ENSEMBLE_ROOT}/source/random_forest_regressor.cpp
@@ -162,6 +178,10 @@ target_compile_features(ml_core PRIVATE cxx_std_17)
 
 # Link libraries
 find_package(Threads REQUIRED)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/MATRIX/cmake/OpenBLAS.cmake)
+mytrix_link_openblas(ml_core PRIVATE)
+target_include_directories(ml_core BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/MATRIX/headers)
 target_link_libraries(ml_core PRIVATE 
     Eigen3::Eigen
     Threads::Threads
