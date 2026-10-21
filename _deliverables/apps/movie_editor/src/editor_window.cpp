@@ -33,7 +33,7 @@ using graphics::full_application_window::RenderHooks;
 using graphics::full_application_window::WindowConfig;
 
 float font_size(int scale) {
-    return scale == 3 ? 26.0f : scale == 2 ? 21.0f : 18.0f;
+    return scale == 3 ? 24.0f : scale == 2 ? 18.0f : 16.0f;
 }
 
 class EditorCanvas : public graphics::Canvas {
@@ -41,15 +41,21 @@ public:
     EditorCanvas(int width, int height, const graphics::fonts::FontFace& font)
         : Canvas(width, height, Color{23, 26, 32, 255}), font_(font) {}
 
-    void draw_text(int x, int y, const std::string& text, Color color, int scale = 1, int max_width = -1) {
+    void draw_text(int x, int y, const std::string& text, Color color, int scale = 1,
+                   int max_width = std::numeric_limits<int>::max()) {
         std::string label = text;
-        const int available = max_width < 0 ? width() - x - 6 : max_width;
+        std::replace(label.begin(), label.end(), '\n', ' ');
+        std::replace(label.begin(), label.end(), '\r', ' ');
+        std::replace(label.begin(), label.end(), '\t', ' ');
+        const int available = std::min(max_width, width() - x - 6);
+        if (available <= 0) return;
         const auto measure = [&](const std::string& value) {
             return font_.is_loaded()
                 ? graphics::fonts::TextRenderer::measure_text(font_, value, font_size(scale)).width
                 : static_cast<int>(value.size()) * 9 * std::max(2, scale);
         };
         if (measure(label) > available) {
+            if (measure("...") > available) return;
             while (!label.empty() && measure(label + "...") > available) {
                 std::size_t last = label.size() - 1;
                 while (last > 0 && (static_cast<unsigned char>(label[last]) & 0xc0) == 0x80) --last;
@@ -61,6 +67,33 @@ public:
             graphics::fonts::TextRenderer::draw_text(*this, font_, x, y, label, color, font_size(scale));
         } else {
             Canvas::draw_text(x, y, label, color, std::max(2, scale));
+        }
+    }
+
+    void thumbnail(const std::vector<Color>& pixels, int x, int y, int w, int h) {
+        if (pixels.empty() || w <= 0 || h <= 0) return;
+        const double scale = std::max(w / 96.0, h / 54.0);
+        for (int dy = 0; dy < h; ++dy) for (int dx = 0; dx < w; ++dx) {
+            const int sx = std::clamp(static_cast<int>((dx + (96 * scale - w) / 2) / scale), 0, 95);
+            const int sy = std::clamp(static_cast<int>((dy + (54 * scale - h) / 2) / scale), 0, 53);
+            set_pixel(x + dx, y + dy, pixels[sy * 96 + sx]);
+        }
+    }
+
+    void waveform(const std::vector<float>& peaks, double start, double end, double gain,
+                  int x, int y, int w, int h, Color color) {
+        if (w <= 0 || h <= 0 || peaks.empty()) return;
+        draw_line(x, y + h / 2, x + w - 1, y + h / 2, color, 1);
+        for (int dx = 0; dx < w; dx += 3) {
+            const double a = start + (end - start) * dx / w;
+            const double b = start + (end - start) * std::min(w, dx + 3) / w;
+            if (b <= 0 || a >= 1) continue;
+            const auto first = static_cast<std::size_t>(std::clamp(a, 0.0, 1.0) * (peaks.size() - 1));
+            const auto last = static_cast<std::size_t>(std::clamp(b, 0.0, 1.0) * (peaks.size() - 1));
+            float peak = 0;
+            for (auto bin = first; bin <= last; ++bin) peak = std::max(peak, peaks[bin]);
+            const int amplitude = static_cast<int>(std::clamp(peak * gain, 0.0, 1.0) * (h - 1) / 2);
+            draw_line(x + dx, y + h / 2 - amplitude, x + dx, y + h / 2 + amplitude, color, 1);
         }
     }
 
@@ -143,30 +176,27 @@ MovieEditorWindow::Layout MovieEditorWindow::compute_layout(int width, int heigh
     l.width = width;
     l.height = height;
 
-    l.topbar_y1 = 48;
-    const int top_h = static_cast<int>(height * 0.55);
+    l.menu_y1 = native_menus_ ? 0 : 40;
+    l.topbar_y1 = l.menu_y1 + 48;
+    const int top_h = height / 2;
     l.media_x0 = 0;
-    l.media_x1 = std::clamp(width / 5, 220, 300);
+    l.media_x1 = std::clamp(width * 3 / 8, 320, 500);
     l.media_y0 = l.topbar_y1;
     l.media_y1 = top_h;
 
-    l.inspector_x1 = width;
-    l.inspector_x0 = width - std::clamp(width / 5, 220, 280);
-    l.inspector_y0 = l.topbar_y1;
-    l.inspector_y1 = top_h;
-
     l.preview_x0 = l.media_x1;
-    l.preview_x1 = l.inspector_x0;
+    l.preview_x1 = width;
     l.preview_y0 = l.topbar_y1;
-    l.transport_y0 = top_h - 72; // two rows of buttons
+    l.transport_y0 = top_h - 44;
     l.transport_y1 = top_h;
     l.preview_y1 = l.transport_y0;
 
-    l.ruler_y0 = top_h;
-    l.ruler_y1 = top_h + 36;
+    l.timeline_toolbar_y0 = top_h;
+    l.ruler_y0 = top_h + 44;
+    l.ruler_y1 = l.ruler_y0 + 32;
     l.tracks_y0 = l.ruler_y1;
-    l.status_y0 = height - 36;
-    l.tracks_y1 = l.status_y0;
+    l.status_y0 = height - 30;
+    l.tracks_y1 = l.tracks_y0 + std::max(0, (l.status_y0 - l.tracks_y0) / l.lane_h) * l.lane_h;
 
     return l;
 }
@@ -178,7 +208,7 @@ std::vector<MovieEditorWindow::TopBarButtonRect> MovieEditorWindow::topbar_butto
     const auto defs = menu_definitions();
     for (std::size_t i = 0; i < defs.size(); ++i) {
         const int w = text_width(defs[i].title, 2) + 20;
-        buttons.push_back({i, x, 4, x + w, l.topbar_y1 - 4});
+        buttons.push_back({i, x, 4, x + w, l.menu_y1 - 4});
         x += w + 4;
     }
     return buttons;
@@ -201,7 +231,7 @@ std::vector<MovieEditorWindow::DropdownItemRect> MovieEditorWindow::dropdown_ite
     const int x1 = x0 + panel_w;
 
     constexpr int kRowH = 36;
-    int y = l.topbar_y1;
+    int y = l.menu_y1;
     for (std::size_t i = 0; i < items.size(); ++i) {
         rects.push_back({i, x0, y, x1, y + kRowH});
         y += kRowH;
@@ -210,36 +240,39 @@ std::vector<MovieEditorWindow::DropdownItemRect> MovieEditorWindow::dropdown_ite
 }
 
 std::vector<MovieEditorWindow::ButtonRect> MovieEditorWindow::transport_buttons(const Layout& l) const {
-    const struct { TransportButton id; const char* label; int row; int col; } defs[] = {
-        {TransportButton::GoToStart,    "|<",         0, 0},
-        {TransportButton::PlayPause,    playing_ ? "Pause" : "Play", 0, 1},
-        {TransportButton::Stop,         "Stop",       0, 2},
-        {TransportButton::GoToEnd,      ">|",         0, 3},
-        {TransportButton::Split,        "Split",      1, 0},
-        {TransportButton::Delete,       "Delete",     1, 1},
-        {TransportButton::AddVideoTrack, "+Video Trk", 1, 2},
-        {TransportButton::AddAudioTrack, "+Audio Trk", 1, 3},
-    };
     std::vector<ButtonRect> buttons;
-    constexpr int kCols = 4;
-    const int button_w = (l.preview_x1 - l.preview_x0) / kCols;
-    const int row_h = (l.transport_y1 - l.transport_y0) / 2;
-    for (const auto& d : defs) {
-        const int x = l.preview_x0 + d.col * button_w;
-        const int y = l.transport_y0 + d.row * row_h;
-        buttons.push_back({d.id, x + 3, y + 3, x + button_w - 3, y + row_h - 3, d.label});
-    }
-    const auto menus = topbar_buttons(l);
-    int x = menus.empty() ? 8 : menus.back().x1 + 20;
+    const auto append = [&](TransportButton id, const char* label, int& x, int y) {
+        const int width = text_width(label, 1) + 24;
+        buttons.push_back({id, x, y + 6, x + width, y + 38, label});
+        x += width + 8;
+    };
+    int x = 12;
     for (const auto& action : std::vector<std::pair<TransportButton, const char*>>{
              {TransportButton::ImportMedia, "Import Media"}, {TransportButton::AddMedia, "Add Clip"},
-             {TransportButton::ZoomOut, "-"}, {TransportButton::ZoomIn, "+"}, {TransportButton::Fit, "Fit"},
-             {TransportButton::Undo, "Undo"}, {TransportButton::Redo, "Redo"}, {TransportButton::ExportMp4, "Export"},
-             {TransportButton::AddText, "Text / Title"}}) {
-        const int width = text_width(action.second, 1) + 20;
-        buttons.push_back({action.first, x, 7, x + width, 41, action.second});
-        x += width + 8;
-    }
+             {TransportButton::AddText, "Titles"}, {TransportButton::Undo, "Undo"},
+             {TransportButton::Redo, "Redo"}})
+        append(action.first, action.second, x, l.menu_y1);
+    x = l.width - text_width("Export", 1) - 36;
+    append(TransportButton::ExportMp4, "Export", x, l.menu_y1);
+
+    x = l.preview_x0 + 16;
+    for (const auto& action : std::vector<std::pair<TransportButton, const char*>>{
+             {TransportButton::GoToStart, "|<"}, {TransportButton::PlayPause, playing_ ? "Pause" : "Play"},
+             {TransportButton::Stop, "Stop"}, {TransportButton::GoToEnd, ">|"}})
+        append(action.first, action.second, x, l.transport_y0);
+
+    x = 12;
+    append(TransportButton::Split, "Split", x, l.timeline_toolbar_y0);
+    append(TransportButton::Delete, "Delete", x, l.timeline_toolbar_y0);
+    append(TransportButton::AddVideoTrack, "+Video", x, l.timeline_toolbar_y0);
+    append(TransportButton::AddAudioTrack, "+Audio", x, l.timeline_toolbar_y0);
+    if (selected_track_id_ && selected_clip_id_ &&
+        project_.text_style(*selected_track_id_, *selected_clip_id_))
+        append(TransportButton::EditText, "Edit Title", x, l.timeline_toolbar_y0);
+    x = l.width - (text_width("-", 1) + text_width("+", 1) + text_width("Fit", 1) + 104);
+    append(TransportButton::ZoomOut, "-", x, l.timeline_toolbar_y0);
+    append(TransportButton::ZoomIn, "+", x, l.timeline_toolbar_y0);
+    append(TransportButton::Fit, "Fit", x, l.timeline_toolbar_y0);
     return buttons;
 }
 
@@ -258,6 +291,89 @@ int MovieEditorWindow::time_to_x(const Layout& l, std::int64_t time_us) const {
 
 void MovieEditorWindow::set_status(const std::string& message) {
     status_message_ = message;
+}
+
+MovieEditorWindow::MediaVisual MovieEditorWindow::build_media_visual(const movie_editor::MediaAsset& asset) {
+    MediaVisual visual;
+    const auto thumbnail = [&](std::size_t width, std::size_t height, const auto& pixel) {
+        const double scale = std::max(kThumbnailWidth / static_cast<double>(width),
+            kThumbnailHeight / static_cast<double>(height));
+        visual.thumbnail.reserve(kThumbnailWidth * kThumbnailHeight);
+        for (int y = 0; y < kThumbnailHeight; ++y) for (int x = 0; x < kThumbnailWidth; ++x) {
+            const auto sx = std::min(width - 1, static_cast<std::size_t>((x + (width * scale - kThumbnailWidth) / 2) / scale));
+            const auto sy = std::min(height - 1, static_cast<std::size_t>((y + (height * scale - kThumbnailHeight) / 2) / scale));
+            visual.thumbnail.push_back(pixel(sx, sy));
+        }
+    };
+    try {
+        if (!asset.decoded_frames.empty()) {
+            const auto frame = video::convert_format(asset.decoded_frames.front(), video::PixelFormat::RGB24);
+            if (frame.width && frame.height) {
+                thumbnail(frame.width, frame.height, [&](std::size_t sx, std::size_t sy) {
+                    return Color{frame.planes[0].at(sx * 3, sy),
+                        frame.planes[0].at(sx * 3 + 1, sy), frame.planes[0].at(sx * 3 + 2, sy), 255};
+                });
+            }
+        } else if (!asset.frame_files.empty()) {
+            graphics::Texture texture;
+            if (!graphics::loadTextureFromFile(asset.frame_files.front(), texture) ||
+                texture.width <= 0 || texture.height <= 0 || texture.channels < 1)
+                throw std::runtime_error("Cannot load media thumbnail: " + asset.path);
+            thumbnail(texture.width, texture.height, [&](std::size_t x, std::size_t y) {
+                const auto i = (y * texture.width + x) * texture.channels;
+                const auto r = texture.pixels[i];
+                return Color{r, texture.channels >= 3 ? texture.pixels[i + 1] : r,
+                    texture.channels >= 3 ? texture.pixels[i + 2] : r, 255};
+            });
+        }
+    } catch (const std::exception& error) { visual.error = error.what(); }
+    try {
+        const auto path = asset.type == movie_editor::MediaType::Audio ? asset.path : asset.audio_path;
+        if (!path.empty()) {
+            const auto buffer = audio::container::read_wav(path);
+            visual.audio_duration_us = static_cast<std::int64_t>(buffer.duration_us());
+            constexpr std::size_t bins = 1024;
+            visual.peaks.assign(bins, 0);
+            for (const auto& channel : buffer.planes) for (std::size_t i = 0; i < channel.size(); ++i) {
+                const auto bin = std::min(bins - 1, i * bins / std::max<std::size_t>(1, channel.size()));
+                visual.peaks[bin] = std::max(visual.peaks[bin], std::abs(channel[i]));
+            }
+        }
+    } catch (const std::exception& error) {
+        if (!visual.error.empty()) visual.error += "; ";
+        visual.error += error.what();
+    }
+    return visual;
+}
+
+const MovieEditorWindow::MediaVisual* MovieEditorWindow::media_visual(const movie_editor::MediaAsset& asset) {
+    const auto found = media_visuals_.find(asset.path);
+    if (found != media_visuals_.end()) return &found->second;
+    if (!visual_job_.valid()) {
+        // Only copy one representative frame; keep the import cache alive while decoding.
+        movie_editor::MediaAsset source;
+        source.type = asset.type;
+        source.path = asset.path;
+        source.audio_path = asset.audio_path;
+        source.import_cache = asset.import_cache;
+        if (!asset.decoded_frames.empty()) source.decoded_frames.push_back(asset.decoded_frames.front());
+        else if (!asset.frame_files.empty()) source.frame_files.push_back(asset.frame_files.front());
+        visual_job_key_ = asset.path;
+        visual_job_ = std::async(std::launch::async, [source = std::move(source)] { return build_media_visual(source); });
+    }
+    return nullptr;
+}
+
+void MovieEditorWindow::finish_media_visual() {
+    if (!visual_job_.valid() || visual_job_.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
+    auto visual = visual_job_.get();
+    if (visual_job_key_.empty()) return; // A different project was opened while decoding.
+    if (!visual.error.empty()) {
+        std::cerr << "Media preview: " << visual.error << '\n';
+        set_status("Media preview unavailable: " + visual.error);
+    }
+    media_visuals_[visual_job_key_] = std::move(visual);
+    visual_job_key_.clear();
 }
 
 std::vector<MovieEditorWindow::MenuDef> MovieEditorWindow::menu_definitions() const {
@@ -405,7 +521,7 @@ void MovieEditorWindow::finish_import() {
         int width = 0, height = 0;
         window_.client_size(width, height);
         const auto layout = compute_layout(width, height);
-        const int visible = std::max(1, (layout.media_y1 - layout.media_y0 - 68) / 48);
+        const int visible = std::max(1, (layout.media_y1 - layout.media_y0 - layout.media_header_h) / layout.media_row_h);
         media_scroll_ = std::max(0, static_cast<int>(project_.media_bin().assets().size()) - visible);
         set_status("Video imported. Click Add Clip to start editing.");
     } catch (const std::exception& e) {
@@ -886,6 +1002,8 @@ void MovieEditorWindow::do_open_project() {
     if (path.empty()) return;
     try {
         project_.load_project(path);
+        media_visuals_.clear();
+        visual_job_key_.clear();
         last_project_path_ = path;
         playhead_us_ = 0;
         selected_clip_id_.reset();
@@ -1039,13 +1157,6 @@ void MovieEditorWindow::handle_click(int x, int y) {
         }
         return;
     }
-    if (selected_track_id_ && selected_clip_id_ &&
-        project_.text_style(*selected_track_id_, *selected_clip_id_) &&
-        x >= l.inspector_x0 + 10 && x < l.inspector_x1 - 10 &&
-        y >= l.inspector_y0 + 210 && y < l.inspector_y0 + 248) {
-        open_text_editor(false, true);
-        return;
-    }
     if (track_context_menu_) {
         const auto menu = *track_context_menu_;
         track_context_menu_.reset();
@@ -1086,9 +1197,8 @@ void MovieEditorWindow::handle_click(int x, int y) {
     }
     // Media bin rows.
     if (x >= l.media_x0 && x < l.media_x1 && y >= l.media_y0 && y < l.media_y1) {
-        if (y < l.media_y0 + 68) return;
-        const int row_h = 48;
-        const int row = (y - l.media_y0 - 68) / row_h + media_scroll_;
+        if (y < l.media_y0 + l.media_header_h) return;
+        const int row = (y - l.media_y0 - l.media_header_h) / l.media_row_h + media_scroll_;
         const auto& assets = project_.media_bin().assets();
         if (row >= 0 && static_cast<std::size_t>(row) < assets.size()) {
             pending_media_key_ = assets[static_cast<std::size_t>(row)].path;
@@ -1099,7 +1209,7 @@ void MovieEditorWindow::handle_click(int x, int y) {
     }
 
     // Transport buttons.
-    if ((y >= l.transport_y0 && y < l.transport_y1) || y < l.topbar_y1) {
+    if ((y >= l.transport_y0 && y < l.ruler_y0) || y < l.topbar_y1) {
         for (const auto& button : transport_buttons(l)) {
             if (x >= button.x0 && x < button.x1 && y >= button.y0 && y < button.y1) {
                 switch (button.id) {
@@ -1112,6 +1222,7 @@ void MovieEditorWindow::handle_click(int x, int y) {
                     case TransportButton::Redo: undo_redo(true); break;
                     case TransportButton::ExportMp4: do_export_mp4(); break;
                     case TransportButton::AddText: open_text_editor(false); break;
+                    case TransportButton::EditText: open_text_editor(false, true); break;
                     case TransportButton::GoToStart: pause_playback(); playhead_us_ = 0; break;
                     case TransportButton::PlayPause: toggle_playback(); break;
                     case TransportButton::Stop: pause_playback(); playhead_us_ = 0; break;
@@ -1145,6 +1256,7 @@ void MovieEditorWindow::handle_click(int x, int y) {
 
         if (x < l.track_header_w) {
             selected_track_id_ = track.id();
+            selected_clip_id_.reset();
             set_status("Selected track: " + track.name());
             return;
         }
@@ -1168,7 +1280,9 @@ void MovieEditorWindow::handle_click(int x, int y) {
             const auto kind = std::abs(x - left) <= 9 && std::abs(x - left) <= std::abs(x - right) ? DragKind::TrimStart :
                               std::abs(x - right) <= 9 ? DragKind::TrimEnd : DragKind::Move;
             if (!track.locked()) drag_ = DragState{kind, *clip, *clip, track.id(), track.id(), x, y};
-            set_status("Drag clip body to move; drag edges to trim. Ctrl/Cmd+Z to undo.");
+            set_status(fs::path(clip->source_path).filename().string() + " | Start " +
+                format_timecode(clip->position_us) + " | Duration " + format_timecode(clip->timeline_duration_us()) +
+                " | Speed " + std::to_string(clip->speed) + " | Volume " + std::to_string(clip->volume));
         } else if (pending_media_key_ && !track.locked()) {
             pause_playback();
             const auto* asset = project_.media_bin().find(*pending_media_key_);
@@ -1192,6 +1306,7 @@ void MovieEditorWindow::render_scene() {
     cw = std::max(1, cw);
     ch = std::max(1, ch);
     const Layout l = compute_layout(cw, ch);
+    finish_media_visual();
 
     // A single unified dark background avoids a mismatched "leftover" colour
     // showing through in any area not explicitly covered by a panel below.
@@ -1207,45 +1322,56 @@ void MovieEditorWindow::render_scene() {
     }
     // Media bin.
     canvas.draw_rect(l.media_x0, l.media_y0, l.media_x1 - l.media_x0, l.media_y1 - l.media_y0, panel_color, true);
-    canvas.draw_text(l.media_x0 + 6, l.media_y0 + 6, "MEDIA BIN", Colors::Cyan, 2);
-    canvas.draw_text(l.media_x0 + 8, l.media_y0 + 34, "Drag to timeline or Add Clip", Colors::LightGray, 1, l.media_x1 - 16);
-    canvas.draw_line(l.media_x0, l.media_y0 + 60, l.media_x1, l.media_y0 + 60, Colors::DarkGray, 1);
+    canvas.draw_text(l.media_x0 + 16, l.media_y0 + 10, "Project Media", Colors::White, 2, l.media_x1 - 32);
+    canvas.draw_text(l.media_x0 + 16, l.media_y0 + 36, "Drag a clip to your movie", Colors::LightGray, 1, l.media_x1 - 32);
+    canvas.draw_line(l.media_x0, l.media_y0 + l.media_header_h - 4, l.media_x1, l.media_y0 + l.media_header_h - 4, Colors::DarkGray, 1);
     {
-        int row_y = l.media_y0 + 68;
-        const int row_h = 48;
+        int row_y = l.media_y0 + l.media_header_h;
         int index = 0;
         for (const auto& asset : project_.media_bin().assets()) {
             if (index++ < media_scroll_) continue;
+            if (row_y + l.media_row_h > l.media_y1) break;
             const bool selected = pending_media_key_ && *pending_media_key_ == asset.path;
-            if (selected) canvas.draw_rect(l.media_x0, row_y - 3, l.media_x1 - l.media_x0, row_h, Colors::Blue, true);
-            const char* type_tag = asset.type == trekker::movie_editor::MediaType::ImageSequence ? "[SEQ] "
-                : asset.type == trekker::movie_editor::MediaType::StillImage ? "[IMG] "
-                : asset.type == trekker::movie_editor::MediaType::ImportedVideo ? "[VID] " : "[WAV] ";
-            std::string label = type_tag + fs::path(asset.path).filename().string();
-            canvas.draw_text(l.media_x0 + 6, row_y, label, selected ? Colors::White : Colors::LightGray, 1, l.media_x1 - 18);
-            canvas.draw_text(l.media_x0 + 6, row_y + 22, format_timecode(asset.duration_us), Colors::LightGray, 1);
-            row_y += row_h;
-            if (row_y > l.media_y1) break;
+            canvas.draw_rounded_rect(8, row_y + 3, l.media_x1 - 16, l.media_row_h - 6, 5,
+                selected ? Color{49, 71, 103, 255} : toolbar_color, true);
+            const auto* visual = media_visual(asset);
+            canvas.draw_rect(16, row_y + 10, 88, 50, Color{17, 21, 27, 255}, true);
+            if (visual && !visual->thumbnail.empty()) canvas.thumbnail(visual->thumbnail, 16, row_y + 10, 88, 50);
+            else if (visual && !visual->peaks.empty())
+                canvas.waveform(visual->peaks, 0, 1, 1, 20, row_y + 16, 80, 38, Color{102, 218, 168, 255});
+            const char* type = asset.type == movie_editor::MediaType::Audio ? "Audio"
+                : asset.type == movie_editor::MediaType::StillImage ? "Photo"
+                : asset.type == movie_editor::MediaType::ImageSequence ? "Sequence" : "Video";
+            canvas.draw_text(116, row_y + 10, fs::path(asset.path).filename().string(), Colors::White, 1, l.media_x1 - 132);
+            canvas.draw_text(116, row_y + 34, std::string(type) +
+                (!asset.audio_path.empty() ? " + Audio" : "") + "  " + format_timecode(asset.duration_us),
+                Colors::LightGray, 1, l.media_x1 - 132);
+            if (visual && !visual->error.empty())
+                canvas.draw_text(116, row_y + 52, "Preview unavailable", Colors::LightGray, 1, l.media_x1 - 132);
+            row_y += l.media_row_h;
         }
         if (project_.media_bin().assets().empty()) {
-            canvas.draw_text(l.media_x0 + 12, row_y + 16, "No media yet", Colors::White, 2);
-            canvas.draw_text(l.media_x0 + 12, row_y + 50, "Click Import Media above.", Colors::LightGray, 1);
-            canvas.draw_text(l.media_x0 + 12, row_y + 76, "Video, photos, or WAV audio", Colors::LightGray, 1);
+            canvas.draw_text(16, row_y + 16, "No media yet", Colors::White, 2, l.media_x1 - 32);
+            canvas.draw_text(16, row_y + 50, "Import video, photos, or WAV audio.", Colors::LightGray, 1, l.media_x1 - 32);
         }
     }
-    canvas.draw_line(l.media_x1, 0, l.media_x1, l.tracks_y1, Colors::DarkGray, 1);
+    canvas.draw_line(l.media_x1, l.media_y0, l.media_x1, l.media_y1, Colors::DarkGray, 1);
 
     // Preview.
     canvas.draw_rect(l.preview_x0, l.preview_y0, l.preview_x1 - l.preview_x0, l.preview_y1 - l.preview_y0, Colors::Black, true);
+    canvas.draw_text(l.preview_x0 + 16, l.preview_y0 + 10, "Viewer", Colors::LightGray, 1, 100);
+    const std::string timecode = format_timecode(playhead_us_) + " / " + format_timecode(project_.duration_us());
+    canvas.draw_text(l.preview_x1 - text_width(timecode, 1) - 16, l.preview_y0 + 10,
+        timecode, Colors::LightGray, 1, l.preview_x1 - l.preview_x0 - 132);
     {
         const trekker::video::VideoFrame frame = project_.render_frame_at(playhead_us_, kPreviewWidth, kPreviewHeight);
         const int avail_w = l.preview_x1 - l.preview_x0 - 20;
-        const int avail_h = l.preview_y1 - l.preview_y0 - 36;
+        const int avail_h = l.preview_y1 - l.preview_y0 - 52;
         const double scale = std::min(static_cast<double>(avail_w) / kPreviewWidth, static_cast<double>(avail_h) / kPreviewHeight);
         const int draw_w = std::max(1, static_cast<int>(kPreviewWidth * scale));
         const int draw_h = std::max(1, static_cast<int>(kPreviewHeight * scale));
         const int off_x = l.preview_x0 + (l.preview_x1 - l.preview_x0 - draw_w) / 2;
-        const int off_y = l.preview_y0 + (l.preview_y1 - l.preview_y0 - 26 - draw_h) / 2;
+        const int off_y = l.preview_y0 + 40 + (avail_h - draw_h) / 2;
         const auto& plane = frame.planes[0];
         for (int y = 0; y < draw_h; ++y) {
             const std::size_t sy = std::min<std::size_t>(kPreviewHeight - 1, (static_cast<std::size_t>(y) * kPreviewHeight) / draw_h);
@@ -1257,57 +1383,18 @@ void MovieEditorWindow::render_scene() {
         }
         canvas.draw_rect(off_x - 1, off_y - 1, draw_w + 2, draw_h + 2, Colors::Gray, false);
         if (project_.timeline().tracks().empty()) {
-            canvas.draw_text(l.preview_x0 + 24, l.preview_y0 + 65, "Preview", Colors::White, 3, avail_w);
-            canvas.draw_text(l.preview_x0 + 24, l.preview_y0 + 105, "Import media and add it to the timeline.", Colors::LightGray, 2, avail_w);
+            canvas.draw_text(off_x + 12, off_y + draw_h / 2 - 10, "Your movie preview", Colors::LightGray, 2, draw_w - 24);
         }
-        canvas.draw_text(l.preview_x0 + 6, l.preview_y1 - 28, format_timecode(playhead_us_) + " / " + format_timecode(project_.duration_us()), Colors::White, 3);
     }
 
-    // Transport buttons (two rows of four).
+    canvas.draw_rect(l.preview_x0, l.transport_y0, l.preview_x1 - l.preview_x0,
+        l.transport_y1 - l.transport_y0, panel_color, true);
+    canvas.draw_rect(0, l.timeline_toolbar_y0, l.width, l.ruler_y0 - l.timeline_toolbar_y0, toolbar_color, true);
     for (const auto& button : transport_buttons(l)) {
         const Color fill = button.id == TransportButton::ImportMedia ? Color{45, 107, 211, 255} : button_color;
         canvas.draw_rounded_rect(button.x0, button.y0, button.x1 - button.x0, button.y1 - button.y0, 5, fill, true);
-        canvas.draw_text(button.x0 + 8, button.y0 + (button.y1 - button.y0 - 21) / 2,
-                         button.label, Colors::White, button.y0 < l.topbar_y1 ? 1 : 2, button.x1 - button.x0 - 16);
-    }
-
-    // Inspector.
-    canvas.draw_rect(l.inspector_x0, l.inspector_y0, l.inspector_x1 - l.inspector_x0, l.inspector_y1 - l.inspector_y0, panel_color, true);
-    canvas.draw_line(l.inspector_x0, 0, l.inspector_x0, l.tracks_y1, Colors::DarkGray, 1);
-    canvas.draw_text(l.inspector_x0 + 6, l.inspector_y0 + 6, "INSPECTOR", Colors::Cyan, 2);
-    canvas.draw_line(l.inspector_x0, l.inspector_y0 + 34, l.inspector_x1, l.inspector_y0 + 34, Colors::DarkGray, 1);
-    {
-        int row_y = l.inspector_y0 + 48;
-        const int row_h = 22;
-        if (!selected_clip_id_) {
-            canvas.draw_text(l.inspector_x0 + 10, row_y, "Select a timeline clip", Colors::LightGray, 1);
-            canvas.draw_text(l.inspector_x0 + 10, row_y + 26, "to inspect its details.", Colors::LightGray, 1);
-            row_y += 52;
-        }
-        if (selected_track_id_) {
-            canvas.draw_text(l.inspector_x0 + 6, row_y, "Track: " + std::to_string(*selected_track_id_), Colors::LightGray, 1);
-            row_y += row_h;
-        }
-        if (selected_track_id_ && selected_clip_id_) {
-            const timeline::Track* track = project_.timeline().track(*selected_track_id_);
-            if (track) {
-                for (const auto& clip : track->clips()) {
-                    if (clip.id != *selected_clip_id_) continue;
-                    canvas.draw_text(l.inspector_x0 + 6, row_y, "Clip #" + std::to_string(clip.id), Colors::White, 1); row_y += row_h;
-                    canvas.draw_text(l.inspector_x0 + 6, row_y, "src: " + fs::path(clip.source_path).filename().string(), Colors::LightGray, 1, l.inspector_x1 - l.inspector_x0 - 12); row_y += row_h;
-                    canvas.draw_text(l.inspector_x0 + 6, row_y, "pos: " + format_timecode(clip.position_us), Colors::LightGray, 1); row_y += row_h;
-                    canvas.draw_text(l.inspector_x0 + 6, row_y, "dur: " + format_timecode(clip.timeline_duration_us()), Colors::LightGray, 1); row_y += row_h;
-                    canvas.draw_text(l.inspector_x0 + 6, row_y, "vol: " + std::to_string(clip.volume), Colors::LightGray, 1); row_y += row_h;
-                    canvas.draw_text(l.inspector_x0 + 6, row_y, "speed: " + std::to_string(clip.speed), Colors::LightGray, 1); row_y += row_h;
-                    break;
-                }
-            }
-            if (project_.text_style(*selected_track_id_, *selected_clip_id_)) {
-                const int y = l.inspector_y0 + 210;
-                canvas.draw_rect(l.inspector_x0 + 10, y, l.inspector_x1 - l.inspector_x0 - 20, 38, button_color, true);
-                canvas.draw_text(l.inspector_x0 + 20, y + 8, "Edit Text / Title", Colors::White, 1);
-            }
-        }
+        canvas.draw_text(button.x0 + 12, button.y0 + 7,
+                         button.label, Colors::White, 1, button.x1 - button.x0 - 24);
     }
 
     // Timeline ruler.
@@ -1316,22 +1403,24 @@ void MovieEditorWindow::render_scene() {
     for (std::int64_t t = view_start_us_; t < view_start_us_ + visible_duration_us_; t += tick_us) {
         const int x = time_to_x(l, t);
         canvas.draw_line(x, l.ruler_y0, x, l.ruler_y1, Colors::Gray, 1);
-        canvas.draw_text(x + 5, l.ruler_y0 + (l.ruler_y1 - l.ruler_y0 - 21) / 2, format_timecode(t), Colors::White, 2);
+        canvas.draw_text(x + 5, l.ruler_y0 + 7, format_timecode(t), Colors::LightGray, 1,
+            std::min(l.width - x - 8, time_to_x(l, std::min(t + tick_us, view_start_us_ + visible_duration_us_)) - x - 10));
     }
 
     // Track lanes: fill the whole area first so there is no mismatched
     // "empty" background showing through when there are zero/few tracks.
-    canvas.draw_rect(0, l.tracks_y0, l.width, l.tracks_y1 - l.tracks_y0, panel_color, true);
+    canvas.draw_rect(0, l.tracks_y0, l.width, l.status_y0 - l.tracks_y0, panel_color, true);
     {
         int lane_y = l.tracks_y0;
         int index = 0;
         for (const auto& track : project_.timeline().tracks()) {
             if (index++ < track_scroll_) continue;
+            if (lane_y + l.lane_h > l.tracks_y1) break;
             const bool track_selected = selected_track_id_ && *selected_track_id_ == track.id();
-            canvas.draw_rect(0, lane_y, l.track_header_w, l.lane_h, track_selected ? Colors::Blue : Colors::DarkGray, true);
-            canvas.draw_text(6, lane_y + 6, track.name().empty() ? "(track)" : track.name(), Colors::White, 1, l.track_header_w - 12);
-            canvas.draw_text(6, lane_y + 22, track.type() == timeline::TrackType::Video ? "video" : "audio", Colors::LightGray, 1);
-            canvas.draw_line(0, lane_y + l.lane_h - 1, l.width, lane_y + l.lane_h - 1, Colors::Gray, 1);
+            canvas.draw_rect(0, lane_y, l.track_header_w, l.lane_h, track_selected ? Color{49, 71, 103, 255} : toolbar_color, true);
+            canvas.draw_text(12, lane_y + 12, track.name().empty() ? "(track)" : track.name(), Colors::White, 1, l.track_header_w - 24);
+            canvas.draw_text(12, lane_y + 38, track.type() == timeline::TrackType::Video ? "Video" : "Audio", Colors::LightGray, 1, l.track_header_w - 24);
+            canvas.draw_line(0, lane_y + l.lane_h - 1, l.width, lane_y + l.lane_h - 1, toolbar_color, 1);
 
             auto visible_clips = track.clips();
             if (drag_ && drag_->moved) {
@@ -1344,24 +1433,53 @@ void MovieEditorWindow::render_scene() {
                 const int x0 = time_to_x(l, clip.position_us);
                 const int x1 = time_to_x(l, clip.timeline_end_us());
                 const bool clip_selected = selected_clip_id_ && *selected_clip_id_ == clip.id;
-                const Color clip_color = track.type() == timeline::TrackType::Video ? Colors::Purple : Colors::Green;
-                canvas.draw_rect(x0, lane_y + 3, std::max(1, x1 - x0), l.lane_h - 6, clip_color, true);
-                if (clip_selected) {
-                    canvas.draw_rect(x0, lane_y + 3, std::max(1, x1 - x0), l.lane_h - 6, Colors::White, false);
-                    canvas.draw_rect(x0, lane_y + 10, 5, l.lane_h - 20, Colors::White, true);
-                    canvas.draw_rect(x1 - 5, lane_y + 10, 5, l.lane_h - 20, Colors::White, true);
-                }
                 const auto* style = project_.text_style(track.id(), clip.id);
-                if (x1 - x0 > 30) canvas.draw_text(x0 + 3, lane_y + 6,
-                    style ? style->text : fs::path(clip.source_path).filename().string(),
-                    Colors::White, 1, x1 - x0 - 6);
+                const auto* asset = project_.media_bin().find(clip.source_path);
+                const auto* visual = asset ? media_visual(*asset) : nullptr;
+                const bool audio = track.type() == timeline::TrackType::Audio;
+                const bool linked_audio = asset && !asset->audio_path.empty();
+                const Color clip_color = style ? Color{101, 74, 139, 255}
+                    : audio ? Color{35, 97, 76, 255} : Color{48, 88, 135, 255};
+                const int w = std::max(1, x1 - x0);
+                canvas.draw_rect(x0, lane_y + 5, w, l.lane_h - 10, clip_color, true);
+                if (visual && !visual->thumbnail.empty()) {
+                    const int h = linked_audio ? 30 : 50;
+                    for (int x = x0 + 2; x < x1 - 2; x += 88)
+                        canvas.thumbnail(visual->thumbnail, x, lane_y + 30, std::min(86, x1 - 2 - x), h);
+                }
+                if (audio || linked_audio) {
+                    const int y = audio ? lane_y + 32 : lane_y + 62;
+                    const int h = audio ? 48 : 18;
+                    if (w > 4) canvas.draw_rect(x0 + 2, y, w - 4, h, Color{28, 70, 57, 255}, true);
+                    if (visual && visual->audio_duration_us > 0) {
+                        const double start = (clip.in_point_us +
+                            (std::max(clip.position_us, view_start_us_) - clip.position_us) * clip.speed) /
+                            visual->audio_duration_us;
+                        const double end = (clip.in_point_us +
+                            (std::min(clip.timeline_end_us(), view_start_us_ + visible_duration_us_) - clip.position_us) * clip.speed) /
+                            visual->audio_duration_us;
+                        canvas.waveform(visual->peaks, start, end,
+                            clip.muted || track.muted() ? 0 : clip.volume, x0 + 2, y, w - 4, h,
+                            Color{113, 224, 174, 255});
+                    }
+                }
+                canvas.draw_text(x0 + 8, lane_y + 9,
+                    style ? "Title: " + style->text : fs::path(clip.source_path).filename().string(),
+                    Colors::White, 1, w - 16);
+                if (clip_selected) {
+                    canvas.draw_rect(x0, lane_y + 5, w, l.lane_h - 10, Color{255, 204, 87, 255}, false);
+                    if (w >= 16) {
+                        canvas.draw_rect(x0 + 1, lane_y + 32, 3, 26, Color{255, 204, 87, 255}, true);
+                        canvas.draw_rect(x1 - 4, lane_y + 32, 3, 26, Color{255, 204, 87, 255}, true);
+                    }
+                }
             }
             lane_y += l.lane_h;
             if (lane_y > l.tracks_y1) break;
         }
         if (project_.timeline().tracks().empty()) {
-            canvas.draw_text(l.track_header_w + 30, lane_y + 36, "Your story starts here", Colors::White, 3);
-            canvas.draw_text(l.track_header_w + 30, lane_y + 80, "Import Media, then drag a media item here to start.", Colors::LightGray, 2);
+            canvas.draw_text(l.track_header_w + 30, lane_y + 28, "Your story starts here", Colors::White, 3, l.width - l.track_header_w - 60);
+            canvas.draw_text(l.track_header_w + 30, lane_y + 66, "Drag media here. Video and its audio stay together.", Colors::LightGray, 1, l.width - l.track_header_w - 60);
         }
     }
     canvas.draw_line(l.track_header_w, l.tracks_y0, l.track_header_w, l.tracks_y1, Colors::Gray, 1);
@@ -1553,7 +1671,7 @@ void MovieEditorWindow::configure_window() {
         const int direction = event.delta > 0 ? -1 : 1;
         if (event.x < layout.media_x1 && event.y >= layout.media_y0 && event.y < layout.media_y1) {
             const int count = static_cast<int>(project_.media_bin().assets().size());
-            const int visible = std::max(1, (layout.media_y1 - layout.media_y0 - 68) / 48);
+            const int visible = std::max(1, (layout.media_y1 - layout.media_y0 - layout.media_header_h) / layout.media_row_h);
             media_scroll_ = std::clamp(media_scroll_ + direction, 0, std::max(0, count - visible));
         } else if (event.y >= layout.tracks_y0 && event.y < layout.tracks_y1) {
             if (event.shift) {
@@ -1563,7 +1681,7 @@ void MovieEditorWindow::configure_window() {
             }
             const int count = static_cast<int>(project_.timeline().tracks().size());
             const int visible = std::max(1, (layout.tracks_y1 - layout.tracks_y0) / layout.lane_h);
-            track_scroll_ = std::clamp(track_scroll_ + direction, 0, std::max(0, count - visible));
+            track_scroll_ = std::clamp(track_scroll_ + direction, 0, std::max(0, count - visible + 1));
         }
     };
     window_.set_render_hooks(std::move(hooks));

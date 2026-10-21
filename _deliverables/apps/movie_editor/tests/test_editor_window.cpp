@@ -12,6 +12,143 @@
 
 namespace movie_editor_app {
 struct MovieEditorWindowTestAccess {
+    static void layout(MovieEditorWindow& editor) {
+        trekker::movie_editor::TextStyle title;
+        title.text = "A long title\nwith another line";
+        editor.selected_clip_id_ = editor.project_.add_text_clip(title, 0, 3'000'000);
+        editor.selected_track_id_ = editor.project_.timeline().tracks().back().id();
+        for (int font = 0; font < 2; ++font) {
+            if (font) editor.ui_font_.clear();
+            for (const bool native : {true, false}) {
+                editor.native_menus_ = native;
+                for (const auto& size : std::vector<std::pair<int, int>>{{960, 640}, {1280, 800}, {1920, 1080}}) {
+                    const auto l = editor.compute_layout(size.first, size.second);
+                    TYST_EXPECT_EQ(l.preview_x1, size.first);
+                    TYST_EXPECT_EQ(l.preview_x0, l.media_x1);
+                    TYST_EXPECT_GE(l.preview_x1 - l.preview_x0, size.first / 2);
+                    TYST_EXPECT_LT(l.preview_y0 + 52, l.preview_y1);
+                    TYST_EXPECT_EQ((l.tracks_y1 - l.tracks_y0) % l.lane_h, 0);
+                    const auto buttons = editor.transport_buttons(l);
+                    bool edit_title = false;
+                    for (std::size_t i = 0; i < buttons.size(); ++i) {
+                        const auto& a = buttons[i];
+                        TYST_EXPECT_GE(a.x0, 0);
+                        TYST_EXPECT_LE(a.x1, l.width);
+                        TYST_EXPECT_GE(a.y0, l.menu_y1);
+                        TYST_EXPECT_LE(a.y1, l.ruler_y0);
+                        TYST_EXPECT_GE(a.x1 - a.x0, editor.text_width(a.label, 1) + 24);
+                        if (a.id == MovieEditorWindow::TransportButton::EditText) edit_title = true;
+                        for (std::size_t j = i + 1; j < buttons.size(); ++j) {
+                            const auto& b = buttons[j];
+                            TYST_EXPECT_FALSE(a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1);
+                        }
+                    }
+                    TYST_EXPECT_TRUE(edit_title);
+                    for (const auto& menu : editor.topbar_buttons(l)) TYST_EXPECT_LE(menu.y1, l.menu_y1);
+                }
+            }
+        }
+        editor.selected_clip_id_.reset();
+        for (const auto& button : editor.transport_buttons(editor.compute_layout(960, 640)))
+            TYST_EXPECT_NE(button.id, MovieEditorWindow::TransportButton::EditText);
+    }
+
+    static void media_previews(MovieEditorWindow& editor) {
+        if (!editor.window_.create()) TYST_SKIP() << "A native display is required for linked audio card tests.";
+        const auto path = std::filesystem::temp_directory_path() /
+            ("coolbox_ui_waveform_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".wav");
+        auto buffer = trekker::audio::AudioBuffer::silent(1024, 2, 1024);
+        buffer.planes[0][0] = 0.25f;
+        buffer.planes[1][512] = -0.75f;
+        buffer.planes[0][1023] = 1.0f;
+        trekker::audio::container::write_wav(path.string(), buffer);
+        trekker::movie_editor::MediaAsset asset;
+        asset.path = "video-with-linked-audio";
+        asset.type = trekker::movie_editor::MediaType::ImportedVideo;
+        asset.duration_us = 1'000'000;
+        asset.audio_path = path.string();
+        auto frame = trekker::video::VideoFrame::blank(trekker::video::PixelFormat::RGB24, 2, 1);
+        frame.planes[0].at(0, 0) = 255;
+        frame.planes[0].at(5, 0) = 255;
+        asset.decoded_frames.push_back(frame);
+        TYST_EXPECT_TRUE(editor.media_visual(asset) == nullptr);
+        TYST_ASSERT_TRUE(editor.visual_job_.valid());
+        editor.visual_job_.wait();
+        editor.finish_media_visual();
+        const auto* visual = editor.media_visual(asset);
+        TYST_ASSERT_TRUE(visual != nullptr);
+        TYST_EXPECT_TRUE(visual->error.empty());
+        TYST_ASSERT_EQ(visual->peaks.size(), 1024U);
+        TYST_EXPECT_EQ(visual->audio_duration_us, 1'000'000);
+        TYST_EXPECT_GT(visual->peaks[0], 0.24f);
+        TYST_EXPECT_LT(visual->peaks[0], 0.26f);
+        TYST_EXPECT_GT(visual->peaks[512], 0.74f);
+        TYST_EXPECT_GT(visual->peaks[1023], 0.99f);
+        TYST_EXPECT_EQ(visual->peaks[256], 0.0f);
+        TYST_ASSERT_EQ(visual->thumbnail.size(), 96U * 54U);
+        TYST_EXPECT_EQ(visual->thumbnail.front().r, 255);
+        TYST_EXPECT_EQ(visual->thumbnail.front().b, 0);
+        TYST_EXPECT_EQ(visual->thumbnail.back().b, 255);
+        TYST_EXPECT_EQ(visual->thumbnail.back().r, 0);
+        TYST_EXPECT_FALSE(editor.visual_job_.valid());
+        const auto video_key = editor.project_.media_bin().add_asset(asset);
+        const auto video_track = editor.project_.add_video_track("Story").id();
+        const auto video_clip = editor.project_.add_clip(video_track, video_key, 0);
+
+        asset.type = trekker::movie_editor::MediaType::Audio;
+        asset.path = path.string();
+        asset.audio_path.clear();
+        asset.decoded_frames.clear();
+        const auto audio = editor.build_media_visual(asset);
+        TYST_EXPECT_TRUE(audio.thumbnail.empty());
+        TYST_EXPECT_EQ(audio.peaks, visual->peaks);
+        const auto audio_key = editor.project_.media_bin().add_asset(asset);
+        const auto audio_track = editor.project_.add_audio_track("Music").id();
+        editor.project_.add_clip(audio_track, audio_key, 0);
+        editor.visible_duration_us_ = 4'000'000;
+        editor.render_scene();
+        if (editor.visual_job_.valid()) {
+            editor.visual_job_.wait();
+            editor.finish_media_visual();
+        }
+        editor.render_scene();
+        int width = 0, height = 0;
+        editor.window_.client_size(width, height);
+        const auto l = editor.compute_layout(width, height);
+        const int wave_y = l.tracks_y0 + 70;
+        const int body_x = editor.time_to_x(l, 500'000);
+        editor.handle_click(body_x, wave_y);
+        TYST_ASSERT_TRUE(editor.drag_.has_value());
+        TYST_EXPECT_EQ(editor.drag_->kind, DragKind::Move);
+        editor.update_drag(body_x + 100, wave_y, true);
+        const auto moved = editor.project_.timeline().track(video_track)->clips().front();
+        TYST_EXPECT_GT(moved.position_us, 0);
+        TYST_EXPECT_EQ(moved.id, video_clip);
+        TYST_EXPECT_EQ(editor.project_.media_bin().find(moved.source_path)->audio_path, path.string());
+        TYST_EXPECT_EQ(editor.project_.timeline().track(audio_track)->clips().front().position_us, 0);
+        editor.render_scene();
+        editor.handle_key({'Z', true});
+        editor.handle_click(editor.time_to_x(l, 0), wave_y);
+        editor.update_drag(editor.time_to_x(l, 250'000), wave_y, true);
+        TYST_EXPECT_GT(editor.project_.timeline().track(video_track)->clips().front().in_point_us, 0);
+        editor.render_scene();
+        editor.handle_key({'Z', true});
+        editor.handle_click(body_x, wave_y);
+        editor.update_drag(body_x, wave_y, true);
+        editor.playhead_us_ = 500'000;
+        editor.handle_menu_command(1, 3);
+        TYST_EXPECT_EQ(editor.project_.timeline().track(video_track)->clips().size(), 2U);
+        for (const auto& clip : editor.project_.timeline().track(video_track)->clips())
+            TYST_EXPECT_EQ(editor.project_.media_bin().find(clip.source_path)->audio_path, path.string());
+        editor.render_scene();
+        editor.window_.close();
+        drain_close_message();
+        std::filesystem::remove(path);
+        const auto missing = editor.build_media_visual(asset);
+        TYST_EXPECT_FALSE(missing.error.empty());
+        TYST_EXPECT_TRUE(missing.peaks.empty());
+    }
+
     static void drain_close_message() {
 #ifdef _WIN32
         MSG quit{};
@@ -241,8 +378,14 @@ struct MovieEditorWindowTestAccess {
         press(20, layout.media_y0 + 80);
         TYST_EXPECT_THROW(editor.update_drag(drop_x, lane_y + layout.lane_h, true), std::invalid_argument);
         TYST_EXPECT_TRUE(project.timeline().track(audio_id)->clips().empty());
+        int empty_lane_y = lane_y + 2 * layout.lane_h;
+        if (empty_lane_y >= layout.tracks_y1) {
+            editor.window_.render_hooks().on_scroll({drop_x, lane_y, -120});
+            TYST_EXPECT_EQ(editor.track_scroll_, 1);
+            empty_lane_y -= layout.lane_h;
+        }
         press(20, layout.media_y0 + 80);
-        release(drop_x, lane_y + 2 * layout.lane_h);
+        release(drop_x, empty_lane_y);
         TYST_EXPECT_EQ(project.timeline().tracks().size(), 3U);
         editor.handle_key({'Z', true});
         TYST_EXPECT_EQ(project.timeline().tracks().size(), 2U);
@@ -314,7 +457,16 @@ struct MovieEditorWindowTestAccess {
         const auto original = editor.project_.timeline().track(track)->clips().front();
         TYST_EXPECT_EQ(original.position_us, 2'000'000);
         TYST_EXPECT_EQ(original.timeline_duration_us(), 4'000'000);
-        editor.handle_menu_command(1, 10);
+        bool clicked_edit = false;
+        int control_width = 0, control_height = 0;
+        editor.window_.client_size(control_width, control_height);
+        for (const auto& button : editor.transport_buttons(editor.compute_layout(control_width, control_height))) {
+            if (button.id != MovieEditorWindow::TransportButton::EditText) continue;
+            editor.handle_click(button.x0 + 5, button.y0 + 5);
+            clicked_edit = true;
+            break;
+        }
+        TYST_EXPECT_TRUE(clicked_edit);
         TYST_ASSERT_TRUE(editor.text_editor_.has_value());
         type("Changed");
         editor.text_editor_->active = 1;
@@ -442,6 +594,16 @@ struct MovieEditorWindowTestAccess {
         drain_close_message();
     }
 };
+}
+
+TYST_TEST(MovieEditorUi, WorkspaceControlsFitWithoutOverlapsAtSupportedSizes) {
+    movie_editor_app::MovieEditorWindow editor;
+    movie_editor_app::MovieEditorWindowTestAccess::layout(editor);
+}
+
+TYST_TEST(MovieEditorUi, CachedPreviewsUseRealThumbnailsAndAllAudioChannels) {
+    movie_editor_app::MovieEditorWindow editor;
+    movie_editor_app::MovieEditorWindowTestAccess::media_previews(editor);
 }
 
 TYST_TEST(MovieEditorUi, MenuSelectionsMutateTimelineAndRespectBackgroundJobs) {

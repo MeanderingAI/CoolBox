@@ -15,11 +15,12 @@
 #include <future>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace movie_editor_app {
 
 // Mouse-driven, single-window movie editor UI: a media bin, a scrubbable
-// preview, a multi-track timeline, a clip inspector, and transport controls.
+// preview, a multi-track timeline with attached audio, and contextual controls.
 // Built entirely from Canvas draw primitives (no retained-mode widgets),
 // matching the hand-drawn-UI style used by the other CoolBox GUI apps.
 //
@@ -37,20 +38,22 @@ private:
     struct Layout {
         int width = 0, height = 0;
         int topbar_y1 = 0;
+        int menu_y1 = 0;
         int media_x0 = 0, media_x1 = 0, media_y0 = 0, media_y1 = 0;
         int preview_x0 = 0, preview_x1 = 0, preview_y0 = 0, preview_y1 = 0;
         int transport_y0 = 0, transport_y1 = 0;
-        int inspector_x0 = 0, inspector_x1 = 0, inspector_y0 = 0, inspector_y1 = 0;
+        int timeline_toolbar_y0 = 0;
         int ruler_y0 = 0, ruler_y1 = 0;
         int tracks_y0 = 0, tracks_y1 = 0;
         int track_header_w = 130;
-        int lane_h = 56;
+        int lane_h = 92;
+        int media_header_h = 64, media_row_h = 76;
         int status_y0 = 0;
     };
 
     enum class TransportButton { GoToStart, PlayPause, Stop, GoToEnd, Split, Delete, AddVideoTrack, AddAudioTrack,
                                  ImportMedia, AddMedia, ZoomIn, ZoomOut, Fit, Undo, Redo, ExportMp4,
-                                 AddText };
+                                 AddText, EditText };
 
     struct ButtonRect { TransportButton id; int x0, y0, x1, y1; const char* label; };
 
@@ -109,6 +112,20 @@ private:
     void do_show_version();
 
     void set_status(const std::string& message);
+
+    struct MediaVisual {
+        std::vector<graphics::Color> thumbnail;
+        std::vector<float> peaks;
+        std::int64_t audio_duration_us = 0;
+        std::string error;
+    };
+    static MediaVisual build_media_visual(const trekker::movie_editor::MediaAsset& asset);
+    const MediaVisual* media_visual(const trekker::movie_editor::MediaAsset& asset);
+    void finish_media_visual();
+    static constexpr int kThumbnailWidth = 96, kThumbnailHeight = 54;
+    std::unordered_map<std::string, MediaVisual> media_visuals_;
+    std::future<MediaVisual> visual_job_;
+    std::string visual_job_key_;
 
     trekker::movie_editor::EditorProject project_;
     graphics::full_application_window::FullApplicationWindow window_;

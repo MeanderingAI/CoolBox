@@ -103,9 +103,27 @@ movie_editor                      # start with an empty project
 movie_editor --project my.json    # start with an existing project loaded
 ```
 
-The window has a media bin (left), a preview + transport controls (center),
-an inspector (right), and a multi-track timeline (bottom). Editing actions
-are available through buttons, menus, mouse gestures and portable shortcuts:
+The iMovie-inspired workspace has a thumbnail media browser (left), a large
+viewer (right), and a clip-focused multi-track timeline below. There is no
+permanent inspector taking space from the viewer. Import, Add Clip, Titles,
+Undo/Redo and Export live in the top action bar; playback controls sit below
+the viewer, while split/delete, track creation and zoom sit above the timeline.
+Selected clip timing, speed and volume appear in the status bar. Editing
+actions are available through buttons, menus, mouse gestures and portable shortcuts:
+
+- **Clip cards and linked audio**: video cards show representative thumbnails
+  with an attached green waveform when the source has embedded audio.
+  Audio-only clips use green waveform cards on audio tracks. Waveforms use
+  real source peaks across all channels, follow the source range during
+  trim/speed changes, and reflect clip volume/muting. Embedded audio remains
+  part of the video clip: moving, trimming, splitting and deleting keep them
+  together, without creating duplicate audio tracks. Previews are generated
+  in the background and cached for the current project. Preview failures are
+  reported in the media browser/status bar rather than shown as fake waveforms.
+- **Uncluttered labels**: single-line labels are truncated to their own card
+  or control, including multiline title names and long filenames. The media
+  browser and timeline scroll by whole rows so cards do not spill into
+  adjacent panels.
 
 - **Native menus**: File, Edit and Help use Win32 menus on Windows, the
   system menu bar on macOS, and GTK 3 menus on Linux/X11, with native fonts,
@@ -137,7 +155,7 @@ are available through buttons, menus, mouse gestures and portable shortcuts:
   Undo restores the track, its clips and its position in the track order.
   Locked tracks cannot be deleted. Escape or clicking outside dismisses
   the context menu.
-- **Text / Title**: one action-bar button and Edit-menu command opens the
+- **Titles**: the action-bar button and Edit-menu command open the
   shared editor for titles and overlays. Toggle **Background: Transparent**
   or **Background: Color**, with adjustable background opacity (0-100%).
   Drag the text in the live preview to position it, or enter horizontal and
@@ -153,15 +171,15 @@ are available through buttons, menus, mouse gestures and portable shortcuts:
   clips do not shift. The editor preview shows the draft without fades and
   does not alter the timeline until Apply; Cancel discards all draft changes.
   Applying settings previews the middle of the text clip,
-  rather than its fully faded-out first frame. Select it and choose **Edit Text / Title** in the
-  inspector (or **Edit > Edit Selected Text**) to change its settings.
+  rather than its fully faded-out first frame. Select it and choose **Edit Title**
+  above the timeline (or **Edit > Edit Selected Text**) to change its settings.
   Titles and overlays are saved in the project, appear in playback and all
   video exports, and support move/trim/split/delete and Undo/Redo.
 - **Timeline lane**: click empty space with a pending media item selected to
   drop a clip there; click an existing clip to select it (for Split/Delete
-  and the inspector); click the track header to just select the track.
+  and contextual controls); click the track header to just select the track.
 - **Move and trim**: drag a clip's body to move it, including between
-  matching unlocked tracks. Drag its white edge handles to trim/extend
+  matching unlocked tracks. Drag its gold edge handles to trim/extend
   within the source bounds. The gesture shows a preview and commits only
   on release; Escape or focus loss cancels it. Horizontal edits snap to
   24 fps increments. Overlaps are allowed; this is not a magnetic/ripple timeline.
@@ -172,11 +190,12 @@ are available through buttons, menus, mouse gestures and portable shortcuts:
 - **Ruler**: click to move the playhead.
 - **Preview/export framing**: media keeps its original aspect ratio, with
   black bars where needed instead of stretching.
-- **Timeline zoom**: use `-`, `+`, and **Fit** in the action bar. Use the
+- **Timeline zoom**: use `-`, `+`, and **Fit** above the timeline. Use the
   mouse wheel over the media bin or track lanes to scroll those lists;
   Shift+wheel over the lanes pans horizontally when zoomed in.
-- **Transport buttons**: `|<` / `Play`/`Pause` / `Stop` / `>|` / `Split` /
-  `Delete` / `+Video Trk` / `+Audio Trk`.
+- **Transport buttons**: `|<` / `Play`/`Pause` / `Stop` / `>|` below the viewer.
+  Select a title clip to reveal **Edit Title** above the timeline; the same
+  editor remains available through **Edit > Edit Selected Text**.
 - **Playback**: video follows the audio device's consumed-sample clock,
   adjusted for backend buffering. Embedded video audio and WAV tracks are
   mixed to 48 kHz stereo. Audio is produced off the real-time device
