@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
 #include <thread>
+#include <cstdlib>
 #include <unordered_map>
+#include <unordered_set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -21,9 +24,15 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <objc/message.h>
 #include <objc/runtime.h>
+#include "cocoa_native_menu.hpp"
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
+#if defined(GRAPHICS_HAVE_GTK3)
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#endif
 #endif
 
 namespace graphics {
@@ -82,6 +91,8 @@ struct FullApplicationWindow::Impl {
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     void* application = nullptr;
     void* window = nullptr;
+    void* cocoa_menu = nullptr;
+    bool mac_control_click = false;
 
     // Software pixel backbuffer: RGBA 8-bit packed rows.
     mutable std::vector<unsigned char> mac_pixels;
@@ -209,8 +220,257 @@ struct FullApplicationWindow::Impl {
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
     Display* display = nullptr;
+    std::unordered_set<unsigned int> held_keys;
     ::Window window = 0;
     Atom delete_message = 0;
+#if defined(GRAPHICS_HAVE_GTK3)
+    GtkWidget* gtk_window = nullptr;
+    GtkWidget* gtk_box = nullptr;
+    GtkWidget* gtk_canvas = nullptr;
+    GtkWidget* gtk_menu = nullptr;
+    GtkAccelGroup* gtk_accels = nullptr;
+
+    void rebuild_native_menu() {
+        if (!gtk_window) return;
+        if (gtk_menu) {
+            gtk_widget_destroy(gtk_menu);
+            gtk_menu = nullptr;
+        }
+        if (gtk_accels) {
+            gtk_window_remove_accel_group(GTK_WINDOW(gtk_window), gtk_accels);
+            g_object_unref(gtk_accels);
+            gtk_accels = nullptr;
+        }
+        if (menu_bar_model.menus.empty()) return;
+        gtk_accels = gtk_accel_group_new();
+        gtk_window_add_accel_group(GTK_WINDOW(gtk_window), gtk_accels);
+        gtk_menu = gtk_menu_bar_new();
+        gtk_box_pack_start(GTK_BOX(gtk_box), gtk_menu, FALSE, FALSE, 0);
+        gtk_box_reorder_child(GTK_BOX(gtk_box), gtk_menu, 0);
+        struct Command { Impl* impl; std::size_t menu; std::size_t item; };
+        for (std::size_t m = 0; m < menu_bar_model.menus.size(); ++m) {
+            const auto& menu = menu_bar_model.menus[m];
+            GtkWidget* top = gtk_menu_item_new_with_label(menu.title.c_str());
+            GtkWidget* popup = gtk_menu_new();
+            gtk_menu_item_set_submenu(GTK_MENU_ITEM(top), popup);
+            gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu), top);
+            for (std::size_t i = 0; i < menu.items.size(); ++i) {
+                const auto& item = menu.items[i];
+                GtkWidget* native = item.separator ? gtk_separator_menu_item_new()
+                    : gtk_check_menu_item_new_with_label(item.label.c_str());
+                gtk_menu_shell_append(GTK_MENU_SHELL(popup), native);
+                if (item.separator) continue;
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(native), item.checked);
+                gtk_widget_set_sensitive(native, item.enabled);
+                std::string key;
+                GdkModifierType modifiers = static_cast<GdkModifierType>(0);
+                std::size_t start = 0, plus;
+                while ((plus = item.shortcut.find('+', start)) != std::string::npos) {
+                    std::string token = item.shortcut.substr(start, plus - start);
+                    std::transform(token.begin(), token.end(), token.begin(),
+                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                    if (token == "ctrl" || token == "control" || token == "cmd")
+                        modifiers = static_cast<GdkModifierType>(modifiers | GDK_CONTROL_MASK);
+                    if (token == "shift") modifiers = static_cast<GdkModifierType>(modifiers | GDK_SHIFT_MASK);
+                    if (token == "alt") modifiers = static_cast<GdkModifierType>(modifiers | GDK_MOD1_MASK);
+                    start = plus + 1;
+                }
+                key = item.shortcut.substr(start);
+                if (key == "Space") key = "space";
+                if (key == "Enter") key = "Return";
+                guint keyval = key.empty() ? 0 : gdk_keyval_from_name(key.c_str());
+                if (keyval != 0 && keyval != GDK_KEY_VoidSymbol)
+                    gtk_widget_add_accelerator(native, "activate", gtk_accels,
+                        gdk_keyval_to_lower(keyval), modifiers, GTK_ACCEL_VISIBLE);
+                g_signal_connect_data(native, "activate", reinterpret_cast<GCallback>(+[](GtkMenuItem* widget, gpointer data) {
+                    const auto command = *static_cast<Command*>(data);
+                    g_object_ref(widget);
+                    command.impl->dispatch_menu(command.menu, command.item);
+                    const auto& menus = command.impl->menu_bar_model.menus;
+                    if (!gtk_widget_in_destruction(GTK_WIDGET(widget)) &&
+                        command.menu < menus.size() && command.item < menus[command.menu].items.size()) {
+                        // Restoring a non-toggle command's check state also emits "activate".
+                        g_signal_handlers_block_matched(widget, G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, data);
+                        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget),
+                            menus[command.menu].items[command.item].checked);
+                        g_signal_handlers_unblock_matched(widget, G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, data);
+                    }
+                    g_object_unref(widget);
+                }), new Command{this, m, i}, +[](gpointer data, GClosure*) {
+                    delete static_cast<Command*>(data);
+                }, static_cast<GConnectFlags>(0));
+            }
+        }
+        gtk_widget_show_all(gtk_menu);
+    }
+
+    bool create_gtk_window() {
+        // Our rendering API exposes an XID, so deliberately require the X11 GDK backend.
+        gdk_set_allowed_backends("x11");
+        if (!gtk_init_check(nullptr, nullptr) ||
+            !GDK_IS_X11_DISPLAY(gdk_display_get_default())) return false;
+        gtk_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+        gtk_window_set_title(GTK_WINDOW(gtk_window), config.title.c_str());
+        gtk_window_set_resizable(GTK_WINDOW(gtk_window), config.resizable);
+        gtk_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        gtk_container_add(GTK_CONTAINER(gtk_window), gtk_box);
+        gtk_canvas = gtk_drawing_area_new();
+        gtk_widget_set_can_focus(gtk_canvas, TRUE);
+        gtk_widget_set_app_paintable(gtk_canvas, TRUE);
+        // Keep the existing Xlib drawing path on the drawing area's real X window.
+        gtk_widget_set_double_buffered(gtk_canvas, FALSE);
+        gtk_widget_set_size_request(gtk_canvas, static_cast<int>(config.min_width),
+                                    static_cast<int>(config.min_height));
+        gtk_box_pack_end(GTK_BOX(gtk_box), gtk_canvas, TRUE, TRUE, 0);
+        gtk_widget_add_events(gtk_canvas, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
+            GDK_POINTER_MOTION_MASK | GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
+        g_signal_connect(gtk_canvas, "draw", reinterpret_cast<GCallback>(+[](GtkWidget*, cairo_t* cr, gpointer data) -> gboolean {
+            auto* self = static_cast<Impl*>(data);
+            cairo_surface_flush(cairo_get_target(cr));
+            if (self->open && self->hooks.on_render)
+                self->hooks.on_render(self->make_render_event(self->window, self->frame_index++));
+            if (self->display) XFlush(self->display);
+            return TRUE;
+        }), this);
+        g_signal_connect(gtk_canvas, "size-allocate", reinterpret_cast<GCallback>(+[](GtkWidget*, GtkAllocation* size, gpointer data) {
+            auto* self = static_cast<Impl*>(data);
+            self->config.width = static_cast<std::size_t>(std::max(1, size->width));
+            self->config.height = static_cast<std::size_t>(std::max(1, size->height));
+            if (self->open && self->hooks.on_resize)
+                self->hooks.on_resize(self->make_render_event(self->window, self->frame_index));
+        }), this);
+        const auto pointer = +[](GtkWidget* widget, GdkEvent* event, gpointer data) -> gboolean {
+            auto* self = static_cast<Impl*>(data);
+            double x = 0, y = 0;
+            gdk_event_get_coords(event, &x, &y);
+            guint button = 0;
+            gdk_event_get_button(event, &button);
+            if (event->type != GDK_MOTION_NOTIFY && button != 1 && button != 3) return FALSE;
+            PointerPressEvent pointer{static_cast<int>(x), static_cast<int>(y),
+                button == 3 ? PointerButton::Right : PointerButton::Left};
+            if (event->type == GDK_BUTTON_PRESS) {
+                gtk_widget_grab_focus(widget);
+                if (button == 1) {
+                    gtk_grab_add(widget);
+                    gdk_seat_grab(gdk_display_get_default_seat(gtk_widget_get_display(widget)),
+                        gtk_widget_get_window(widget), GDK_SEAT_CAPABILITY_POINTER, FALSE,
+                        nullptr, event, nullptr, nullptr);
+                }
+                if (self->hooks.on_pointer_press) self->hooks.on_pointer_press(pointer);
+            } else if (event->type == GDK_BUTTON_RELEASE) {
+                if (button == 1) {
+                    gdk_seat_ungrab(gdk_display_get_default_seat(gtk_widget_get_display(widget)));
+                    if (gtk_widget_has_grab(widget)) gtk_grab_remove(widget);
+                }
+                if (self->hooks.on_pointer_release) self->hooks.on_pointer_release(pointer);
+            } else if (self->hooks.on_pointer_move) {
+                GdkModifierType state{};
+                gdk_event_get_state(event, &state);
+                pointer.button = (state & GDK_BUTTON3_MASK) ? PointerButton::Right : PointerButton::Left;
+                self->hooks.on_pointer_move(pointer);
+            }
+            return TRUE;
+        };
+        g_signal_connect(gtk_canvas, "button-press-event", G_CALLBACK(pointer), this);
+        g_signal_connect(gtk_canvas, "button-release-event", G_CALLBACK(pointer), this);
+        g_signal_connect(gtk_canvas, "motion-notify-event", G_CALLBACK(pointer), this);
+        g_signal_connect(gtk_canvas, "scroll-event", reinterpret_cast<GCallback>(+[](GtkWidget*, GdkEventScroll* event, gpointer data) -> gboolean {
+            auto* self = static_cast<Impl*>(data);
+            double delta = event->direction == GDK_SCROLL_UP ? 1.0 :
+                event->direction == GDK_SCROLL_DOWN ? -1.0 : -event->delta_y;
+            if (self->hooks.on_scroll)
+                self->hooks.on_scroll(ScrollEvent{static_cast<int>(event->x), static_cast<int>(event->y),
+                    delta, (event->state & GDK_SHIFT_MASK) != 0});
+            return TRUE;
+        }), this);
+        g_signal_connect(gtk_window, "key-press-event", reinterpret_cast<GCallback>(+[](GtkWidget* widget, GdkEventKey* event, gpointer data) -> gboolean {
+            auto* self = static_cast<Impl*>(data);
+            if (gtk_accel_groups_activate(G_OBJECT(widget), event->keyval,
+                    static_cast<GdkModifierType>(event->state & gtk_accelerator_get_default_mod_mask())))
+                return TRUE;
+            const bool repeat = !self->held_keys.insert(event->hardware_keycode).second;
+            int key = static_cast<int>(gdk_keyval_to_upper(event->keyval));
+            switch (event->keyval) {
+                case GDK_KEY_Left: key = static_cast<int>(Key::Left); break;
+                case GDK_KEY_Right: key = static_cast<int>(Key::Right); break;
+                case GDK_KEY_Home: key = static_cast<int>(Key::Home); break;
+                case GDK_KEY_End: key = static_cast<int>(Key::End); break;
+                case GDK_KEY_Delete: key = static_cast<int>(Key::Delete); break;
+                case GDK_KEY_BackSpace: key = static_cast<int>(Key::Backspace); break;
+                case GDK_KEY_Return: key = static_cast<int>(Key::Enter); break;
+                case GDK_KEY_Escape: key = static_cast<int>(Key::Escape); break;
+                case GDK_KEY_Tab:
+                case GDK_KEY_ISO_Left_Tab: key = 9; break;
+                default: break;
+            }
+            if (self->hooks.on_key) self->hooks.on_key(KeyEvent{key,
+                (event->state & GDK_CONTROL_MASK) != 0, (event->state & GDK_SHIFT_MASK) != 0, repeat});
+            if (self->hooks.on_text_input && !(event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK))) {
+                const gunichar character = gdk_keyval_to_unicode(event->keyval);
+                if (character >= 32 && character != 127) {
+                    char utf8[7]{};
+                    const int length = g_unichar_to_utf8(character, utf8);
+                    self->hooks.on_text_input(std::string(utf8, length));
+                }
+            }
+            return self->hooks.on_key ? TRUE : FALSE;
+        }), this);
+        g_signal_connect(gtk_window, "key-release-event", reinterpret_cast<GCallback>(+[](GtkWidget*, GdkEventKey* event, gpointer data) -> gboolean {
+            static_cast<Impl*>(data)->held_keys.erase(event->hardware_keycode);
+            return FALSE;
+        }), this);
+        g_signal_connect(gtk_window, "focus-out-event", reinterpret_cast<GCallback>(+[](GtkWidget*, GdkEventFocus*, gpointer data) -> gboolean {
+            static_cast<Impl*>(data)->held_keys.clear();
+            return FALSE;
+        }), this);
+        g_signal_connect(gtk_window, "delete-event", reinterpret_cast<GCallback>(+[](GtkWidget*, GdkEvent*, gpointer data) -> gboolean {
+            auto* self = static_cast<Impl*>(data);
+            if (self->hooks.on_close) self->hooks.on_close(self->make_render_event(self->window, self->frame_index));
+            return FALSE;
+        }), this);
+        g_signal_connect(gtk_window, "destroy", reinterpret_cast<GCallback>(+[](GtkWidget*, gpointer data) {
+            auto* self = static_cast<Impl*>(data);
+            self->open = false;
+            self->window = 0;
+            self->gtk_window = self->gtk_box = self->gtk_canvas = self->gtk_menu = nullptr;
+        }), this);
+        rebuild_native_menu();
+        gtk_widget_show_all(gtk_box);
+        GtkRequisition minimum{}, natural{};
+        gtk_widget_get_preferred_size(gtk_menu ? gtk_menu : gtk_canvas, &minimum, &natural);
+        const int menu_height = gtk_menu ? natural.height : 0;
+        gtk_window_set_default_size(GTK_WINDOW(gtk_window), static_cast<int>(config.width),
+                                    static_cast<int>(config.height) + menu_height);
+        gtk_widget_realize(gtk_window);
+        gtk_widget_realize(gtk_canvas);
+        auto* drawable = gtk_widget_get_window(gtk_canvas);
+        display = GDK_WINDOW_XDISPLAY(drawable);
+        window = GDK_WINDOW_XID(drawable);
+        open = true;
+        if (config.visible) gtk_widget_show(gtk_window);
+        gtk_widget_grab_focus(gtk_canvas);
+        return true;
+    }
+#endif
+#endif
+
+    void dispatch_menu(std::size_t menu_index, std::size_t item_index) {
+        if (menu_index >= menu_bar_model.menus.size()) return;
+        const auto menu = menu_bar_model.menus[menu_index];
+        if (item_index >= menu.items.size()) return;
+        const auto item = menu.items[item_index];
+        const auto handler = menu_command_handler;
+        if (item.enabled && !item.separator && handler) handler(menu_index, item_index, menu, item);
+    }
+
+#if defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    void rebuild_native_menu() {
+        detail::destroy_cocoa_menu(cocoa_menu);
+        cocoa_menu = nullptr;
+        if (window && !menu_bar_model.menus.empty())
+            cocoa_menu = detail::create_cocoa_menu(window, menu_bar_model,
+                [this](std::size_t menu, std::size_t item) { dispatch_menu(menu, item); });
+    }
 #endif
 
     RenderEvent make_render_event(std::uintptr_t native_handle = 0U,
@@ -235,6 +495,73 @@ struct FullApplicationWindow::Impl {
             impl = reinterpret_cast<Impl*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         }
 
+        if (impl && message == WM_GETMINMAXINFO &&
+            (impl->config.min_width > 0 || impl->config.min_height > 0)) {
+            RECT bounds{0, 0, static_cast<LONG>(impl->config.min_width),
+                        static_cast<LONG>(impl->config.min_height)};
+            AdjustWindowRectEx(&bounds, static_cast<DWORD>(GetWindowLongPtr(hwnd, GWL_STYLE)),
+                               GetMenu(hwnd) != nullptr,
+                               static_cast<DWORD>(GetWindowLongPtr(hwnd, GWL_EXSTYLE)));
+            auto* sizes = reinterpret_cast<MINMAXINFO*>(lparam);
+            if (impl->config.min_width > 0) sizes->ptMinTrackSize.x = bounds.right - bounds.left;
+            if (impl->config.min_height > 0) sizes->ptMinTrackSize.y = bounds.bottom - bounds.top;
+            return 0;
+        }
+
+        if (impl && message == WM_CHAR && impl->hooks.on_text_input) {
+            static thread_local wchar_t high_surrogate = 0;
+            const wchar_t character = static_cast<wchar_t>(wparam);
+            if (character >= 0xd800 && character <= 0xdbff) {
+                high_surrogate = character;
+                return 0;
+            }
+            wchar_t characters[2]{character, 0};
+            int count = 1;
+            if (character >= 0xdc00 && character <= 0xdfff && high_surrogate) {
+                characters[0] = high_surrogate;
+                characters[1] = character;
+                count = 2;
+            }
+            high_surrogate = 0;
+            if (character >= 32 && character != 127) {
+                char utf8[8]{};
+                const int length = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                    characters, count, utf8, sizeof(utf8), nullptr, nullptr);
+                if (length > 0) impl->hooks.on_text_input(std::string(utf8, length));
+            }
+            return 0;
+        }
+        if (impl && message == WM_KEYDOWN && impl->hooks.on_key) {
+            int key = static_cast<int>(wparam);
+            switch (wparam) {
+                case VK_LEFT: key = static_cast<int>(Key::Left); break;
+                case VK_RIGHT: key = static_cast<int>(Key::Right); break;
+                case VK_HOME: key = static_cast<int>(Key::Home); break;
+                case VK_END: key = static_cast<int>(Key::End); break;
+                case VK_DELETE: key = static_cast<int>(Key::Delete); break;
+                default: break;
+            }
+            impl->hooks.on_key(KeyEvent{key, (GetKeyState(VK_CONTROL) & 0x8000) != 0,
+                (GetKeyState(VK_SHIFT) & 0x8000) != 0, (lparam & (1LL << 30)) != 0});
+            return 0;
+        }
+
+        if (impl && (message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN ||
+                     message == WM_LBUTTONUP || message == WM_RBUTTONUP || message == WM_MOUSEMOVE)) {
+            const PointerPressEvent event{
+                static_cast<short>(LOWORD(lparam)), static_cast<short>(HIWORD(lparam)),
+                (message == WM_RBUTTONDOWN || message == WM_RBUTTONUP ||
+                 (message == WM_MOUSEMOVE && (wparam & MK_RBUTTON))) ? PointerButton::Right : PointerButton::Left};
+            if (message == WM_LBUTTONDOWN) SetCapture(hwnd);
+            if (message == WM_LBUTTONUP && GetCapture() == hwnd) ReleaseCapture();
+            if (message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN) {
+                if (impl->hooks.on_pointer_press) impl->hooks.on_pointer_press(event);
+            } else if (message == WM_LBUTTONUP || message == WM_RBUTTONUP) {
+                if (impl->hooks.on_pointer_release) impl->hooks.on_pointer_release(event);
+            } else if (impl->hooks.on_pointer_move) impl->hooks.on_pointer_move(event);
+            return 0;
+        }
+
         if (impl && message == WM_SIZE) {
             impl->config.width = static_cast<std::size_t>(LOWORD(lparam));
             impl->config.height = static_cast<std::size_t>(HIWORD(lparam));
@@ -252,7 +579,8 @@ struct FullApplicationWindow::Impl {
             impl->hooks.on_scroll(ScrollEvent{
                 point.x,
                 point.y,
-                static_cast<double>(static_cast<short>(HIWORD(wparam))) / WHEEL_DELTA});
+                static_cast<double>(static_cast<short>(HIWORD(wparam))) / WHEEL_DELTA,
+                (LOWORD(wparam) & MK_SHIFT) != 0});
             return 0;
         }
 
@@ -275,7 +603,7 @@ struct FullApplicationWindow::Impl {
             return 0;
         }
 
-        if (impl && message == WM_COMMAND) {
+        if (impl && message == WM_COMMAND && lparam == 0) {
             const UINT command_id = LOWORD(wparam);
             const auto found = impl->command_to_menu_item.find(command_id);
             if (found != impl->command_to_menu_item.end()) {
@@ -285,9 +613,10 @@ struct FullApplicationWindow::Impl {
                     auto& menu = impl->menu_bar_model.menus[menu_index];
                     if (item_index < menu.items.size()) {
                         const auto& item = menu.items[item_index];
-                        if (impl->menu_command_handler) {
+                        if (item.enabled && !item.separator && impl->menu_command_handler) {
                             impl->menu_command_handler(menu_index, item_index, menu, item);
                         }
+                        InvalidateRect(hwnd, nullptr, FALSE);
                         return 0;
                     }
                 }
@@ -359,7 +688,8 @@ struct FullApplicationWindow::Impl {
                 if (item.checked) {
                     flags |= MF_CHECKED;
                 }
-                AppendMenuA(popup, flags, command_id, item.label.c_str());
+                const auto label = item.shortcut.empty() ? item.label : item.label + "\t" + item.shortcut;
+                AppendMenuA(popup, flags, command_id, label.c_str());
                 command_to_menu_item[command_id] = {menu_index, item_index};
             }
 
@@ -851,6 +1181,8 @@ bool FullApplicationWindow::create() {
             return false;
         }
         fprintf(stderr, "[FAW] create(): NSWindow ok\n");
+        reinterpret_cast<VoidBoolFn>(objc_msgSend)(
+            window, sel_registerName("setReleasedWhenClosed:"), NO);
 
         const std::string safe_title = impl_->config.title.empty()
             ? std::string("Untitled") : impl_->config.title;
@@ -878,6 +1210,9 @@ bool FullApplicationWindow::create() {
         impl_->application = ns_app;
         impl_->window = window;
         impl_->open = true;
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(
+            window, sel_registerName("setAcceptsMouseMovedEvents:"), YES);
+        impl_->rebuild_native_menu();
     }
 
     if (impl_->hooks.on_create) {
@@ -886,6 +1221,12 @@ bool FullApplicationWindow::create() {
     }
     return impl_->open;
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+#if defined(GRAPHICS_HAVE_GTK3)
+    if (!impl_->create_gtk_window()) return false;
+    if (impl_->hooks.on_create)
+        impl_->hooks.on_create(impl_->make_render_event(impl_->window, impl_->frame_index));
+    return true;
+#else
     impl_->display = XOpenDisplay(nullptr);
     if (!impl_->display) {
         impl_->backend = Backend::Headless;
@@ -903,10 +1244,20 @@ bool FullApplicationWindow::create() {
                                         WhitePixel(impl_->display, screen));
     XStoreName(impl_->display, impl_->window, impl_->config.title.c_str());
     XSelectInput(impl_->display, impl_->window,
-                 ExposureMask | KeyPressMask | StructureNotifyMask |
+                 ExposureMask | KeyPressMask | KeyReleaseMask | FocusChangeMask | StructureNotifyMask |
                      ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
     impl_->delete_message = XInternAtom(impl_->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(impl_->display, impl_->window, &impl_->delete_message, 1);
+    if (impl_->config.min_width > 0 || impl_->config.min_height > 0) {
+        XSizeHints* hints = XAllocSizeHints();
+        if (hints) {
+            hints->flags = PMinSize;
+            hints->min_width = static_cast<int>(impl_->config.min_width);
+            hints->min_height = static_cast<int>(impl_->config.min_height);
+            XSetWMNormalHints(impl_->display, impl_->window, hints);
+            XFree(hints);
+        }
+    }
     if (impl_->config.visible) {
         XMapWindow(impl_->display, impl_->window);
         XFlush(impl_->display);
@@ -916,6 +1267,7 @@ bool FullApplicationWindow::create() {
         impl_->hooks.on_create(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
     }
     return true;
+#endif
 #else
     impl_->backend = Backend::Headless;
     impl_->open = true;
@@ -944,10 +1296,14 @@ void FullApplicationWindow::show() {
             reinterpret_cast<id>(impl_->application), sel_registerName("activateIgnoringOtherApps:"), YES);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+#if defined(GRAPHICS_HAVE_GTK3)
+    if (impl_->gtk_window) gtk_widget_show(impl_->gtk_window);
+#else
     if (impl_->display && impl_->window) {
         XMapWindow(impl_->display, impl_->window);
         XFlush(impl_->display);
     }
+#endif
 #endif
 }
 
@@ -964,11 +1320,23 @@ void FullApplicationWindow::close() {
         impl_->hwnd = nullptr;
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    detail::destroy_cocoa_menu(impl_->cocoa_menu);
+    impl_->cocoa_menu = nullptr;
     if (impl_->window) {
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(reinterpret_cast<id>(impl_->window), sel_registerName("close"));
+        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(reinterpret_cast<id>(impl_->window), sel_registerName("release"));
         impl_->window = nullptr;
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+#if defined(GRAPHICS_HAVE_GTK3)
+    if (impl_->gtk_window) gtk_widget_destroy(impl_->gtk_window);
+    if (impl_->gtk_accels) {
+        g_object_unref(impl_->gtk_accels);
+        impl_->gtk_accels = nullptr;
+    }
+    impl_->display = nullptr; // GDK owns the shared display connection.
+    impl_->window = 0;
+#else
     if (impl_->display && impl_->window) {
         XDestroyWindow(impl_->display, impl_->window);
         impl_->window = 0;
@@ -977,6 +1345,7 @@ void FullApplicationWindow::close() {
         XCloseDisplay(impl_->display);
         impl_->display = nullptr;
     }
+#endif
 #endif
     impl_->open = false;
 }
@@ -1038,6 +1407,78 @@ bool FullApplicationWindow::pump_events() {
             using EventTypeFn = unsigned long (*)(id, SEL);
             using EventPointFn = CGPoint (*)(id, SEL);
             using EventDeltaFn = double (*)(id, SEL);
+            const auto type = reinterpret_cast<EventTypeFn>(objc_msgSend)(event, sel_registerName("type"));
+            if ((type == 1UL || type == 2UL || type == 3UL || type == 4UL ||
+                 type == 5UL || type == 6UL || type == 7UL) &&
+                reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(event, sel_registerName("window")) ==
+                    reinterpret_cast<id>(impl_->window)) {
+                const CGPoint location = reinterpret_cast<EventPointFn>(objc_msgSend)(
+                    event, sel_registerName("locationInWindow"));
+                int width = 0, height = 0;
+                client_size(width, height);
+                const auto flags = reinterpret_cast<EventTypeFn>(objc_msgSend)(
+                    event, sel_registerName("modifierFlags"));
+                if (type == 1UL) impl_->mac_control_click = (flags & (1UL << 18)) != 0;
+                const PointerPressEvent pointer{
+                    static_cast<int>(location.x), height - static_cast<int>(location.y),
+                    (type == 3UL || type == 4UL || type == 7UL || impl_->mac_control_click)
+                        ? PointerButton::Right : PointerButton::Left};
+                if (type == 1UL || type == 3UL) {
+                    if (impl_->hooks.on_pointer_press) impl_->hooks.on_pointer_press(pointer);
+                } else if (type == 2UL || type == 4UL) {
+                    if (type == 2UL) impl_->mac_control_click = false;
+                    if (impl_->hooks.on_pointer_release) impl_->hooks.on_pointer_release(pointer);
+                } else if (impl_->hooks.on_pointer_move) impl_->hooks.on_pointer_move(pointer);
+            }
+            if (type == 10UL && impl_->cocoa_menu) {
+                const id menu = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(
+                    ns_app, sel_registerName("mainMenu"));
+                if (reinterpret_cast<BOOL (*)(id, SEL, id)>(objc_msgSend)(
+                        menu, sel_registerName("performKeyEquivalent:"), event)) {
+                    ++drained;
+                    continue;
+                }
+            }
+            if (type == 10UL && impl_->hooks.on_key &&
+                reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(event, sel_registerName("window")) ==
+                    reinterpret_cast<id>(impl_->window)) {
+                const id characters = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(
+                    event, sel_registerName("charactersIgnoringModifiers"));
+                const auto length = reinterpret_cast<unsigned long (*)(id, SEL)>(objc_msgSend)(
+                    characters, sel_registerName("length"));
+                if (length > 0) {
+                    const int character = reinterpret_cast<unsigned short (*)(id, SEL, unsigned long)>(objc_msgSend)(
+                        characters, sel_registerName("characterAtIndex:"), 0);
+                    int key = character;
+                    if (key >= 'a' && key <= 'z') key -= 'a' - 'A';
+                    switch (key) {
+                        case 0xf702: key = static_cast<int>(Key::Left); break;
+                        case 0xf703: key = static_cast<int>(Key::Right); break;
+                        case 0xf729: key = static_cast<int>(Key::Home); break;
+                        case 0xf72b: key = static_cast<int>(Key::End); break;
+                        case 0xf728: key = static_cast<int>(Key::Delete); break;
+                        case 127: key = static_cast<int>(Key::Backspace); break;
+                        default: break;
+                    }
+                    const auto flags = reinterpret_cast<EventTypeFn>(objc_msgSend)(event, sel_registerName("modifierFlags"));
+                    const bool repeat = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(
+                        event, sel_registerName("isARepeat")) != NO;
+                    impl_->hooks.on_key(KeyEvent{key, (flags & (1UL << 20)) != 0,
+                        (flags & (1UL << 17)) != 0, repeat});
+                    if (impl_->hooks.on_text_input && !(flags & (1UL << 20))) {
+                        const id typed = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(
+                            event, sel_registerName("characters"));
+                        const char* utf8 = reinterpret_cast<const char* (*)(id, SEL)>(objc_msgSend)(
+                            typed, sel_registerName("UTF8String"));
+                        if (utf8 && *utf8 && static_cast<unsigned char>(*utf8) >= 32 &&
+                            !(character >= 0xf700 && character <= 0xf8ff) && character != 127 &&
+                            character != static_cast<int>(Key::Backspace))
+                            impl_->hooks.on_text_input(utf8);
+                    }
+                }
+                ++drained;
+                continue;
+            }
             if (impl_->hooks.on_scroll &&
                 reinterpret_cast<EventTypeFn>(objc_msgSend)(
                     event, sel_registerName("type")) == 22UL) {
@@ -1048,7 +1489,8 @@ bool FullApplicationWindow::pump_events() {
                 impl_->hooks.on_scroll(ScrollEvent{
                     static_cast<int>(location.x),
                     static_cast<int>(impl_->config.height) - static_cast<int>(location.y),
-                    delta});
+                    delta, (reinterpret_cast<EventTypeFn>(objc_msgSend)(
+                        event, sel_registerName("modifierFlags")) & (1UL << 17)) != 0});
             }
             reinterpret_cast<SendEventFn>(objc_msgSend)(
                 ns_app, sel_registerName("sendEvent:"), event);
@@ -1085,9 +1527,72 @@ bool FullApplicationWindow::pump_events() {
     }
     return impl_->open;
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+#if defined(GRAPHICS_HAVE_GTK3)
+    while (gtk_events_pending()) gtk_main_iteration_do(FALSE);
+    if (impl_->open && impl_->hooks.on_tick)
+        impl_->hooks.on_tick(impl_->make_render_event(impl_->window, impl_->frame_index));
+    return impl_->open;
+#else
     while (impl_->display && XPending(impl_->display) > 0) {
         XEvent event{};
         XNextEvent(impl_->display, &event);
+        if ((event.type == ButtonPress || event.type == ButtonRelease) &&
+            (event.xbutton.button == Button1 || event.xbutton.button == Button3)) {
+            const PointerPressEvent pointer{event.xbutton.x, event.xbutton.y,
+                event.xbutton.button == Button3 ? PointerButton::Right : PointerButton::Left};
+            if (event.type == ButtonPress) {
+                if (event.xbutton.button == Button1)
+                    XGrabPointer(impl_->display, impl_->window, False,
+                        ButtonReleaseMask | PointerMotionMask | ButtonPressMask,
+                        GrabModeAsync, GrabModeAsync, None, None, event.xbutton.time);
+                if (impl_->hooks.on_pointer_press) impl_->hooks.on_pointer_press(pointer);
+            } else {
+                if (event.xbutton.button == Button1) XUngrabPointer(impl_->display, event.xbutton.time);
+                if (impl_->hooks.on_pointer_release) impl_->hooks.on_pointer_release(pointer);
+            }
+        }
+        if (event.type == MotionNotify && impl_->hooks.on_pointer_move)
+            impl_->hooks.on_pointer_move(PointerPressEvent{event.xmotion.x, event.xmotion.y,
+                (event.xmotion.state & Button3Mask) ? PointerButton::Right : PointerButton::Left});
+        if (event.type == FocusOut) impl_->held_keys.clear();
+        if (event.type == KeyRelease) {
+            bool repeat_release = false;
+            if (XPending(impl_->display)) {
+                XEvent next{};
+                XPeekEvent(impl_->display, &next);
+                repeat_release = next.type == KeyPress && next.xkey.keycode == event.xkey.keycode &&
+                                 next.xkey.time == event.xkey.time;
+            }
+            if (!repeat_release) impl_->held_keys.erase(event.xkey.keycode);
+        }
+        if (event.type == KeyPress && impl_->hooks.on_key) {
+            const bool repeat = !impl_->held_keys.insert(event.xkey.keycode).second;
+            const KeySym symbol = XLookupKeysym(&event.xkey, 0);
+            int key = static_cast<int>(symbol);
+            if (key >= 'a' && key <= 'z') key -= 'a' - 'A';
+            switch (symbol) {
+                case XK_Left: key = static_cast<int>(Key::Left); break;
+                case XK_Right: key = static_cast<int>(Key::Right); break;
+                case XK_Home: key = static_cast<int>(Key::Home); break;
+                case XK_End: key = static_cast<int>(Key::End); break;
+                case XK_Delete: key = static_cast<int>(Key::Delete); break;
+                case XK_BackSpace: key = static_cast<int>(Key::Backspace); break;
+                case XK_Return: key = static_cast<int>(Key::Enter); break;
+                case XK_Escape: key = static_cast<int>(Key::Escape); break;
+                case XK_Tab:
+                case XK_ISO_Left_Tab: key = 9; break;
+                default: break;
+            }
+            impl_->hooks.on_key(KeyEvent{key, (event.xkey.state & ControlMask) != 0,
+                (event.xkey.state & ShiftMask) != 0, repeat});
+            if (impl_->hooks.on_text_input && !(event.xkey.state & (ControlMask | Mod1Mask))) {
+                char text[64]{};
+                KeySym typed{};
+                const int length = XLookupString(&event.xkey, text, sizeof(text), &typed, nullptr);
+                if (length > 0 && static_cast<unsigned char>(text[0]) >= 32 && text[0] != 127)
+                    impl_->hooks.on_text_input(std::string(text, length));
+            }
+        }
         if (event.type == Expose && impl_->hooks.on_render) {
             impl_->hooks.on_render(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
         }
@@ -1103,7 +1608,8 @@ bool FullApplicationWindow::pump_events() {
             impl_->hooks.on_scroll(ScrollEvent{
                 event.xbutton.x,
                 event.xbutton.y,
-                event.xbutton.button == Button4 ? 1.0 : -1.0});
+                event.xbutton.button == Button4 ? 1.0 : -1.0,
+                (event.xbutton.state & ShiftMask) != 0});
         }
         if (event.type == ClientMessage && static_cast<Atom>(event.xclient.data.l[0]) == impl_->delete_message) {
             if (impl_->hooks.on_close) {
@@ -1121,6 +1627,7 @@ bool FullApplicationWindow::pump_events() {
         impl_->hooks.on_tick(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
     }
     return impl_->open;
+#endif
 #else
     if (impl_->hooks.on_tick) {
         impl_->hooks.on_tick(impl_->make_render_event(0U, impl_->frame_index));
@@ -1175,10 +1682,14 @@ void FullApplicationWindow::set_title(const std::string& title) {
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(reinterpret_cast<id>(impl_->window), sel_registerName("setTitle:"), title_string);
     }
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+#if defined(GRAPHICS_HAVE_GTK3)
+    if (impl_->gtk_window) gtk_window_set_title(GTK_WINDOW(impl_->gtk_window), title.c_str());
+#else
     if (impl_->display && impl_->window) {
         XStoreName(impl_->display, impl_->window, title.c_str());
         XFlush(impl_->display);
     }
+#endif
 #endif
 }
 
@@ -1188,6 +1699,20 @@ void FullApplicationWindow::set_menu_bar(const ::graphics::components::MenuBarMo
     if (impl_->hwnd) {
         impl_->rebuild_native_menu();
     }
+#elif defined(GRAPHICS_HAVE_COCOA_RUNTIME) || defined(GRAPHICS_HAVE_GTK3)
+    impl_->rebuild_native_menu();
+#endif
+}
+
+bool FullApplicationWindow::has_native_menus() const {
+#if defined(_WIN32)
+    return impl_->backend == Backend::Win32;
+#elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
+    return impl_->backend == Backend::Cocoa;
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_GTK3) && defined(GRAPHICS_HAVE_X11)
+    return impl_->backend == Backend::X11;
+#else
+    return false;
 #endif
 }
 
@@ -1223,6 +1748,8 @@ bool FullApplicationWindow::set_menu_item_checked(std::size_t menu_index, std::s
     if (impl_->hwnd) {
         impl_->rebuild_native_menu();
     }
+#elif defined(GRAPHICS_HAVE_COCOA_RUNTIME) || defined(GRAPHICS_HAVE_GTK3)
+    impl_->rebuild_native_menu();
 #endif
     return true;
 }
@@ -1321,8 +1848,12 @@ bool FullApplicationWindow::query_pointer_state(PointerState& state) const {
         const unsigned long pressed = reinterpret_cast<ULongFn>(objc_msgSend)(
             reinterpret_cast<id>(objc_getClass("NSEvent")),
             sel_registerName("pressedMouseButtons"));
-        state.left_button_down  = (pressed & 1U) != 0;
-        state.right_button_down = (pressed & 2U) != 0;
+        state.left_button_down  = (pressed & 1U) != 0 && !impl_->mac_control_click;
+        state.right_button_down = (pressed & 2U) != 0 ||
+                                  ((pressed & 1U) != 0 && impl_->mac_control_click);
+        using BoolFn = bool (*)(id, SEL);
+        state.focused = reinterpret_cast<BoolFn>(objc_msgSend)(
+            reinterpret_cast<id>(impl_->window), sel_registerName("isKeyWindow"));
     }
     return true;
 #elif defined(_WIN32)
@@ -1348,6 +1879,7 @@ bool FullApplicationWindow::query_pointer_state(PointerState& state) const {
     state.inside = cursor.x >= 0 && cursor.y >= 0 && cursor.x < width && cursor.y < height;
     state.left_button_down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
     state.right_button_down = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+    state.focused = GetForegroundWindow() == impl_->hwnd;
     return true;
 #elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
     if (!impl_->display || !impl_->window) {
@@ -1372,6 +1904,14 @@ bool FullApplicationWindow::query_pointer_state(PointerState& state) const {
     state.inside = win_x >= 0 && win_y >= 0 && win_x < width && win_y < height;
     state.left_button_down = (mask & Button1Mask) != 0;
     state.right_button_down = (mask & Button3Mask) != 0;
+    ::Window focused = 0;
+    int revert = 0;
+    XGetInputFocus(impl_->display, &focused, &revert);
+    state.focused = focused == impl_->window;
+#if defined(GRAPHICS_HAVE_GTK3)
+    // GTK normally gives X input focus to its toplevel, not the drawable child XID.
+    state.focused = impl_->gtk_window && gtk_window_is_active(GTK_WINDOW(impl_->gtk_window));
+#endif
     return true;
 #else
     state = PointerState{};

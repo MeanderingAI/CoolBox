@@ -31,6 +31,18 @@ const char* transition_name(TransitionType t);
 // ── Clip ──────────────────────────────────────────────────────────────────────
 // Represents one media segment on the timeline.
 
+struct TextStyle {
+    std::string text = "Title";
+    bool background = true;
+    double background_opacity = 1.0;
+    double opacity = 1.0;
+    std::uint32_t color = 0xffffff;
+    std::uint32_t background_color = 0x000000;
+    double font_size = 64;
+    double x = 0.5, y = 0.5;
+    std::int64_t fade_in_us = 500000, fade_out_us = 500000;
+};
+
 struct Clip {
     std::uint64_t id          = 0;       // Unique clip ID
     std::string   source_path;           // Media file path
@@ -42,6 +54,7 @@ struct Clip {
     bool          muted         = false;
     Transition    transition_in;        // Transition at clip start
     Transition    transition_out;       // Transition at clip end
+    std::optional<TextStyle> text;
 
     // Duration on the timeline (accounting for speed).
     std::int64_t source_duration_us() const {
@@ -49,6 +62,7 @@ struct Clip {
     }
     std::int64_t timeline_duration_us() const {
         if (speed <= 0.f) throw std::domain_error("speed must be positive");
+        if (speed == 1.f) return source_duration_us();
         return static_cast<std::int64_t>(source_duration_us() / speed);
     }
     std::int64_t timeline_end_us() const {

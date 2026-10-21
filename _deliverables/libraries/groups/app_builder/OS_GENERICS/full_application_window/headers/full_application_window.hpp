@@ -27,6 +27,10 @@ struct WindowConfig : public ::graphics::GraphicsObject {
     std::size_t height = 640;
     bool visible = true;
     bool resizable = true;
+    // Minimum size the window manager should allow the user to resize down
+    // to (0 = no constraint). Enforced by Win32 and X11; Cocoa ignores it.
+    std::size_t min_width = 0;
+    std::size_t min_height = 0;
 
     WindowConfig() = default;
     WindowConfig(std::string window_title,
@@ -59,6 +63,25 @@ struct ScrollEvent {
     int x = 0;
     int y = 0;
     double delta = 0.0;
+    bool shift = false;
+};
+
+// Printable keys are uppercase ASCII; navigation uses these portable codes.
+enum class Key { Space = 32, Enter = 13, Escape = 27, Backspace = 8, Delete = 127,
+                 Left = 256, Right, Home, End };
+struct KeyEvent {
+    int key = 0;
+    bool command = false; // Ctrl on Windows/Linux, Command on macOS
+    bool shift = false;
+    bool repeat = false;
+};
+
+enum class PointerButton { Left, Right };
+
+struct PointerPressEvent {
+    int x = 0;
+    int y = 0;
+    PointerButton button = PointerButton::Left;
 };
 
 struct RenderHooks {
@@ -68,6 +91,11 @@ struct RenderHooks {
     std::function<void(const RenderEvent&)> on_tick;
     std::function<void(const RenderEvent&)> on_close;
     std::function<void(const ScrollEvent&)> on_scroll;
+    std::function<void(const KeyEvent&)> on_key;
+    std::function<void(const PointerPressEvent&)> on_pointer_press;
+    std::function<void(const PointerPressEvent&)> on_pointer_release;
+    std::function<void(const PointerPressEvent&)> on_pointer_move;
+    std::function<void(const std::string&)> on_text_input;
 };
 
 struct PointerState {
@@ -78,6 +106,7 @@ struct PointerState {
     bool inside = false;
     bool left_button_down = false;
     bool right_button_down = false;
+    bool focused = false;
 };
 
 using MenuCommandHandler = std::function<void(std::size_t menu_index,
@@ -105,6 +134,7 @@ public:
 
     void set_menu_bar(const ::graphics::components::MenuBarModel& menu_bar);
     const ::graphics::components::MenuBarModel& menu_bar() const;
+    bool has_native_menus() const;
     void set_menu_command_handler(MenuCommandHandler handler);
     const MenuCommandHandler& menu_command_handler() const;
     bool set_menu_item_checked(std::size_t menu_index, std::size_t item_index, bool checked);

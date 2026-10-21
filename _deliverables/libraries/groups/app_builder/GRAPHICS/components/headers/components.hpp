@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "../../graphics_object.hpp"
+#include "graphics.h"
 
 namespace graphics {
 namespace components {
@@ -37,10 +38,18 @@ struct ColorPickerModel : public ::graphics::GraphicsObject {
     unsigned char r = 0;
     unsigned char g = 0;
     unsigned char b = 0;
+    unsigned char a = 255;
+
+    struct HSV {
+        double h;
+        double s;
+        double v;
+    };
 
     ColorPickerModel() = default;
-    ColorPickerModel(unsigned char red, unsigned char green, unsigned char blue)
-        : r(red), g(green), b(blue) {}
+    ColorPickerModel(unsigned char red, unsigned char green, unsigned char blue,
+                     unsigned char alpha = 255)
+        : r(red), g(green), b(blue), a(alpha) {}
 
     ColorPickerModel& set_rgb(unsigned char red, unsigned char green, unsigned char blue) {
         r = red;
@@ -49,8 +58,40 @@ struct ColorPickerModel : public ::graphics::GraphicsObject {
         return *this;
     }
 
+    ColorPickerModel& set_alpha(unsigned char alpha) { a = alpha; return *this; }
+    // Hue is in degrees (wrapped); saturation/value are clamped to [0, 1].
+    // Non-finite inputs are treated as zero. Both operations preserve alpha.
+    ColorPickerModel& set_hsv(double hue, double saturation, double value);
+    HSV hsv() const;
+
     std::string graphics_object_kind() const override { return "colorPickerModel"; }
     std::string graphics_object_name() const override { return "colorPicker"; }
+};
+
+/**
+ * Software-rendered RGBA picker, independent of native windows/dialogs.
+ * Bounds smaller than 220x180 render nothing and reject pointer input.
+ * The SV square runs white-to-hue left-to-right and bright-to-black top-to-bottom;
+ * the vertical hue strip runs red through the spectrum back to red.
+ * The horizontal opacity strip runs transparent-to-opaque over a checkerboard.
+ * A checkerboard-backed selected-color swatch is below the opacity strip.
+ * Call pointer on presses and each motion while dragging. Only SV/hue/opacity
+ * regions consume input; padding, the swatch, and points outside return false.
+ * There is no pointer capture: leaving a region leaves its last value unchanged.
+ */
+class ColorPicker {
+public:
+    ColorPicker() = default;
+    void set_color(::graphics::Color color);
+    ::graphics::Color color() const;
+    void draw(::graphics::Canvas& canvas, int x, int y, int width, int height) const;
+    bool pointer(int px, int py, int x, int y, int width, int height);
+
+private:
+    ColorPickerModel model_;
+    double hue_ = 0.0;
+    double saturation_ = 0.0;
+    double value_ = 0.0;
 };
 struct ToolbarModel : public ::graphics::GraphicsObject {
     std::vector<std::string> actions;
