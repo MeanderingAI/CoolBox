@@ -47,6 +47,7 @@ class Database {
 protected:
     std::string connection_string_;
     std::string db_provider_;
+    std::string last_error_;
     bool connected_ = false;
     
 public:
@@ -57,6 +58,7 @@ public:
     virtual bool connect(const std::string& connection_string) = 0;
     virtual void disconnect() = 0;
     virtual bool is_connected() const { return connected_; }
+    const std::string& last_error() const { return last_error_; }
     
     // Query execution
     virtual ResultSet execute(const std::string& query) = 0;
@@ -97,6 +99,44 @@ public:
     bool commit() override;
     bool rollback() override;
     
+    bool create_table_from_model(const Model& model) override;
+    bool drop_table(const std::string& table_name) override;
+};
+
+class PostgreSQLDatabase : public Database {
+private:
+    void* connection_ = nullptr;
+
+public:
+    PostgreSQLDatabase();
+    ~PostgreSQLDatabase() override;
+
+    bool connect(const std::string& connection_string) override;
+    void disconnect() override;
+    ResultSet execute(const std::string& query) override;
+    ResultSet execute(const std::string& query, const std::vector<std::string>& params) override;
+    bool begin_transaction() override;
+    bool commit() override;
+    bool rollback() override;
+    bool create_table_from_model(const Model& model) override;
+    bool drop_table(const std::string& table_name) override;
+};
+
+class MySQLDatabase : public Database {
+private:
+    void* connection_ = nullptr;
+
+public:
+    MySQLDatabase();
+    ~MySQLDatabase() override;
+
+    bool connect(const std::string& connection_string) override;
+    void disconnect() override;
+    ResultSet execute(const std::string& query) override;
+    ResultSet execute(const std::string& query, const std::vector<std::string>& params) override;
+    bool begin_transaction() override;
+    bool commit() override;
+    bool rollback() override;
     bool create_table_from_model(const Model& model) override;
     bool drop_table(const std::string& table_name) override;
 };
@@ -173,6 +213,7 @@ public:
     bool migrate_up();
     
     // Drop all tables
+    // Destructive schema teardown; use MigrationRunner for versioned downgrades.
     bool migrate_down();
     
     // Reset database (down then up)
@@ -180,6 +221,22 @@ public:
     
     // Generate migration SQL
     std::string generate_migration_sql() const;
+};
+
+class MigrationRunner {
+private:
+    Database& db_;
+    std::string directory_;
+
+    void ensure_history_table();
+
+public:
+    MigrationRunner(Database& db, const std::string& directory)
+        : db_(db), directory_(directory) {}
+
+    void migrate_up();
+    void migrate_down(size_t steps = 1);
+    std::string current_version();
 };
 
 } // namespace sql

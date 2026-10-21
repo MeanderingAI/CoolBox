@@ -93,9 +93,24 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation
     endif()
 endif()
 
+if(NOT TARGET json)
+    add_subdirectory(
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/IO/dataformats/json"
+        "${CMAKE_CURRENT_BINARY_DIR}/json"
+    )
+endif()
+if(NOT TARGET sql)
+    add_subdirectory(
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/IO/databases/sql_db_helpers"
+        "${CMAKE_CURRENT_BINARY_DIR}/sql"
+    )
+endif()
+
 add_library(coolbox_c_bindings SHARED
     src/coolbox_c.c
     src/uuid_generation_c_bridge.cpp
+    src/service_bridge.cpp
+    ../python_bindings/src/rest_api_server.cpp
 )
 
 add_library(CoolBox::c_bindings ALIAS coolbox_c_bindings)
@@ -124,6 +139,7 @@ target_compile_definitions(coolbox_c_bindings
     PRIVATE
         COOLBOX_C_BINDINGS_EXPORTS
 )
+target_compile_features(coolbox_c_bindings PRIVATE cxx_std_17)
 
 if(WIN32)
     target_compile_definitions(coolbox_c_bindings
@@ -134,6 +150,9 @@ if(WIN32)
         WINDOWS_EXPORT_ALL_SYMBOLS ON
     )
 endif()
+set_target_properties(coolbox_c_bindings PROPERTIES
+    BUILD_RPATH "$ORIGIN;$ORIGIN/sql;$ORIGIN/json"
+)
 
 target_include_directories(coolbox_c_bindings
     PUBLIC
@@ -141,18 +160,32 @@ target_include_directories(coolbox_c_bindings
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/MISC/uuid_generation/headers
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/trekker/IO/http_server/headers
+        ${CMAKE_CURRENT_SOURCE_DIR}/../python_bindings/include
 )
 
 target_link_libraries(coolbox_c_bindings
     PRIVATE
         metadata_management
     uuid_generation
+    sql
 )
+find_package(Threads REQUIRED)
+target_link_libraries(coolbox_c_bindings PRIVATE Threads::Threads)
 
 # Only link math library on non-Windows platforms
 if(NOT WIN32)
     target_link_libraries(coolbox_c_bindings PUBLIC m)
+else()
+    target_link_libraries(coolbox_c_bindings PRIVATE ws2_32)
 endif()
+add_custom_command(TARGET coolbox_c_bindings POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sql>
+        $<TARGET_FILE:json>
+        $<TARGET_FILE_DIR:coolbox_c_bindings>
+    COMMAND_EXPAND_LISTS
+)
 
 install(TARGETS coolbox_c_bindings
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -31,6 +31,7 @@ if(COOLBOX_NUMPY_IMPORT_RESULT EQUAL 0)
         add_test(NAME matrix_python_bindings_test
             COMMAND Python3::Interpreter -m pytest -q
                 ${CMAKE_CURRENT_SOURCE_DIR}/test/test_matrix_bindings.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/test/test_sql_bindings.py
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
     else()
@@ -157,6 +158,8 @@ set(ML_BINDINGS_FLAT_INCLUDE_DIRS
 # Create the Python module
 pybind11_add_module(ml_core 
     py_ml_core.cpp
+    src/sql_bindings.cpp
+    src/rest_api_server.cpp
     ${ML_BINDING_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/matrix_bridge.cc
     ../../groups/cool_car/ML/decision_tree/source/decision_tree_regressor.cpp
@@ -183,11 +186,30 @@ mytrix_link_openblas(ml_core PRIVATE)
 target_include_directories(ml_core BEFORE PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/MATRIX/headers)
 target_link_libraries(ml_core PRIVATE 
+    sql
     Eigen3::Eigen
     Threads::Threads
 )
 if(WIN32)
+    target_link_libraries(ml_core PRIVATE ws2_32)
+endif()
+if(WIN32)
     target_link_libraries(ml_core PRIVATE shell32)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(test_rest_api_server
+        test/test_rest_api_server.cpp
+        src/rest_api_server.cpp
+    )
+    target_include_directories(test_rest_api_server PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_rest_api_server PRIVATE Threads::Threads)
+    if(WIN32)
+        target_link_libraries(test_rest_api_server PRIVATE ws2_32)
+    endif()
+    add_test(NAME test_rest_api_server COMMAND test_rest_api_server)
 endif()
 
 target_include_directories(ml_core PRIVATE

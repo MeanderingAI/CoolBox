@@ -32,6 +32,13 @@ row-major dense operations, including matrix arithmetic, matrix products,
 transpose, norms, vector dot/add, row-wise vector broadcasting, and selectable
 CPU optimizations.
 
+The service bindings also expose Prisma-schema parsing and SQL ORM operations
+(`ParsePrismaSchema`, `NewSQLDatabase`, migrations, and model repositories),
+plus a route-registration `HttpServer`. `Start` blocks until `Stop` is called;
+invoke `Stop` from another goroutine to shut down the listener.
+For language-neutral routing, register named handlers with `RegisterHandler`
+and load a shared `.routes` manifest with `LoadRoutes`.
+
 ## OPT, MATH, and FINANCE
 
 The Go API exposes genetic search, simulated annealing, hill climbing, and

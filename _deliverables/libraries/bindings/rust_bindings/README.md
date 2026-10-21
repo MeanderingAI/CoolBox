@@ -31,6 +31,14 @@ all Python APIs. Advanced Python-only functionality (for example transformers,
 attention, SVMs, PCA/SVD/UMAP, computer vision, and the additional chart types)
 is outside this crate's current scope.
 
+The service API also includes Prisma-schema parsing, SQL database connections,
+migrations, model repositories, and a route-registration HTTP server. Database
+rows are returned as JSON strings; `HttpServer::start` blocks until `stop` is
+called. Enable PostgreSQL or MySQL when building the native C bindings with
+`COOLBOX_SQL_ENABLE_POSTGRESQL=ON` or `COOLBOX_SQL_ENABLE_MYSQL=ON`.
+For language-neutral routing, register named handlers and call
+`HttpServer::load_routes` with the shared `.routes` manifest.
+
 ## Example
 
 ```rust
