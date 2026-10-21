@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <atomic>
 #include <mutex>
+#include <cctype>
 
 namespace ml {
 namespace rest_api {
@@ -52,8 +53,16 @@ public:
     const std::map<std::string, std::string>& path_params() const { return path_params_; }
 
     std::string get_header(const std::string& key, const std::string& default_val = "") const {
-        auto it = headers_.find(key);
-        return it != headers_.end() ? it->second : default_val;
+        for (const auto& [name, value] : headers_) {
+            if (name.size() != key.size()) continue;
+            bool equal = true;
+            for (size_t i = 0; i < name.size(); ++i) {
+                if (std::tolower(static_cast<unsigned char>(name[i])) !=
+                    std::tolower(static_cast<unsigned char>(key[i]))) equal = false;
+            }
+            if (equal) return value;
+        }
+        return default_val;
     }
 
     std::string get_query_param(const std::string& key, const std::string& default_val = "") const {
@@ -90,12 +99,33 @@ public:
     void set_status(int code) { status_code_ = code; }
     void set_body(const std::string& body) { body_ = body; }
     void set_header(const std::string& key, const std::string& value) {
+        if (key.empty() || key.find_first_not_of(
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~") !=
+                std::string::npos || value.find_first_of("\r\n") != std::string::npos ||
+                value.find('\0') != std::string::npos) {
+            throw std::invalid_argument("Invalid HTTP response header");
+        }
+        for (auto& [name, existing] : headers_) {
+            if (name.size() != key.size()) continue;
+            bool equal = true;
+            for (size_t i = 0; i < name.size(); ++i) {
+                if (std::tolower(static_cast<unsigned char>(name[i])) !=
+                    std::tolower(static_cast<unsigned char>(key[i]))) equal = false;
+            }
+            if (equal) { existing = value; return; }
+        }
         headers_[key] = value;
     }
     void set_json(const std::string& json_body) {
         body_ = json_body;
         headers_["Content-Type"] = "application/json";
     }
+
+    static Response html(const std::string& content, int status = 200);
+    static Response html_file(const std::string& root, const std::string& filename,
+                              int status = 200);
+    static Response render(const std::string& root, const std::string& filename,
+                           const std::map<std::string, std::string>& context, int status = 200);
 
     std::string to_string() const {
         std::ostringstream oss;

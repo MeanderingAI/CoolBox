@@ -29,6 +29,13 @@ typedef char *(*CoolBoxRouteHandler)(
     const char *const *query_param_keys, const char *const *query_param_values, size_t query_param_count,
     int *status_code);
 /* Route handlers must return a string allocated by coolbox_c_duplicate_string. */
+typedef char *(*CoolBoxRouteHandlerV2)(
+    void *context, const char *method, const char *path, const char *body,
+    const char *headers_json,
+    const char *const *path_param_keys, const char *const *path_param_values, size_t path_param_count,
+    const char *const *query_param_keys, const char *const *query_param_values, size_t query_param_count,
+    int *status_code, char **response_headers_json);
+/* V2 response body and optional headers JSON use coolbox_c_duplicate_string. */
 
 /**
  * Returns the default endpoint used by first-party bindings.
@@ -179,6 +186,22 @@ COOLBOX_C_API int coolbox_http_server_start(
 COOLBOX_C_API void coolbox_http_server_stop(CoolBoxRouteServer *server);
 COOLBOX_C_API int coolbox_http_server_is_running(const CoolBoxRouteServer *server);
 COOLBOX_C_API void coolbox_http_server_destroy(CoolBoxRouteServer *server);
+
+COOLBOX_C_API int coolbox_http_server_add_route_v2(
+    CoolBoxRouteServer *server, const char *method, const char *path,
+    CoolBoxRouteHandlerV2 handler, void *context, char *error, size_t error_capacity);
+COOLBOX_C_API int coolbox_http_server_register_handler_v2(
+    CoolBoxRouteServer *server, const char *name,
+    CoolBoxRouteHandlerV2 handler, void *context, char *error, size_t error_capacity);
+COOLBOX_C_API char *coolbox_http_form_load(
+    const char *filename, char *error, size_t error_capacity);
+COOLBOX_C_API char *coolbox_http_form_validate(
+    const char *schema_json, const char *body, const char *content_type,
+    char *error, size_t error_capacity);
+/* Returns a JSON response envelope with status_code, body and headers. */
+COOLBOX_C_API char *coolbox_http_html_file(
+    const char *root, const char *filename, const char *context_json, int render,
+    char *error, size_t error_capacity);
 
 #ifdef __cplusplus
 }

@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <iomanip>
 #include <iostream>
+#include <cmath>
+#include <limits>
 
 namespace dataformats {
 namespace json {
@@ -68,6 +70,7 @@ Object Value::as_object() const {
 
 std::string Value::to_string() const {
     std::ostringstream oss;
+    oss.imbue(std::locale::classic());
     
     switch (type_) {
         case Type::NULL_VALUE:
@@ -77,10 +80,31 @@ std::string Value::to_string() const {
             oss << (std::get<bool>(data_) ? "true" : "false");
             break;
         case Type::NUMBER:
+            if (!std::isfinite(std::get<double>(data_))) {
+                throw std::runtime_error("Cannot serialize a non-finite JSON number");
+            }
+            oss << std::setprecision(std::numeric_limits<double>::max_digits10);
             oss << std::get<double>(data_);
             break;
         case Type::STRING:
-            oss << "\"" << std::get<std::string>(data_) << "\"";
+            oss << '"';
+            for (unsigned char ch : std::get<std::string>(data_)) {
+                switch (ch) {
+                    case '"': oss << "\\\""; break;
+                    case '\\': oss << "\\\\"; break;
+                    case '\n': oss << "\\n"; break;
+                    case '\r': oss << "\\r"; break;
+                    case '\t': oss << "\\t"; break;
+                    default:
+                        if (ch < 0x20) {
+                            oss << "\\u00" << std::hex << std::setw(2)
+                                << std::setfill('0') << static_cast<int>(ch) << std::dec;
+                        } else {
+                            oss << ch;
+                        }
+                }
+            }
+            oss << '"';
             break;
         case Type::ARRAY:
             oss << std::get<std::shared_ptr<Array>>(data_)->to_string();
@@ -98,17 +122,14 @@ std::string Value::to_string() const {
 // =========================================================================
 
 void Object::set(const std::string& key, const Value& value) {
-    std::cout << "[DEBUG] Object::set key='" << key << "', type=" << static_cast<int>(value.type()) << std::endl;
     data_[key] = value;
 }
 
 Value Object::get(const std::string& key) const {
     auto it = data_.find(key);
     if (it == data_.end()) {
-        std::cout << "[DEBUG] Object::get key='" << key << "' not found, returning null" << std::endl;
         return Value();  // Return null
     }
-    std::cout << "[DEBUG] Object::get key='" << key << "', type=" << static_cast<int>(it->second.type()) << std::endl;
     return it->second;
 }
 
@@ -137,7 +158,7 @@ std::string Object::to_string() const {
         if (!first) {
             oss << ", ";
         }
-        oss << "\"" << key << "\": " << value.to_string();
+        oss << Value(key).to_string() << ": " << value.to_string();
         first = false;
     }
     
@@ -187,17 +208,31 @@ std::string Array::to_string() const {
 // =========================================================================
 
 void Parser::skip_whitespace(std::istringstream& iss) {
-    while (iss && std::isspace(iss.peek())) {
+    while (iss && (iss.peek() == ' ' || iss.peek() == '\t' ||
+                   iss.peek() == '\r' || iss.peek() == '\n')) {
         iss.get();
     }
 }
 
 Value Parser::parse(const std::string& json) {
     std::istringstream iss(json);
-    return parse_value(iss);
+    auto result = parse_value(iss);
+    skip_whitespace(iss);
+    if (iss.peek() != std::char_traits<char>::eof()) {
+        throw std::runtime_error("Unexpected trailing JSON content");
+    }
+    return result;
 }
 
 Value Parser::parse_value(std::istringstream& iss) {
+    // Bound recursive object/array parsing for untrusted request bodies.
+    static thread_local unsigned depth = 0;
+    if (depth >= 64) throw std::runtime_error("JSON nesting limit exceeded");
+    struct DepthGuard {
+        unsigned& depth;
+        explicit DepthGuard(unsigned& value) : depth(value) { ++depth; }
+        ~DepthGuard() { --depth; }
+    } guard(depth);
     skip_whitespace(iss);
     
     char c = iss.peek();
@@ -214,6 +249,7 @@ Value Parser::parse_value(std::istringstream& iss) {
         while (iss && std::isalpha(iss.peek())) {
             word += iss.get();
         }
+        if (word != "true" && word != "false") throw std::runtime_error("Invalid JSON boolean");
         return Value(word == "true");
     } else if (c == 'n') {
         // Null
@@ -221,8 +257,9 @@ Value Parser::parse_value(std::istringstream& iss) {
         while (iss && std::isalpha(iss.peek())) {
             word += iss.get();
         }
+        if (word != "null") throw std::runtime_error("Invalid JSON null");
         return Value();
-    } else if (std::isdigit(c) || c == '-' || c == '+') {
+    } else if ((c >= '0' && c <= '9') || c == '-') {
         return Value(parse_number(iss));
     }
     
@@ -246,6 +283,7 @@ Object Parser::parse_object(std::istringstream& iss) {
         
         // Parse key
         std::string key = parse_string(iss);
+        if (obj.has(key)) throw std::runtime_error("Duplicate JSON object key");
         
         skip_whitespace(iss);
         if (iss.get() != ':') {
@@ -266,6 +304,7 @@ Object Parser::parse_object(std::istringstream& iss) {
         }
     }
     
+    if (!iss) throw std::runtime_error("Unterminated JSON object");
     return obj;
 }
 
@@ -278,6 +317,7 @@ Array Parser::parse_array(std::istringstream& iss) {
     
     if (iss.peek() == ']') {
         iss.get();
+        if (!iss) throw std::runtime_error("Unterminated JSON array");
         return arr;
     }
     
@@ -306,37 +346,80 @@ std::string Parser::parse_string(std::istringstream& iss) {
     }
     
     std::string result;
-    bool escaped = false;
-    
-    while (iss) {
-        char c = iss.get();
-        
-        if (escaped) {
-            switch (c) {
+    const auto hex4 = [&iss]() {
+        unsigned result = 0;
+        for (int i = 0; i < 4; ++i) {
+            const int ch = iss.get();
+            int digit = ch >= '0' && ch <= '9' ? ch - '0' :
+                        ch >= 'a' && ch <= 'f' ? ch - 'a' + 10 :
+                        ch >= 'A' && ch <= 'F' ? ch - 'A' + 10 : -1;
+            if (digit < 0) throw std::runtime_error("Invalid JSON Unicode escape");
+            result = result * 16 + static_cast<unsigned>(digit);
+        }
+        return result;
+    };
+    while (true) {
+        const int next = iss.get();
+        if (next == std::char_traits<char>::eof()) throw std::runtime_error("Unterminated JSON string");
+        const unsigned char c = static_cast<unsigned char>(next);
+        if (c == '"') return result;
+        if (c < 0x20) throw std::runtime_error("Control character in JSON string");
+        if (c == '\\') {
+            const int escaped = iss.get();
+            switch (escaped) {
                 case 'n': result += '\n'; break;
                 case 't': result += '\t'; break;
                 case 'r': result += '\r'; break;
+                case 'b': result += '\b'; break;
+                case 'f': result += '\f'; break;
+                case '/': result += '/'; break;
                 case '"': result += '"'; break;
                 case '\\': result += '\\'; break;
-                default: result += c;
+                case 'u': {
+                    unsigned code = hex4();
+                    if (code >= 0xd800 && code <= 0xdbff) {
+                        if (iss.get() != '\\' || iss.get() != 'u') {
+                            throw std::runtime_error("Missing low Unicode surrogate");
+                        }
+                        const unsigned low = hex4();
+                        if (low < 0xdc00 || low > 0xdfff) throw std::runtime_error("Invalid Unicode surrogate");
+                        code = 0x10000 + ((code - 0xd800) << 10) + low - 0xdc00;
+                    } else if (code >= 0xdc00 && code <= 0xdfff) {
+                        throw std::runtime_error("Unexpected low Unicode surrogate");
+                    }
+                    if (code <= 0x7f) result += static_cast<char>(code);
+                    else {
+                        if (code > 0xffff) result += static_cast<char>(0xf0 | (code >> 18));
+                        if (code > 0x7ff) result += static_cast<char>(
+                            (code > 0xffff ? 0x80 : 0xe0) | ((code >> 12) & 0x3f));
+                        result += static_cast<char>((code > 0x7ff ? 0x80 : 0xc0) | ((code >> 6) & 0x3f));
+                        result += static_cast<char>(0x80 | (code & 0x3f));
+                    }
+                    break;
+                }
+                default: throw std::runtime_error("Invalid JSON escape");
             }
-            escaped = false;
-        } else if (c == '\\') {
-            escaped = true;
-        } else if (c == '"') {
-            break;
         } else {
             result += c;
         }
     }
-    
-    return result;
 }
 
 double Parser::parse_number(std::istringstream& iss) {
     skip_whitespace(iss);
-    double result;
-    iss >> result;
+    std::string token;
+    while (iss && (std::isdigit(iss.peek()) || iss.peek() == '-' || iss.peek() == '+' ||
+                   iss.peek() == '.' || iss.peek() == 'e' || iss.peek() == 'E')) {
+        if (token.size() >= 512) throw std::runtime_error("JSON number is too long");
+        token += static_cast<char>(iss.get());
+    }
+    static const std::regex number("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?");
+    if (!std::regex_match(token, number)) throw std::runtime_error("Invalid JSON number");
+    std::istringstream input(token);
+    input.imbue(std::locale::classic());
+    double result = 0;
+    input >> result;
+    if (!input || !std::isfinite(result)) throw std::runtime_error("JSON number out of range");
     return result;
 }
 

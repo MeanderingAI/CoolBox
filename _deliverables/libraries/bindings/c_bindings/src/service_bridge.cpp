@@ -2,6 +2,8 @@
 
 #include "database.h"
 #include "rest_api/server.h"
+#include "rest_api/forms.h"
+#include "json.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -466,4 +468,115 @@ void coolbox_http_server_destroy(CoolBoxRouteServer *server) {
     delete server;
 }
 
+} // extern "C"
+
+namespace {
+using dataformats::json::Object;
+using dataformats::json::Parser;
+
+std::map<std::string, std::string> json_string_map(const std::string& text) {
+    const auto value = Parser::parse(text);
+    if (!value.is_object()) throw std::invalid_argument("Expected a JSON object");
+    std::map<std::string, std::string> result;
+    for (const auto& [key, item] : value.as_object()) {
+        if (!item.is_string()) throw std::invalid_argument("Expected JSON string values");
+        result[key] = item.as_string();
+    }
+    return result;
+}
+
+Object json_object(const std::map<std::string, std::string>& values) {
+    Object object;
+    for (const auto& [key, value] : values) object.set(key, value);
+    return object;
+}
+
+ml::rest_api::RouteHandler callback_v2(CoolBoxRouteHandlerV2 handler, void* context) {
+    return [handler, context](const ml::rest_api::Request& request) {
+        int status = 200;
+        std::vector<const char*> pk, pv, qk, qv;
+        for (const auto& [key, value] : request.path_params()) {
+            pk.push_back(key.c_str()); pv.push_back(value.c_str());
+        }
+        for (const auto& [key, value] : request.query_params()) {
+            qk.push_back(key.c_str()); qv.push_back(value.c_str());
+        }
+        const auto headers = json_object(request.headers()).to_string();
+        char* raw_headers = nullptr;
+        char* raw_body = handler(context, method_name(request.method()).c_str(),
+            request.path().c_str(), request.body().c_str(), headers.c_str(),
+            pk.data(), pv.data(), pk.size(), qk.data(), qv.data(), qk.size(),
+            &status, &raw_headers);
+        std::unique_ptr<char, decltype(&std::free)> body(raw_body, &std::free);
+        std::unique_ptr<char, decltype(&std::free)> response_headers(raw_headers, &std::free);
+        if (status < 100 || status > 599) throw std::invalid_argument("Invalid handler status code");
+        if (!body) throw std::runtime_error("HTTP callback returned no body");
+        ml::rest_api::Response response(status, body.get());
+        response.set_header("Content-Type", "application/json");
+        if (response_headers) {
+            for (const auto& [key, value] : json_string_map(response_headers.get())) {
+                response.set_header(key, value);
+            }
+        }
+        return response;
+    };
+}
+} // namespace
+
+extern "C" {
+int coolbox_http_server_add_route_v2(
+    CoolBoxRouteServer* server, const char* method, const char* path,
+    CoolBoxRouteHandlerV2 handler, void* context, char* error, size_t capacity) {
+    return invoke(error, capacity, [&]() {
+        if (!server || !method || !path || !handler) throw std::invalid_argument("Route arguments are required");
+        const auto callback = callback_v2(handler, context);
+        switch (parse_method(method)) {
+            case ml::rest_api::HttpMethod::GET: server->value.get(path, callback); break;
+            case ml::rest_api::HttpMethod::POST: server->value.post(path, callback); break;
+            case ml::rest_api::HttpMethod::PUT: server->value.put(path, callback); break;
+            case ml::rest_api::HttpMethod::DELETE: server->value.delete_(path, callback); break;
+            case ml::rest_api::HttpMethod::PATCH: server->value.patch(path, callback); break;
+            case ml::rest_api::HttpMethod::OPTIONS: server->value.options(path, callback); break;
+        }
+    });
+}
+
+int coolbox_http_server_register_handler_v2(
+    CoolBoxRouteServer* server, const char* name, CoolBoxRouteHandlerV2 handler,
+    void* context, char* error, size_t capacity) {
+    return invoke(error, capacity, [&]() {
+        if (!server || !name || !handler) throw std::invalid_argument("Handler arguments are required");
+        server->value.register_handler(name, callback_v2(handler, context));
+    });
+}
+
+char* coolbox_http_form_load(const char* filename, char* error, size_t capacity) {
+    return invoke_string(error, capacity, [&]() {
+        if (!filename) throw std::invalid_argument("Schema filename is required");
+        return ml::rest_api::FormSchema::from_file(filename).definition();
+    });
+}
+
+char* coolbox_http_form_validate(const char* schema, const char* body, const char* content_type,
+                                char* error, size_t capacity) {
+    return invoke_string(error, capacity, [&]() {
+        if (!schema || !body || !content_type) throw std::invalid_argument("Form arguments are required");
+        return ml::rest_api::FormSchema(schema).validate(body, content_type).to_json();
+    });
+}
+
+char* coolbox_http_html_file(const char* root, const char* filename, const char* context,
+                            int render, char* error, size_t capacity) {
+    return invoke_string(error, capacity, [&]() {
+        if (!root || !filename || (render && !context)) throw std::invalid_argument("HTML arguments are required");
+        const auto response = render
+            ? ml::rest_api::Response::render(root, filename, json_string_map(context))
+            : ml::rest_api::Response::html_file(root, filename);
+        Object result;
+        result.set("status_code", response.status_code());
+        result.set("body", response.body());
+        result.set("headers", json_object(response.headers()));
+        return result.to_string();
+    });
+}
 } // extern "C"
