@@ -1,0 +1,603 @@
+package coolbox
+
+/*
+#include "coolbox/coolbox_c.h"
+#include <stdint.h>
+#include <stdlib.h>
+extern CoolBoxRouteHandler coolbox_go_http_handler_pointer(void);
+*/
+import "C"
+
+import (
+	"encoding/json"
+	"errors"
+	"log"
+	"runtime/cgo"
+	"sort"
+	"sync"
+	"unsafe"
+)
+
+const serviceErrorCapacity = 1024
+
+func serviceError(buffer *[serviceErrorCapacity]C.char) error {
+	message := C.GoString(&buffer[0])
+	if message == "" {
+		message = "native operation failed"
+	}
+	return errors.New(message)
+}
+
+type SQLDatabase struct {
+	mu     sync.Mutex
+	native *C.CoolBoxSqlDatabase
+}
+
+func NewSQLDatabase(provider, connectionString string) (*SQLDatabase, error) {
+	var nativeError [serviceErrorCapacity]C.char
+	providerValue := C.CString(provider)
+	defer C.free(unsafe.Pointer(providerValue))
+	database := C.coolbox_sql_database_create(providerValue, &nativeError[0], C.size_t(len(nativeError)))
+	if database == nil {
+		return nil, serviceError(&nativeError)
+	}
+	result := &SQLDatabase{native: database}
+	if connectionString != "" {
+		if err := result.Connect(connectionString); err != nil {
+			result.Close()
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+func (database *SQLDatabase) Connect(connectionString string) error {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil {
+		return errors.New("database is closed")
+	}
+	value := C.CString(connectionString)
+	defer C.free(unsafe.Pointer(value))
+	var nativeError [serviceErrorCapacity]C.char
+	if C.coolbox_sql_database_connect(database.native, value, &nativeError[0], C.size_t(len(nativeError))) == 0 {
+		return serviceError(&nativeError)
+	}
+	return nil
+}
+
+func (database *SQLDatabase) Execute(query string, params ...string) (json.RawMessage, error) {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil {
+		return nil, errors.New("database is closed")
+	}
+	queryValue := C.CString(query)
+	defer C.free(unsafe.Pointer(queryValue))
+	paramValues := cStringArray(params)
+	defer paramValues.free()
+	var nativeError [serviceErrorCapacity]C.char
+	output := C.coolbox_sql_database_execute(
+		database.native, queryValue, paramValues.pointer, C.size_t(len(params)),
+		&nativeError[0], C.size_t(len(nativeError)),
+	)
+	if output == nil {
+		return nil, serviceError(&nativeError)
+	}
+	defer C.coolbox_c_free_string(output)
+	return json.RawMessage(C.GoString(output)), nil
+}
+
+func (database *SQLDatabase) Begin() error    { return database.transaction("begin") }
+func (database *SQLDatabase) Commit() error   { return database.transaction("commit") }
+func (database *SQLDatabase) Rollback() error { return database.transaction("rollback") }
+
+func (database *SQLDatabase) transaction(operation string) error {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil {
+		return errors.New("database is closed")
+	}
+	var result C.int
+	switch operation {
+	case "begin":
+		result = C.coolbox_sql_database_begin(database.native)
+	case "commit":
+		result = C.coolbox_sql_database_commit(database.native)
+	case "rollback":
+		result = C.coolbox_sql_database_rollback(database.native)
+	default:
+		return errors.New("unknown transaction operation")
+	}
+	if result == 0 {
+		return errors.New("database transaction operation failed")
+	}
+	return nil
+}
+
+func (database *SQLDatabase) Close() {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native != nil {
+		C.coolbox_sql_database_destroy(database.native)
+		database.native = nil
+	}
+}
+
+type SQLSchema struct {
+	native *C.CoolBoxSqlSchema
+}
+
+func ParsePrismaSchema(text string) (*SQLSchema, error) {
+	value := C.CString(text)
+	defer C.free(unsafe.Pointer(value))
+	var nativeError [serviceErrorCapacity]C.char
+	schema := C.coolbox_sql_schema_parse(value, &nativeError[0], C.size_t(len(nativeError)))
+	if schema == nil {
+		return nil, serviceError(&nativeError)
+	}
+	return &SQLSchema{native: schema}, nil
+}
+
+func (schema *SQLSchema) Models() ([]string, error) {
+	if schema == nil || schema.native == nil {
+		return nil, errors.New("schema is closed")
+	}
+	count := int(C.coolbox_sql_schema_model_count(schema.native))
+	models := make([]string, count)
+	for i := range models {
+		name := C.coolbox_sql_schema_model_name(schema.native, C.size_t(i))
+		if name == nil {
+			return nil, errors.New("failed to read schema model name")
+		}
+		models[i] = C.GoString(name)
+		C.coolbox_c_free_string(name)
+	}
+	return models, nil
+}
+
+func (schema *SQLSchema) Close() {
+	if schema != nil && schema.native != nil {
+		C.coolbox_sql_schema_destroy(schema.native)
+		schema.native = nil
+	}
+}
+
+func (database *SQLDatabase) MigrateUp(schema *SQLSchema) error {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil || schema == nil || schema.native == nil {
+		return errors.New("database and schema must be open")
+	}
+	var nativeError [serviceErrorCapacity]C.char
+	if C.coolbox_sql_migrate_up(database.native, schema.native, &nativeError[0], C.size_t(len(nativeError))) == 0 {
+		return serviceError(&nativeError)
+	}
+	return nil
+}
+
+func (database *SQLDatabase) MigrateDirectoryUp(directory string) error {
+	return database.migrateDirectory(directory, 0, true)
+}
+
+func (database *SQLDatabase) MigrateDirectoryDown(directory string, steps int) error {
+	if steps < 0 {
+		return errors.New("migration rollback steps cannot be negative")
+	}
+	return database.migrateDirectory(directory, steps, false)
+}
+
+func (database *SQLDatabase) migrateDirectory(directory string, steps int, up bool) error {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil {
+		return errors.New("database is closed")
+	}
+	path := C.CString(directory)
+	defer C.free(unsafe.Pointer(path))
+	var nativeError [serviceErrorCapacity]C.char
+	var success C.int
+	if up {
+		success = C.coolbox_sql_migrations_up(
+			database.native, path, &nativeError[0], C.size_t(len(nativeError)),
+		)
+	} else {
+		success = C.coolbox_sql_migrations_down(
+			database.native, path, C.size_t(steps), &nativeError[0], C.size_t(len(nativeError)),
+		)
+	}
+	if success == 0 {
+		return serviceError(&nativeError)
+	}
+	return nil
+}
+
+func (database *SQLDatabase) CurrentMigration(directory string) (string, error) {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil {
+		return "", errors.New("database is closed")
+	}
+	path := C.CString(directory)
+	defer C.free(unsafe.Pointer(path))
+	var nativeError [serviceErrorCapacity]C.char
+	version := C.coolbox_sql_migrations_current_version(
+		database.native, path, &nativeError[0], C.size_t(len(nativeError)),
+	)
+	if version == nil {
+		return "", serviceError(&nativeError)
+	}
+	defer C.coolbox_c_free_string(version)
+	return C.GoString(version), nil
+}
+
+type SQLRepository struct {
+	mu       sync.Mutex
+	database *SQLDatabase
+	native   *C.CoolBoxSqlRepository
+}
+
+func (database *SQLDatabase) Repository(schema *SQLSchema, model string) (*SQLRepository, error) {
+	database.mu.Lock()
+	defer database.mu.Unlock()
+	if database.native == nil || schema == nil || schema.native == nil {
+		return nil, errors.New("database and schema must be open")
+	}
+	modelValue := C.CString(model)
+	defer C.free(unsafe.Pointer(modelValue))
+	var nativeError [serviceErrorCapacity]C.char
+	repository := C.coolbox_sql_repository_create(
+		database.native, schema.native, modelValue, &nativeError[0], C.size_t(len(nativeError)),
+	)
+	if repository == nil {
+		return nil, serviceError(&nativeError)
+	}
+	return &SQLRepository{database: database, native: repository}, nil
+}
+
+func (repository *SQLRepository) call(
+	operation, id string, data, conditions map[string]string,
+) (json.RawMessage, error) {
+	if repository == nil || repository.database == nil {
+		return nil, errors.New("repository is closed")
+	}
+	repository.mu.Lock()
+	defer repository.mu.Unlock()
+	repository.database.mu.Lock()
+	defer repository.database.mu.Unlock()
+	if repository.native == nil || repository.database.native == nil {
+		return nil, errors.New("repository or database is closed")
+	}
+	dataKeys, dataValues := sortedMap(data)
+	conditionKeys, conditionValues := sortedMap(conditions)
+	keyArray := cStringArray(dataKeys)
+	defer keyArray.free()
+	valueArray := cStringArray(dataValues)
+	defer valueArray.free()
+	conditionKeyArray := cStringArray(conditionKeys)
+	defer conditionKeyArray.free()
+	conditionValueArray := cStringArray(conditionValues)
+	defer conditionValueArray.free()
+	operationValue := C.CString(operation)
+	defer C.free(unsafe.Pointer(operationValue))
+	var idValue *C.char
+	if id != "" {
+		idValue = C.CString(id)
+		defer C.free(unsafe.Pointer(idValue))
+	}
+	var nativeError [serviceErrorCapacity]C.char
+	output := C.coolbox_sql_repository_call(
+		repository.native, operationValue, idValue,
+		keyArray.pointer, valueArray.pointer, C.size_t(len(dataKeys)),
+		conditionKeyArray.pointer, conditionValueArray.pointer, C.size_t(len(conditionKeys)),
+		&nativeError[0], C.size_t(len(nativeError)),
+	)
+	if output == nil {
+		return nil, serviceError(&nativeError)
+	}
+	defer C.coolbox_c_free_string(output)
+	return json.RawMessage(C.GoString(output)), nil
+}
+
+func (repository *SQLRepository) FindAll() (json.RawMessage, error) {
+	return repository.call("find_all", "", nil, nil)
+}
+func (repository *SQLRepository) FindByID(id string) (json.RawMessage, error) {
+	return repository.call("find_by_id", id, nil, nil)
+}
+func (repository *SQLRepository) FindWhere(conditions map[string]string) (json.RawMessage, error) {
+	return repository.call("find_where", "", nil, conditions)
+}
+func (repository *SQLRepository) Create(data map[string]string) (json.RawMessage, error) {
+	return repository.call("create", "", data, nil)
+}
+func (repository *SQLRepository) Update(id string, data map[string]string) (json.RawMessage, error) {
+	return repository.call("update", id, data, nil)
+}
+func (repository *SQLRepository) UpdateWhere(conditions, data map[string]string) (json.RawMessage, error) {
+	return repository.call("update_where", "", data, conditions)
+}
+func (repository *SQLRepository) Remove(id string) (json.RawMessage, error) {
+	return repository.call("remove", id, nil, nil)
+}
+func (repository *SQLRepository) RemoveWhere(conditions map[string]string) (json.RawMessage, error) {
+	return repository.call("remove_where", "", nil, conditions)
+}
+func (repository *SQLRepository) CreateTable() (json.RawMessage, error) {
+	return repository.call("create_table", "", nil, nil)
+}
+func (repository *SQLRepository) DropTable() (json.RawMessage, error) {
+	return repository.call("drop_table", "", nil, nil)
+}
+func (repository *SQLRepository) Close() {
+	repository.mu.Lock()
+	defer repository.mu.Unlock()
+	if repository.native != nil {
+		C.coolbox_sql_repository_destroy(repository.native)
+		repository.native = nil
+	}
+}
+
+type cArray struct {
+	pointer **C.char
+	count   int
+}
+
+func cStringArray(values []string) cArray {
+	if len(values) == 0 {
+		return cArray{}
+	}
+	bytes := C.malloc(C.size_t(len(values)) * C.size_t(unsafe.Sizeof(uintptr(0))))
+	if bytes == nil {
+		panic("failed to allocate native string array")
+	}
+	array := unsafe.Slice((**C.char)(bytes), len(values))
+	for i, value := range values {
+		array[i] = C.CString(value)
+	}
+	return cArray{pointer: (**C.char)(bytes), count: len(values)}
+}
+
+func (array cArray) free() {
+	if array.pointer == nil {
+		return
+	}
+	values := unsafe.Slice(array.pointer, array.count)
+	for _, value := range values {
+		C.free(unsafe.Pointer(value))
+	}
+	C.free(unsafe.Pointer(array.pointer))
+}
+
+func sortedMap(values map[string]string) ([]string, []string) {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	result := make([]string, len(keys))
+	for i, key := range keys {
+		result[i] = values[key]
+	}
+	return keys, result
+}
+
+type HTTPRequest struct {
+	Method      string
+	Path        string
+	Body        string
+	PathParams  map[string]string
+	QueryParams map[string]string
+}
+
+type HTTPResponse struct {
+	StatusCode int
+	Body       string
+}
+
+type HTTPHandler func(HTTPRequest) HTTPResponse
+
+type routeContext struct {
+	handler HTTPHandler
+}
+
+// HttpServer registers handlers and blocks in Start until Stop is called.
+type HttpServer struct {
+	mu       sync.Mutex
+	native   *C.CoolBoxRouteServer
+	handles  []cgo.Handle
+	contexts []unsafe.Pointer
+	started bool
+	closing bool
+	done    chan struct{}
+}
+
+func NewHttpServer(port int) (*HttpServer, error) {
+	var nativeError [serviceErrorCapacity]C.char
+	server := C.coolbox_http_server_create(C.int(port), &nativeError[0], C.size_t(len(nativeError)))
+	if server == nil {
+		return nil, serviceError(&nativeError)
+	}
+	return &HttpServer{native: server, done: make(chan struct{})}, nil
+}
+
+func (server *HttpServer) Handle(method, path string, handler HTTPHandler) error {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	return server.registerCallback(method, path, "", handler)
+}
+
+func (server *HttpServer) RegisterHandler(name string, handler HTTPHandler) error {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	return server.registerCallback("", "", name, handler)
+}
+
+func (server *HttpServer) registerCallback(method, path, name string, handler HTTPHandler) error {
+	if server.native == nil || server.closing {
+		return errors.New("HTTP server is closed")
+	}
+	if handler == nil {
+		return errors.New("HTTP handler is required")
+	}
+	handle := cgo.NewHandle(routeContext{handler: handler})
+	context := C.malloc(C.size_t(unsafe.Sizeof(C.uintptr_t(0))))
+	if context == nil {
+		handle.Delete()
+		return errors.New("failed to allocate HTTP handler context")
+	}
+	*(*C.uintptr_t)(context) = C.uintptr_t(handle)
+	methodValue, pathValue := C.CString(method), C.CString(path)
+	defer C.free(unsafe.Pointer(methodValue))
+	defer C.free(unsafe.Pointer(pathValue))
+	nameValue := C.CString(name)
+	defer C.free(unsafe.Pointer(nameValue))
+	var nativeError [serviceErrorCapacity]C.char
+	var success C.int
+	if name != "" {
+		success = C.coolbox_http_server_register_handler(
+			server.native, nameValue, C.coolbox_go_http_handler_pointer(), context,
+			&nativeError[0], C.size_t(len(nativeError)),
+		)
+	} else {
+		success = C.coolbox_http_server_add_route(
+			server.native, methodValue, pathValue, C.coolbox_go_http_handler_pointer(), context,
+			&nativeError[0], C.size_t(len(nativeError)),
+		)
+	}
+	if success == 0 {
+		handle.Delete()
+		C.free(context)
+		return serviceError(&nativeError)
+	}
+	server.handles = append(server.handles, handle)
+	server.contexts = append(server.contexts, context)
+	return nil
+}
+
+func (server *HttpServer) LoadRoutes(routesFile string) error {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	if server.native == nil || server.closing {
+		return errors.New("HTTP server is closed")
+	}
+	path := C.CString(routesFile)
+	defer C.free(unsafe.Pointer(path))
+	var nativeError [serviceErrorCapacity]C.char
+	if C.coolbox_http_server_load_routes(
+		server.native, path, &nativeError[0], C.size_t(len(nativeError)),
+	) == 0 {
+		return serviceError(&nativeError)
+	}
+	return nil
+}
+
+func (server *HttpServer) Start() error {
+	server.mu.Lock()
+	if server.native == nil || server.closing {
+		server.mu.Unlock()
+		return errors.New("HTTP server is closed")
+	}
+	if server.started {
+		server.mu.Unlock()
+		return errors.New("HTTP server has already been started")
+	}
+	server.started = true
+	server.mu.Unlock()
+	defer close(server.done)
+	var nativeError [serviceErrorCapacity]C.char
+	if C.coolbox_http_server_start(server.native, &nativeError[0], C.size_t(len(nativeError))) == 0 {
+		return serviceError(&nativeError)
+	}
+	return nil
+}
+
+func (server *HttpServer) Stop() {
+	server.mu.Lock()
+	if server.native != nil {
+		C.coolbox_http_server_stop(server.native)
+	}
+	server.mu.Unlock()
+}
+
+func (server *HttpServer) IsRunning() bool {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	return server.native != nil && C.coolbox_http_server_is_running(server.native) != 0
+}
+
+func (server *HttpServer) Close() {
+	server.mu.Lock()
+	if server.native == nil {
+		server.mu.Unlock()
+		return
+	}
+	native := server.native
+	started := server.started
+	server.closing = true
+	C.coolbox_http_server_stop(native)
+	server.mu.Unlock()
+	if started {
+		<-server.done
+	}
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	if server.native == nil {
+		return
+	}
+	C.coolbox_http_server_destroy(server.native)
+	server.native = nil
+	for _, context := range server.contexts {
+		C.free(context)
+	}
+	for _, handle := range server.handles {
+		handle.Delete()
+	}
+	server.contexts, server.handles = nil, nil
+}
+
+func nativeStringMap(keys, values **C.char, count C.size_t) map[string]string {
+	result := make(map[string]string, int(count))
+	if count == 0 {
+		return result
+	}
+	keySlice := unsafe.Slice(keys, int(count))
+	valueSlice := unsafe.Slice(values, int(count))
+	for i := range keySlice {
+		result[C.GoString(keySlice[i])] = C.GoString(valueSlice[i])
+	}
+	return result
+}
+
+//export coolbox_go_http_route_dispatch
+func coolbox_go_http_route_dispatch(
+	context unsafe.Pointer, method, path, body *C.char,
+	pathKeys, pathValues, queryKeys, queryValues **C.char,
+	pathCount, queryCount C.size_t, status *C.int,
+) (output *C.char) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Printf("coolbox: HTTP route handler panic: %v", recovered)
+			*status = 500
+			output = C.CString("Internal Server Error")
+		}
+	}()
+	handleID := *(*C.uintptr_t)(context)
+	handler := cgo.Handle(handleID).Value().(routeContext).handler
+	response := handler(HTTPRequest{
+		Method:      C.GoString(method),
+		Path:        C.GoString(path),
+		Body:        C.GoString(body),
+		PathParams:  nativeStringMap(pathKeys, pathValues, pathCount),
+		QueryParams: nativeStringMap(queryKeys, queryValues, queryCount),
+	})
+	if response.StatusCode == 0 {
+		response.StatusCode = 200
+	}
+	*status = C.int(response.StatusCode)
+	if *status < 100 || *status > 599 {
+		*status = 500
+		return C.CString("invalid handler status code")
+	}
+	return C.CString(response.Body)
+}

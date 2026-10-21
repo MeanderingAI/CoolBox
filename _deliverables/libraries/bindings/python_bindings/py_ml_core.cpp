@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
@@ -52,6 +53,7 @@ void bind_tree_ensembles(py::module_& module);
 void bind_data_structures(py::module_& module);
 void bind_matrix(py::module_& module);
 void bind_opt_math_finance(py::module_& module);
+void bind_sql(py::module_& module);
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
@@ -63,6 +65,7 @@ PYBIND11_MODULE(ml_core, m) {
     bind_synthetic_data(m);
     bind_matrix(m);
     bind_opt_math_finance(m);
+    bind_sql(m);
     py::module_ data_structures_module =
         m.def_submodule("data_structures", "Native data structures");
     bind_data_structures(data_structures_module);
@@ -1368,9 +1371,15 @@ PYBIND11_MODULE(ml_core, m) {
         .def("put", &ml::rest_api::Server::put)
         .def("delete", &ml::rest_api::Server::delete_)
         .def("patch", &ml::rest_api::Server::patch)
+        .def("options", &ml::rest_api::Server::options)
+        .def("register_handler", &ml::rest_api::Server::register_handler)
+        .def("load_routes", &ml::rest_api::Server::load_routes)
         .def("enable_cors", &ml::rest_api::Server::enable_cors,
              py::arg("origin") = "*")
-        .def("start", &ml::rest_api::Server::start)
+        .def("start", [](ml::rest_api::Server& server) {
+            py::gil_scoped_release release;
+            server.start();
+        })
         .def("stop", &ml::rest_api::Server::stop)
         .def("is_running", &ml::rest_api::Server::is_running)
         .def("handle_request", &ml::rest_api::Server::handle_request)

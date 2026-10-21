@@ -10,6 +10,7 @@ mod machine_learning;
 mod matrix;
 mod opt_math_finance;
 mod stubs;
+mod services;
 
 pub use boost_tree::*;
 pub use classical_ml::*;
@@ -20,6 +21,7 @@ pub use machine_learning::*;
 pub use matrix::*;
 pub use opt_math_finance::*;
 pub use stubs::*;
+pub use services::{HttpRequest, HttpResponse, HttpServer, SqlDatabase, SqlRepository, SqlSchema};
 pub use stubs::{
     CheckboxGroup, DockPanel, FileTree, LayerList, PropertyInspector, RadioSelector, Toolbar,
 };
