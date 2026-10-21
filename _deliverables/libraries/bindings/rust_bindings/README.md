@@ -39,6 +39,24 @@ called. Enable PostgreSQL or MySQL when building the native C bindings with
 For language-neutral routing, register named handlers and call
 `HttpServer::load_routes` with the shared `.routes` manifest.
 
+## Forms and HTML responses
+
+`FormSchema::parse` and `from_file` load the shared JSON form definition.
+`validate(body, content_type)` and `validate_request(&HttpRequest)` return a
+`ValidationResult` containing `valid`, normalized `serde_json::Value` values,
+and per-field error codes. Malformed submissions return `Err`, distinct from
+validly parsed submissions with field errors.
+
+`HttpResponse::html`, `html_file(root, filename)`, and
+`render(root, filename, &BTreeMap<String, String>)` serve HTML with its
+Content-Type set. File helpers restrict paths to the provided root; render
+escapes `{{name}}` values for HTML text, not JavaScript/CSS/URL contexts.
+`HttpRequest` and `HttpResponse` include a public `headers` map; update existing
+struct literals or use `HttpResponse::new` when upgrading.
+
+See the [shared form format and examples](../../../../__init__/__GENERATED_CONTENT/read_mes/REST_API.md#shared-forms-and-html)
+for validation semantics, limitations, and Python/Go/Rust examples.
+
 ## Example
 
 ```rust

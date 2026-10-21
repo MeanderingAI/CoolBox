@@ -25,6 +25,7 @@ type RouteHandler = unsafe extern "C" fn(
     *const c_char,
     *const c_char,
     *const c_char,
+    *const c_char,
     *const *const c_char,
     *const *const c_char,
     usize,
@@ -32,6 +33,7 @@ type RouteHandler = unsafe extern "C" fn(
     *const *const c_char,
     usize,
     *mut c_int,
+    *mut *mut c_char,
 ) -> *mut c_char;
 
 #[link(name = "coolbox_c_bindings")]
@@ -124,7 +126,7 @@ extern "C" {
         error: *mut c_char,
         capacity: usize,
     ) -> *mut CoolBoxRouteServer;
-    fn coolbox_http_server_add_route(
+    fn coolbox_http_server_add_route_v2(
         server: *mut CoolBoxRouteServer,
         method: *const c_char,
         path: *const c_char,
@@ -133,7 +135,7 @@ extern "C" {
         error: *mut c_char,
         capacity: usize,
     ) -> c_int;
-    fn coolbox_http_server_register_handler(
+    fn coolbox_http_server_register_handler_v2(
         server: *mut CoolBoxRouteServer,
         name: *const c_char,
         handler: Option<RouteHandler>,
@@ -155,6 +157,15 @@ extern "C" {
     fn coolbox_http_server_stop(server: *mut CoolBoxRouteServer);
     fn coolbox_http_server_is_running(server: *const CoolBoxRouteServer) -> c_int;
     fn coolbox_http_server_destroy(server: *mut CoolBoxRouteServer);
+    fn coolbox_http_form_load(filename: *const c_char, error: *mut c_char, capacity: usize) -> *mut c_char;
+    fn coolbox_http_form_validate(
+        schema: *const c_char, body: *const c_char, content_type: *const c_char,
+        error: *mut c_char, capacity: usize,
+    ) -> *mut c_char;
+    fn coolbox_http_html_file(
+        root: *const c_char, filename: *const c_char, context: *const c_char,
+        render: c_int, error: *mut c_char, capacity: usize,
+    ) -> *mut c_char;
 }
 
 const ERROR_CAPACITY: usize = 1024;
@@ -495,6 +506,7 @@ unsafe extern "C" fn route_handler(
     method: *const c_char,
     path: *const c_char,
     body: *const c_char,
+    headers_json: *const c_char,
     path_keys: *const *const c_char,
     path_values: *const *const c_char,
     path_count: usize,
@@ -502,6 +514,7 @@ unsafe extern "C" fn route_handler(
     query_values: *const *const c_char,
     query_count: usize,
     status: *mut c_int,
+    response_headers: *mut *mut c_char,
 ) -> *mut c_char {
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
         let handler = &*(context as *const Box<dyn Fn(HttpRequest) -> HttpResponse + Send + Sync>);
@@ -511,6 +524,9 @@ unsafe extern "C" fn route_handler(
             body: CStr::from_ptr(body).to_string_lossy().into_owned(),
             path_params: native_string_map(path_keys, path_values, path_count),
             query_params: native_string_map(query_keys, query_values, query_count),
+            headers: serde_json::from_str(
+                &CStr::from_ptr(headers_json).to_string_lossy()
+            ).expect("native request headers must be a JSON string map"),
         })
     }));
     match result {
@@ -520,10 +536,21 @@ unsafe extern "C" fn route_handler(
                 *status = 500;
                 return coolbox_c_duplicate_string(b"invalid handler status code\0".as_ptr().cast());
             }
-            let body = c_string(&response.body).unwrap_or_else(|_| CString::new("response contains NUL").unwrap());
+            let body = match c_string(&response.body) {
+                Ok(body) => body,
+                Err(error) => {
+                    eprintln!("coolbox: {error}");
+                    *status = 500;
+                    return coolbox_c_duplicate_string(b"Internal Server Error\0".as_ptr().cast());
+                }
+            };
+            let headers = serde_json::to_string(&response.headers).expect("string map serialization");
+            let headers = CString::new(headers).expect("JSON serialization escapes NUL");
+            *response_headers = coolbox_c_duplicate_string(headers.as_ptr());
             coolbox_c_duplicate_string(body.as_ptr())
         },
         Err(_) => unsafe {
+            eprintln!("coolbox: HTTP handler panicked");
             *status = 500;
             coolbox_c_duplicate_string(b"Internal Server Error\0".as_ptr().cast())
         },
@@ -537,6 +564,7 @@ pub struct HttpRequest {
     pub body: String,
     pub path_params: BTreeMap<String, String>,
     pub query_params: BTreeMap<String, String>,
+    pub headers: BTreeMap<String, String>,
 }
 
 unsafe fn native_string_map(
@@ -562,11 +590,94 @@ unsafe fn native_string_map(
 pub struct HttpResponse {
     pub status_code: i32,
     pub body: String,
+    pub headers: BTreeMap<String, String>,
 }
 
 impl HttpResponse {
     pub fn new(status_code: i32, body: impl Into<String>) -> Self {
-        Self { status_code, body: body.into() }
+        Self { status_code, body: body.into(), headers: BTreeMap::new() }
+    }
+
+    pub fn html(body: impl Into<String>) -> Self {
+        let mut response = Self::new(200, body);
+        response.headers.insert("Content-Type".into(), "text/html; charset=utf-8".into());
+        response
+    }
+
+    pub fn html_file(root: &str, filename: &str) -> Result<Self, String> {
+        Self::file_response(root, filename, &BTreeMap::new(), false)
+    }
+
+    pub fn render(root: &str, filename: &str, context: &BTreeMap<String, String>) -> Result<Self, String> {
+        Self::file_response(root, filename, context, true)
+    }
+
+    fn file_response(root: &str, filename: &str, context: &BTreeMap<String, String>, render: bool) -> Result<Self, String> {
+        let root = c_string(root)?;
+        let filename = c_string(filename)?;
+        let context = c_string(&serde_json::to_string(context).map_err(|e| e.to_string())?)?;
+        let mut error = error_buffer();
+        let output = unsafe {
+            coolbox_http_html_file(root.as_ptr(), filename.as_ptr(), context.as_ptr(),
+                i32::from(render), error.as_mut_ptr(), ERROR_CAPACITY)
+        };
+        if output.is_null() { return Err(native_error(&error)); }
+        let text = unsafe { take_native_string(output)? };
+        let envelope: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+        let status_code = envelope["status_code"].as_i64().ok_or("Missing response status")?;
+        let body = envelope["body"].as_str().ok_or("Missing response body")?.to_string();
+        let headers = serde_json::from_value(envelope["headers"].clone()).map_err(|e| e.to_string())?;
+        Ok(Self { status_code: i32::try_from(status_code).map_err(|e| e.to_string())?, body, headers })
+    }
+}
+
+pub struct FormSchema {
+    definition: String,
+}
+
+pub struct ValidationResult {
+    pub valid: bool,
+    pub values: serde_json::Value,
+    pub errors: BTreeMap<String, Vec<String>>,
+}
+
+impl FormSchema {
+    pub fn parse(definition: &str) -> Result<Self, String> {
+        let form = Self { definition: definition.to_string() };
+        form.validate("{}", "application/json")?;
+        Ok(form)
+    }
+
+    pub fn from_file(filename: &str) -> Result<Self, String> {
+        let filename = c_string(filename)?;
+        let mut error = error_buffer();
+        let output = unsafe { coolbox_http_form_load(filename.as_ptr(), error.as_mut_ptr(), ERROR_CAPACITY) };
+        if output.is_null() { return Err(native_error(&error)); }
+        Ok(Self { definition: unsafe { take_native_string(output)? } })
+    }
+
+    pub fn validate(&self, body: &str, content_type: &str) -> Result<ValidationResult, String> {
+        let schema = c_string(&self.definition)?;
+        let body = c_string(body)?;
+        let content_type = c_string(content_type)?;
+        let mut error = error_buffer();
+        let output = unsafe { coolbox_http_form_validate(schema.as_ptr(), body.as_ptr(),
+            content_type.as_ptr(), error.as_mut_ptr(), ERROR_CAPACITY) };
+        if output.is_null() { return Err(native_error(&error)); }
+        let text = unsafe { take_native_string(output)? };
+        let result: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+        Ok(ValidationResult {
+            valid: result["valid"].as_bool().ok_or("Missing validation status")?,
+            values: result["values"].clone(),
+            errors: serde_json::from_value(result["errors"].clone()).map_err(|e| e.to_string())?,
+        })
+    }
+
+    pub fn validate_request(&self, request: &HttpRequest) -> Result<ValidationResult, String> {
+        let content_type = request.headers.iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case("Content-Type"))
+            .map(|(_, value)| value.as_str()).unwrap_or("");
+        self.validate(&request.body, content_type)
     }
 }
 
@@ -598,7 +709,7 @@ impl HttpServer {
         let context = Box::into_raw(Box::new(callback));
         let mut error = error_buffer();
         let success = unsafe {
-            coolbox_http_server_add_route(
+            coolbox_http_server_add_route_v2(
                 self.native,
                 method.as_ptr(),
                 path.as_ptr(),
@@ -625,7 +736,7 @@ impl HttpServer {
         let context = Box::into_raw(Box::new(callback));
         let mut error = error_buffer();
         let success = unsafe {
-            coolbox_http_server_register_handler(
+            coolbox_http_server_register_handler_v2(
                 self.native,
                 name.as_ptr(),
                 Some(route_handler),

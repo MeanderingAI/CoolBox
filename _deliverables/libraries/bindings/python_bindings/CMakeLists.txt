@@ -160,6 +160,7 @@ pybind11_add_module(ml_core
     py_ml_core.cpp
     src/sql_bindings.cpp
     src/rest_api_server.cpp
+    src/web_helpers.cpp
     ${ML_BINDING_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/matrix_bridge.cc
     ../../groups/cool_car/ML/decision_tree/source/decision_tree_regressor.cpp
@@ -210,6 +211,10 @@ if(BUILD_TESTING)
         target_link_libraries(test_rest_api_server PRIVATE ws2_32)
     endif()
     add_test(NAME test_rest_api_server COMMAND test_rest_api_server)
+    add_executable(test_web_helpers test/test_web_helpers.cpp src/web_helpers.cpp)
+    target_include_directories(test_web_helpers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(test_web_helpers PRIVATE json)
+    add_test(NAME test_web_helpers COMMAND test_web_helpers)
 endif()
 
 target_include_directories(ml_core PRIVATE

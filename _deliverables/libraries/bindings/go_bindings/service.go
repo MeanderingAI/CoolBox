@@ -4,7 +4,7 @@ package coolbox
 #include "coolbox/coolbox_c.h"
 #include <stdint.h>
 #include <stdlib.h>
-extern CoolBoxRouteHandler coolbox_go_http_handler_pointer(void);
+extern CoolBoxRouteHandlerV2 coolbox_go_http_handler_pointer(void);
 */
 import "C"
 
@@ -14,6 +14,7 @@ import (
 	"log"
 	"runtime/cgo"
 	"sort"
+	"strings"
 	"sync"
 	"unsafe"
 )
@@ -388,11 +389,13 @@ type HTTPRequest struct {
 	Body        string
 	PathParams  map[string]string
 	QueryParams map[string]string
+	Headers     map[string]string
 }
 
 type HTTPResponse struct {
 	StatusCode int
 	Body       string
+	Headers    map[string]string
 }
 
 type HTTPHandler func(HTTPRequest) HTTPResponse
@@ -455,12 +458,12 @@ func (server *HttpServer) registerCallback(method, path, name string, handler HT
 	var nativeError [serviceErrorCapacity]C.char
 	var success C.int
 	if name != "" {
-		success = C.coolbox_http_server_register_handler(
+		success = C.coolbox_http_server_register_handler_v2(
 			server.native, nameValue, C.coolbox_go_http_handler_pointer(), context,
 			&nativeError[0], C.size_t(len(nativeError)),
 		)
 	} else {
-		success = C.coolbox_http_server_add_route(
+		success = C.coolbox_http_server_add_route_v2(
 			server.native, methodValue, pathValue, C.coolbox_go_http_handler_pointer(), context,
 			&nativeError[0], C.size_t(len(nativeError)),
 		)
@@ -572,24 +575,33 @@ func nativeStringMap(keys, values **C.char, count C.size_t) map[string]string {
 //export coolbox_go_http_route_dispatch
 func coolbox_go_http_route_dispatch(
 	context unsafe.Pointer, method, path, body *C.char,
-	pathKeys, pathValues, queryKeys, queryValues **C.char,
-	pathCount, queryCount C.size_t, status *C.int,
+	headersJSON *C.char,
+	pathKeys, pathValues **C.char, pathCount C.size_t,
+	queryKeys, queryValues **C.char, queryCount C.size_t,
+	status *C.int, responseHeaders **C.char,
 ) (output *C.char) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			log.Printf("coolbox: HTTP route handler panic: %v", recovered)
 			*status = 500
-			output = C.CString("Internal Server Error")
+			output = nativeHTTPString("Internal Server Error")
 		}
 	}()
 	handleID := *(*C.uintptr_t)(context)
 	handler := cgo.Handle(handleID).Value().(routeContext).handler
+	var headers map[string]string
+	if err := json.Unmarshal([]byte(C.GoString(headersJSON)), &headers); err != nil {
+		log.Printf("coolbox: invalid native request headers: %v", err)
+		*status = 500
+		return nativeHTTPString("Internal Server Error")
+	}
 	response := handler(HTTPRequest{
 		Method:      C.GoString(method),
 		Path:        C.GoString(path),
 		Body:        C.GoString(body),
 		PathParams:  nativeStringMap(pathKeys, pathValues, pathCount),
 		QueryParams: nativeStringMap(queryKeys, queryValues, queryCount),
+		Headers:     headers,
 	})
 	if response.StatusCode == 0 {
 		response.StatusCode = 200
@@ -597,7 +609,28 @@ func coolbox_go_http_route_dispatch(
 	*status = C.int(response.StatusCode)
 	if *status < 100 || *status > 599 {
 		*status = 500
-		return C.CString("invalid handler status code")
+		log.Printf("coolbox: invalid HTTP response status: %d", response.StatusCode)
+		return nativeHTTPString("invalid handler status code")
 	}
-	return C.CString(response.Body)
+	if response.Headers != nil {
+		encoded, err := json.Marshal(response.Headers)
+		if err != nil {
+			log.Printf("coolbox: encode response headers: %v", err)
+			*status = 500
+			return nativeHTTPString("Internal Server Error")
+		}
+		*responseHeaders = nativeHTTPString(string(encoded))
+	}
+	if strings.ContainsRune(response.Body, '\x00') {
+		log.Print("coolbox: HTTP response body contains NUL")
+		*status = 500
+		return nativeHTTPString("Internal Server Error")
+	}
+	return nativeHTTPString(response.Body)
+}
+
+func nativeHTTPString(value string) *C.char {
+	text := C.CString(value)
+	defer C.free(unsafe.Pointer(text))
+	return C.coolbox_c_duplicate_string(text)
 }

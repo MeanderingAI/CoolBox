@@ -39,6 +39,7 @@
 #include "nlp/text_processor.h"
 #include "nlp/embeddings.h"
 #include "rest_api/server.h"
+#include "rest_api/forms.h"
 #include "distributed/message_passing.h"
 #include "distributed/distributed_trainer.h"
 #include "rest_api/server.h"
@@ -1309,6 +1310,23 @@ PYBIND11_MODULE(ml_core, m) {
 
     py::module_ rest_module = m.def_submodule("rest_api", "REST API for model serving");
 
+    py::class_<ml::rest_api::ValidationResult>(rest_module, "ValidationResult")
+        .def_readonly("valid", &ml::rest_api::ValidationResult::valid)
+        .def_readonly("errors", &ml::rest_api::ValidationResult::errors)
+        .def_property_readonly("values", [](const ml::rest_api::ValidationResult& result) {
+            return py::module_::import("json").attr("loads")(result.values_json);
+        })
+        .def("to_json", &ml::rest_api::ValidationResult::to_json);
+    py::class_<ml::rest_api::FormSchema>(rest_module, "FormSchema")
+        .def(py::init<const std::string&>(), py::arg("definition"))
+        .def_static("from_file", &ml::rest_api::FormSchema::from_file)
+        .def("validate", &ml::rest_api::FormSchema::validate,
+             py::arg("body"), py::arg("content_type") = "application/json")
+        .def("validate_request", [](const ml::rest_api::FormSchema& form,
+                                    const ml::rest_api::Request& request) {
+            return form.validate(request.body(), request.get_header("Content-Type"));
+        });
+
     // HTTP Method enum
     py::enum_<ml::rest_api::HttpMethod>(rest_module, "HttpMethod")
         .value("GET", ml::rest_api::HttpMethod::GET)
@@ -1361,7 +1379,14 @@ PYBIND11_MODULE(ml_core, m) {
         .def("set_body", &ml::rest_api::Response::set_body)
         .def("set_header", &ml::rest_api::Response::set_header)
         .def("set_json", &ml::rest_api::Response::set_json)
-        .def("to_string", &ml::rest_api::Response::to_string);
+        .def("to_string", &ml::rest_api::Response::to_string)
+        .def_static("html", &ml::rest_api::Response::html,
+                    py::arg("content"), py::arg("status") = 200)
+        .def_static("html_file", &ml::rest_api::Response::html_file,
+                    py::arg("root"), py::arg("filename"), py::arg("status") = 200)
+        .def_static("render", &ml::rest_api::Response::render,
+                    py::arg("root"), py::arg("filename"),
+                    py::arg("context"), py::arg("status") = 200);
 
     // Server class
     py::class_<ml::rest_api::Server>(rest_module, "Server")

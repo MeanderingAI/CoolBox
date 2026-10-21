@@ -111,6 +111,7 @@ add_library(coolbox_c_bindings SHARED
     src/uuid_generation_c_bridge.cpp
     src/service_bridge.cpp
     ../python_bindings/src/rest_api_server.cpp
+    ../python_bindings/src/web_helpers.cpp
 )
 
 add_library(CoolBox::c_bindings ALIAS coolbox_c_bindings)

@@ -16,6 +16,7 @@ crate-type = ["rlib"]
 
 [dependencies]
 cxx = "1.0"
+serde_json = "1.0"
 
 [build-dependencies]
 cxx-build = "1.0"

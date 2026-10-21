@@ -21,7 +21,10 @@ pub use machine_learning::*;
 pub use matrix::*;
 pub use opt_math_finance::*;
 pub use stubs::*;
-pub use services::{HttpRequest, HttpResponse, HttpServer, SqlDatabase, SqlRepository, SqlSchema};
+pub use services::{
+    FormSchema, HttpRequest, HttpResponse, HttpServer, SqlDatabase, SqlRepository, SqlSchema,
+    ValidationResult,
+};
 pub use stubs::{
     CheckboxGroup, DockPanel, FileTree, LayerList, PropertyInspector, RadioSelector, Toolbar,
 };
