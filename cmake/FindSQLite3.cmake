@@ -103,7 +103,7 @@ find_package_handle_standard_args(SQLite3
     VERSION_VAR SQLite3_VERSION
 )
 
-if(NOT SQLite3_FOUND)
+if(NOT SQLite3_FOUND AND SQLite3_FIND_REQUIRED)
     message("")
     message(WARNING "SQLite3 development files not found!")
     message("")

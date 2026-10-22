@@ -12,7 +12,7 @@ import platform
 GO_BIN = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '_local_build_pipeline', 'tmp', 'go', 'bin', 'go.exe' if platform.system() == 'Windows' else 'go'))
 
 if not os.path.isfile(GO_BIN):
-    print(f"Go binary not found at {GO_BIN}. Please run _scripts/install_go.py first.")
+    print(f"Go binary not found at {GO_BIN}. Please run _scripts/install_scripts/install_go.py first.")
     sys.exit(1)
 
 # Check for coolboxbridge shared library

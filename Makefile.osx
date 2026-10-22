@@ -72,7 +72,7 @@ configure:
 build: configure
 	@if [ -n "$(strip $(BUILD_KIND))" ]; then \
 		echo "[Makefile.osx] Building deliverable $(BUILD_KIND): $(BUILD_NAMES)"; \
-		$(PYTHON) _scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); \
+		$(PYTHON) _scripts/build_scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); \
 	else \
 		echo "[Makefile.osx] Building all targets..."; \
 		cmake --build build; \

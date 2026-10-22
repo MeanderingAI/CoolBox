@@ -10,7 +10,32 @@ if(WIN32)
   endif()
 endif()
 
-if(_coolbox_skip_pybind11)
+if(WIN32 AND NOT _coolbox_skip_pybind11 AND NOT Python_EXECUTABLE)
+  # An x64 build on an ARM64 host needs an x64 Python; probing the host's ARM64
+  # Python can fail or hang, so require an explicit interpreter in this case.
+  # CMake may itself run under x64 emulation, so query the native architecture.
+  set(_coolbox_native_arch "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+    cmake_host_system_information(RESULT _coolbox_native_arch_reg
+      QUERY WINDOWS_REGISTRY "HKLM/SYSTEM/CurrentControlSet/Control/Session Manager/Environment"
+      VALUE PROCESSOR_ARCHITECTURE)
+    if(_coolbox_native_arch_reg)
+      set(_coolbox_native_arch "${_coolbox_native_arch_reg}")
+    endif()
+  endif()
+  if("$ENV{PROCESSOR_IDENTIFIER}" MATCHES "^ARMv8")
+    set(_coolbox_native_arch "ARM64")
+  endif()
+  if(_coolbox_native_arch MATCHES "^(ARM64|arm64|aarch64)$"
+     AND (CMAKE_VS_PLATFORM_NAME MATCHES "^(x64|X64)$" OR CMAKE_GENERATOR_PLATFORM MATCHES "^(x64|X64)$"))
+    set(_coolbox_skip_pybind11 TRUE)
+    set(_coolbox_skip_pybind11_reason "x64 build on an ARM64 host; pass -DPython_EXECUTABLE=<x64 python.exe> to enable them")
+  endif()
+endif()
+
+if(_coolbox_skip_pybind11_reason)
+  message(WARNING "Skipping pybind11 and Python bindings: ${_coolbox_skip_pybind11_reason}.")
+elseif(_coolbox_skip_pybind11)
   message(STATUS "Skipping pybind11 FetchContent for Windows ARM64 cross-compile.")
 elseif(NOT TARGET pybind11::pybind11)
   FetchContent_Declare(

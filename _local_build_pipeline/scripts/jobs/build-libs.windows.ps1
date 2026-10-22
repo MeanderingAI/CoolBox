@@ -95,8 +95,8 @@ function Find-VcpkgExe {
 function Ensure-VcpkgToolchain {
     $vcpkgExe = Find-VcpkgExe
     if ($null -eq $vcpkgExe) {
-        Write-Host 'vcpkg was not found; attempting local bootstrap via _scripts/install_vcpkg.ps1'
-        & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $repoRoot '_scripts\install_vcpkg.ps1')
+        Write-Host 'vcpkg was not found; attempting local bootstrap via _scripts/install_scripts/windows/install_vcpkg.ps1'
+        & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $repoRoot '_scripts\install_scripts\windows\install_vcpkg.ps1')
         if ($LASTEXITCODE -ne 0) {
             throw "vcpkg installation failed with exit code $LASTEXITCODE"
         }
@@ -143,8 +143,8 @@ function Ensure-BisonOnPath {
     }
 
     if (Get-Command choco -ErrorAction SilentlyContinue) {
-        Write-Host 'Bison was not found; attempting installation via _scripts/install_bison.ps1'
-        & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $repoRoot '_scripts\install_bison.ps1')
+        Write-Host 'Bison was not found; attempting installation via _scripts/install_scripts/windows/install_bison.ps1'
+        & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $repoRoot '_scripts\install_scripts\windows\install_bison.ps1')
         if ($LASTEXITCODE -ne 0) {
             throw "Bison installation failed with exit code $LASTEXITCODE"
         }
@@ -157,7 +157,7 @@ function Ensure-BisonOnPath {
 
     $bison = Get-Command bison, win_bison -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -eq $bison) {
-        throw 'Bison is required but was not found. Run _scripts/install_bison.ps1 or install winflexbison and ensure bison or win_bison is on PATH.'
+        throw 'Bison is required but was not found. Run _scripts/install_scripts/windows/install_bison.ps1 or install winflexbison and ensure bison or win_bison is on PATH.'
     }
 }
 

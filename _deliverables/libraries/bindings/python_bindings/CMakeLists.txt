@@ -7,6 +7,10 @@ if(WIN32 AND (CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64" OR CMAKE_GENERATOR_PLATFOR
     message(STATUS "Skipping python_bindings for Windows ARM64 cross-compile (host Python interpreter architecture mismatch).")
     return()
 endif()
+if(_coolbox_skip_pybind11)
+    message(STATUS "Skipping python_bindings because pybind11 is unavailable.")
+    return()
+endif()
 
 # Add a CTest entry to run the Python HMM bindings test when NumPy is available.
 find_package(Python3 COMPONENTS Interpreter REQUIRED)

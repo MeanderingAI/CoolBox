@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
 
 from _scripts.build_scripts.build_deliverable import cmake_build, default_config  # noqa: E402
 from deliverable_utils import (  # noqa: E402

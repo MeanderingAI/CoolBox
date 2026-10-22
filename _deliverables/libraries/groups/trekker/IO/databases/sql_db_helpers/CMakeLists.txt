@@ -15,8 +15,32 @@ target_include_directories(sql PUBLIC
     ${COOLBOX_ROOT_DIR}/_deliverables/libraries/groups/trekker/IO/dataformats/json/headers
 )
 
-# Find SQLite3
-find_package(SQLite3 REQUIRED)
+# Use a system SQLite3 when available; otherwise build the public-domain amalgamation.
+option(COOLBOX_SQL_FETCH_SQLITE "Build bundled SQLite when a system SQLite3 is not found" ON)
+find_package(SQLite3 QUIET)
+if(NOT SQLite3_FOUND)
+    if(NOT COOLBOX_SQL_FETCH_SQLITE)
+        message(FATAL_ERROR "SQLite3 not found. Install it or configure with -DCOOLBOX_SQL_FETCH_SQLITE=ON.")
+    endif()
+    message(STATUS "SQLite3 not found; building bundled SQLite amalgamation.")
+    include(FetchContent)
+    FetchContent_Declare(
+        coolbox_sqlite_amalgamation
+        URL https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip
+        URL_HASH SHA3_256=f131b68e6ba5fb891cc13ebb5ff9555054c77294cb92d8d1268bad5dba4fa2a1
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(coolbox_sqlite_amalgamation)
+    add_library(coolbox_sqlite3 STATIC "${coolbox_sqlite_amalgamation_SOURCE_DIR}/sqlite3.c")
+    target_include_directories(coolbox_sqlite3 PUBLIC "${coolbox_sqlite_amalgamation_SOURCE_DIR}")
+    set_target_properties(coolbox_sqlite3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions(coolbox_sqlite3 PRIVATE SQLITE_THREADSAFE=1 SQLITE_OMIT_LOAD_EXTENSION)
+    if(UNIX)
+        find_package(Threads REQUIRED)
+        target_link_libraries(coolbox_sqlite3 PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+    endif()
+    add_library(SQLite::SQLite3 ALIAS coolbox_sqlite3)
+endif()
 
 target_link_libraries(sql
     json

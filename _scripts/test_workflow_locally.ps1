@@ -39,7 +39,7 @@ Write-Host ""
 # Check if act is installed
 if (-not (Get-Command act -ErrorAction SilentlyContinue)) {
     Write-Host "act is not installed. Installing now..." -ForegroundColor Yellow
-    & "$PSScriptRoot\install_scripts\install_act.ps1"
+    & "$PSScriptRoot\install_scripts\windows\install_act.ps1"
 }
 
 # Check if Docker is running

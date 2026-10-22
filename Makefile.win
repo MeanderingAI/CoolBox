@@ -69,7 +69,7 @@ build: configure
 ifeq ($(strip $(BUILD_KIND)),)
 	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building project..."; cmake --build build --config Release; if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }; Write-Host "[Makefile.win] Build complete."'
 else
-	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building deliverable $(BUILD_KIND): $(BUILD_NAMES)"; & "$(PYTHON)" _scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
+	@$(POWERSHELL) -Command 'Write-Host "[Makefile.win] Building deliverable $(BUILD_KIND): $(BUILD_NAMES)"; & "$(PYTHON)" _scripts/build_scripts/build_deliverable.py $(BUILD_KIND) $(BUILD_NAMES); if ($$LASTEXITCODE -ne 0) { exit $$LASTEXITCODE }'
 	@$(POWERSHELL_BYPASS) -File .\_scripts\sign_windows_artifacts.ps1 -Root build -Configuration Release
 endif
 
@@ -116,7 +116,7 @@ download_latest_windows_sdk:
 	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Channel = "$(WINDOWS_SDK_CHANNEL)"; Artifact = "$(WINDOWS_SDK_ARTIFACT)" }; if ("$(WINDOWS_SDK_OUTPUT_DIR)") { $$arguments.OutputDirectory = "$(WINDOWS_SDK_OUTPUT_DIR)" }; & .\_scripts\download_latest_windows_sdk.ps1 @arguments'
 
 install_latest_windows_sdk:
-	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Channel = "$(WINDOWS_SDK_CHANNEL)" }; if ("$(WINDOWS_SDK_OUTPUT_DIR)") { $$arguments.DownloadDirectory = "$(WINDOWS_SDK_OUTPUT_DIR)" }; if ("$(WINDOWS_SDK_INSTALLER_PATH)") { $$arguments.InstallerPath = "$(WINDOWS_SDK_INSTALLER_PATH)" }; if ("$(WINDOWS_SDK_INSTALLER_ARGS)") { $$arguments.InstallerArguments = @("$(WINDOWS_SDK_INSTALLER_ARGS)".Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)) }; & .\_scripts\install_latest_windows_sdk.ps1 @arguments'
+	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Channel = "$(WINDOWS_SDK_CHANNEL)" }; if ("$(WINDOWS_SDK_OUTPUT_DIR)") { $$arguments.DownloadDirectory = "$(WINDOWS_SDK_OUTPUT_DIR)" }; if ("$(WINDOWS_SDK_INSTALLER_PATH)") { $$arguments.InstallerPath = "$(WINDOWS_SDK_INSTALLER_PATH)" }; if ("$(WINDOWS_SDK_INSTALLER_ARGS)") { $$arguments.InstallerArguments = @("$(WINDOWS_SDK_INSTALLER_ARGS)".Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)) }; & .\_scripts\install_scripts\windows\install_latest_windows_sdk.ps1 @arguments'
 
 generate_windows_signing_cert:
 	@$(POWERSHELL_BYPASS) -Command '$$arguments = @{ Subject = "$(WINDOWS_SIGN_CERT_SUBJECT)"; FriendlyName = "$(WINDOWS_SIGN_CERT_FRIENDLY_NAME)"; CertFileName = "$(WINDOWS_SIGN_CERT_FILE_NAME)"; ValidYears = [int]"$(WINDOWS_SIGN_CERT_VALID_YEARS)" }; if ("$(WINDOWS_SIGN_CERT_OUTPUT_DIR)") { $$arguments.OutputDirectory = "$(WINDOWS_SIGN_CERT_OUTPUT_DIR)" }; if ("$(WINDOWS_SIGN_CERT_PASSWORD)") { $$arguments.PfxPassword = "$(WINDOWS_SIGN_CERT_PASSWORD)" }; if ("$(WINDOWS_SIGN_CERT_INSTALL_TO_TRUSTED_PEOPLE)" -eq "1") { $$arguments.InstallToTrustedPeople = $$true }; & .\_scripts\generate_windows_signing_cert.ps1 @arguments'
