@@ -1,0 +1,7 @@
+package io.coolbox.datastructures;
+import com.sun.jna.Pointer; import com.sun.jna.ptr.IntByReference; import com.sun.jna.ptr.LongByReference; import io.coolbox.internal.NativeHandle; import java.util.OptionalLong;
+abstract class Int64MapBase extends NativeHandle {
+ Int64MapBase(boolean concurrent,int initialCapacity){super(DataStructuresNative.INSTANCE.coolbox_ds_map_new(concurrent?1:0,checkedCapacity(initialCapacity)),DataStructuresNative.INSTANCE::coolbox_ds_map_free);}
+ private static long checkedCapacity(int value){if(value<0)throw new IllegalArgumentException("initial capacity must be non-negative");return value;}
+ public void insert(long key,long value){put(key,value);} public void put(long key,long value){DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_map_insert(handle(),key,value));} public OptionalLong get(long key){LongByReference v=new LongByReference();IntByReference f=new IntByReference();DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_map_get(handle(),key,v,f));return DataHandle.optional(v,f.getValue()!=0);} public boolean contains(long key){return DataStructuresNative.INSTANCE.coolbox_ds_map_contains(handle(),key)!=0;} public boolean remove(long key){IntByReference r=new IntByReference();DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_map_remove(handle(),key,r));return DataHandle.changed(r);} public long size(){return DataStructuresNative.INSTANCE.coolbox_ds_map_size(handle());} public void clear(){DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_map_clear(handle()));}
+}

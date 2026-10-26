@@ -1,0 +1,6 @@
+package io.coolbox.datastructures;
+import com.sun.jna.ptr.IntByReference; import com.sun.jna.ptr.LongByReference; import io.coolbox.internal.NativeHandle; import java.util.OptionalLong;
+/** String-keyed radix tree (Python: {@code data_structures.StringRadixTree}). */
+public final class StringRadixTree extends NativeHandle {
+ public StringRadixTree(){super(DataStructuresNative.INSTANCE.coolbox_ds_radix_tree_new(),DataStructuresNative.INSTANCE::coolbox_ds_radix_tree_free);} public void insert(String key,long value){checkKey(key);DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_radix_tree_insert(handle(),key,value));} public OptionalLong get(String key){checkKey(key);LongByReference v=new LongByReference();IntByReference f=new IntByReference();DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_radix_tree_get(handle(),key,v,f));return DataHandle.optional(v,f.getValue()!=0);} public boolean remove(String key){checkKey(key);IntByReference r=new IntByReference();DataHandle.ok(DataStructuresNative.INSTANCE.coolbox_ds_radix_tree_remove(handle(),key,r));return DataHandle.changed(r);} private static void checkKey(String k){if(k==null||k.indexOf('\0')>=0)throw new IllegalArgumentException("radix-tree keys cannot contain NUL characters");}
+}

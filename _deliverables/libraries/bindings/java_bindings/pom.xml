@@ -7,23 +7,33 @@
   <artifactId>coolbox-java-bindings</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <name>CoolBox Java Bindings</name>
-  <description>Plain Java extension scaffold for CoolBox.</description>
+  <description>JNA bindings for the CoolBox C++ library (feature parity with the Python bindings).</description>
   <packaging>jar</packaging>
 
   <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>5.11.4</junit.version>
-    <coolbox.c.bindings.dir>${project.basedir}/../c_bindings/build</coolbox.c.bindings.dir>
-    <skip.c.bindings.build>false</skip.c.bindings.build>
+    <jna.version>5.17.0</jna.version>
+
+    <!-- Native build (native/CMakeLists.txt builds coolbox_java_bridge + coolbox_c_bindings). -->
+    <coolbox.native.build.dir>${project.basedir}/native/build</coolbox.native.build.dir>
+    <coolbox.native.dir>${coolbox.native.build.dir}/natives</coolbox.native.dir>
+    <coolbox.native.cmake.args></coolbox.native.cmake.args>
+    <skip.native.build>false</skip.native.build>
+
+    <!-- Narrow compilation/tests, e.g. -Dcoolbox.java.include=io/coolbox/svm/** . -->
+    <coolbox.java.include>**/*.java</coolbox.java.include>
+    <coolbox.java.include.core>io/coolbox/*.java</coolbox.java.include.core>
+    <coolbox.java.include.internal>io/coolbox/internal/**</coolbox.java.include.internal>
+    <coolbox.build.dir>${project.basedir}/target</coolbox.build.dir>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.17.0</version>
+      <version>${jna.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -33,20 +43,51 @@
     </dependency>
   </dependencies>
 
+  <profiles>
+    <!-- The JVM on Windows on ARM is aarch64; MSVC ARM64 tools are often missing, so use LLVM-MinGW
+         (winget install MartinStorsjo.LLVM-MinGW.UCRT) whose aarch64 cross compilers must be on PATH. -->
+    <profile>
+      <id>windows-aarch64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <coolbox.native.cmake.args>-G "MinGW Makefiles" -DCMAKE_C_COMPILER=aarch64-w64-mingw32-clang -DCMAKE_CXX_COMPILER=aarch64-w64-mingw32-clang++</coolbox.native.cmake.args>
+      </properties>
+    </profile>
+  </profiles>
+
   <build>
+    <directory>${coolbox.build.dir}</directory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.13.0</version>
+        <configuration>
+          <includes>
+            <include>${coolbox.java.include.core}</include>
+            <include>${coolbox.java.include.internal}</include>
+            <include>${coolbox.java.include}</include>
+          </includes>
+          <testIncludes>
+            <testInclude>${coolbox.java.include}</testInclude>
+          </testIncludes>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
         <configuration>
+          <!-- Native algorithms write to stdout; keep fork communication on a separate TCP channel. -->
+          <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
           <systemPropertyVariables>
-            <coolbox.c.bindings.dir>${coolbox.c.bindings.dir}</coolbox.c.bindings.dir>
+            <coolbox.native.dir>${coolbox.native.dir}</coolbox.native.dir>
+            <coolbox.c.bindings.dir>${coolbox.native.dir}</coolbox.c.bindings.dir>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -64,11 +105,11 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.5.1</version>
         <configuration>
-          <skip>${skip.c.bindings.build}</skip>
+          <skip>${skip.native.build}</skip>
         </configuration>
         <executions>
           <execution>
-            <id>configure-c-bindings</id>
+            <id>configure-native</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>exec</goal>
@@ -76,17 +117,11 @@
             <configuration>
               <workingDirectory>${project.basedir}</workingDirectory>
               <executable>cmake</executable>
-              <arguments>
-                <argument>-S</argument>
-                <argument>${project.basedir}/../c_bindings</argument>
-                <argument>-B</argument>
-                <argument>${project.basedir}/../c_bindings/build</argument>
-                <argument>-DBUILD_TESTING=ON</argument>
-              </arguments>
+              <commandlineArgs>-S "${project.basedir}/native" -B "${coolbox.native.build.dir}" -DCMAKE_BUILD_TYPE=Release ${coolbox.native.cmake.args}</commandlineArgs>
             </configuration>
           </execution>
           <execution>
-            <id>build-c-bindings</id>
+            <id>build-native</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>exec</goal>
@@ -94,12 +129,7 @@
             <configuration>
               <workingDirectory>${project.basedir}</workingDirectory>
               <executable>cmake</executable>
-              <arguments>
-                <argument>--build</argument>
-                <argument>${project.basedir}/../c_bindings/build</argument>
-                <argument>--config</argument>
-                <argument>Release</argument>
-              </arguments>
+              <commandlineArgs>--build "${coolbox.native.build.dir}" --config Release --parallel</commandlineArgs>
             </configuration>
           </execution>
         </executions>

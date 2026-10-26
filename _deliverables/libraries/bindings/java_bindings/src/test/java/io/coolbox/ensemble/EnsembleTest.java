@@ -1,0 +1,3 @@
+package io.coolbox.ensemble;
+import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;
+class EnsembleTest {@Test void trainsBoostAndBaggedRegressors(){double[][] x={{0},{1},{2},{3}};double[] y={0,1,2,3};try(BoostTree t=new BoostTree(new BoostTreeParameters(12,.2,2)).fit(x,y);RandomForestRegressor f=new RandomForestRegressor(6,2,42).fit(x,y)){assertTrue(Double.isFinite(t.predict(new double[]{1})));assertTrue(Double.isFinite(f.predict(new double[]{1})));}}@Test void classifierProducesProbabilities(){double[][] x={{0},{1},{2},{3}};int[] y={0,0,1,1};try(BoostTreeClassifier c=new BoostTreeClassifier(new BoostTreeParameters(10,.2,2)).fit(x,y)){assertTrue(c.predictProba(new double[]{2}).length>0);}}}
