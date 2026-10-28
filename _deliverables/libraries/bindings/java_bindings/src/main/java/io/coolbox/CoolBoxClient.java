@@ -1,13 +1,9 @@
 package io.coolbox;
 
 import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.NativeLibrary;
+import io.coolbox.internal.NativeLibraries;
 
 import java.time.Instant;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -102,45 +98,7 @@ public final class CoolBoxClient {
     }
 
     private static CoolBoxNative loadNativeBindings() {
-        for (Path directory : nativeSearchDirectories()) {
-            NativeLibrary.addSearchPath("coolbox_c_bindings", directory.toString());
-        }
-
-        try {
-            return Native.load("coolbox_c_bindings", CoolBoxNative.class);
-        } catch (UnsatisfiedLinkError error) {
-            throw new IllegalStateException(
-                    "Unable to load native CoolBox C bindings. Set coolbox.c.bindings.dir or COOLBOX_C_BINDINGS_DIR to the build directory.",
-                    error
-            );
-        }
-    }
-
-    private static List<Path> nativeSearchDirectories() {
-        List<Path> directories = new ArrayList<>();
-        addIfDirectory(directories, System.getProperty("coolbox.c.bindings.dir"));
-        addIfDirectory(directories, System.getenv("COOLBOX_C_BINDINGS_DIR"));
-
-        Path userDir = Paths.get("").toAbsolutePath().normalize();
-        addIfDirectory(directories, userDir.resolve("_libraries/c_bindings/build"));
-        addIfDirectory(directories, userDir.resolve("../c_bindings/build"));
-
-        return directories;
-    }
-
-    private static void addIfDirectory(List<Path> directories, String candidate) {
-        if (candidate == null || candidate.isBlank()) {
-            return;
-        }
-
-        addIfDirectory(directories, Paths.get(candidate));
-    }
-
-    private static void addIfDirectory(List<Path> directories, Path candidate) {
-        Path normalized = candidate.toAbsolutePath().normalize();
-        if (Files.isDirectory(normalized) && !directories.contains(normalized)) {
-            directories.add(normalized);
-        }
+        return NativeLibraries.cBindings(CoolBoxNative.class);
     }
 
     private interface CoolBoxNative extends Library {

@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <vector>
 
-#include <chemistry/periodic_table.h>
+#include "../../../CHEMISTRY/include/chemistry/periodic_table.h"
 
 namespace battery {
 

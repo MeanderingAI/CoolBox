@@ -1,0 +1,3 @@
+package io.coolbox.datastructures;
+import com.sun.jna.Pointer; import com.sun.jna.ptr.IntByReference; import com.sun.jna.ptr.LongByReference; import io.coolbox.CoolBoxException; import io.coolbox.internal.NativeHandle; import java.util.OptionalLong;
+abstract class DataHandle extends NativeHandle { DataHandle(Pointer p,java.util.function.Consumer<Pointer> free){super(p,free);} static void ok(int s){if(s==0) throw new CoolBoxException("native data-structure operation failed");} static boolean changed(IntByReference v){return v.getValue()!=0;} static OptionalLong optional(LongByReference v,boolean found){return found?OptionalLong.of(v.getValue()):OptionalLong.empty();} }

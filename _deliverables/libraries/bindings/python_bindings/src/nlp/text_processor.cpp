@@ -3,6 +3,7 @@
 #include <cmath>
 #include <sstream>
 #include <cctype>
+#include <iterator>
 #include <regex>
 
 namespace ml {
