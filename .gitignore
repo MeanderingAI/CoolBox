@@ -1,4 +1,6 @@
 build
+build-install/
+build-consumer/
 build_*
 !_scripts/build_scripts/
 !_scripts/build_scripts/**

@@ -73,6 +73,206 @@ Previously, generic asset names caused GitHub Actions release upload failures du
 The cmake generates shared objects which can be used with other projects for each of these categories of machine learning.
 We also include gunit tests for the entire suite.
 
+## C++ GIS Library
+
+The [GIS library](_deliverables/libraries/groups/trekker/GIS/headers/gis.hpp)
+provides WGS84 longitude/latitude to Web Mercator (EPSG:3857) conversion and its
+inverse, spherical haversine distances in metres, planar geometry operations,
+bounding boxes, spatial candidate queries, and GeoJSON reading/writing.
+
+After `make install`, use `#include <CB/gis.hpp>` and link `CoolBox::gis`:
+
+```cmake
+find_package(CoolBox REQUIRED CONFIG)
+target_link_libraries(my_app PRIVATE CoolBox::gis)
+```
+
+Set `CMAKE_PREFIX_PATH` to your `INSTALL_PREFIX` when configuring the consuming
+project. The existing CoolBox JSON library is a transitive dependency.
+
+```cpp
+#include <CB/gis.hpp>
+
+auto document = trekker::gis::read_geojson(
+    R"({"type":"Point","coordinates":[-73.9857,40.7484]})");
+auto projected = trekker::gis::to_web_mercator({-73.9857, 40.7484});
+auto distance = trekker::gis::haversine_distance({0, 0}, {1, 0});
+auto json = trekker::gis::write_geojson(document);
+```
+
+- All seven GeoJSON geometry types, Features, and FeatureCollections are
+  supported. Positions use `[longitude, latitude]` with optional altitude;
+  properties, string/numeric IDs, bounding boxes, and foreign members survive
+  round trips. Null feature geometry/properties and empty multi-geometries or
+  collections are supported. Empty Points, LineStrings, and Polygons are rejected.
+- Invalid values throw exceptions. GeoJSON accepts finite WGS84 positions
+  within longitude `[-180,180]` and latitude `[-90,90]`; legacy `crs` overrides
+  and positions with more than three ordinates are rejected.
+- Mercator conversion rejects latitudes beyond approximately +/-85.051129
+  degrees rather than silently clamping. Haversine distances use a mean-radius
+  sphere, not ellipsoidal geodesics.
+- `planar_length`, `planar_area`, `covers`, and `bounds` operate in the input
+  coordinate plane and ignore altitude. Project first for metre-based lengths
+  and square-metre areas, noting that Mercator distorts both. Polygon rings
+  must be closed; holes are subtracted regardless of winding. `covers` includes
+  exterior and hole boundaries, but excludes hole interiors. These operations
+  assume simple polygons with nonoverlapping holes inside the exterior; they
+  do not perform topology repair or validation.
+- `BBTree` is a balanced binary bounding-box hierarchy. `SpatialIndex` uses it
+  internally while preserving its existing API. Both support insertion,
+  replacement by ID, removal, and boundary-inclusive point/box queries with
+  results sorted by ID. Queries prune subtrees whose bounding boxes do not
+  overlap. The tree is rebuilt lazily after edits using median splits along
+  the widest axis, allowing batched updates. Rebuilding costs O(n log n);
+  queries can still visit O(n) nodes for heavily overlapping boxes, plus
+  O(k log k) to sort k matches. `BBTree::height()` reports the balanced tree
+  height (zero when empty) and also triggers any pending rebuild.
+  Queries update the internal cache, so concurrent access requires external
+  synchronization. This is not an R-tree or an exact geometry-intersection
+  engine. Planar bounding boxes do not wrap across the antimeridian.
+
+```cpp
+trekker::gis::BBTree tree;
+tree.insert(42, {0, 0, 10, 10});
+auto matches = tree.query(trekker::gis::Coordinate{5, 5, {}});
+tree.insert(42, {20, 20, 30, 30}); // Replace the box for this ID.
+tree.erase(42);
+```
+
+Run the focused tests with `ctest --test-dir build -R "^GisTests$" --output-on-failure`
+after building `gis_tests` with `BUILD_TESTING=ON`.
+
+## C++ BBTree Ordered Map
+
+[BBTreeMap](_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/bbtree/headers/bbtree.hpp)
+is a separate, header-only ordered map in `data_structures`, inspired by
+[Xiangpeng Hao's bbtree article](https://bbtree.xiangpeng.systems/post/).
+It is not the GIS bounding-box `BBTree`, a port of the Rust crate, or a
+drop-in replacement for `std::map`.
+
+```cmake
+find_package(CoolBox REQUIRED CONFIG)
+target_link_libraries(my_app PRIVATE CoolBox::bbtree)
+```
+
+```cpp
+#include <CB/bbtree.hpp>
+
+data_structures::BBTreeMap<std::string, int> map;
+map.insert("apple", 1);                 // Leaves existing keys unchanged.
+map.insert_or_assign("banana", 2);     // Inserts or replaces a value.
+map.at("apple") = 3;
+for (auto it = map.lower_bound("a"); it != map.lower_bound("c"); ++it) {
+    // Entries in the half-open range ["a", "c").
+}
+map.erase("banana");
+```
+
+- Balanced B+ nodes hold up to 15 entries by default (minimum degree 8).
+  Insertion splits full nodes; deletion borrows or merges underfull nodes
+  and collapses the root. Linked leaves support forward ordered iteration.
+- String keys with the standard ascending comparator use per-node common-prefix
+  lengths and dense 64-bit inline hints; ties compare the full key, including
+  embedded null bytes. Unsigned integer keys up to 64 bits also use inline
+  hints. Other key/comparator combinations use ordinary binary search.
+- Supports `insert`, `insert_or_assign`, `find`, `contains`, `at`, `erase`,
+  `lower_bound`, `upper_bound`, mutable/const forward iteration, `clear`,
+  copy/move, and `swap`. Keys are immutable; mapped values may be move-only
+  when the map is not copied. `validate()` checks structural invariants.
+- All insertions, replacements, erasures, and clearing invalidate iterators
+  and references conservatively. Use external synchronization for shared access.
+  Keys must be copy-constructible, and key comparators must define a strict weak
+  order. This API uses forward rather than bidirectional iterators and does not
+  implement `std::map`'s allocator, node-handle, or heterogeneous-lookup APIs.
+- Nodes own separate entry allocations through shared pointers so internal
+  separators never duplicate mapped values. This favors safe generic C++
+  ownership over matching the Rust crate's memory layout. No SIMD, concurrent
+  variant, async batch mode, or article-level speed/memory claims are provided.
+  Search/update are logarithmic for fixed node degree; scanning k entries
+  after a bound lookup is O(k).
+
+Build `bbtree_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R "^BBTreeMapTests$" --output-on-failure`.
+
+## Native C++ Terminal Widgets
+
+The existing `CoolBox::cli_tools` library now includes
+[terminal UI tools](_deliverables/libraries/groups/app_builder/OS_GENERICS/cli_tools/headers/terminal_ui.hpp)
+in `os_generics::cli::tui`, alongside its command-line argument parser.
+No new third-party dependencies are required.
+
+```cmake
+find_package(CoolBox REQUIRED CONFIG)
+target_link_libraries(my_app PRIVATE CoolBox::cli_tools)
+```
+
+```cpp
+#include <CB/cli_tools.hpp>
+
+namespace tui = os_generics::cli::tui;
+
+tui::DocumentEditor editor("Start writing here.\n");
+tui::TerminalSession terminal;
+for (;;) {
+    const auto size = terminal.size();
+    tui::Frame frame(size.columns, size.rows);
+    editor.render(frame);
+    terminal.present(frame);
+    const auto event = terminal.read_key();
+    if (!event) continue;
+    if (event->control && event->character == 'q') break;
+    if (event->control && event->character == 's') editor.save("document.txt");
+    else editor.handle(*event);
+}
+terminal.close();
+```
+
+Replace the editor with a table in the same event/render loop:
+
+```cpp
+tui::TableViewer table({"Name", "Value"}, {{"alpha", "10"}, {"beta", "20"}});
+table.set_selection_mode(tui::SelectionMode::cells); // Or SelectionMode::rows.
+// table.handle(event); table.render(frame);
+// table.active_cell(), table.selected(row, column), table.selection()
+```
+
+- `DocumentEditor`: multiline insertion, splitting/joining lines, Backspace/Delete,
+  arrows, Home/End, Page Up/Down, horizontal/vertical scrolling, cursor highlighting,
+  a dirty flag, and explicit `load(path)` / `save(path)` operations. Tab expands
+  to four spaces; loading normalizes CRLF to LF and expands tabs. Saving uses LF
+  and overwrites the destination directly (not an atomic or backup save).
+  File and validation failures throw; failed loads preserve the current document.
+- `TableViewer`: arrow/Home/End/Page navigation, automatic scrolling, Space to
+  toggle a cell or row, Shift+navigation to select a rectangular cell range or
+  contiguous row range, Escape to clear selections. Switching selection modes
+  clears the selection. Row selections are returned once per row with column zero.
+  The table is read-only and requires rectangular data with at least one column;
+  zero rows are supported. Column widths are inferred and capped at 30 characters.
+- `Menu`: Up/Down/Home/End navigation, scrolling, Enter activation.
+  `Frame`: clipped styled text drawing, plain-text snapshots, ANSI rendering,
+  and a status bar. Widget rendering clears its frame; widgets are full-frame,
+  not a multi-pane layout manager.
+- `TerminalSession`: Windows console events and ANSI output; POSIX termios/poll
+  input on Linux/macOS; alternate screen, hidden hardware cursor, raw keys,
+  terminal size checks, configurable input timeouts, and mode restoration.
+  It requires an actual interactive console and rejects redirected streams.
+  Destruction reports cleanup errors to stderr; `close()` permits callers to
+  catch them explicitly. Handle application exceptions outside the session's
+  scope so unwinding restores the terminal.
+- Initial text support is printable ASCII, not UTF-8/grapheme-aware. Unsupported
+  input produces `Key::unknown`; invalid widget strings (including terminal
+  escape characters) throw instead of being emitted as control sequences.
+  No mouse, clipboard, undo/redo, text selection, CSV parser, or syntax
+  highlighting is included. Ctrl/Alt shortcuts are left to the host application.
+  POSIX Shift+navigation requires xterm-style modified key sequences.
+- Use one session per terminal. Call `size()` again when rendering after a resize;
+  avoid continuously repainting when no input or resize occurred in production.
+  Ctrl+C is delivered as a key rather than terminating the application; fatal
+  process termination cannot guarantee terminal restoration.
+
+Build `cli_tools_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R "^CliToolsTests$" --output-on-failure`.
+
 ## Python Install
 
 The Python bindings can now be installed directly from the repository root:
@@ -483,9 +683,47 @@ See `python_bindings/README.md` and `python_bindings/examples/` for comprehensiv
 
 ## CMake Package (External Projects)
 
-CoolBox can now be installed and consumed with `find_package`.
+Install the standalone C++ package without configuring unrelated apps, documentation
+tools, or language bindings:
 
-Build + install:
+```bash
+make install
+# Optional custom destination (quote paths containing spaces):
+make install INSTALL_PREFIX="<install-prefix>"
+```
+
+This builds UUID generation, JSON, GIS (including its spatial BBTree), the
+ordered-map BBTree, and CLI widgets. It uses a separate `build-install` directory,
+leaving existing `build` configurations untouched. Override `INSTALL_BUILD_DIR`
+to change that directory. The default destination is `%LOCALAPPDATA%\CoolBox` on
+Windows and `~/.local` on Linux/macOS. Only a C++17 compiler and CMake are required;
+OpenSSL is optional for UUID generation, as in the full build.
+The Windows Makefile selects Visual Studio x64 by default; set
+`VS_GENERATOR_PLATFORM=ARM64` to use an installed ARM64 toolchain instead,
+or set `VS_GENERATOR` to choose another CMake generator.
+
+The equivalent direct CMake commands are:
+
+```bash
+cmake -S . -B build-install -DCOOLBOX_STANDALONE_INSTALL=ON -DCOOLBOX_ENABLE_GPU_ACCELERATION=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build build-install --config Release
+cmake --install build-install --config Release --prefix <install-prefix>
+```
+
+Headers are installed under `include/CB`, libraries under `lib` (or the platform's
+GNUInstallDirs library directory), and Windows DLLs under `bin`. Add the installed
+`bin` directory to `PATH` when running Windows consumers, or deploy the DLLs next
+to the consuming executable. For example:
+
+```cpp
+#include <CB/uuid_generation.hpp>
+#include <CB/gis.hpp>
+#include <CB/bbtree.hpp>
+#include <CB/cli_tools.hpp>
+```
+
+To build and install the full repository instead (requires its external
+dependencies, including binding/tool dependencies):
 
 ```bash
 cmake -S . -B build -DCOOLBOX_INSTALL_PACKAGE=ON
@@ -497,10 +735,22 @@ Consume from another CMake project:
 
 ```cmake
 find_package(CoolBox CONFIG REQUIRED)
-target_link_libraries(your_app PRIVATE CoolBox::deep_learning)
+target_link_libraries(your_app PRIVATE
+    CoolBox::uuid_generation CoolBox::gis CoolBox::bbtree CoolBox::cli_tools)
 ```
 
 If CoolBox is installed to a custom location, set `CMAKE_PREFIX_PATH` to `<install-prefix>`.
+
+To verify the installed package with a separate consumer:
+
+```bash
+cmake -S cmake/tests/install_consumer -B build-consumer -DCMAKE_PREFIX_PATH="<install-prefix>"
+cmake --build build-consumer --config Release
+ctest --test-dir build-consumer -C Release --output-on-failure
+```
+
+Use the same compiler and architecture as the installed libraries (add `-A x64`
+when configuring the consumer with Visual Studio if needed).
 
 ## Internal Maintainer Notes
 

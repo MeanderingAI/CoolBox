@@ -1,0 +1,12 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a3/cmake_install.cmake",
+		"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a3/c_bindings/cmake_install.cmake",
+		"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a3/c_bindings/metadata_management/cmake_install.cmake",
+		"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a3/c_bindings/uuid_generation/cmake_install.cmake",
+		"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a3/c_bindings/json/cmake_install.cmake",
+		"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a3/c_bindings/sql/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,1 @@
+ metadata_management/libmetadata_management.dll.a uuid_generation/Release/libuuid_generation.dll.a sql/libsql.dll.a -lws2_32 json/libjson.dll.a ../libcoolbox_bundled_sqlite3.a -lpthread -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
