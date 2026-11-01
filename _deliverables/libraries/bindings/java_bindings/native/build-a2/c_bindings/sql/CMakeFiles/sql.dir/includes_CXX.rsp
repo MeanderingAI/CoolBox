@@ -1,0 +1,1 @@
+-IC:/Users/mngha/workspace/CoolBox/include -IC:/Users/mngha/workspace/CoolBox/_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/headers -IC:/Users/mngha/workspace/CoolBox/_deliverables/libraries/groups/trekker/IO/dataformats/json/headers -I"C:/Users/mngha/workspace/CoolBox/_deliverables/libraries/bindings/java_bindings/native/build-a2/_deps/coolbox_sqlite3-src"

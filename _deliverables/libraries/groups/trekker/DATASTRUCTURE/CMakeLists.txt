@@ -1,5 +1,7 @@
 
 # Data Structures Library
+add_subdirectory(trees/bbtree)
+
 set(DATA_STRUCTURES_SOURCES
 	trees/source/binary_search_tree.cpp
 	trees/source/red_black_tree.cpp
