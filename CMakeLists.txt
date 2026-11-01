@@ -9,7 +9,10 @@ set(EIGEN_TEST_CXX11 ON CACHE BOOL "Enable C++11/17 for Eigen" FORCE)
 # Ensure custom Find*.cmake modules are found before dependency checks run.
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 
-include(cmake/FindAllDependencies.cmake)
+option(COOLBOX_STANDALONE_INSTALL "Build only the standalone C++ installation libraries" OFF)
+if(NOT COOLBOX_STANDALONE_INSTALL)
+    include(cmake/FindAllDependencies.cmake)
+endif()
 
 # Option to control Emscripten MODULARIZE (default ON, can override with -DEMSCRIPTEN_MODULARIZE=OFF)
 option(EMSCRIPTEN_MODULARIZE "Build Emscripten modules with MODULARIZE=1 (async JS loading)" ON)
@@ -26,7 +29,11 @@ endif()
 
 # On MSVC, force a consistent dynamic MSVC runtime to avoid /MT vs /MD mismatches
 if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+    if(COOLBOX_STANDALONE_INSTALL)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+    endif()
     # /FS: force synchronous PDB writes to fix C1041 when multiple CL.EXE run in parallel
     add_compile_options(/FS)
 endif()
@@ -49,7 +56,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Include the external dependencies from the sub-directory
-include(cmake/ExternalDependencies.cmake)
+if(NOT COOLBOX_STANDALONE_INSTALL)
+    include(cmake/ExternalDependencies.cmake)
+endif()
 
 # Pass top-level source dir to gen_docs
 set(TOOLBOX_SOURCE_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Top-level ToolBox source directory" FORCE)
@@ -202,7 +211,7 @@ endfunction()
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 option(BUILD_PRODUCT_INSTALLER_ABSTRACTIONS "Build installer abstraction helpers for release-packaged products" OFF)
-if(BUILD_BINARIES)
+if(BUILD_BINARIES AND NOT COOLBOX_STANDALONE_INSTALL)
     if(EXISTS "${CMAKE_SOURCE_DIR}/_binaries")
         add_subdirectory(_binaries)
     else()
@@ -213,12 +222,12 @@ endif()
 add_subdirectory(_deliverables/libraries)
 
 # Build apps if present (e.g., apps/lsp)
-if(EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
+if(NOT COOLBOX_STANDALONE_INSTALL AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
     add_subdirectory(_deliverables/apps)
 endif()
 
 option(BUILD_PRODUCTS "Build products under _Product" ON)
-if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/Product")
+if(BUILD_PRODUCTS AND NOT COOLBOX_STANDALONE_INSTALL AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/Product")
     add_subdirectory(_deliverables/Product)
 endif()
 
@@ -440,7 +449,7 @@ endif()
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 # Add Python bindings if requested
-if(BUILD_PYTHON_BINDINGS AND NOT _coolbox_skip_pybind11)
+if(BUILD_PYTHON_BINDINGS AND NOT COOLBOX_STANDALONE_INSTALL AND NOT _coolbox_skip_pybind11)
     if(TARGET ml_core)
         message(STATUS "Python bindings are already configured by the libraries tree.")
     elseif(TARGET pybind11::pybind11)
@@ -461,7 +470,7 @@ endif()
 # Find and include Eigen3 globally for all targets that need it.
 # ExternalDependencies.cmake already provides Eigen3::Eigen in CI/toolchains
 # where a package config is unavailable.
-if(NOT TARGET Eigen3::Eigen)
+if(NOT COOLBOX_STANDALONE_INSTALL AND NOT TARGET Eigen3::Eigen)
     find_package(Eigen3 QUIET CONFIG)
     if(NOT TARGET Eigen3::Eigen)
         find_package(Eigen3 REQUIRED)

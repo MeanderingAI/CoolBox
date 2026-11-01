@@ -1,7 +1,12 @@
+param(
+    [string]$BuildDirectory = 'build',
+    [switch]$StandaloneInstall
+)
+
 $ErrorActionPreference = 'Stop'
 
-if (Test-Path 'build/CMakeCache.txt') {
-    Write-Host '[Makefile.win] Build already configured (build/CMakeCache.txt exists).'
+if (-not $StandaloneInstall -and (Test-Path (Join-Path $BuildDirectory 'CMakeCache.txt'))) {
+    Write-Host "[Makefile.win] Build already configured ($BuildDirectory/CMakeCache.txt exists)."
     exit 0
 }
 
@@ -29,14 +34,27 @@ if ($env:VS_GENERATOR) {
 $generatorPlatform = ''
 if ($env:VS_GENERATOR_PLATFORM) {
     $generatorPlatform = $env:VS_GENERATOR_PLATFORM
+} elseif ($StandaloneInstall -and $generator -like 'Visual Studio*') {
+    $generatorPlatform = 'x64'
 }
 
 $args = @(
     '-S', '.',
-    '-B', 'build',
-    '-DBUILD_BINARIES=OFF',
-    '-DENABLE_GSL=ON'
+    '-B', $BuildDirectory,
+    '-DBUILD_BINARIES=OFF'
 )
+
+if ($StandaloneInstall) {
+    $args += @(
+        '-DCOOLBOX_STANDALONE_INSTALL=ON',
+        '-DCOOLBOX_INSTALL_PACKAGE=ON',
+        '-DCOOLBOX_ENABLE_GPU_ACCELERATION=OFF',
+        '-DBUILD_TESTING=OFF',
+        '-DCMAKE_BUILD_TYPE=Release'
+    )
+} else {
+    $args += '-DENABLE_GSL=ON'
+}
 
 if ($generator) {
     $args += @('-G', $generator)
@@ -66,7 +84,7 @@ $vcpkgToolchain = $vcpkgCandidates |
     Where-Object { Test-Path $_ } |
     Select-Object -First 1
 
-if ($vcpkgToolchain) {
+if ($vcpkgToolchain -and -not $StandaloneInstall) {
     $args += "-DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain"
 }
 
