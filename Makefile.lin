@@ -4,6 +4,10 @@ PYTHON := $(if $(wildcard .venv/bin/python),$(CURDIR)/.venv/bin/python,python3)
 
 EMSDK ?= $(HOME)/emsdk
 
+# Where "make install" places headers/libs for use by other C++ projects.
+# Override with: make install INSTALL_PREFIX=/some/path
+INSTALL_PREFIX ?= $(HOME)/.local
+
 LD_LIBRARY_PATH := $(CURDIR)/lib:$(LD_LIBRARY_PATH)
 
 .DEFAULT_GOAL := help
@@ -36,7 +40,7 @@ ifneq ($(filter run,$(MAKECMDGOALS)),)
   endif
 endif
 
-.PHONY: help configure build build_libraries build_apps package run list list_apps list_libraries apps libraries test install_system_deps clean
+.PHONY: help configure build build_libraries build_apps package run list list_apps list_libraries apps libraries test install install_system_deps clean
 
 help:
 	@echo "\nCoolBox Linux Build System"
@@ -56,6 +60,7 @@ help:
 	@echo "make list apps            Alias for make list_apps"
 	@echo "make list libraries       Alias for make list_libraries"
 	@echo "make test                 Run all tests"
+	@echo "make install              Install headers + libs to INSTALL_PREFIX (default ~/.local)"
 	@echo "make install_system_deps  Install system dependencies via apt-get"
 	@echo "make clean                Remove build artifacts"
 
@@ -120,6 +125,15 @@ test: configure
 	@cmake --build build
 	@echo "[Makefile.lin] Running all tests..."
 	@cd build && ctest --output-on-failure || true
+
+install: build
+	@echo "[Makefile.lin] Installing headers and libraries to $(INSTALL_PREFIX) ..."
+	@cmake --install build --prefix "$(INSTALL_PREFIX)"
+	@echo ""
+	@echo "[Makefile.lin] Install complete."
+	@echo "  Add this to your include paths: $(INSTALL_PREFIX)/include"
+	@echo "  Then include CoolBox headers like: #include <CB/uuid_generation.hpp>"
+	@echo "  Or via CMake: CMAKE_PREFIX_PATH=$(INSTALL_PREFIX) + find_package(CoolBox), then link CoolBox:: targets."
 
 install_system_deps:
 	@echo "[Makefile.lin] Installing system dependencies via apt-get..."
