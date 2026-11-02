@@ -1,0 +1,3 @@
+package io.coolbox.bandit;
+import com.sun.jna.Library;import com.sun.jna.Pointer;import com.sun.jna.ptr.DoubleByReference;import io.coolbox.internal.NativeLibraries;
+interface BanditNative extends Library {BanditNative INSTANCE=NativeLibraries.bridge(BanditNative.class);Pointer coolbox_bandit_arm_new(double p);void coolbox_bandit_arm_free(Pointer h);int coolbox_bandit_arm_pull(Pointer h,DoubleByReference reward);int coolbox_bandit_arm_update(Pointer h,double reward);double coolbox_bandit_arm_estimated_probability(Pointer h);int coolbox_bandit_arm_pull_count(Pointer h);double coolbox_bandit_arm_true_probability(Pointer h);}

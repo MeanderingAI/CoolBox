@@ -1,0 +1,42 @@
+cmake_minimum_required(VERSION 3.20)
+
+if(NOT DEFINED COOLBOX_DLL_MANIFEST OR NOT EXISTS "${COOLBOX_DLL_MANIFEST}")
+    message(FATAL_ERROR "DLL manifest not found: '${COOLBOX_DLL_MANIFEST}'. Configure the Windows build first.")
+endif()
+if(NOT DEFINED COOLBOX_DLL_DESTINATION OR "${COOLBOX_DLL_DESTINATION}" STREQUAL "")
+    message(FATAL_ERROR "COOLBOX_DLL_DESTINATION must specify the DLL installation directory.")
+endif()
+
+file(STRINGS "${COOLBOX_DLL_MANIFEST}" _dlls)
+list(FILTER _dlls EXCLUDE REGEX "^$")
+list(REMOVE_DUPLICATES _dlls)
+if(NOT _dlls)
+    message(FATAL_ERROR "No DLLs are configured for installation in '${COOLBOX_DLL_MANIFEST}'.")
+endif()
+
+set(_dll_names)
+foreach(_dll IN LISTS _dlls)
+    if(NOT EXISTS "${_dll}" OR IS_DIRECTORY "${_dll}")
+        message(FATAL_ERROR "Required DLL is missing: '${_dll}'. Build coolbox_windows_libraries for the selected configuration first.")
+    endif()
+    get_filename_component(_name "${_dll}" NAME)
+    string(TOLOWER "${_name}" _name)
+    if(_name IN_LIST _dll_names)
+        message(FATAL_ERROR "Different DLLs have the same installation name '${_name}'. Refusing to overwrite one with another.")
+    endif()
+    list(APPEND _dll_names "${_name}")
+endforeach()
+
+file(MAKE_DIRECTORY "${COOLBOX_DLL_DESTINATION}")
+foreach(_dll IN LISTS _dlls)
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${_dll}" "${COOLBOX_DLL_DESTINATION}"
+        RESULT_VARIABLE _result
+    )
+    if(NOT _result EQUAL 0)
+        message(FATAL_ERROR "Failed to install '${_dll}' into '${COOLBOX_DLL_DESTINATION}': ${_result}")
+    endif()
+    message(STATUS "Installed DLL: ${_dll}")
+endforeach()
+list(LENGTH _dlls _dll_count)
+message(STATUS "Installed ${_dll_count} DLLs into '${COOLBOX_DLL_DESTINATION}'.")

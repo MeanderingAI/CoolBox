@@ -1,0 +1,3 @@
+package io.coolbox.glm;
+/** Python {@code glm.LinearRegressionFitMethod}. */
+public final class LinearRegressionFitMethod {private final int numIterations;private final double learningRate;private final FitMethod type;public LinearRegressionFitMethod(){this(10000,.01,FitMethod.GRADIENT_DESCENT);}public LinearRegressionFitMethod(int iterations,double learningRate,FitMethod type){if(iterations<0)throw new IllegalArgumentException("iterations must be non-negative");this.numIterations=iterations;this.learningRate=learningRate;this.type=type;}public int getNumIterations(){return numIterations;}public double getLearningRate(){return learningRate;}public FitMethod getType(){return type;}}

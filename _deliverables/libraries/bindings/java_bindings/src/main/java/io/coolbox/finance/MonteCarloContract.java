@@ -1,0 +1,2 @@
+package io.coolbox.finance;
+public enum MonteCarloContract { EUROPEAN_CALL,EUROPEAN_PUT,ARITHMETIC_ASIAN_CALL,DOWN_AND_OUT_CALL,UP_AND_OUT_CALL,DOWN_AND_OUT_PUT }

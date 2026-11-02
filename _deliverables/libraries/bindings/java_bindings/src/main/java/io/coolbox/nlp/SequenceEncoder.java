@@ -1,0 +1,9 @@
+package io.coolbox.nlp;
+import com.sun.jna.Pointer; import com.sun.jna.ptr.LongByReference; import io.coolbox.internal.ErrorBuffer; import io.coolbox.internal.Matrices; import io.coolbox.internal.NativeHandle; import java.util.List;
+/** Vocabulary-based sequence encoder (Python: {@code nlp.SequenceEncoder}). */
+public final class SequenceEncoder extends NativeHandle {
+ private static final NlpNative N=NlpNative.INSTANCE; public SequenceEncoder(Vocabulary vocab){this(vocab,0,true,true);} public SequenceEncoder(Vocabulary vocab,int maxLength,boolean padding,boolean truncation){super(N.coolbox_nlp_sequence_new(vocab.handle(),maxLength,padding?1:0,truncation?1:0),N::coolbox_nlp_sequence_free);}
+ public long[] encode(List<String> tokens){var a=NlpSupport.array(tokens);LongByReference c=new LongByReference();ErrorBuffer e=new ErrorBuffer();Pointer p=e.check(N.coolbox_nlp_sequence_encode(handle(),a,tokens.size(),c,e.pointer(),e.capacity()));return Matrices.takeLongs(p,c.getValue());}
+ public long[][] encodeBatch(List<List<String>> docs){var d=NlpSupport.docs(docs);LongByReference r=new LongByReference(),c=new LongByReference();ErrorBuffer e=new ErrorBuffer();Pointer p=e.check(N.coolbox_nlp_sequence_batch(handle(),d.strings(),d.offsets(),docs.size(),r,c,e.pointer(),e.capacity()));long[] flat=Matrices.takeLongs(p,r.getValue()*c.getValue());int rows=Math.toIntExact(r.getValue()),cols=Math.toIntExact(c.getValue());long[][] out=new long[rows][cols];for(int i=0;i<rows;i++)System.arraycopy(flat,i*cols,out[i],0,cols);return out;}
+ public List<String> decode(long[] indices){return decode(indices,true);} public List<String> decode(long[] indices,boolean skipSpecial){ErrorBuffer e=new ErrorBuffer();return NlpSupport.takeStrings(e.check(N.coolbox_nlp_sequence_decode(handle(),indices,indices.length,skipSpecial?1:0,e.pointer(),e.capacity())));}
+}
