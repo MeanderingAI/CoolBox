@@ -16,11 +16,17 @@
 /// - fast_persist.h          Wang et al., FastPersist (arXiv:2406.13768)
 /// - universal_checkpoint.h  Lian et al., Universal Checkpointing (arXiv:2406.18820)
 /// - domino.h                Wang et al., Domino (arXiv:2409.15241)
+/// - little_bit.h            Lee et al., LittleBit (arXiv:2506.13771)
+/// - nano_quant.h            Chong et al., NanoQuant (arXiv:2602.06694)
+/// - little_bit2.h           Lee and Kim, LittleBit-2 (arXiv:2603.00042)
 
 #include "collective.h"
 #include "domino.h"
 #include "fast_persist.h"
+#include "little_bit.h"
+#include "little_bit2.h"
 #include "moe.h"
+#include "nano_quant.h"
 #include "one_bit_lamb.h"
 #include "scaling_citations.h"
 #include "universal_checkpoint.h"
