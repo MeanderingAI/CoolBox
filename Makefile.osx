@@ -144,6 +144,7 @@ install:
 	@echo "[Makefile.osx] Install complete."
 	@echo "  Add this to your include paths: $(INSTALL_PREFIX)/include"
 	@echo "  Then include CoolBox headers like: #include <CB/uuid_generation.hpp>"
+	@echo "  Deep-learning scaling headers: #include <CB/dl_scaling/zero_quant.h>"
 	@echo "  Or via CMake: CMAKE_PREFIX_PATH=$(INSTALL_PREFIX) + find_package(CoolBox), then link CoolBox:: targets."
 
 # Install system dependencies using Homebrew

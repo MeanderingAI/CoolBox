@@ -348,6 +348,20 @@ if(COOLBOX_INSTALL_PACKAGE)
             list(APPEND public_header_relpaths ${header_files})
         endforeach()
 
+        if(target_name STREQUAL "dl_scaling")
+            install(DIRECTORY
+                "${target_source_dir}/../layers/include/"
+                "${target_source_dir}/../optimizer/include/"
+                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/CB/${target_name}"
+                FILES_MATCHING
+                    PATTERN "*.h"
+                    PATTERN "*.hpp"
+                    PATTERN "*.hh"
+                    PATTERN "*.inl"
+                    PATTERN "*.ipp"
+            )
+        endif()
+
         if(NOT public_header_relpaths)
             return()
         endif()

@@ -693,11 +693,12 @@ make install INSTALL_PREFIX="<install-prefix>"
 ```
 
 This builds UUID generation, JSON, GIS (including its spatial BBTree), the
-ordered-map BBTree, and CLI widgets. It uses a separate `build-install` directory,
-leaving existing `build` configurations untouched. Override `INSTALL_BUILD_DIR`
-to change that directory. The default destination is `%LOCALAPPDATA%\CoolBox` on
-Windows and `~/.local` on Linux/macOS. Only a C++17 compiler and CMake are required;
-OpenSSL is optional for UUID generation, as in the full build.
+ordered-map BBTree, CLI widgets, and deep-learning scaling utilities. It uses a
+separate `build-install` directory, leaving existing `build` configurations
+untouched. Override `INSTALL_BUILD_DIR` to change that directory. The default
+destination is `%LOCALAPPDATA%\CoolBox` on Windows and `~/.local` on Linux/macOS.
+Only a C++17 compiler and CMake are required; OpenSSL is optional for UUID
+generation, as in the full build.
 The Windows Makefile selects Visual Studio x64 by default; set
 `VS_GENERATOR_PLATFORM=ARM64` to use an installed ARM64 toolchain instead,
 or set `VS_GENERATOR` to choose another CMake generator.
@@ -720,6 +721,7 @@ to the consuming executable. For example:
 #include <CB/gis.hpp>
 #include <CB/bbtree.hpp>
 #include <CB/cli_tools.hpp>
+#include <CB/dl_scaling/zero_quant.h>
 ```
 
 To build and install the full repository instead (requires its external
@@ -736,7 +738,8 @@ Consume from another CMake project:
 ```cmake
 find_package(CoolBox CONFIG REQUIRED)
 target_link_libraries(your_app PRIVATE
-    CoolBox::uuid_generation CoolBox::gis CoolBox::bbtree CoolBox::cli_tools)
+    CoolBox::uuid_generation CoolBox::gis CoolBox::bbtree CoolBox::cli_tools
+    CoolBox::dl_scaling)
 ```
 
 If CoolBox is installed to a custom location, set `CMAKE_PREFIX_PATH` to `<install-prefix>`.

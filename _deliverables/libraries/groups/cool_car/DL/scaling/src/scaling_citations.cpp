@@ -79,6 +79,33 @@ const std::vector<PaperCitation>& scaling_citations() {
             "2409.15241",
             "https://arxiv.org/abs/2409.15241",
             "domino.h"
+        },
+        {
+            "lee_littlebit_2025",
+            "LittleBit: Ultra Low-Bit Quantization via Latent Factorization",
+            "Lee, Banseok and Kim, Dongkyu and You, Youngcheon and Kim, Youngmin",
+            "Advances in Neural Information Processing Systems (NeurIPS)",
+            "2506.13771",
+            "https://arxiv.org/abs/2506.13771",
+            "little_bit.h"
+        },
+        {
+            "chong_nanoquant_2026",
+            "NanoQuant: Efficient Sub-1-Bit Quantization of Large Language Models",
+            "Chong, Hyochan and Kim, Dongkyu and Kim, Changdong and Choi, Minseop",
+            "arXiv preprint",
+            "2602.06694",
+            "https://arxiv.org/abs/2602.06694",
+            "nano_quant.h"
+        },
+        {
+            "lee_littlebit2_2026",
+            "LittleBit-2: Maximizing the Spectral Energy Gain in Sub-1-Bit LLMs via Latent Geometry Alignment",
+            "Lee, Banseok and Kim, Youngmin",
+            "International Conference on Machine Learning (ICML)",
+            "2603.00042",
+            "https://arxiv.org/abs/2603.00042",
+            "little_bit2.h"
         }
     };
     return registry;
