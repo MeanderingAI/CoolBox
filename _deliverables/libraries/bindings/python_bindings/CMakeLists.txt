@@ -95,6 +95,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/../include
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/bindings/python_bindings/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
@@ -120,6 +122,14 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/timer_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/tree_ensemble_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/synthetic_data_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_extensions.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_agent_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_explainability_bindings.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/rag/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/scaling/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agents/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/src/cdeepex.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/src/explainability_facade.cpp"
 )
 file(GLOB_RECURSE ML_BINDING_SOURCES CONFIGURE_DEPENDS ${ML_BINDING_GLOBS})
 
@@ -158,16 +168,23 @@ set(ML_BINDINGS_FLAT_INCLUDE_DIRS
 # Create the Python module
 pybind11_add_module(ml_core 
     py_ml_core.cpp
+    src/data_structures_bindings.cpp
+    src/matrix_bindings.cpp
+    src/synthetic_data_bindings.cpp
+    src/tree_ensemble_bindings.cpp
     src/sql_bindings.cpp
     src/rest_api_server.cpp
     src/web_helpers.cpp
     ${ML_BINDING_SOURCES}
     ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/matrix_bridge.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/ds_bridge.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/ds_bridge_sources.cc
     ../../groups/cool_car/ML/decision_tree/source/decision_tree_regressor.cpp
     ${TREE_ENSEMBLE_ROOT}/source/boost_tree.cpp
     ${TREE_ENSEMBLE_ROOT}/source/random_forest_regressor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/GRAPHICS/charts/source/graphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/MISC/wave_generator/source/wave_generator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/opt_math_finance_bridge.cc
     ../../groups/cool_car/DL/layers/src/tensor.cpp
     ../../groups/cool_car/DL/wrapper/src/templates.cpp
     ../../groups/cool_car/DL/optimizer/src/optimizer.cpp
@@ -176,9 +193,18 @@ pybind11_add_module(ml_core
     ../../groups/cool_car/DL/layers/src/layer.cpp
 )
 
+target_include_directories(ml_core BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
+)
+
 # Set properties
 target_compile_definitions(ml_core PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
 target_compile_features(ml_core PRIVATE cxx_std_17)
+target_link_libraries(ml_core PRIVATE
+    optimization_factory
+    distributed_learning
+    FINANCE
+)
 
 # Link libraries
 find_package(Threads REQUIRED)
@@ -233,6 +259,15 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/FINANCE/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATH
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/rag/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/scaling/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agents/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/list/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/maps/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include

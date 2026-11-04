@@ -55,6 +55,9 @@ void bind_data_structures(py::module_& module);
 void bind_matrix(py::module_& module);
 void bind_opt_math_finance(py::module_& module);
 void bind_sql(py::module_& module);
+void bind_deep_learning_extensions(py::module_& module);
+void bind_deep_learning_agents(py::module_& module);
+void bind_deep_learning_explainability(py::module_& module);
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
@@ -836,6 +839,10 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("num_layers") = 6,
                      py::arg("ff_dim") = 2048,
                      "Create an example language-model network.");
+
+    bind_deep_learning_extensions(dl_module);
+    bind_deep_learning_agents(dl_module);
+    bind_deep_learning_explainability(dl_module);
 
     // Computer Vision Module
     py::module_ cv_module = m.def_submodule("computer_vision", "Computer Vision algorithms");

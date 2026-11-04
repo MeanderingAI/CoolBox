@@ -287,7 +287,79 @@ Local source installs also work from the repository root:
 pip install .
 ```
 
+The pip build uses an existing Eigen installation when available. Otherwise,
+it downloads the pinned Eigen 3.4.0 source archive and verifies its SHA-256
+checksum before compiling. Set `EIGEN3_INCLUDE_DIR` or `EIGEN_INCLUDE_DIR` to
+use a nonstandard installation, or set `COOLBOX_DISABLE_EIGEN_DOWNLOAD=1` to
+require local headers.
+
 The Python package exposes both `ml_toolbox` and the legacy compatibility import `ml_core`.
+
+### Deep-learning extensions
+
+The native extension exposes the deep-learning APIs under
+`ml_toolbox.ml_core.deep_learning`:
+
+- `rag`: vector RAG plus GraphRAG, corrective RAG, agentic RAG, HyDE, and
+  modular/adaptive routing.
+- `scaling`: ZeRO, ZeRO-Infinity, 1-bit LAMB, MoE, ZeroQuant, FastPersist,
+  Universal Checkpointing, Domino, LittleBit, NanoQuant, and LittleBit-2.
+- `agents`: OPTO/Trace, Reflexion, BAPO, steerability evaluation, and HELiX.
+- `explainability`: CDeepEx contrastive explanations, LIME, Integrated
+  Gradients, and KernelSHAP.
+
+The RAG pipeline accepts Python embedding and generation callbacks, so it can
+be connected to a hosted API or a local model without adding a model-runtime
+dependency to CoolBox:
+
+```python
+from ml_toolbox import ml_core
+
+rag = ml_core.deep_learning.rag
+embedder = rag.HashingEmbedder(384)
+
+pipeline = rag.RagPipeline(
+    embedder=embedder.embed,
+    generator=lambda prompt: local_llm.generate(prompt),
+    embedding_dimensions=embedder.dimensions,
+)
+pipeline.add_document(
+    rag.Document("intro", "CoolBox provides native C++ ML components.")
+)
+
+response = pipeline.answer("What does CoolBox provide?")
+print(response.answer)
+for source in response.sources:
+    print(source.document.id, source.score)
+```
+
+The advanced pipelines use the same callback model:
+
+- `GraphRagPipeline` stores documents as graph nodes and combines semantic
+  similarity with bounded relationship traversal.
+- `CorrectiveRagPipeline` scores retrieved sources, rejects weak evidence, and
+  can invoke a fallback retriever.
+- `HydePipeline` generates a hypothetical document for retrieval while keeping
+  final generation grounded in real sources.
+- `AgenticRagPipeline` runs a bounded planner/tool loop and optionally critiques
+  and revises its draft.
+- `ModularRagPipeline` (also exported as `AdaptiveRagPipeline`) routes each
+  query to a registered pipeline. `QueryComplexityRouter` provides a
+  deterministic default router.
+
+```python
+router = rag.QueryComplexityRouter(
+    graph_token_threshold=12,
+    agentic_token_threshold=24,
+)
+adaptive = rag.AdaptiveRagPipeline(router.route)
+adaptive.add_module("vector", vector_pipeline.answer)
+adaptive.add_module("graph", graph_pipeline.answer)
+adaptive.add_module("agentic", agentic_pipeline.answer)
+
+result = adaptive.answer("Compare the connected evidence across all sources")
+print(result.route, result.response.answer)
+```
 
 ## Filters
 

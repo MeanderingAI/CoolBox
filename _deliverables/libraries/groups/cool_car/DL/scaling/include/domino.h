@@ -1,7 +1,7 @@
 #ifndef ML_DEEP_LEARNING_SCALING_DOMINO_H
 #define ML_DEEP_LEARNING_SCALING_DOMINO_H
 
-#include "tensor.h"
+#include "../../layers/include/tensor.h"
 
 #include <cstddef>
 #include <functional>

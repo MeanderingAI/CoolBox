@@ -9,8 +9,26 @@ import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 from setuptools.command.build_ext import build_ext as build_ext_orig
+
+setup_root = Path(__file__).resolve().parent
+if str(setup_root) not in sys.path:
+    sys.path.insert(0, str(setup_root))
+
+from eigen_build import provision_eigen, resolve_eigen_include_dirs
+
+
 class build_ext_with_move(build_ext_orig):
     def run(self):
+        eigen_include_dirs = resolve_eigen_include_dirs(eigen_candidates)
+        if not eigen_include_dirs:
+            eigen_include_dirs = [
+                provision_eigen(project_root / "build" / "eigen-src")
+            ]
+        for extension in self.extensions:
+            for include_dir in eigen_include_dirs:
+                if include_dir not in extension.include_dirs:
+                    extension.include_dirs.append(include_dir)
+
         super().run()
         # Move built ml_core*.so into ml_toolbox/ for in-place builds
         search_dirs = ['.', self.build_lib if hasattr(self, 'build_lib') else None]
@@ -98,34 +116,6 @@ def existing_dirs(paths):
             seen.add(normalized)
             result.append(normalized)
     return result
-
-
-def resolve_eigen_include_dirs(paths):
-    seen = set()
-    resolved = []
-    for raw_path in paths:
-        if not raw_path:
-            continue
-
-        candidate = Path(raw_path)
-        variants = [candidate]
-
-        if candidate.name.lower() != "eigen3":
-            variants.append(candidate / "eigen3")
-
-        for variant in variants:
-            eigen_core = variant / "Eigen" / "Core"
-            unsupported = variant / "unsupported"
-            if not eigen_core.exists() and not unsupported.exists():
-                continue
-
-            normalized = str(variant)
-            if normalized in seen:
-                continue
-            seen.add(normalized)
-            resolved.append(normalized)
-
-    return resolved
 
 
 def sync_vendor_file(repo_source: Union[Path, str], vendored_path: Union[Path, str]) -> Path:
@@ -291,6 +281,7 @@ eigen_candidates = [
     str(project_root.parent.parent / "eigen-src" / "eigen3"),
     str(project_root.parent.parent / "build" / "eigen-src"),
     str(project_root.parent.parent / "build" / "eigen-src" / "eigen3"),
+    str(project_root / "build" / "eigen-src"),
     "/usr/include/eigen3",
     "/usr/local/include/eigen3",
     "/opt/homebrew/include/eigen3",
@@ -327,6 +318,7 @@ ensemble_sources = [
 
 include_dirs = [
     pybind11.get_include(),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include"),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
     str(regressor_header.parent),
@@ -350,7 +342,10 @@ include_dirs = [
             repo_root / "_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/headers",
             repo_root / "_deliverables/libraries/groups/cool_car/FINANCE/headers",
             repo_root / "_deliverables/libraries/groups/cool_car/MATH",
-            repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/rag/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/scaling/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/agents/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/include",
             repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
             repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers",
             repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers",
@@ -386,8 +381,23 @@ source_files = [
     "src/data_structures_bindings.cpp",
     "src/matrix_bindings.cpp",
     "src/synthetic_data_bindings.cpp",
+    "src/deep_learning_extensions.cpp",
+    "src/deep_learning_agent_bindings.cpp",
+    "src/deep_learning_explainability_bindings.cpp",
 ]
 source_files.extend(to_setup_relative_path(path) for path in ensemble_sources)
+for native_module in ("rag", "scaling", "agents"):
+    source_files.extend(
+        to_setup_relative_path(path)
+        for path in sorted(
+            (repo_root / "_deliverables/libraries/groups/cool_car/DL" /
+             native_module / "src").glob("*.cpp")
+        )
+    )
+source_files.extend(
+        to_setup_relative_path(repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src" / name)
+        for name in ("cdeepex.cpp", "explainability_facade.cpp")
+)
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
@@ -398,6 +408,14 @@ source_files.extend(
     [
         str(project_root.parent / "go_bindings" / "ds_bridge.cc"),
         str(project_root.parent / "go_bindings" / "ds_bridge_sources.cc"),
+        str(project_root.parent / "go_bindings" / "opt_math_finance_bridge.cc"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/bayesian_quantum_control/source/quantum_control_bo.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/genetic_search/source/genetic_search.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/hill_climbing/source/hill_climbing.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/optimization_factory/source/optimization_factory.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/source/simulated_annealing.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/distributed_learning/source/distributed_owa.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/FINANCE/source/finance.cpp"),
     ]
 )
 

@@ -280,7 +280,7 @@ private:
     int width_, height_;
     GraphType type_;
     std::string title_;
-    std::string x_label_, y_label_;
+    std::string x_label_ = "X", y_label_ = "Y";
     std::vector<DataSeries> series_;
 
     // Internal layout

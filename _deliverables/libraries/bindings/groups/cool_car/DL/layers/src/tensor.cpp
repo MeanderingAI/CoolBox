@@ -2,8 +2,6 @@
 #include <random>
 #include <functional>
 #include <stdexcept>
-#include "matrix_dense.h" // Ensure matrix library is available
-
 namespace ml {
 namespace deep_learning {
 

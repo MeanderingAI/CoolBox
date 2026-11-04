@@ -2,7 +2,7 @@
 #define ML_DEEP_LEARNING_SCALING_MOE_H
 
 #include "layer.h"
-#include "tensor.h"
+#include "../../layers/include/tensor.h"
 
 #include <cstddef>
 #include <string>

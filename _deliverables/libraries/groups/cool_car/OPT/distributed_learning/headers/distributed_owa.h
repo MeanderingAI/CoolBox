@@ -2,7 +2,7 @@
 #define DISTRIBUTED_OWA_H
 
 #include "optimization_algorithm.h"
-#include "tensor.h"
+#include "DL/layers/include/tensor.h"
 
 #include <functional>
 #include <vector>

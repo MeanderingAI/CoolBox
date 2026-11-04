@@ -9,8 +9,6 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
-#include "matrix_dense.h" // Ensure matrix library is available
-
 namespace ml {
 namespace deep_learning {
 

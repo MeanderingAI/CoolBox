@@ -31,6 +31,7 @@ add_library(dl_scaling STATIC
 
 target_include_directories(dl_scaling PUBLIC
     ${DL_SCALING_ROOT}/include
+    ${DL_GROUP_ROOT}
     ${DL_GROUP_ROOT}/layers/include
     ${DL_GROUP_ROOT}/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers

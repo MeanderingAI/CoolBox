@@ -63,10 +63,13 @@ parallelism with `matrix.set_cpu_threads(n)`: `0` selects automatic sizing,
 resolves to the available hardware concurrency. Small products may still run
 serially. Matrix multiplication currently retains the Python GIL while the
 native kernel runs, avoiding concurrent Python-side mutation of input matrices.
-Eigen headers are required when building the
-native extension and can be located with `EIGEN3_INCLUDE_DIR` or
-`EIGEN_INCLUDE_DIR`. CPU optimization strategies apply when the CPU backend
-is selected. Backends are process-wide; `get_backend()` returns the requested
+Eigen headers are required when building the native extension. The pip build
+first checks `EIGEN3_INCLUDE_DIR`, `EIGEN_INCLUDE_DIR`, and standard system
+locations. If Eigen is not installed, it downloads the pinned Eigen 3.4.0
+source archive and verifies its SHA-256 checksum before extracting the headers.
+Set `COOLBOX_DISABLE_EIGEN_DOWNLOAD=1` to require a local Eigen installation.
+CPU optimization strategies apply when the CPU backend is selected. Backends
+are process-wide; `get_backend()` returns the requested
 backend and `get_active_backend()` reports the one resolved for the most recent
 operation. `AUTO` selects an available GPU backend and otherwise CPU. CUDA is
 available only when the native extension is compiled with nvcc and a CUDA
