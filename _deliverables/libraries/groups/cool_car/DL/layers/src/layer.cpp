@@ -1749,8 +1749,7 @@ Tensor TransformerEncoderLayer::forward(const Tensor& input) {
     attn = dropout1_.forward(attn);
     // Residual connection
     Tensor residual1 = input.clone();
-    for (size_t i = 0; i < residual1.size(); ++i)
-        residual1.data()[i] += attn.data()[i];
+    residual1 += attn;
     attn_output_ = norm1_.forward(residual1);
     
     // Feed-forward with residual + layer norm
@@ -1758,8 +1757,7 @@ Tensor TransformerEncoderLayer::forward(const Tensor& input) {
     Tensor ff = feed_forward_.forward(attn_output_);
     ff = dropout2_.forward(ff);
     Tensor residual2 = attn_output_.clone();
-    for (size_t i = 0; i < residual2.size(); ++i)
-        residual2.data()[i] += ff.data()[i];
+    residual2 += ff;
     Tensor output = norm2_.forward(residual2);
     
     last_output_ = output;
@@ -1779,8 +1777,7 @@ Tensor TransformerEncoderLayer::backward(const Tensor& gradient) {
     d_ff = feed_forward_.backward(d_ff);
     
     // Add residual gradient
-    for (size_t i = 0; i < d_ff.size(); ++i)
-        d_ff.data()[i] += d_res2.data()[i];
+    d_ff += d_res2;
     
     // Backward through norm1
     Tensor d_norm1 = norm1_.backward(d_ff);
@@ -1794,8 +1791,7 @@ Tensor TransformerEncoderLayer::backward(const Tensor& gradient) {
     d_attn = self_attention_.backward(d_attn);
     
     // Add residual gradient
-    for (size_t i = 0; i < d_attn.size(); ++i)
-        d_attn.data()[i] += d_res1.data()[i];
+    d_attn += d_res1;
     
     return d_attn;
 }
@@ -1833,16 +1829,14 @@ Tensor TransformerDecoderLayer::forward(const Tensor& target, const Tensor& enco
     Tensor self_attn = self_attention_.forward(target, target, target, target_mask);
     self_attn = dropout1_.forward(self_attn);
     Tensor residual1 = target.clone();
-    for (size_t i = 0; i < residual1.size(); ++i)
-        residual1.data()[i] += self_attn.data()[i];
+    residual1 += self_attn;
     self_attn_output_ = norm1_.forward(residual1);
     
     // Cross-attention with encoder output
     Tensor cross_attn = cross_attention_.forward(self_attn_output_, encoder_output, encoder_output, memory_mask);
     cross_attn = dropout2_.forward(cross_attn);
     Tensor residual2 = self_attn_output_.clone();
-    for (size_t i = 0; i < residual2.size(); ++i)
-        residual2.data()[i] += cross_attn.data()[i];
+    residual2 += cross_attn;
     cross_attn_output_ = norm2_.forward(residual2);
     
     // Feed-forward with residual + layer norm
@@ -1850,8 +1844,7 @@ Tensor TransformerDecoderLayer::forward(const Tensor& target, const Tensor& enco
     Tensor ff = feed_forward_.forward(cross_attn_output_);
     ff = dropout3_.forward(ff);
     Tensor residual3 = cross_attn_output_.clone();
-    for (size_t i = 0; i < residual3.size(); ++i)
-        residual3.data()[i] += ff.data()[i];
+    residual3 += ff;
     Tensor output = norm3_.forward(residual3);
     
     last_output_ = output;
@@ -1866,8 +1859,7 @@ Tensor TransformerDecoderLayer::backward(const Tensor& gradient) {
     
     d_ff = dropout3_.backward(d_ff);
     d_ff = feed_forward_.backward(d_ff);
-    for (size_t i = 0; i < d_ff.size(); ++i)
-        d_ff.data()[i] += d_res3.data()[i];
+    d_ff += d_res3;
     
     // Backward through norm2
     Tensor d_norm2 = norm2_.backward(d_ff);
@@ -1876,8 +1868,7 @@ Tensor TransformerDecoderLayer::backward(const Tensor& gradient) {
     
     d_cross = dropout2_.backward(d_cross);
     d_cross = cross_attention_.backward(d_cross);
-    for (size_t i = 0; i < d_cross.size(); ++i)
-        d_cross.data()[i] += d_res2.data()[i];
+    d_cross += d_res2;
     
     // Backward through norm1
     Tensor d_norm1 = norm1_.backward(d_cross);
@@ -1886,8 +1877,7 @@ Tensor TransformerDecoderLayer::backward(const Tensor& gradient) {
     
     d_self = dropout1_.backward(d_self);
     d_self = self_attention_.backward(d_self);
-    for (size_t i = 0; i < d_self.size(); ++i)
-        d_self.data()[i] += d_res1.data()[i];
+    d_self += d_res1;
     
     return d_self;
 }

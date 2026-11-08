@@ -1,0 +1,70 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0, std430) readonly buffer LeftBuffer {
+    double values[];
+} left_buffer;
+
+layout(set = 0, binding = 1, std430) readonly buffer RightBuffer {
+    double values[];
+} right_buffer;
+
+layout(set = 0, binding = 2, std430) writeonly buffer OutputBuffer {
+    double values[];
+} output_buffer;
+
+layout(push_constant) uniform Parameters {
+    uint operation;
+    uint count;
+    uint rows;
+    uint columns;
+    uint inner;
+    uint scalar_low;
+    uint scalar_high;
+} parameters;
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= parameters.count) {
+        return;
+    }
+
+    if (parameters.operation == 0) {
+        output_buffer.values[index] =
+            left_buffer.values[index] + right_buffer.values[index];
+    } else if (parameters.operation == 1) {
+        output_buffer.values[index] =
+            left_buffer.values[index] - right_buffer.values[index];
+    } else if (parameters.operation == 2) {
+        output_buffer.values[index] =
+            left_buffer.values[index] * right_buffer.values[index];
+    } else if (parameters.operation == 3) {
+        output_buffer.values[index] =
+            left_buffer.values[index] / right_buffer.values[index];
+    } else if (parameters.operation == 4) {
+        double scalar = packDouble2x32(
+            uvec2(parameters.scalar_low, parameters.scalar_high));
+        output_buffer.values[index] = left_buffer.values[index] * scalar;
+    } else if (parameters.operation == 5) {
+        double scalar = packDouble2x32(
+            uvec2(parameters.scalar_low, parameters.scalar_high));
+        output_buffer.values[index] = left_buffer.values[index] / scalar;
+    } else if (parameters.operation == 6) {
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        double total = 0.0;
+        for (uint offset = 0; offset < parameters.inner; ++offset) {
+            total +=
+                left_buffer.values[row * parameters.inner + offset] *
+                right_buffer.values[offset * parameters.columns + column];
+        }
+        output_buffer.values[index] = total;
+    } else if (parameters.operation == 7) {
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        output_buffer.values[column * parameters.rows + row] =
+            left_buffer.values[index];
+    }
+}

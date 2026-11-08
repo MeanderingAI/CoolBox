@@ -223,6 +223,8 @@ endif()
 if(WIN32)
     target_link_libraries(ml_core PRIVATE shell32)
 endif()
+include(${CMAKE_CURRENT_LIST_DIR}/../../../../cmake/VulkanTensorBackend.cmake)
+coolbox_configure_vulkan_tensor(ml_core)
 
 if(BUILD_TESTING)
     add_executable(test_rest_api_server

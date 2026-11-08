@@ -27,5 +27,6 @@ if(TARGET Eigen3::Eigen)
 	target_link_libraries(test_deep_learning PRIVATE Eigen3::Eigen)
 endif()
 target_link_libraries(test_deep_learning PRIVATE)
+include(${CMAKE_CURRENT_LIST_DIR}/../../../../../../cmake/VulkanTensorBackend.cmake)
+coolbox_configure_vulkan_tensor(test_deep_learning)
 add_test(NAME DeepLearningLayerTests COMMAND test_deep_learning)
-

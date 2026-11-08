@@ -156,6 +156,50 @@ This uses the installed library, which may differ from NumPy's private OpenBLAS.
 To compare, run the benchmark with `--backends cpu eigen openblas --threads 8`
 and set `OPENBLAS_NUM_THREADS=8` before starting Python.
 
+### Vulkan deep-learning tensors
+
+The deep-learning `Tensor` API has an optional Vulkan compute backend for
+Intel, AMD, and NVIDIA GPUs. It accelerates matrix multiplication, transpose,
+element-wise arithmetic, and scalar arithmetic, including the corresponding
+transformer attention and residual operations. Tensor storage is still
+host-resident in this milestone; activation, softmax, normalization, reduction,
+and optimizer loops still execute on the CPU.
+
+Install Vulkan development headers and loader libraries plus
+`glslangValidator`, then opt in when building the Python extension:
+
+```bash
+COOLBOX_ENABLE_VULKAN=1 pip install .
+```
+
+Set `VULKAN_SDK`, or set `VULKAN_INCLUDE_DIR` and `VULKAN_LIBRARY_DIR`
+individually, when the SDK is outside standard locations. CMake builds detect
+the same dependencies automatically and can be disabled with
+`-DCOOLBOX_ENABLE_VULKAN_TENSOR=OFF`.
+
+Select an Intel device and require Vulkan explicitly:
+
+```bash
+export COOLBOX_VULKAN_DEVICE=intel
+```
+
+```python
+from ml_toolbox import ml_core
+
+dl = ml_core.deep_learning
+if not dl.tensor_backend_available(dl.TensorBackend.VULKAN):
+    raise RuntimeError(
+        dl.tensor_backend_unavailable_reason(dl.TensorBackend.VULKAN)
+    )
+dl.set_tensor_backend(dl.TensorBackend.VULKAN)
+print(dl.tensor_backend_device_name(dl.TensorBackend.VULKAN))
+```
+
+Vulkan devices must support `shaderFloat64` because CoolBox tensors currently
+store double-precision values. `TensorBackend.AUTO` uses Vulkan for sufficiently
+large supported operations and CPU otherwise. Explicit `VULKAN` selection
+raises an error if initialization or execution fails.
+
 ## Data structures
 
 `ml_toolbox.data_structures` exposes the native trekker data structures for

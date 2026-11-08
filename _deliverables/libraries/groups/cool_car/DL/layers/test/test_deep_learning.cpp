@@ -1,5 +1,6 @@
 
 #include <complex>
+#include <cstdlib>
 #include <type_traits>
 #include <limits>
 #include "tyst_framework.hpp"
@@ -127,6 +128,63 @@ TEST(TensorTest, MatMul) {
     EXPECT_EQ(c.shape()[1], 2);
     EXPECT_DOUBLE_EQ(c.data()[0], 58);  // 1*7 + 2*9 + 3*11
     EXPECT_DOUBLE_EQ(c.data()[1], 64);  // 1*8 + 2*10 + 3*12
+}
+
+TEST(TensorBackendTest, CpuOperationsPreserveResults) {
+    set_tensor_backend(TensorBackend::CPU);
+    Tensor a({2, 2}, {1.0, 2.0, 3.0, 4.0});
+    Tensor b({2, 2}, {5.0, 6.0, 7.0, 8.0});
+
+    Tensor sum = a + b;
+    Tensor product = a.matmul(b);
+    Tensor transposed = a.transpose();
+
+    EXPECT_EQ(active_tensor_backend(), TensorBackend::CPU);
+    EXPECT_DOUBLE_EQ(sum.data()[0], 6.0);
+    EXPECT_DOUBLE_EQ(sum.data()[3], 12.0);
+    EXPECT_DOUBLE_EQ(product.data()[0], 19.0);
+    EXPECT_DOUBLE_EQ(product.data()[3], 50.0);
+    EXPECT_DOUBLE_EQ(transposed.data()[1], 3.0);
+    EXPECT_DOUBLE_EQ(transposed.data()[2], 2.0);
+}
+
+TEST(TensorBackendTest, VulkanSelectionMatchesAvailability) {
+    const bool require_vulkan =
+        std::getenv("COOLBOX_TEST_REQUIRE_VULKAN") != nullptr;
+    if (require_vulkan) {
+        EXPECT_TRUE(tensor_backend_available(TensorBackend::VULKAN));
+    }
+    if (tensor_backend_available(TensorBackend::VULKAN)) {
+        set_tensor_backend(TensorBackend::VULKAN);
+        Tensor a({2, 2}, {1.0, 2.0, 3.0, 4.0});
+        Tensor b({2, 2}, {5.0, 6.0, 7.0, 8.0});
+        Tensor sum = a + b;
+        Tensor difference = b - a;
+        Tensor elementwise_product = a * b;
+        Tensor quotient = b / a;
+        Tensor scaled = a * 2.0;
+        Tensor transposed = a.transpose();
+        Tensor product = a.matmul(b);
+        EXPECT_EQ(active_tensor_backend(), TensorBackend::VULKAN);
+        EXPECT_NEAR(sum.data()[3], 12.0, 1e-9);
+        EXPECT_NEAR(difference.data()[0], 4.0, 1e-9);
+        EXPECT_NEAR(elementwise_product.data()[2], 21.0, 1e-9);
+        EXPECT_NEAR(quotient.data()[3], 2.0, 1e-9);
+        EXPECT_NEAR(scaled.data()[1], 4.0, 1e-9);
+        EXPECT_NEAR(transposed.data()[1], 3.0, 1e-9);
+        EXPECT_NEAR(product.data()[0], 19.0, 1e-9);
+        EXPECT_NEAR(product.data()[3], 50.0, 1e-9);
+        EXPECT_FALSE(
+            tensor_backend_device_name(TensorBackend::VULKAN).empty());
+    } else {
+        EXPECT_FALSE(
+            tensor_backend_unavailable_reason(
+                TensorBackend::VULKAN).empty());
+        EXPECT_THROW(
+            set_tensor_backend(TensorBackend::VULKAN),
+            std::runtime_error);
+    }
+    set_tensor_backend(TensorBackend::CPU);
 }
 
 // ============================================================================
@@ -562,6 +620,27 @@ TEST(TransformerEncoderLayerTest, BackwardShape) {
     Tensor input_grad = encoder.backward(grad);
     EXPECT_EQ(input_grad.shape()[0], 5);
     EXPECT_EQ(input_grad.shape()[1], 16);
+}
+
+TEST(TransformerEncoderLayerTest, VulkanForwardAndBackward) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+
+    set_tensor_backend(TensorBackend::VULKAN);
+    TransformerEncoderLayer encoder(16, 4, 64, 0.0);
+    Tensor input({5, 16});
+    input.randomize(-0.1, 0.1);
+    Tensor output = encoder.forward(input);
+    Tensor gradient(output.shape(), 0.01);
+    Tensor input_gradient = encoder.backward(gradient);
+
+    EXPECT_EQ(active_tensor_backend(), TensorBackend::VULKAN);
+    EXPECT_EQ(output.shape()[0], 5);
+    EXPECT_EQ(output.shape()[1], 16);
+    EXPECT_EQ(input_gradient.shape()[0], 5);
+    EXPECT_EQ(input_gradient.shape()[1], 16);
+    set_tensor_backend(TensorBackend::CPU);
 }
 
 TEST(TransformerDecoderLayerTest, ForwardShape) {

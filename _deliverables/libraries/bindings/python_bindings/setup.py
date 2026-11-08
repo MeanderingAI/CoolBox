@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import glob
 import shutil
+import subprocess
 import sys
 
 import pybind11
@@ -19,6 +20,21 @@ from eigen_build import provision_eigen, resolve_eigen_include_dirs
 
 class build_ext_with_move(build_ext_orig):
     def run(self):
+        build_configuration = (
+            f"vulkan={os.environ.get('COOLBOX_ENABLE_VULKAN', '')};"
+            f"openblas={os.environ.get('MYTRIX_ENABLE_OPENBLAS', '')}"
+        )
+        configuration_marker = (
+            setup_root / "build" / ".coolbox-extension-configuration"
+        )
+        previous_configuration = (
+            configuration_marker.read_text()
+            if configuration_marker.is_file()
+            else None
+        )
+        if previous_configuration != build_configuration:
+            self.force = True
+
         eigen_include_dirs = resolve_eigen_include_dirs(eigen_candidates)
         if not eigen_include_dirs:
             eigen_include_dirs = [
@@ -30,6 +46,8 @@ class build_ext_with_move(build_ext_orig):
                     extension.include_dirs.append(include_dir)
 
         super().run()
+        configuration_marker.parent.mkdir(parents=True, exist_ok=True)
+        configuration_marker.write_text(build_configuration)
         # Move built ml_core*.so into ml_toolbox/ for in-place builds
         search_dirs = ['.', self.build_lib if hasattr(self, 'build_lib') else None]
         found = False
@@ -207,6 +225,82 @@ def resolve_link_inputs(search_root: Path, library_names):
 def env_flag(name: str) -> bool:
     value = os.environ.get(name, "")
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def configure_vulkan_extension():
+    if not env_flag("COOLBOX_ENABLE_VULKAN"):
+        return None
+
+    shader_compiler = shutil.which("glslangValidator")
+    cmake_executable = shutil.which("cmake")
+    if shader_compiler is None or cmake_executable is None:
+        raise RuntimeError(
+            "COOLBOX_ENABLE_VULKAN=1 requires glslangValidator and cmake"
+        )
+
+    vulkan_sdk = os.environ.get("VULKAN_SDK")
+    include_candidates = [
+        os.environ.get("VULKAN_INCLUDE_DIR"),
+        str(Path(vulkan_sdk) / "Include") if vulkan_sdk else None,
+        str(Path(vulkan_sdk) / "include") if vulkan_sdk else None,
+        "/usr/include",
+        "/usr/local/include",
+    ]
+    vulkan_include = next(
+        (
+            Path(path)
+            for path in include_candidates
+            if path and (Path(path) / "vulkan" / "vulkan.h").is_file()
+        ),
+        None,
+    )
+    if vulkan_include is None:
+        raise RuntimeError(
+            "COOLBOX_ENABLE_VULKAN=1 requires Vulkan headers. Set "
+            "VULKAN_INCLUDE_DIR or VULKAN_SDK."
+        )
+
+    generated_dir = project_root / "build" / "vulkan_generated"
+    generated_dir.mkdir(parents=True, exist_ok=True)
+    shader_source = (
+        repo_root
+        / "_deliverables/libraries/groups/cool_car/DL/layers/shaders/tensor_ops.comp"
+    )
+    shader_binary = generated_dir / "tensor_ops.spv"
+    shader_header = generated_dir / "vulkan_tensor_shader.h"
+    subprocess.run(
+        [
+            shader_compiler,
+            "-V",
+            str(shader_source),
+            "-o",
+            str(shader_binary),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            cmake_executable,
+            f"-DINPUT={shader_binary}",
+            f"-DOUTPUT={shader_header}",
+            "-DSYMBOL=coolbox_tensor_ops_spv",
+            "-P",
+            str(repo_root / "cmake/EmbedBinary.cmake"),
+        ],
+        check=True,
+    )
+
+    library_candidates = [
+        os.environ.get("VULKAN_LIBRARY_DIR"),
+        str(Path(vulkan_sdk) / "Lib") if vulkan_sdk else None,
+        str(Path(vulkan_sdk) / "lib") if vulkan_sdk else None,
+    ]
+    return {
+        "generated_dir": generated_dir,
+        "include_dir": vulkan_include,
+        "library_dirs": existing_dirs(library_candidates),
+        "library": "vulkan-1" if sys.platform.startswith("win") else "vulkan",
+    }
 
 
 # On Windows CI we prefer to use the cleaned include files under
@@ -394,6 +488,14 @@ for native_module in ("rag", "scaling", "agents"):
              native_module / "src").glob("*.cpp")
         )
     )
+vulkan_config = configure_vulkan_extension()
+if vulkan_config is not None:
+    source_files.append(
+        str(
+            repo_root
+            / "_deliverables/libraries/groups/cool_car/DL/layers/src/vulkan_tensor_backend.cpp"
+        )
+    )
 source_files.extend(
         to_setup_relative_path(repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src" / name)
         for name in ("cdeepex.cpp", "explainability_facade.cpp")
@@ -482,8 +584,10 @@ runtime_library_dirs = []
 if not sys.platform.startswith("win"):
     runtime_library_dirs = resolved_library_dirs[:]
 extension_libraries = unresolved_libraries + (["shell32"] if sys.platform.startswith("win") else [])
+extension_macros = []
 openblas_enabled = env_flag("MYTRIX_ENABLE_OPENBLAS")
 if openblas_enabled:
+    extension_macros.append(("MYTRIX_ENABLE_OPENBLAS", "1"))
     extension_libraries.append("openblas")
     if os.environ.get("OPENBLAS_INCLUDE_DIR"):
         include_dirs.append(os.environ["OPENBLAS_INCLUDE_DIR"])
@@ -491,13 +595,25 @@ if openblas_enabled:
         library_dirs.append(os.environ["OPENBLAS_LIBRARY_DIR"])
         if not sys.platform.startswith("win"):
             runtime_library_dirs.append(os.environ["OPENBLAS_LIBRARY_DIR"])
+if vulkan_config is not None:
+    include_dirs.extend(
+        [
+            str(vulkan_config["generated_dir"]),
+            str(vulkan_config["include_dir"]),
+        ]
+    )
+    library_dirs.extend(vulkan_config["library_dirs"])
+    if not sys.platform.startswith("win"):
+        runtime_library_dirs.extend(vulkan_config["library_dirs"])
+    extension_libraries.append(vulkan_config["library"])
+    extension_macros.append(("COOLBOX_HAS_VULKAN_TENSOR", "1"))
 
 ext_modules = [
     Pybind11Extension(
         "ml_toolbox.ml_core",
         source_files,
         include_dirs=include_dirs,
-        define_macros=[("MYTRIX_ENABLE_OPENBLAS", "1")] if openblas_enabled else [],
+        define_macros=extension_macros,
         cxx_std=17,
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
