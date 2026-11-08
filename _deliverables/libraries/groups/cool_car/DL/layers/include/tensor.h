@@ -9,6 +9,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include "tensor_backend.h"
 namespace ml {
 namespace deep_learning {
 

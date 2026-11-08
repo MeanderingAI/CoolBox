@@ -25,6 +25,7 @@
 #include "dimensionality_reduction/umap.h"
 #include "kmeans/kmeans.h"
 #include "tensor.h"
+#include "DL/layers/include/tensor_backend.h"
 #include "layer.h"
 #include "loss.h"
 #include "optimizer.h"
@@ -495,6 +496,30 @@ PYBIND11_MODULE(ml_core, m) {
 
     // Deep Learning Module
     py::module_ dl_module = m.def_submodule("deep_learning", "Deep Learning neural networks");
+
+    py::enum_<ml::deep_learning::TensorBackend>(dl_module, "TensorBackend")
+        .value("CPU", ml::deep_learning::TensorBackend::CPU)
+        .value("VULKAN", ml::deep_learning::TensorBackend::VULKAN)
+        .value("AUTO", ml::deep_learning::TensorBackend::AUTO);
+    dl_module.def(
+        "set_tensor_backend", &ml::deep_learning::set_tensor_backend,
+        py::arg("backend"));
+    dl_module.def(
+        "tensor_backend", &ml::deep_learning::tensor_backend);
+    dl_module.def(
+        "active_tensor_backend", &ml::deep_learning::active_tensor_backend);
+    dl_module.def(
+        "tensor_backend_available",
+        &ml::deep_learning::tensor_backend_available,
+        py::arg("backend"));
+    dl_module.def(
+        "tensor_backend_device_name",
+        &ml::deep_learning::tensor_backend_device_name,
+        py::arg("backend"));
+    dl_module.def(
+        "tensor_backend_unavailable_reason",
+        &ml::deep_learning::tensor_backend_unavailable_reason,
+        py::arg("backend"));
 
     // Tensor class
     py::class_<ml::deep_learning::Tensor>(dl_module, "Tensor")

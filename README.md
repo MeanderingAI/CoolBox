@@ -295,6 +295,42 @@ require local headers.
 
 The Python package exposes both `ml_toolbox` and the legacy compatibility import `ml_core`.
 
+### Vulkan tensor acceleration
+
+CoolBox can accelerate transformer-critical deep-learning `Tensor` operations
+with Vulkan compute on Intel, AMD, and NVIDIA GPUs. The first Vulkan milestone
+supports matrix multiplication, transpose, element-wise arithmetic, and scalar
+arithmetic. Transformer attention projections and residual additions use these
+operations. Tensor storage remains host-resident, and activation, softmax,
+normalization, reduction, and optimizer loops remain CPU-side.
+
+CMake enables the backend automatically when the Vulkan development package
+and `glslangValidator` are available. Disable it explicitly with
+`-DCOOLBOX_ENABLE_VULKAN_TENSOR=OFF`. For pip builds, opt in with:
+
+```bash
+COOLBOX_ENABLE_VULKAN=1 pip install .
+```
+
+The pip build requires Vulkan headers and loader libraries plus
+`glslangValidator`. Set `VULKAN_SDK`, or use `VULKAN_INCLUDE_DIR` and
+`VULKAN_LIBRARY_DIR` for a nonstandard SDK. At runtime,
+`COOLBOX_VULKAN_DEVICE=intel` selects a device whose Vulkan name contains
+`intel`. The selected GPU must support double-precision shader operations.
+
+```python
+from ml_toolbox import ml_core
+
+dl = ml_core.deep_learning
+if not dl.tensor_backend_available(dl.TensorBackend.VULKAN):
+    raise RuntimeError(
+        dl.tensor_backend_unavailable_reason(dl.TensorBackend.VULKAN)
+    )
+
+dl.set_tensor_backend(dl.TensorBackend.VULKAN)
+print(dl.tensor_backend_device_name(dl.TensorBackend.VULKAN))
+```
+
 ### Deep-learning extensions
 
 The native extension exposes the deep-learning APIs under

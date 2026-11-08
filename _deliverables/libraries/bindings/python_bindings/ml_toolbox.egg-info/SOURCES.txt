@@ -30,6 +30,7 @@ setup.py
 ../../groups/cool_car/DL/layers/src/ifinder.cpp
 ../../groups/cool_car/DL/layers/src/layer.cpp
 ../../groups/cool_car/DL/layers/src/tensor.cpp
+../../groups/cool_car/DL/layers/src/vulkan_tensor_backend.cpp
 ../../groups/cool_car/DL/layers/test/test_deep_learning.cpp
 ../../groups/cool_car/DL/loss/include/loss.h
 ../../groups/cool_car/DL/loss/src/loss.cpp
