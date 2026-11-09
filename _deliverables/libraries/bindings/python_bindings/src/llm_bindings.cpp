@@ -246,6 +246,32 @@ void bind_llm(py::module_& deep_learning_module) {
         .def_property_readonly(
             "optimizer_step",
             &DecoderLanguageModel::optimizer_step)
+        .def(
+            "state_dict",
+            [](DecoderLanguageModel& model) {
+                py::dict result;
+                for (NamedTensor& parameter : model.state_dict()) {
+                    result[py::str(parameter.name)] =
+                        std::move(parameter.tensor);
+                }
+                return result;
+            })
+        .def(
+            "load_state_dict",
+            [](DecoderLanguageModel& model,
+               const py::dict& state,
+               bool strict) {
+                std::vector<NamedTensor> tensors;
+                tensors.reserve(state.size());
+                for (const auto& item : state) {
+                    tensors.push_back(NamedTensor{
+                        py::cast<std::string>(item.first),
+                        py::cast<Tensor>(item.second)});
+                }
+                model.load_state_dict(tensors, strict);
+            },
+            py::arg("state"),
+            py::arg("strict") = true)
         .def("save", &DecoderLanguageModel::save, py::arg("path"))
         .def_static(
             "load", &DecoderLanguageModel::load, py::arg("path"))

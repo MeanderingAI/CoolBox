@@ -31,30 +31,40 @@ function(coolbox_configure_vulkan_tensor target)
         return()
     endif()
 
-    set(shader_source
-        "${COOLBOX_VULKAN_TENSOR_ROOT}/_deliverables/libraries/groups/cool_car/DL/layers/shaders/tensor_ops.comp")
     set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/${target}_vulkan_generated")
-    set(shader_binary "${generated_dir}/tensor_ops.spv")
-    set(shader_header "${generated_dir}/vulkan_tensor_shader.h")
     file(MAKE_DIRECTORY "${generated_dir}")
 
-    add_custom_command(
-        OUTPUT "${shader_header}"
-        COMMAND "${COOLBOX_GLSLANG_VALIDATOR}" -V "${shader_source}" -o "${shader_binary}"
-        COMMAND "${CMAKE_COMMAND}"
-            "-DINPUT=${shader_binary}"
-            "-DOUTPUT=${shader_header}"
-            "-DSYMBOL=coolbox_tensor_ops_spv"
-            -P "${COOLBOX_VULKAN_TENSOR_ROOT}/cmake/EmbedBinary.cmake"
-        DEPENDS
-            "${shader_source}"
-            "${COOLBOX_VULKAN_TENSOR_ROOT}/cmake/EmbedBinary.cmake"
-        VERBATIM
-    )
+    set(shader_headers)
+    foreach(precision IN ITEMS fp64 fp32 lowp)
+        if(precision STREQUAL "fp64")
+            set(shader_name "tensor_ops")
+        else()
+            set(shader_name "tensor_ops_${precision}")
+        endif()
+        set(shader_source
+            "${COOLBOX_VULKAN_TENSOR_ROOT}/_deliverables/libraries/groups/cool_car/DL/layers/shaders/${shader_name}.comp")
+        set(shader_binary "${generated_dir}/${shader_name}.spv")
+        set(shader_header
+            "${generated_dir}/vulkan_tensor_shader_${precision}.h")
+        add_custom_command(
+            OUTPUT "${shader_header}"
+            COMMAND "${COOLBOX_GLSLANG_VALIDATOR}" -V "${shader_source}" -o "${shader_binary}"
+            COMMAND "${CMAKE_COMMAND}"
+                "-DINPUT=${shader_binary}"
+                "-DOUTPUT=${shader_header}"
+                "-DSYMBOL=coolbox_tensor_ops_${precision}_spv"
+                -P "${COOLBOX_VULKAN_TENSOR_ROOT}/cmake/EmbedBinary.cmake"
+            DEPENDS
+                "${shader_source}"
+                "${COOLBOX_VULKAN_TENSOR_ROOT}/cmake/EmbedBinary.cmake"
+            VERBATIM
+        )
+        list(APPEND shader_headers "${shader_header}")
+    endforeach()
 
     target_sources(${target} PRIVATE
         "${COOLBOX_VULKAN_TENSOR_ROOT}/_deliverables/libraries/groups/cool_car/DL/layers/src/vulkan_tensor_backend.cpp"
-        "${shader_header}"
+        ${shader_headers}
     )
     target_include_directories(${target} PRIVATE "${generated_dir}")
     target_compile_definitions(${target} PRIVATE COOLBOX_HAS_VULKAN_TENSOR=1)

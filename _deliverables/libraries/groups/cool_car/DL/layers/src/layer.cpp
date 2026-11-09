@@ -58,12 +58,7 @@ DenseLayer::DenseLayer(size_t input_size, size_t output_size)
 
 Tensor DenseLayer::forward(const Tensor& input) {
     last_input_ = input;
-    Tensor output = input.matmul(weights_);
-    for (size_t i = 0; i < output.shape()[0]; ++i) {
-        for (size_t j = 0; j < output_size_; ++j) {
-            output.data()[i * output_size_ + j] += bias_.data()[j];
-        }
-    }
+    Tensor output = input.matmul_bias(weights_, bias_);
     last_output_ = output;
     return output;
 }
@@ -71,12 +66,7 @@ Tensor DenseLayer::forward(const Tensor& input) {
 Tensor DenseLayer::backward(const Tensor& gradient) {
     weight_gradient_ = last_input_.transpose().matmul(gradient);
     
-    bias_gradient_ = Tensor({output_size_}, 0.0);
-    for (size_t i = 0; i < gradient.shape()[0]; ++i) {
-        for (size_t j = 0; j < output_size_; ++j) {
-            bias_gradient_.data()[j] += gradient.data()[i * output_size_ + j];
-        }
-    }
+    bias_gradient_ = gradient.row_sum();
 
     return gradient.matmul(weights_.transpose());
 }
@@ -103,20 +93,13 @@ void DenseLayer::collect_trainable_parameters(
 
 Tensor ReLULayer::forward(const Tensor& input) {
     last_input_ = input;
-    Tensor output = input.clone();
-    for (size_t i = 0; i < output.size(); ++i) {
-        if (output.data()[i] < 0.0) output.data()[i] = 0.0;
-    }
+    Tensor output = input.relu();
     last_output_ = output;
     return output;
 }
 
 Tensor ReLULayer::backward(const Tensor& gradient) {
-    Tensor result = gradient.clone();
-    for (size_t i = 0; i < result.size(); ++i) {
-        if (last_input_.data()[i] <= 0.0) result.data()[i] = 0.0;
-    }
-    return result;
+    return last_input_.relu_backward(gradient);
 }
 
 Tensor SigmoidLayer::forward(const Tensor& input) {
@@ -153,22 +136,7 @@ Tensor TanhLayer::backward(const Tensor& gradient) {
 
 Tensor SoftmaxLayer::forward(const Tensor& input) {
     last_input_ = input;
-    Tensor output = input.clone();
-    // Apply softmax per row (batch dimension)
-    size_t batch = input.shape()[0];
-    size_t cols = input.size() / batch;
-    for (size_t i = 0; i < batch; ++i) {
-        double max_val = -std::numeric_limits<double>::infinity();
-        for (size_t j = 0; j < cols; ++j)
-            max_val = std::max(max_val, output.data()[i * cols + j]);
-        double sum = 0.0;
-        for (size_t j = 0; j < cols; ++j) {
-            output.data()[i * cols + j] = std::exp(output.data()[i * cols + j] - max_val);
-            sum += output.data()[i * cols + j];
-        }
-        for (size_t j = 0; j < cols; ++j)
-            output.data()[i * cols + j] /= sum;
-    }
+    Tensor output = input.row_softmax();
     last_output_ = output;
     return output;
 }
@@ -324,73 +292,17 @@ LayerNormLayer::LayerNormLayer(size_t normalized_shape, double epsilon)
 
 Tensor LayerNormLayer::forward(const Tensor& input) {
     last_input_ = input;
-    size_t total = input.size();
-    size_t features = normalized_shape_;
-    size_t num_elements = total / features;
-    
-    Tensor output(input.shape(), 0.0);
-    normalized_ = Tensor(input.shape(), 0.0);
-    std_inv_ = Tensor({num_elements}, 0.0);
-    
-    for (size_t i = 0; i < num_elements; ++i) {
-        // Compute mean over features
-        double mean = 0.0;
-        for (size_t j = 0; j < features; ++j)
-            mean += input.data()[i * features + j];
-        mean /= features;
-        
-        // Compute variance
-        double var = 0.0;
-        for (size_t j = 0; j < features; ++j) {
-            double diff = input.data()[i * features + j] - mean;
-            var += diff * diff;
-        }
-        var /= features;
-        
-        double inv_std = 1.0 / std::sqrt(var + epsilon_);
-        std_inv_.data()[i] = inv_std;
-        
-        for (size_t j = 0; j < features; ++j) {
-            normalized_.data()[i * features + j] = (input.data()[i * features + j] - mean) * inv_std;
-            output.data()[i * features + j] = gamma_.data()[j] * normalized_.data()[i * features + j] + beta_.data()[j];
-        }
-    }
-    
+    Tensor output = input.layer_norm(gamma_, beta_, epsilon_);
     last_output_ = output;
     return output;
 }
 
 Tensor LayerNormLayer::backward(const Tensor& gradient) {
-    size_t total = gradient.size();
-    size_t features = normalized_shape_;
-    size_t num_elements = total / features;
-    
-    gamma_gradient_ = Tensor({features}, 0.0);
-    beta_gradient_ = Tensor({features}, 0.0);
-    
-    for (size_t i = 0; i < num_elements; ++i)
-        for (size_t j = 0; j < features; ++j) {
-            gamma_gradient_.data()[j] += gradient.data()[i * features + j] * normalized_.data()[i * features + j];
-            beta_gradient_.data()[j] += gradient.data()[i * features + j];
-        }
-    
-    Tensor input_grad(gradient.shape(), 0.0);
-    double N = static_cast<double>(features);
-    
-    for (size_t i = 0; i < num_elements; ++i) {
-        double sum_dg = 0.0, sum_dg_norm = 0.0;
-        for (size_t j = 0; j < features; ++j) {
-            double dy = gradient.data()[i * features + j] * gamma_.data()[j];
-            sum_dg += dy;
-            sum_dg_norm += dy * normalized_.data()[i * features + j];
-        }
-        for (size_t j = 0; j < features; ++j) {
-            double dy = gradient.data()[i * features + j] * gamma_.data()[j];
-            input_grad.data()[i * features + j] = std_inv_.data()[i] / N *
-                (N * dy - sum_dg - normalized_.data()[i * features + j] * sum_dg_norm);
-        }
-    }
-    return input_grad;
+    gamma_gradient_ =
+        last_input_.layer_norm_gamma_gradient(gradient, epsilon_);
+    beta_gradient_ = gradient.row_sum();
+    return last_input_.layer_norm_backward(
+        gradient, gamma_, epsilon_);
 }
 
 void LayerNormLayer::update_parameters(double learning_rate) {
@@ -1488,34 +1400,13 @@ Tensor ScaledDotProductAttention::forward(const Tensor& Q, const Tensor& K, cons
     
     // scores = Q * K^T / sqrt(d_k)
     // For simplicity, treat as 2D: [seq_len_q, d_k] x [d_k, seq_len_k] = [seq_len_q, seq_len_k]
-    Tensor scores = Q.matmul(K.transpose());
-    for (size_t i = 0; i < scores.size(); ++i)
-        scores.data()[i] /= scale_;
+    Tensor scores = Q.matmul(K.transpose()) / scale_;
     
     // Apply mask if provided (set masked positions to large negative)
     if (mask) {
-        for (size_t i = 0; i < scores.size(); ++i) {
-            if (mask->data()[i] == 0.0)
-                scores.data()[i] = -1e9;
-        }
+        scores = scores.masked_fill(*mask, -1e9);
     }
-    
-    // Softmax over last dimension
-    size_t rows = scores.shape()[0];
-    size_t cols = scores.shape()[1];
-    attention_weights_ = Tensor(scores.shape(), 0.0);
-    for (size_t i = 0; i < rows; ++i) {
-        double max_val = -std::numeric_limits<double>::infinity();
-        for (size_t j = 0; j < cols; ++j)
-            max_val = std::max(max_val, scores.data()[i * cols + j]);
-        double sum = 0.0;
-        for (size_t j = 0; j < cols; ++j) {
-            attention_weights_.data()[i * cols + j] = std::exp(scores.data()[i * cols + j] - max_val);
-            sum += attention_weights_.data()[i * cols + j];
-        }
-        for (size_t j = 0; j < cols; ++j)
-            attention_weights_.data()[i * cols + j] /= sum;
-    }
+    attention_weights_ = scores.row_softmax();
     
     // output = attention_weights * V
     return attention_weights_.matmul(V);
@@ -1525,22 +1416,11 @@ std::vector<Tensor> ScaledDotProductAttention::backward(const Tensor& gradient) 
     // d_attn_weights = gradient * V^T
     Tensor d_weights = gradient.matmul(V_.transpose());
     
-    // Softmax backward
-    size_t rows = attention_weights_.shape()[0];
-    size_t cols = attention_weights_.shape()[1];
-    Tensor d_scores(attention_weights_.shape(), 0.0);
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            double s_ij = attention_weights_.data()[i * cols + j];
-            double sum = 0.0;
-            for (size_t k = 0; k < cols; ++k)
-                sum += d_weights.data()[i * cols + k] * attention_weights_.data()[i * cols + k];
-            d_scores.data()[i * cols + j] = s_ij * (d_weights.data()[i * cols + j] - sum);
-        }
-    }
-    
-    for (size_t i = 0; i < d_scores.size(); ++i)
-        d_scores.data()[i] /= scale_;
+    Tensor row_dot =
+        (d_weights * attention_weights_).row_sum();
+    Tensor d_scores = attention_weights_ *
+        d_weights.broadcast_add(row_dot * -1.0);
+    d_scores = d_scores / scale_;
     
     // dQ = d_scores * K
     Tensor dQ = d_scores.matmul(K_);
@@ -1607,99 +1487,60 @@ Tensor MultiHeadAttentionLayer::forward(const Tensor& query, const Tensor& key, 
     
     // Project: Q = query * W_q + b_q, etc.
     // For simplicity, treat as 2D [seq_len, d_model]
-    Q_proj_ = query.matmul(W_q_);
-    K_proj_ = key.matmul(W_k_);
-    V_proj_ = value.matmul(W_v_);
-    
-    // Add biases
-    size_t rows_q = Q_proj_.shape()[0];
-    size_t rows_k = K_proj_.shape()[0];
-    for (size_t i = 0; i < rows_q; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            Q_proj_.data()[i * d_model_ + j] += b_q_.data()[j];
-    for (size_t i = 0; i < rows_k; ++i)
-        for (size_t j = 0; j < d_model_; ++j) {
-            K_proj_.data()[i * d_model_ + j] += b_k_.data()[j];
-            V_proj_.data()[i * d_model_ + j] += b_v_.data()[j];
-        }
-    
-    attention_output_ =
-        Tensor({rows_q, d_model_}, 0.0);
+    Q_proj_ = query.matmul_bias(W_q_, b_q_);
+    K_proj_ = key.matmul_bias(W_k_, b_k_);
+    V_proj_ = value.matmul_bias(W_v_, b_v_);
+
+    Tensor combined_attention;
     for (size_t head = 0; head < num_heads_; ++head) {
-        Tensor head_query({rows_q, d_k_}, 0.0);
-        Tensor head_key({rows_k, d_k_}, 0.0);
-        Tensor head_value({rows_k, d_k_}, 0.0);
         const size_t offset = head * d_k_;
-        for (size_t row = 0; row < rows_q; ++row)
-            for (size_t column = 0; column < d_k_; ++column)
-                head_query.data()[row * d_k_ + column] =
-                    Q_proj_.data()[row * d_model_ + offset + column];
-        for (size_t row = 0; row < rows_k; ++row)
-            for (size_t column = 0; column < d_k_; ++column) {
-                head_key.data()[row * d_k_ + column] =
-                    K_proj_.data()[row * d_model_ + offset + column];
-                head_value.data()[row * d_k_ + column] =
-                    V_proj_.data()[row * d_model_ + offset + column];
-            }
+        Tensor head_query =
+            Q_proj_.slice_columns(offset, d_k_);
+        Tensor head_key =
+            K_proj_.slice_columns(offset, d_k_);
+        Tensor head_value =
+            V_proj_.slice_columns(offset, d_k_);
 
         Tensor head_output = attention_heads_[head].forward(
             head_query, head_key, head_value, mask);
-        for (size_t row = 0; row < rows_q; ++row)
-            for (size_t column = 0; column < d_k_; ++column)
-                attention_output_.data()[
-                    row * d_model_ + offset + column] =
-                    head_output.data()[row * d_k_ + column];
+        combined_attention = head == 0
+            ? head_output
+            : combined_attention.concat_columns(head_output);
     }
-    
-    // Output projection
-    Tensor output = attention_output_.matmul(W_o_);
-    size_t rows = output.shape()[0];
-    for (size_t i = 0; i < rows; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            output.data()[i * d_model_ + j] += b_o_.data()[j];
+    attention_output_ = std::move(combined_attention);
+
+    Tensor output = attention_output_.matmul_bias(W_o_, b_o_);
     
     last_output_ = output;
     return output;
 }
 
 Tensor MultiHeadAttentionLayer::backward(const Tensor& gradient) {
-    size_t rows = gradient.shape()[0];
-    
     // Output projection backward
     W_o_grad_ = attention_output_.transpose().matmul(gradient);
-    b_o_grad_ = Tensor({d_model_}, 0.0);
-    for (size_t i = 0; i < rows; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            b_o_grad_.data()[j] += gradient.data()[i * d_model_ + j];
+    b_o_grad_ = gradient.row_sum();
     
     Tensor d_attn = gradient.matmul(W_o_.transpose());
     
-    Tensor dQ(Q_proj_.shape(), 0.0);
-    Tensor dK(K_proj_.shape(), 0.0);
-    Tensor dV(V_proj_.shape(), 0.0);
-    const size_t rows_q = Q_proj_.shape()[0];
-    const size_t rows_k = K_proj_.shape()[0];
+    Tensor dQ;
+    Tensor dK;
+    Tensor dV;
     for (size_t head = 0; head < num_heads_; ++head) {
-        Tensor head_gradient({rows_q, d_k_}, 0.0);
         const size_t offset = head * d_k_;
-        for (size_t row = 0; row < rows_q; ++row)
-            for (size_t column = 0; column < d_k_; ++column)
-                head_gradient.data()[row * d_k_ + column] =
-                    d_attn.data()[row * d_model_ + offset + column];
+        Tensor head_gradient =
+            d_attn.slice_columns(offset, d_k_);
 
         std::vector<Tensor> head_gradients =
             attention_heads_[head].backward(head_gradient);
-        for (size_t row = 0; row < rows_q; ++row)
-            for (size_t column = 0; column < d_k_; ++column)
-                dQ.data()[row * d_model_ + offset + column] =
-                    head_gradients[0].data()[row * d_k_ + column];
-        for (size_t row = 0; row < rows_k; ++row)
-            for (size_t column = 0; column < d_k_; ++column) {
-                dK.data()[row * d_model_ + offset + column] =
-                    head_gradients[1].data()[row * d_k_ + column];
-                dV.data()[row * d_model_ + offset + column] =
-                    head_gradients[2].data()[row * d_k_ + column];
-            }
+        dQ = head == 0
+            ? head_gradients[0]
+            : dQ.concat_columns(head_gradients[0]);
+        dK = head == 0
+            ? head_gradients[1]
+            : dK.concat_columns(head_gradients[1]);
+        dV = head == 0
+            ? head_gradients[2]
+            : dV.concat_columns(head_gradients[2]);
     }
     
     // Projection backward
@@ -1707,18 +1548,9 @@ Tensor MultiHeadAttentionLayer::backward(const Tensor& gradient) {
     W_k_grad_ = key_.transpose().matmul(dK);
     W_v_grad_ = value_.transpose().matmul(dV);
     
-    b_q_grad_ = Tensor({d_model_}, 0.0);
-    b_k_grad_ = Tensor({d_model_}, 0.0);
-    b_v_grad_ = Tensor({d_model_}, 0.0);
-    
-    for (size_t i = 0; i < rows_q; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            b_q_grad_.data()[j] += dQ.data()[i * d_model_ + j];
-    for (size_t i = 0; i < rows_k; ++i)
-        for (size_t j = 0; j < d_model_; ++j) {
-            b_k_grad_.data()[j] += dK.data()[i * d_model_ + j];
-            b_v_grad_.data()[j] += dV.data()[i * d_model_ + j];
-        }
+    b_q_grad_ = dQ.row_sum();
+    b_k_grad_ = dK.row_sum();
+    b_v_grad_ = dV.row_sum();
     
     // Return gradient w.r.t. query input (for self-attention, all three are the same)
     Tensor d_query = dQ.matmul(W_q_.transpose());
@@ -1729,11 +1561,7 @@ Tensor MultiHeadAttentionLayer::backward(const Tensor& gradient) {
         return d_query;
     }
 
-    Tensor result = d_query;
-    for (size_t i = 0; i < result.size(); ++i)
-        result.data()[i] += d_key.data()[i] + d_value.data()[i];
-    
-    return result;
+    return d_query + d_key + d_value;
 }
 
 void MultiHeadAttentionLayer::update_parameters(double learning_rate) {
@@ -1811,17 +1639,12 @@ Tensor PositionalEncodingLayer::forward(const Tensor& input) {
     last_input_ = input;
     Tensor output = input.clone();
     
-    size_t seq_len, d_model;
     if (input.ndim() == 2) {
-        seq_len = input.shape()[0];
-        d_model = input.shape()[1];
-        for (size_t i = 0; i < seq_len; ++i)
-            for (size_t j = 0; j < d_model; ++j)
-                output.data()[i * d_model + j] += encoding_.data()[i * d_model_ + j];
+        output = input.add_prefix(encoding_);
     } else {
         size_t batch = input.shape()[0];
-        seq_len = input.shape()[1];
-        d_model = input.shape()[2];
+        size_t seq_len = input.shape()[1];
+        size_t d_model = input.shape()[2];
         for (size_t b = 0; b < batch; ++b)
             for (size_t i = 0; i < seq_len; ++i)
                 for (size_t j = 0; j < d_model; ++j)

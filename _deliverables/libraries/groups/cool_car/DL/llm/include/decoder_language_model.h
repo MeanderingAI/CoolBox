@@ -48,6 +48,11 @@ struct GenerationConfig {
     std::uint64_t seed = 0;
 };
 
+struct NamedTensor {
+    std::string name;
+    Tensor tensor;
+};
+
 class DecoderLanguageModel {
 public:
     explicit DecoderLanguageModel(
@@ -70,6 +75,10 @@ public:
     const DecoderLanguageModelConfig& config() const { return config_; }
     std::size_t parameter_count();
     std::size_t optimizer_step() const { return optimizer_step_; }
+    std::vector<NamedTensor> state_dict();
+    void load_state_dict(
+        const std::vector<NamedTensor>& tensors,
+        bool strict = true);
 
     void save(const std::string& path);
     static std::unique_ptr<DecoderLanguageModel> load(
