@@ -22,7 +22,8 @@ class build_ext_with_move(build_ext_orig):
     def run(self):
         build_configuration = (
             f"vulkan={os.environ.get('COOLBOX_ENABLE_VULKAN', '')};"
-            f"openblas={os.environ.get('MYTRIX_ENABLE_OPENBLAS', '')}"
+            f"openblas={os.environ.get('MYTRIX_ENABLE_OPENBLAS', '')};"
+            "deep_learning_sources=canonical-v6"
         )
         configuration_marker = (
             setup_root / "build" / ".coolbox-extension-configuration"
@@ -413,6 +414,13 @@ ensemble_sources = [
 include_dirs = [
     pybind11.get_include(),
     str(repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/loss/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/optimizer/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/llm/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/agent_runtime/include"),
+    str(repo_root / "_deliverables/libraries/groups/trekker/IO/dataformats/json/headers"),
+    str(repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/headers"),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
     str(regressor_header.parent),
@@ -477,10 +485,15 @@ source_files = [
     "src/synthetic_data_bindings.cpp",
     "src/deep_learning_extensions.cpp",
     "src/deep_learning_agent_bindings.cpp",
+    "src/agent_runtime_bindings.cpp",
     "src/deep_learning_explainability_bindings.cpp",
+    "src/llm_bindings.cpp",
+    "src/sql_bindings.cpp",
+    "src/rest_api_server.cpp",
+    "src/web_helpers.cpp",
 ]
 source_files.extend(to_setup_relative_path(path) for path in ensemble_sources)
-for native_module in ("rag", "scaling", "agents"):
+for native_module in ("rag", "scaling", "agents", "agent_runtime"):
     source_files.extend(
         to_setup_relative_path(path)
         for path in sorted(
@@ -503,8 +516,25 @@ source_files.extend(
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
-        module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
+        continue
     source_files.extend(module_sources)
+source_files.extend(
+    to_setup_relative_path(path)
+    for path in [
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/src/tensor.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/src/layer.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/loss/src/loss.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/optimizer/src/optimizer.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src/neural_network.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src/templates.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/llm/src/tokenizer.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/llm/src/decoder_language_model.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/dataformats/json/source/json.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/source/schema_parser.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/source/query_builder.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/source/database.cpp",
+    ]
+)
 source_files.append(str(project_root.parent / "go_bindings" / "matrix_bridge.cc"))
 source_files.extend(
     [
@@ -584,6 +614,7 @@ runtime_library_dirs = []
 if not sys.platform.startswith("win"):
     runtime_library_dirs = resolved_library_dirs[:]
 extension_libraries = unresolved_libraries + (["shell32"] if sys.platform.startswith("win") else [])
+extension_libraries.append("sqlite3")
 extension_macros = []
 openblas_enabled = env_flag("MYTRIX_ENABLE_OPENBLAS")
 if openblas_enabled:

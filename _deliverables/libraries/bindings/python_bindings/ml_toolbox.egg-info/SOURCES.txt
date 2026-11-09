@@ -9,6 +9,8 @@ py_ml_core.cpp
 pyproject.toml
 requirements.txt
 setup.py
+../../groups/cool_car/DL/agent_runtime/src/agent_runtime.cpp
+../../groups/cool_car/DL/agent_runtime/src/distributed_agent_runtime.cpp
 ../../groups/cool_car/DL/agents/include/agent_citations.h
 ../../groups/cool_car/DL/agents/include/agents.h
 ../../groups/cool_car/DL/agents/include/bapo.h
@@ -32,6 +34,8 @@ setup.py
 ../../groups/cool_car/DL/layers/src/tensor.cpp
 ../../groups/cool_car/DL/layers/src/vulkan_tensor_backend.cpp
 ../../groups/cool_car/DL/layers/test/test_deep_learning.cpp
+../../groups/cool_car/DL/llm/src/decoder_language_model.cpp
+../../groups/cool_car/DL/llm/src/tokenizer.cpp
 ../../groups/cool_car/DL/loss/include/loss.h
 ../../groups/cool_car/DL/loss/src/loss.cpp
 ../../groups/cool_car/DL/optimizer/include/optimizer.h
@@ -92,6 +96,10 @@ setup.py
 ../../groups/cool_car/OPT/hill_climbing/source/hill_climbing.cpp
 ../../groups/cool_car/OPT/optimization_factory/source/optimization_factory.cpp
 ../../groups/cool_car/OPT/simulated_annealing/source/simulated_annealing.cpp
+../../groups/trekker/IO/databases/sql_db_helpers/source/database.cpp
+../../groups/trekker/IO/databases/sql_db_helpers/source/query_builder.cpp
+../../groups/trekker/IO/databases/sql_db_helpers/source/schema_parser.cpp
+../../groups/trekker/IO/dataformats/json/source/json.cpp
 ../go_bindings/ds_bridge.cc
 ../go_bindings/ds_bridge_sources.cc
 ../go_bindings/matrix_bridge.cc
@@ -191,6 +199,7 @@ include/tracker/sequential_monte_carlo.h
 include/tracker/unscented_kalman_filter.h
 ml_core/__init__.py
 ml_toolbox/__init__.py
+ml_toolbox/agent_runtime.py
 ml_toolbox/gan.py
 ml_toolbox/matrix.py
 ml_toolbox/ml_core.cp311-win_amd64.pyd
@@ -205,10 +214,12 @@ ml_toolbox.egg-info/dependency_links.txt
 ml_toolbox.egg-info/not-zip-safe
 ml_toolbox.egg-info/requires.txt
 ml_toolbox.egg-info/top_level.txt
+src/agent_runtime_bindings.cpp
 src/data_structures_bindings.cpp
 src/deep_learning_agent_bindings.cpp
 src/deep_learning_explainability_bindings.cpp
 src/deep_learning_extensions.cpp
+src/llm_bindings.cpp
 src/matrix_bindings.cpp
 src/opt_math_finance_bindings.cpp
 src/pde_spde_bindings.cpp

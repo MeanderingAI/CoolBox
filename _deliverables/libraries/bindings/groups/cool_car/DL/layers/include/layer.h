@@ -10,6 +10,12 @@
 namespace ml {
 namespace deep_learning {
 
+struct TrainableParameter {
+    Tensor* values;
+    Tensor* gradients;
+    bool apply_weight_decay;
+};
+
 class Layer {
 public:
     virtual ~Layer() = default;
@@ -22,6 +28,8 @@ public:
     
     // Update parameters with optimizer
     virtual void update_parameters(double /*learning_rate*/) {}
+    virtual void collect_trainable_parameters(
+        std::vector<TrainableParameter>& /*parameters*/) {}
     
     // Getters
     virtual std::string name() const = 0;
@@ -42,6 +50,8 @@ public:
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     
     std::string name() const override { return "Dense"; }
     bool has_parameters() const override { return true; }
@@ -148,6 +158,8 @@ public:
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     std::string name() const override { return "LayerNorm"; }
     bool has_parameters() const override { return true; }
     
@@ -415,6 +427,8 @@ public:
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     
     std::string name() const override { return "Embedding"; }
     bool has_parameters() const override { return true; }
@@ -459,14 +473,16 @@ public:
     
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     
     std::string name() const override { return "MultiHeadAttention"; }
     bool has_parameters() const override { return true; }
     
 private:
     size_t d_model_;
-    [[maybe_unused]] size_t num_heads_;
-    [[maybe_unused]] size_t d_k_;  // d_model / num_heads
+    size_t num_heads_;
+    size_t d_k_;  // d_model / num_heads
     
     // Linear projections
     Tensor W_q_, W_k_, W_v_, W_o_;  // Shape: [d_model, d_model]
@@ -475,12 +491,13 @@ private:
     Tensor W_q_grad_, W_k_grad_, W_v_grad_, W_o_grad_;
     Tensor b_q_grad_, b_k_grad_, b_v_grad_, b_o_grad_;
     
-    ScaledDotProductAttention attention_;
+    std::vector<ScaledDotProductAttention> attention_heads_;
     
     // Cached for backward
     Tensor query_, key_, value_;
     Tensor Q_proj_, K_proj_, V_proj_;
     Tensor attention_output_;
+    bool self_attention_input_ = true;
 };
 
 // Position-wise Feed-Forward Network (used inside transformer blocks)
@@ -491,6 +508,8 @@ public:
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     
     std::string name() const override { return "FeedForward"; }
     bool has_parameters() const override { return true; }
@@ -508,6 +527,7 @@ public:
     
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
+    void set_training(bool training) { dropout_.set_training(training); }
     
     std::string name() const override { return "PositionalEncoding"; }
     
@@ -527,6 +547,8 @@ public:
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     
     std::string name() const override { return "TransformerEncoder"; }
     bool has_parameters() const override { return true; }
@@ -558,6 +580,8 @@ public:
     
     Tensor backward(const Tensor& gradient) override;
     void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
     
     std::string name() const override { return "TransformerDecoder"; }
     bool has_parameters() const override { return true; }
@@ -579,6 +603,36 @@ private:
     Tensor self_attn_output_;
     Tensor cross_attn_output_;
     Tensor ff_input_;
+};
+
+// Decoder-only causal transformer block used by autoregressive language models.
+class DecoderOnlyTransformerLayer : public Layer {
+public:
+    DecoderOnlyTransformerLayer(
+        size_t d_model,
+        size_t num_heads,
+        size_t d_ff,
+        double dropout_rate = 0.1);
+
+    Tensor forward(const Tensor& input) override;
+    Tensor backward(const Tensor& gradient) override;
+    void update_parameters(double learning_rate) override;
+    void collect_trainable_parameters(
+        std::vector<TrainableParameter>& parameters) override;
+    void set_training(bool training);
+
+    std::string name() const override {
+        return "DecoderOnlyTransformer";
+    }
+    bool has_parameters() const override { return true; }
+
+private:
+    MultiHeadAttentionLayer self_attention_;
+    FeedForwardLayer feed_forward_;
+    LayerNormLayer norm1_;
+    LayerNormLayer norm2_;
+    DropoutLayer dropout1_;
+    DropoutLayer dropout2_;
 };
 
 } // namespace deep_learning
