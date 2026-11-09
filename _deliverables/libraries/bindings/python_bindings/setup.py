@@ -263,33 +263,42 @@ def configure_vulkan_extension():
 
     generated_dir = project_root / "build" / "vulkan_generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
-    shader_source = (
+    shader_directory = (
         repo_root
-        / "_deliverables/libraries/groups/cool_car/DL/layers/shaders/tensor_ops.comp"
+        / "_deliverables/libraries/groups/cool_car/DL/layers/shaders"
     )
-    shader_binary = generated_dir / "tensor_ops.spv"
-    shader_header = generated_dir / "vulkan_tensor_shader.h"
-    subprocess.run(
-        [
-            shader_compiler,
-            "-V",
-            str(shader_source),
-            "-o",
-            str(shader_binary),
-        ],
-        check=True,
-    )
-    subprocess.run(
-        [
-            cmake_executable,
-            f"-DINPUT={shader_binary}",
-            f"-DOUTPUT={shader_header}",
-            "-DSYMBOL=coolbox_tensor_ops_spv",
-            "-P",
-            str(repo_root / "cmake/EmbedBinary.cmake"),
-        ],
-        check=True,
-    )
+    for suffix in ("fp64", "fp32", "lowp"):
+        source_name = (
+            "tensor_ops.comp"
+            if suffix == "fp64"
+            else f"tensor_ops_{suffix}.comp"
+        )
+        shader_source = shader_directory / source_name
+        shader_binary = generated_dir / f"tensor_ops_{suffix}.spv"
+        shader_header = (
+            generated_dir / f"vulkan_tensor_shader_{suffix}.h"
+        )
+        subprocess.run(
+            [
+                shader_compiler,
+                "-V",
+                str(shader_source),
+                "-o",
+                str(shader_binary),
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                cmake_executable,
+                f"-DINPUT={shader_binary}",
+                f"-DOUTPUT={shader_header}",
+                f"-DSYMBOL=coolbox_tensor_ops_{suffix}_spv",
+                "-P",
+                str(repo_root / "cmake/EmbedBinary.cmake"),
+            ],
+            check=True,
+        )
 
     library_candidates = [
         os.environ.get("VULKAN_LIBRARY_DIR"),

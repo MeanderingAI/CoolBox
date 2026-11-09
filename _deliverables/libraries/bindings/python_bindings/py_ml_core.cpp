@@ -503,6 +503,13 @@ PYBIND11_MODULE(ml_core, m) {
         .value("CPU", ml::deep_learning::TensorBackend::CPU)
         .value("VULKAN", ml::deep_learning::TensorBackend::VULKAN)
         .value("AUTO", ml::deep_learning::TensorBackend::AUTO);
+    py::enum_<ml::deep_learning::TensorPrecision>(
+        dl_module, "TensorPrecision")
+        .value("AUTO", ml::deep_learning::TensorPrecision::AUTO)
+        .value("FP64", ml::deep_learning::TensorPrecision::FP64)
+        .value("FP32", ml::deep_learning::TensorPrecision::FP32)
+        .value("FP16", ml::deep_learning::TensorPrecision::FP16)
+        .value("BF16", ml::deep_learning::TensorPrecision::BF16);
     dl_module.def(
         "set_tensor_backend", &ml::deep_learning::set_tensor_backend,
         py::arg("backend"));
@@ -510,6 +517,27 @@ PYBIND11_MODULE(ml_core, m) {
         "tensor_backend", &ml::deep_learning::tensor_backend);
     dl_module.def(
         "active_tensor_backend", &ml::deep_learning::active_tensor_backend);
+    dl_module.def(
+        "set_tensor_precision",
+        &ml::deep_learning::set_tensor_precision,
+        py::arg("precision"));
+    dl_module.def(
+        "tensor_precision",
+        &ml::deep_learning::tensor_precision);
+    dl_module.def(
+        "active_tensor_precision",
+        &ml::deep_learning::active_tensor_precision);
+    dl_module.def(
+        "tensor_precision_available",
+        &ml::deep_learning::tensor_precision_available,
+        py::arg("precision"));
+    dl_module.def(
+        "set_tensor_cpu_threads",
+        &ml::deep_learning::set_tensor_cpu_threads,
+        py::arg("thread_count"));
+    dl_module.def(
+        "tensor_cpu_threads",
+        &ml::deep_learning::tensor_cpu_threads);
     dl_module.def(
         "tensor_backend_available",
         &ml::deep_learning::tensor_backend_available,

@@ -9,6 +9,7 @@
 #include <numeric>
 #include <random>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 
 namespace ml {
@@ -18,6 +19,43 @@ namespace {
 
 constexpr char MODEL_MAGIC[] = "CBXLLM1";
 constexpr std::uint32_t MODEL_VERSION = 1;
+
+std::vector<std::string> parameter_names(
+    const DecoderLanguageModelConfig& config) {
+    std::vector<std::string> names;
+    names.push_back("model.embed_tokens.weight");
+    for (std::size_t layer = 0;
+         layer < config.num_layers;
+         ++layer) {
+        const std::string prefix =
+            "model.layers." + std::to_string(layer) + ".";
+        for (const std::string& projection :
+             {"q_proj", "k_proj", "v_proj", "o_proj"}) {
+            names.push_back(
+                prefix + "self_attn." + projection + ".weight");
+        }
+        for (const std::string& projection :
+             {"q_proj", "k_proj", "v_proj", "o_proj"}) {
+            names.push_back(
+                prefix + "self_attn." + projection + ".bias");
+        }
+        names.push_back(prefix + "mlp.fc1.weight");
+        names.push_back(prefix + "mlp.fc1.bias");
+        names.push_back(prefix + "mlp.fc2.weight");
+        names.push_back(prefix + "mlp.fc2.bias");
+        names.push_back(
+            prefix + "input_layernorm.weight");
+        names.push_back(
+            prefix + "input_layernorm.bias");
+        names.push_back(
+            prefix + "post_attention_layernorm.weight");
+        names.push_back(
+            prefix + "post_attention_layernorm.bias");
+    }
+    names.push_back("lm_head.weight");
+    names.push_back("lm_head.bias");
+    return names;
+}
 
 template <typename T>
 void write_value(std::ofstream& stream, const T& value) {
@@ -272,12 +310,18 @@ DecoderLanguageModel::trainable_parameters() {
 void DecoderLanguageModel::apply_optimizer() {
     std::vector<TrainableParameter> parameters =
         trainable_parameters();
-    double gradient_norm_squared = 0.0;
+    Tensor gradient_norm_squared_tensor;
+    bool first_gradient = true;
     for (const TrainableParameter& parameter : parameters) {
-        for (double gradient : parameter.gradients->data()) {
-            gradient_norm_squared += gradient * gradient;
-        }
+        Tensor parameter_norm =
+            parameter.gradients->squared_sum_tensor();
+        gradient_norm_squared_tensor = first_gradient
+            ? std::move(parameter_norm)
+            : gradient_norm_squared_tensor + parameter_norm;
+        first_gradient = false;
     }
+    const double gradient_norm_squared =
+        first_gradient ? 0.0 : gradient_norm_squared_tensor.data()[0];
     const double gradient_norm = std::sqrt(gradient_norm_squared);
     double gradient_scale = 1.0;
     if (config_.gradient_clip_norm > 0.0 &&
@@ -296,6 +340,15 @@ void DecoderLanguageModel::apply_optimizer() {
         }
 
         if (config_.optimizer == LanguageModelOptimizer::SGD) {
+            if (tensor_backend() != TensorBackend::CPU) {
+                Tensor update = gradients * gradient_scale;
+                if (parameter.apply_weight_decay) {
+                    update = update +
+                        values * config_.weight_decay;
+                }
+                values = values - update * config_.learning_rate;
+                continue;
+            }
             for (std::size_t index = 0; index < values.size(); ++index) {
                 const double gradient =
                     gradients.data()[index] * gradient_scale;
@@ -322,6 +375,29 @@ void DecoderLanguageModel::apply_optimizer() {
             1.0 - std::pow(
                 config_.beta2,
                 static_cast<double>(optimizer_step_));
+        if (tensor_backend() != TensorBackend::CPU) {
+            Tensor scaled_gradient = gradients * gradient_scale;
+            state.first_moment =
+                state.first_moment * config_.beta1 +
+                scaled_gradient * (1.0 - config_.beta1);
+            state.second_moment =
+                state.second_moment * config_.beta2 +
+                (scaled_gradient * scaled_gradient) *
+                    (1.0 - config_.beta2);
+            values = values.adamw_update(
+                state.first_moment,
+                state.second_moment,
+                config_.learning_rate,
+                beta1_correction,
+                beta2_correction,
+                config_.epsilon);
+            if (parameter.apply_weight_decay) {
+                values = values * (
+                    1.0 - config_.learning_rate *
+                    config_.weight_decay);
+            }
+            continue;
+        }
         for (std::size_t index = 0; index < values.size(); ++index) {
             const double gradient =
                 gradients.data()[index] * gradient_scale;
@@ -579,6 +655,72 @@ std::size_t DecoderLanguageModel::parameter_count() {
         count += parameter.values->size();
     }
     return count;
+}
+
+std::vector<NamedTensor> DecoderLanguageModel::state_dict() {
+    const std::vector<TrainableParameter> parameters =
+        trainable_parameters();
+    const std::vector<std::string> names =
+        parameter_names(config_);
+    if (names.size() != parameters.size()) {
+        throw std::runtime_error(
+            "Language-model parameter naming is inconsistent");
+    }
+    std::vector<NamedTensor> result;
+    result.reserve(parameters.size());
+    for (std::size_t index = 0;
+         index < parameters.size();
+         ++index) {
+        result.push_back(
+            NamedTensor{names[index], parameters[index].values->clone()});
+    }
+    return result;
+}
+
+void DecoderLanguageModel::load_state_dict(
+    const std::vector<NamedTensor>& tensors,
+    bool strict) {
+    std::vector<TrainableParameter> parameters =
+        trainable_parameters();
+    const std::vector<std::string> names =
+        parameter_names(config_);
+    if (names.size() != parameters.size()) {
+        throw std::runtime_error(
+            "Language-model parameter naming is inconsistent");
+    }
+    std::unordered_map<std::string, const Tensor*> supplied;
+    for (const NamedTensor& tensor : tensors) {
+        if (!supplied.emplace(tensor.name, &tensor.tensor).second) {
+            throw std::invalid_argument(
+                "Duplicate state-dict tensor: " + tensor.name);
+        }
+    }
+    for (std::size_t index = 0;
+         index < names.size();
+         ++index) {
+        const auto tensor = supplied.find(names[index]);
+        if (tensor == supplied.end()) {
+            if (strict) {
+                throw std::invalid_argument(
+                    "Missing state-dict tensor: " + names[index]);
+            }
+            continue;
+        }
+        if (tensor->second->shape() !=
+            parameters[index].values->shape()) {
+            throw std::invalid_argument(
+                "State-dict tensor shape mismatch: " + names[index]);
+        }
+        *parameters[index].values = tensor->second->clone();
+        supplied.erase(tensor);
+    }
+    if (strict && !supplied.empty()) {
+        throw std::invalid_argument(
+            "Unexpected state-dict tensor: " +
+            supplied.begin()->first);
+    }
+    adam_states_.clear();
+    optimizer_step_ = 0;
 }
 
 void DecoderLanguageModel::save(const std::string& path) {
