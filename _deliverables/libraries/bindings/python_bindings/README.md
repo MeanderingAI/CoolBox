@@ -162,6 +162,239 @@ store double-precision values. `TensorBackend.AUTO` uses Vulkan for sufficiently
 large supported operations and CPU otherwise. Explicit `VULKAN` selection
 raises an error if initialization or execution fails.
 
+### Transformer and LLM API
+
+Transformer building blocks are available directly from
+`ml_core.deep_learning`:
+
+- `EmbeddingLayer`
+- `MultiHeadAttentionLayer`
+- `FeedForwardLayer`
+- `PositionalEncodingLayer`
+- `TransformerEncoderLayer`
+- `TransformerDecoderLayer`
+- `DecoderOnlyTransformerLayer`
+
+`MultiHeadAttentionLayer` splits `d_model` across the requested heads.
+`DecoderOnlyTransformerLayer` applies a lower-triangular causal mask.
+
+The higher-level `ml_core.deep_learning.llm` module provides:
+
+- direct token-ID training and generation;
+- `ByteTokenizer` for reversible UTF-8 byte tokenization;
+- `BpeTokenizer` with deterministic merge training and persistence;
+- causal next-token cross-entropy;
+- SGD and AdamW with global gradient clipping;
+- greedy, temperature, top-k, and top-p generation;
+- model parameters and optimizer-state checkpoints.
+
+```python
+from ml_toolbox import ml_core
+
+llm = ml_core.deep_learning.llm
+tokenizer = llm.ByteTokenizer()
+
+config = llm.ModelConfig()
+config.vocab_size = tokenizer.vocabulary.size
+config.d_model = 64
+config.num_heads = 4
+config.d_ff = 256
+config.num_layers = 2
+config.max_sequence_length = 128
+config.optimizer = llm.Optimizer.ADAMW
+config.learning_rate = 3e-4
+
+model = llm.DecoderLanguageModel(config)
+tokens = tokenizer.encode(
+    "hello from CoolBox",
+    add_bos=True,
+    add_eos=True,
+)
+print(model.train_step(tokens))
+
+generation = llm.GenerationConfig()
+generation.max_new_tokens = 20
+generation.temperature = 0.8
+generation.top_k = 40
+result = model.generate(
+    tokenizer.encode("hello", add_bos=True),
+    generation,
+)
+print(tokenizer.decode(result))
+```
+
+For BPE:
+
+```python
+corpus = ["first training document", "second training document"]
+tokenizer = llm.BpeTokenizer()
+tokenizer.train(corpus, vocab_size=1024, min_frequency=2)
+config.vocab_size = tokenizer.vocabulary.size
+model = llm.DecoderLanguageModel(config)
+losses = model.fit_text_bpe(corpus, tokenizer, epochs=3)
+```
+
+Training currently processes one sequence chunk at a time. Vulkan accelerates
+supported tensor arithmetic, but tensors and optimizer state remain
+host-resident and optimizer updates are CPU-side. KV caching, mixed precision,
+distributed training, and fully device-resident weights are not implemented.
+
+### Agent runtime and OpenAI-compatible tools
+
+The `ml_core.deep_learning.agent_runtime` module combines:
+
+- four memory kinds: working, episodic, semantic, and procedural;
+- dependency-aware plans, bounded retries, resumable state, and execution
+  budgets;
+- callback guardrails for input, tool calls, tool results, and output;
+- execution events and evaluation records;
+- abstract persistence/event/evaluation interfaces that can be implemented in
+  Python or C++;
+- deterministic in-memory implementations for local use and testing.
+
+Register a GPT-family function tool from Python:
+
+```python
+import json
+from ml_toolbox import ml_core
+
+runtime = ml_core.deep_learning.agent_runtime
+tools = runtime.ToolRegistry()
+
+def lookup(call, context):
+    arguments = json.loads(call.arguments_json)
+    result = runtime.ToolResult()
+    result.call_id = call.id
+    result.name = call.name
+    result.content = f"result for {arguments['query']}"
+    return result
+
+tools.register_openai_tool(
+    "lookup",
+    "Look up a value",
+    {
+        "type": "object",
+        "properties": {"query": {"type": "string"}},
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+    lookup,
+)
+
+# Compatible with the `tools` field used by GPT-family APIs.
+request_tools = tools.openai_tools()
+```
+
+`invoke_openai_chat_tool_call()` accepts the dictionary representation of a
+Chat Completions tool call and returns a `role="tool"` message.
+`invoke_openai_response_tool_call()` accepts a Responses API `function_call`
+item and returns a `function_call_output` item.
+
+Create and execute a plan:
+
+```python
+step = runtime.PlanStep()
+step.id = "lookup"
+step.objective = "Retrieve evidence"
+step.tool = "lookup"
+step.arguments_json = '{"query":"CoolBox"}'
+step.max_attempts = 2
+
+plan = runtime.Plan()
+plan.steps = [step]
+
+agent = runtime.AgentRuntime(tools)
+state = agent.run("Research CoolBox", plan)
+print(state.status, state.output)
+```
+
+#### Distributed execution
+
+`DistributedAgentRuntime` schedules independent ready steps concurrently over
+CoolBox `DistributedContext` ranks. Rank zero is the coordinator; each other
+rank runs an `AgentWorker`.
+
+```python
+import uuid
+from ml_toolbox import ml_core
+
+runtime = ml_core.deep_learning.agent_runtime
+cluster = f"runtime-{uuid.uuid4()}"
+coordinator_context = ml_core.distributed.DistributedContext(
+    3, 0, cluster
+)
+worker_contexts = [
+    ml_core.distributed.DistributedContext(3, rank, cluster)
+    for rank in (1, 2)
+]
+workers = [
+    runtime.AgentWorker(context, tools)
+    for context in worker_contexts
+]
+for worker in workers:
+    worker.start()
+
+coordinator = runtime.DistributedAgentRuntime(
+    coordinator_context, tools
+)
+state = coordinator.run("Run the plan", plan)
+
+for worker in workers:
+    worker.stop()
+for worker in workers:
+    worker.join()
+```
+
+Plan steps support:
+
+- dependency-aware parallel scheduling;
+- preferred worker ranks;
+- retry and execution timeout limits;
+- cancellation and checkpoint/resume;
+- human approval callbacks;
+- logical agent handoffs through `agent_id`;
+- input, tool-call, tool-result, and output guardrails.
+
+Tool definitions can declare required credential names and
+`sandbox_required=True`. `EnvironmentCredentialProvider` exposes only
+explicitly allowlisted environment variables. An execution policy must approve
+sandbox-required tools before their handlers run.
+
+#### Durable state, hosted GPT loops, and telemetry
+
+The pure-Python `ml_toolbox.agent_runtime` helpers provide:
+
+```python
+from ml_toolbox.agent_runtime import (
+    JsonLinesEventSink,
+    OpenAIResponsesClient,
+    OpenTelemetryEventSink,
+    SQLiteEvaluationSink,
+    SQLiteMemoryStore,
+    SQLiteRunStateStore,
+    invoke_tools_async,
+    make_subprocess_tool_handler,
+)
+```
+
+`OpenAIResponsesClient` reads `OPENAI_API_KEY` by default, sends the registry's
+function schemas to the Responses API, executes returned function calls, and
+submits `function_call_output` items until the model produces a final response.
+`run_tool_loop_async()` provides an asyncio adapter.
+
+The SQLite stores use WAL mode and persist complete run checkpoints, all four
+memory kinds, and evaluation records.
+`JsonLinesEventSink` writes structured events, while
+`OpenTelemetryEventSink` maps events to an exporter callback. The subprocess
+handler uses `shell=False`, an absolute executable, argument allowlists,
+restricted environment propagation, captured output, and a hard timeout.
+
+The current CoolBox message transport is shared by ranked worker threads in one
+process. It now correctly connects separate `DistributedContext` instances,
+but it does not communicate between operating-system processes or machines.
+Cross-machine deployment still requires an MPI, gRPC, ZeroMQ, or equivalent
+transport adapter.
+
 ## Data structures
 
 `ml_toolbox.data_structures` exposes the native trekker data structures for

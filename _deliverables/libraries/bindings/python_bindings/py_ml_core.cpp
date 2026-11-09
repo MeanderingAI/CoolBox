@@ -24,12 +24,12 @@
 #include "dimensionality_reduction/knn.h"
 #include "dimensionality_reduction/umap.h"
 #include "kmeans/kmeans.h"
-#include "tensor.h"
+#include "DL/layers/include/tensor.h"
 #include "DL/layers/include/tensor_backend.h"
-#include "layer.h"
-#include "loss.h"
-#include "optimizer.h"
-#include "neural_network.h"
+#include "DL/layers/include/layer.h"
+#include "DL/loss/include/loss.h"
+#include "DL/optimizer/include/optimizer.h"
+#include "DL/wrapper/include/neural_network.h"
 #include "computer_vision/image.h"
 #include "computer_vision/transforms.h"
 #include "computer_vision/pipeline.h"
@@ -59,6 +59,8 @@ void bind_sql(py::module_& module);
 void bind_deep_learning_extensions(py::module_& module);
 void bind_deep_learning_agents(py::module_& module);
 void bind_deep_learning_explainability(py::module_& module);
+void bind_llm(py::module_& module);
+void bind_agent_runtime(py::module_& module);
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
@@ -646,6 +648,8 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("batch_size") = 32,
              py::arg("verbose") = true);
 
+    bind_llm(dl_module);
+
     dl_module.def("binary_classifier",
                      [](int input_dim, const std::vector<int>& hidden_dims) {
                           ml::deep_learning::NeuralNetwork net;
@@ -867,6 +871,7 @@ PYBIND11_MODULE(ml_core, m) {
 
     bind_deep_learning_extensions(dl_module);
     bind_deep_learning_agents(dl_module);
+    bind_agent_runtime(dl_module);
     bind_deep_learning_explainability(dl_module);
 
     // Computer Vision Module
@@ -1294,9 +1299,31 @@ PYBIND11_MODULE(ml_core, m) {
     py::class_<distributed::DistributedContext, std::shared_ptr<distributed::DistributedContext>>(
         dist_module, "DistributedContext")
         .def(py::init<int, int>())
+        .def(py::init<int, int, std::string>(),
+             py::arg("world_size"), py::arg("rank"),
+             py::arg("cluster_id"))
         .def("send", &distributed::DistributedContext::send)
         .def("receive", &distributed::DistributedContext::receive,
              py::arg("source_rank") = -1)
+        .def(
+            "receive_for",
+            [](distributed::DistributedContext& context,
+               int timeout_ms,
+               int source_rank) -> py::object {
+                distributed::Message message;
+                bool received = false;
+                {
+                    py::gil_scoped_release release;
+                    received = context.receive_for(
+                        message, timeout_ms, source_rank);
+                }
+                if (!received) {
+                    return py::none();
+                }
+                return py::cast(std::move(message));
+            },
+            py::arg("timeout_ms"),
+            py::arg("source_rank") = -1)
         .def("broadcast", &distributed::DistributedContext::broadcast)
         .def("scatter", &distributed::DistributedContext::scatter)
         .def("gather", &distributed::DistributedContext::gather)
@@ -1305,7 +1332,10 @@ PYBIND11_MODULE(ml_core, m) {
         .def("barrier", &distributed::DistributedContext::barrier)
         .def("rank", &distributed::DistributedContext::rank)
         .def("world_size", &distributed::DistributedContext::world_size)
-        .def("is_master", &distributed::DistributedContext::is_master);
+        .def("is_master", &distributed::DistributedContext::is_master)
+        .def_property_readonly(
+            "cluster_id",
+            &distributed::DistributedContext::cluster_id);
 
     // DataPartitioner class
     py::class_<distributed::DataPartitioner>(dist_module, "DataPartitioner")

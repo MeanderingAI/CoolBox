@@ -8,7 +8,6 @@
 #include <map>
 #include <mutex>
 #include <condition_variable>
-#include <queue>
 #include <thread>
 
 namespace distributed {
@@ -59,12 +58,19 @@ struct Message {
 // Distributed context - manages communication
 class DistributedContext {
 public:
-    DistributedContext(int world_size, int rank);
+    DistributedContext(
+        int world_size,
+        int rank,
+        std::string cluster_id = "default");
     ~DistributedContext();
     
     // Basic communication
     void send(const Message& msg, int dest_rank);
     Message receive(int source_rank = -1); // -1 means any source
+    bool receive_for(
+        Message& message,
+        int timeout_ms,
+        int source_rank = -1);
     
     // Collective operations
     void broadcast(std::vector<double>& data, int root_rank);
@@ -82,15 +88,19 @@ public:
     int rank() const { return rank_; }
     int world_size() const { return world_size_; }
     bool is_master() const { return rank_ == 0; }
+    const std::string& cluster_id() const { return cluster_id_; }
     
 private:
+    struct SharedBus;
+
     int world_size_;
     int rank_;
-    
-    // Simulated message queue (in real implementation, use MPI/gRPC/ZeroMQ)
-    std::map<int, std::queue<Message>> message_queues_;
-    std::mutex queue_mutex_;
-    std::condition_variable queue_cv_;
+    std::string cluster_id_;
+    std::shared_ptr<SharedBus> bus_;
+
+    static std::shared_ptr<SharedBus> acquire_bus(
+        const std::string& cluster_id,
+        int world_size);
     
     std::vector<double> apply_reduce_op(const std::vector<std::vector<double>>& data,
                                         ReduceOp op);

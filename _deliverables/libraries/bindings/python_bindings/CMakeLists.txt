@@ -124,10 +124,12 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/synthetic_data_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_extensions.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_agent_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/agent_runtime_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_explainability_bindings.cpp"
     "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/rag/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/scaling/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agents/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agent_runtime/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/src/cdeepex.cpp"
     "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/src/explainability_facade.cpp"
 )
@@ -171,6 +173,7 @@ pybind11_add_module(ml_core
     src/data_structures_bindings.cpp
     src/matrix_bindings.cpp
     src/synthetic_data_bindings.cpp
+    src/llm_bindings.cpp
     src/tree_ensemble_bindings.cpp
     src/sql_bindings.cpp
     src/rest_api_server.cpp
@@ -191,10 +194,13 @@ pybind11_add_module(ml_core
     ../../groups/cool_car/DL/wrapper/src/neural_network.cpp
     ../../groups/cool_car/DL/loss/src/loss.cpp
     ../../groups/cool_car/DL/layers/src/layer.cpp
+    ../../groups/cool_car/DL/llm/src/tokenizer.cpp
+    ../../groups/cool_car/DL/llm/src/decoder_language_model.cpp
 )
 
 target_include_directories(ml_core BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agent_runtime/include
 )
 
 # Set properties
@@ -265,6 +271,7 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/scaling/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agents/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/llm/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/list/headers

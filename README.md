@@ -331,6 +331,195 @@ dl.set_tensor_backend(dl.TensorBackend.VULKAN)
 print(dl.tensor_backend_device_name(dl.TensorBackend.VULKAN))
 ```
 
+### Decoder-only language models
+
+The Python extension exposes individual transformer layers and a trainable
+decoder-only language-model wrapper under `ml_core.deep_learning.llm`. The
+model uses causal multi-head self-attention, sinusoidal positional encoding,
+fused logits cross-entropy, gradient clipping, and configurable SGD or AdamW.
+It accepts token-ID sequences directly and includes both byte-level and
+trainable BPE tokenizers.
+
+```python
+from ml_toolbox import ml_core
+
+llm = ml_core.deep_learning.llm
+tokenizer = llm.ByteTokenizer()
+
+config = llm.ModelConfig()
+config.vocab_size = tokenizer.vocabulary.size
+config.d_model = 128
+config.num_heads = 4
+config.d_ff = 512
+config.num_layers = 4
+config.max_sequence_length = 256
+config.optimizer = llm.Optimizer.ADAMW
+config.learning_rate = 3e-4
+
+model = llm.DecoderLanguageModel(config)
+training_tokens = tokenizer.encode(
+    "CoolBox can train a small language model.",
+    add_bos=True,
+    add_eos=True,
+)
+loss = model.train_step(training_tokens)
+
+generation = llm.GenerationConfig()
+generation.max_new_tokens = 32
+generation.temperature = 0.8
+generation.top_k = 40
+generated = model.generate(
+    tokenizer.encode("CoolBox", add_bos=True),
+    generation,
+)
+print(tokenizer.decode(generated))
+```
+
+Train a BPE vocabulary before constructing the model, then use its resulting
+vocabulary size:
+
+```python
+tokenizer = llm.BpeTokenizer()
+tokenizer.train(corpus, vocab_size=4096, min_frequency=2)
+config.vocab_size = tokenizer.vocabulary.size
+model = llm.DecoderLanguageModel(config)
+losses = model.fit_text_bpe(corpus, tokenizer, epochs=3)
+```
+
+`DecoderLanguageModel.save()` persists model parameters and AdamW state;
+`BpeTokenizer.save()` persists learned merges. The current implementation
+trains one sequence chunk at a time. Tensor matmul and element-wise operations
+can use Vulkan, while tokenization, softmax, normalization, optimizer updates,
+sampling, and host-resident tensor transfers remain CPU-side. It does not yet
+provide KV caching, mixed precision, distributed training, or device-resident
+model weights, so it targets small experimental language models rather than
+large production LLMs.
+
+### Agent runtime and GPT tools
+
+`ml_core.deep_learning.agent_runtime` provides the first production-oriented
+agent-runtime foundation above the LLM and RAG APIs:
+
+- working, episodic, semantic, and procedural memory records;
+- pluggable memory and run-state persistence interfaces with in-memory stores;
+- dependency-validated plans and sequential execution;
+- per-step retry limits and resumable run state;
+- input, tool-call, tool-result, and output guardrails;
+- structured execution events and pluggable event sinks;
+- callback-based evaluators and evaluation sinks;
+- OpenAI-compatible function definitions and adapters for both Chat
+  Completions and Responses API tool calls.
+
+The registry does not require the OpenAI Python package:
+
+```python
+import json
+from ml_toolbox import ml_core
+
+agent = ml_core.deep_learning.agent_runtime
+registry = agent.ToolRegistry()
+
+def get_weather(call, context):
+    arguments = json.loads(call.arguments_json)
+    result = agent.ToolResult()
+    result.call_id = call.id
+    result.name = call.name
+    result.content = f"Weather requested for {arguments['city']}"
+    return result
+
+registry.register_openai_tool(
+    "get_weather",
+    "Get the current weather for a city",
+    {
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"],
+        "additionalProperties": False,
+    },
+    get_weather,
+)
+
+# Pass this list directly as `tools` to a GPT-family API request.
+openai_tools = registry.openai_tools()
+```
+
+For a Chat Completions tool call:
+
+```python
+context = agent.ExecutionContext()
+tool_message = registry.invoke_openai_chat_tool_call(
+    completion.choices[0].message.tool_calls[0].model_dump(),
+    context,
+)
+```
+
+For a Responses API function-call item:
+
+```python
+tool_output = registry.invoke_openai_response_tool_call(
+    function_call.model_dump(),
+    context,
+)
+```
+
+The initial runtime is synchronous and executes ready plan steps sequentially.
+For concurrent execution, create one shared CoolBox distributed cluster with a
+rank-zero coordinator and one or more `AgentWorker` ranks:
+
+```python
+import uuid
+from ml_toolbox import ml_core
+
+runtime = ml_core.deep_learning.agent_runtime
+cluster = f"agents-{uuid.uuid4()}"
+
+coordinator_context = ml_core.distributed.DistributedContext(
+    3, 0, cluster
+)
+worker_contexts = [
+    ml_core.distributed.DistributedContext(3, rank, cluster)
+    for rank in (1, 2)
+]
+workers = [
+    runtime.AgentWorker(context, registry)
+    for context in worker_contexts
+]
+for worker in workers:
+    worker.start()
+
+coordinator = runtime.DistributedAgentRuntime(
+    coordinator_context,
+    registry,
+)
+state = coordinator.run("Execute the plan", plan)
+
+for worker in workers:
+    worker.stop()
+for worker in workers:
+    worker.join()
+```
+
+Independent ready steps are dispatched concurrently. Steps can request a
+specific `worker_rank`, target an `agent_id`, require human approval, and set
+retry and timeout limits.
+
+The `ml_toolbox.agent_runtime` Python module adds:
+
+- `SQLiteRunStateStore`, `SQLiteMemoryStore`, and
+  `SQLiteEvaluationSink` for durable state;
+- `OpenAIResponsesClient` with authenticated HTTP requests and automatic
+  function-call loops;
+- `invoke_tools_async()` for asynchronous tool dispatch;
+- `JsonLinesEventSink` and `OpenTelemetryEventSink`;
+- `make_subprocess_tool_handler()` for allowlisted, timeout-bounded,
+  shell-free subprocess tools.
+
+The selected CoolBox `DistributedContext` transport is a shared ranked message
+bus for concurrent workers in one process. It is not a network transport
+between machines. The coordinator and workers are isolated behind the
+message-passing API so MPI, gRPC, ZeroMQ, or another cross-process transport can
+replace it later without changing plans or tool definitions.
+
 ### Deep-learning extensions
 
 The native extension exposes the deep-learning APIs under
