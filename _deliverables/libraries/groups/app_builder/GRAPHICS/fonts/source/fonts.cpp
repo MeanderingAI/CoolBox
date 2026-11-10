@@ -161,7 +161,7 @@ bool FontFace::load_from_file(const std::string& path) {
 
 bool FontFace::load_from_memory(std::vector<unsigned char> bytes) {
     clear();
-    if (bytes.empty()) {
+    if (bytes.size() < 12) {
         return false;
     }
 
