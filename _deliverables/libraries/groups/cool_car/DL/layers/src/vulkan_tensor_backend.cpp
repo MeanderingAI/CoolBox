@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <map>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -23,15 +24,19 @@ namespace ml {
 namespace deep_learning {
 namespace detail {
 
-struct VulkanTensorStorage {
+struct VulkanBufferAllocation {
     VkDevice device = VK_NULL_HANDLE;
     VkBuffer buffer = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
     void* mapped = nullptr;
-    std::size_t element_count = 0;
-    TensorPrecision precision = TensorPrecision::FP64;
+    VkDeviceSize capacity = 0;
+    std::shared_ptr<std::atomic<bool>> device_alive;
 
-    ~VulkanTensorStorage() {
+    ~VulkanBufferAllocation() {
+        if (device == VK_NULL_HANDLE ||
+            (device_alive && !device_alive->load())) {
+            return;
+        }
         if (mapped != nullptr) {
             vkUnmapMemory(device, memory);
         }
@@ -40,6 +45,92 @@ struct VulkanTensorStorage {
         }
         if (memory != VK_NULL_HANDLE) {
             vkFreeMemory(device, memory, nullptr);
+        }
+    }
+};
+
+struct VulkanStoragePool {
+    explicit VulkanStoragePool(VkDevice device)
+        : device(device),
+          device_alive(std::make_shared<std::atomic<bool>>(true)) {}
+
+    ~VulkanStoragePool() {
+        shutdown();
+    }
+
+    std::unique_ptr<VulkanBufferAllocation> acquire(
+        VkDeviceSize requested_size) {
+        std::lock_guard<std::mutex> lock(mutex);
+        const auto candidate = available.lower_bound(requested_size);
+        if (candidate == available.end()) {
+            return {};
+        }
+        std::unique_ptr<VulkanBufferAllocation> allocation =
+            std::move(candidate->second);
+        cached_bytes -= allocation->capacity;
+        available.erase(candidate);
+        return allocation;
+    }
+
+    void release(
+        std::unique_ptr<VulkanBufferAllocation> allocation) {
+        if (!allocation) {
+            return;
+        }
+        std::lock_guard<std::mutex> lock(mutex);
+        if (!accepting || allocation->device == VK_NULL_HANDLE) {
+            return;
+        }
+        if (allocation->capacity >
+            MAX_CACHED_BYTES -
+                std::min(cached_bytes, MAX_CACHED_BYTES)) {
+            return;
+        }
+        cached_bytes += allocation->capacity;
+        available.emplace(
+            allocation->capacity, std::move(allocation));
+    }
+
+    void shutdown() {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (!accepting && available.empty()) {
+            return;
+        }
+        accepting = false;
+        available.clear();
+        cached_bytes = 0;
+    }
+
+    void mark_device_destroyed() {
+        device_alive->store(false);
+    }
+
+    VkDevice device = VK_NULL_HANDLE;
+    std::shared_ptr<std::atomic<bool>> device_alive;
+    std::mutex mutex;
+    std::multimap<
+        VkDeviceSize,
+        std::unique_ptr<VulkanBufferAllocation>> available;
+    VkDeviceSize cached_bytes = 0;
+    bool accepting = true;
+
+    static constexpr VkDeviceSize MAX_CACHED_BYTES =
+        1024ULL * 1024ULL * 1024ULL;
+};
+
+struct VulkanTensorStorage {
+    VkDevice device = VK_NULL_HANDLE;
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    void* mapped = nullptr;
+    std::size_t element_count = 0;
+    TensorPrecision precision = TensorPrecision::FP64;
+    std::shared_ptr<VulkanStoragePool> pool;
+    std::unique_ptr<VulkanBufferAllocation> allocation;
+
+    ~VulkanTensorStorage() {
+        if (pool && allocation) {
+            pool->release(std::move(allocation));
         }
     }
 };
@@ -72,9 +163,13 @@ struct DispatchParameters {
     std::uint32_t scalar_low;
     std::uint32_t scalar_high;
     std::uint32_t encoding;
+    std::uint32_t extra0;
+    std::uint32_t extra1;
+    std::uint32_t extra2;
+    std::uint32_t extra3;
 };
 
-static_assert(sizeof(DispatchParameters) == 8 * sizeof(std::uint32_t),
+static_assert(sizeof(DispatchParameters) == 12 * sizeof(std::uint32_t),
               "Unexpected Vulkan push-constant layout");
 
 std::uint16_t float_to_half(float value) {
@@ -291,10 +386,55 @@ public:
         const std::vector<std::uint8_t> encoded =
             encode_values(values.data(), values.size(), precision);
         std::lock_guard<std::mutex> lock(dispatch_mutex_);
+        if (batch_output_bytes_ != 0 &&
+            encoded.size() >
+                MAX_BATCH_OUTPUT_BYTES -
+                    std::min(
+                        batch_output_bytes_,
+                        MAX_BATCH_OUTPUT_BYTES)) {
+            flush_batch();
+        }
         VulkanTensorStoragePtr storage =
             create_storage(values.size(), precision);
+        VulkanTensorStoragePtr staging =
+            create_staging_storage(values.size(), precision);
         std::memcpy(
-            storage->mapped, encoded.data(), encoded.size());
+            staging->mapped, encoded.data(), encoded.size());
+
+        begin_batch();
+        SubmissionSlot& slot = submission_slots_[active_slot_];
+        VkMemoryBarrier host_barrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        host_barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        host_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        vkCmdPipelineBarrier(
+            slot.command_buffer,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &host_barrier, 0, nullptr, 0, nullptr);
+        VkBufferCopy copy_region{};
+        copy_region.size =
+            static_cast<VkDeviceSize>(encoded.size());
+        vkCmdCopyBuffer(
+            slot.command_buffer,
+            staging->buffer,
+            storage->buffer,
+            1,
+            &copy_region);
+        VkMemoryBarrier compute_barrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        compute_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        compute_barrier.dstAccessMask =
+            VK_ACCESS_SHADER_READ_BIT |
+            VK_ACCESS_SHADER_WRITE_BIT;
+        vkCmdPipelineBarrier(
+            slot.command_buffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0, 1, &compute_barrier, 0, nullptr, 0, nullptr);
+        slot.storage.push_back(staging);
+        slot.storage.push_back(storage);
+        batch_output_bytes_ += encoded.size();
         return storage;
     }
 
@@ -307,7 +447,12 @@ public:
         std::size_t columns,
         std::size_t inner,
         double scalar,
-        const VulkanTensorStoragePtr& auxiliary = {}) {
+        const VulkanTensorStoragePtr& auxiliary = {},
+        const VulkanTensorStoragePtr& output_override = {},
+        std::uint32_t extra0 = 0,
+        std::uint32_t extra1 = 0,
+        std::uint32_t extra2 = 0,
+        std::uint32_t extra3 = 0) {
         if (!left) {
             throw std::invalid_argument(
                 "Resident Vulkan operation requires a left tensor");
@@ -315,21 +460,33 @@ public:
         const TensorPrecision precision = resolved_precision();
         if (left->precision != precision ||
             (right && right->precision != precision) ||
-            (auxiliary && auxiliary->precision != precision)) {
+            (auxiliary && auxiliary->precision != precision) ||
+            (output_override &&
+             output_override->precision != precision)) {
             throw std::invalid_argument(
                 "Resident Vulkan tensors use different precisions");
         }
         std::lock_guard<std::mutex> lock(dispatch_mutex_);
-        if (batch_dispatch_count_ >= MAX_BATCH_DISPATCHES) {
+        const std::size_t output_bytes =
+            output_size * precision_size(precision);
+        if (batch_dispatch_count_ >= MAX_BATCH_DISPATCHES ||
+            (batch_output_bytes_ != 0 &&
+             output_bytes >
+                 MAX_BATCH_OUTPUT_BYTES -
+                     std::min(
+                         batch_output_bytes_,
+                         MAX_BATCH_OUTPUT_BYTES))) {
             flush_batch();
         }
         begin_batch();
-        VulkanTensorStoragePtr output =
-            create_storage(output_size, precision);
+        SubmissionSlot& slot = submission_slots_[active_slot_];
+        VulkanTensorStoragePtr output = output_override
+            ? output_override
+            : create_storage(output_size, precision);
 
         VkDescriptorSetAllocateInfo set_info{
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-        set_info.descriptorPool = descriptor_pool_;
+        set_info.descriptorPool = slot.descriptor_pool;
         set_info.descriptorSetCount = 1;
         set_info.pSetLayouts = &descriptor_set_layout_;
         VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
@@ -363,16 +520,15 @@ public:
         vkUpdateDescriptorSets(
             device_, static_cast<std::uint32_t>(writes.size()),
             writes.data(), 0, nullptr);
-
         const std::size_t pipeline_index =
             precision == TensorPrecision::FP64
                 ? 0
                 : precision == TensorPrecision::FP32 ? 1 : 2;
         vkCmdBindPipeline(
-            command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
+            slot.command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
             pipelines_[pipeline_index]);
         vkCmdBindDescriptorSets(
-            command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
+            slot.command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
             pipeline_layout_, 0, 1, &descriptor_set, 0, nullptr);
 
         std::uint64_t scalar_bits = 0;
@@ -396,8 +552,12 @@ public:
             operation == VulkanTensorOperation::ROW_SUM) {
             work_items = columns;
         } else if (
-            operation == VulkanTensorOperation::SQUARED_SUM) {
-            work_items = 1;
+            operation == VulkanTensorOperation::SQUARED_SUM ||
+            operation == VulkanTensorOperation::SUM_REDUCTION) {
+            work_items = rows;
+        } else if (
+            operation == VulkanTensorOperation::CROSS_ENTROPY) {
+            work_items = rows;
         }
         const DispatchParameters parameters{
             static_cast<std::uint32_t>(operation),
@@ -408,14 +568,31 @@ public:
             static_cast<std::uint32_t>(scalar_bits),
             static_cast<std::uint32_t>(scalar_bits >> 32),
             static_cast<std::uint32_t>(precision),
+            extra0,
+            extra1,
+            extra2,
+            extra3,
         };
         vkCmdPushConstants(
-            command_buffer_, pipeline_layout_,
+            slot.command_buffer, pipeline_layout_,
             VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(parameters),
             &parameters);
-        vkCmdDispatch(
-            command_buffer_,
-            (parameters.count + 255U) / 256U, 1, 1);
+        if (operation == VulkanTensorOperation::MATMUL ||
+            operation == VulkanTensorOperation::MATMUL_BIAS ||
+            operation ==
+                VulkanTensorOperation::MATMUL_RIGHT_TRANSPOSED ||
+            operation ==
+                VulkanTensorOperation::MATMUL_LEFT_TRANSPOSED) {
+            vkCmdDispatch(
+                slot.command_buffer,
+                (parameters.columns + 15U) / 16U,
+                (parameters.rows + 15U) / 16U,
+                1);
+        } else {
+            vkCmdDispatch(
+                slot.command_buffer,
+                (parameters.count + 255U) / 256U, 1, 1);
+        }
 
         VkMemoryBarrier barrier{
             VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -424,22 +601,65 @@ public:
             VK_ACCESS_SHADER_READ_BIT |
             VK_ACCESS_SHADER_WRITE_BIT;
         vkCmdPipelineBarrier(
-            command_buffer_,
+            slot.command_buffer,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
 
-        batch_storage_.push_back(left);
+        slot.storage.push_back(left);
         if (right) {
-            batch_storage_.push_back(right);
+            slot.storage.push_back(right);
         }
         if (auxiliary) {
-            batch_storage_.push_back(auxiliary);
+            slot.storage.push_back(auxiliary);
         }
-        batch_storage_.push_back(output);
+        slot.storage.push_back(output);
+        batch_output_bytes_ += output_bytes;
         ++batch_dispatch_count_;
         active_tensor_precision.store(precision);
         return output;
+    }
+
+    void adamw_step_in_place(
+        const VulkanTensorStoragePtr& values,
+        const VulkanTensorStoragePtr& gradients,
+        const VulkanTensorStoragePtr& first_moment,
+        const VulkanTensorStoragePtr& second_moment,
+        double learning_rate,
+        double beta1,
+        double beta2,
+        double beta1_correction,
+        double beta2_correction,
+        double epsilon,
+        double weight_decay,
+        double gradient_scale) {
+        const auto float_bits = [](double value) {
+            const float converted = static_cast<float>(value);
+            std::uint32_t bits = 0;
+            std::memcpy(&bits, &converted, sizeof(bits));
+            return bits;
+        };
+        execute_resident(
+            VulkanTensorOperation::FUSED_ADAMW_STEP,
+            values,
+            gradients,
+            values->element_count,
+            float_bits(beta1),
+            float_bits(beta2),
+            float_bits(epsilon),
+            learning_rate,
+            first_moment,
+            second_moment,
+            float_bits(beta1_correction),
+            float_bits(beta2_correction),
+            float_bits(weight_decay),
+            float_bits(gradient_scale));
+    }
+
+    void synchronize() {
+        std::lock_guard<std::mutex> lock(dispatch_mutex_);
+        flush_batch();
+        wait_for_submissions();
     }
 
     std::vector<double> download(
@@ -449,9 +669,46 @@ public:
                 "Cannot download an empty Vulkan tensor");
         }
         std::lock_guard<std::mutex> lock(dispatch_mutex_);
+        VulkanTensorStoragePtr staging =
+            create_staging_storage(
+                storage->element_count,
+                storage->precision);
+        begin_batch();
+        SubmissionSlot& slot = submission_slots_[active_slot_];
+        VkMemoryBarrier transfer_barrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        transfer_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        transfer_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        vkCmdPipelineBarrier(
+            slot.command_buffer,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &transfer_barrier, 0, nullptr, 0, nullptr);
+        VkBufferCopy copy_region{};
+        copy_region.size =
+            storage->element_count *
+            precision_size(storage->precision);
+        vkCmdCopyBuffer(
+            slot.command_buffer,
+            storage->buffer,
+            staging->buffer,
+            1,
+            &copy_region);
+        VkMemoryBarrier host_barrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        host_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        host_barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+        vkCmdPipelineBarrier(
+            slot.command_buffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            0, 1, &host_barrier, 0, nullptr, 0, nullptr);
+        slot.storage.push_back(storage);
+        slot.storage.push_back(staging);
         flush_batch();
+        wait_for_submissions();
         return decode_values(
-            storage->mapped, storage->element_count,
+            staging->mapped, storage->element_count,
             storage->precision);
     }
 
@@ -495,9 +752,49 @@ public:
     }
 
 private:
+    struct SubmissionSlot {
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        VkFence fence = VK_NULL_HANDLE;
+        bool in_flight = false;
+        std::vector<VulkanTensorStoragePtr> storage;
+    };
+
     VulkanTensorStoragePtr create_storage(
         std::size_t element_count,
         TensorPrecision precision) {
+        return create_buffer_storage(
+            element_count,
+            precision,
+            device_storage_pool_,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            false);
+    }
+
+    VulkanTensorStoragePtr create_staging_storage(
+        std::size_t element_count,
+        TensorPrecision precision) {
+        return create_buffer_storage(
+            element_count,
+            precision,
+            staging_storage_pool_,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            true);
+    }
+
+    VulkanTensorStoragePtr create_buffer_storage(
+        std::size_t element_count,
+        TensorPrecision precision,
+        const std::shared_ptr<VulkanStoragePool>& pool,
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags memory_properties,
+        bool map_memory) {
         VulkanTensorStoragePtr storage =
             std::make_shared<VulkanTensorStorage>();
         storage->device = device_;
@@ -505,55 +802,90 @@ private:
         storage->precision = precision;
         const VkDeviceSize byte_size =
             element_count * precision_size(precision);
+        std::unique_ptr<VulkanBufferAllocation> allocation =
+            pool->acquire(byte_size);
+        if (allocation) {
+            storage->buffer = allocation->buffer;
+            storage->memory = allocation->memory;
+            storage->mapped = allocation->mapped;
+            storage->pool = pool;
+            storage->allocation = std::move(allocation);
+            return storage;
+        }
+
+        allocation =
+            std::make_unique<VulkanBufferAllocation>();
+        allocation->device = device_;
+        allocation->device_alive = pool->device_alive;
+        allocation->capacity = allocation_size_class(byte_size);
 
         VkBufferCreateInfo buffer_info{
             VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        buffer_info.size = byte_size;
-        buffer_info.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        buffer_info.size = allocation->capacity;
+        buffer_info.usage = usage;
         buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         check_vulkan(
             vkCreateBuffer(
-                device_, &buffer_info, nullptr, &storage->buffer),
+                device_, &buffer_info, nullptr, &allocation->buffer),
             "vkCreateBuffer");
         VkMemoryRequirements requirements{};
         vkGetBufferMemoryRequirements(
-            device_, storage->buffer, &requirements);
+            device_, allocation->buffer, &requirements);
         VkMemoryAllocateInfo allocation_info{
             VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
         allocation_info.allocationSize = requirements.size;
         allocation_info.memoryTypeIndex = find_memory_type(
-            requirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            requirements.memoryTypeBits, memory_properties);
         check_vulkan(
             vkAllocateMemory(
-                device_, &allocation_info, nullptr,
-                &storage->memory),
+                device_, &allocation_info, nullptr, &allocation->memory),
             "vkAllocateMemory");
         check_vulkan(
             vkBindBufferMemory(
-                device_, storage->buffer, storage->memory, 0),
+                device_, allocation->buffer, allocation->memory, 0),
             "vkBindBufferMemory");
-        check_vulkan(
-            vkMapMemory(
-                device_, storage->memory, 0, byte_size, 0,
-                &storage->mapped),
-            "vkMapMemory");
+        if (map_memory) {
+            check_vulkan(
+                vkMapMemory(
+                    device_, allocation->memory, 0,
+                    allocation->capacity, 0,
+                    &allocation->mapped),
+                "vkMapMemory");
+        }
+        storage->buffer = allocation->buffer;
+        storage->memory = allocation->memory;
+        storage->mapped = allocation->mapped;
+        storage->pool = pool;
+        storage->allocation = std::move(allocation);
         return storage;
+    }
+
+    static VkDeviceSize allocation_size_class(
+        VkDeviceSize requested_size) {
+        constexpr VkDeviceSize MINIMUM_SIZE = 256;
+        VkDeviceSize size = MINIMUM_SIZE;
+        while (size < requested_size &&
+               size <=
+                   std::numeric_limits<VkDeviceSize>::max() / 2) {
+            size *= 2;
+        }
+        return std::max(size, requested_size);
     }
 
     void begin_batch() {
         if (batch_open_) {
             return;
         }
+        SubmissionSlot& slot = submission_slots_[active_slot_];
+        wait_for_slot(slot);
         check_vulkan(
-            vkResetCommandBuffer(command_buffer_, 0),
+            vkResetCommandBuffer(slot.command_buffer, 0),
             "vkResetCommandBuffer");
         VkCommandBufferBeginInfo begin_info{
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         check_vulkan(
-            vkBeginCommandBuffer(command_buffer_, &begin_info),
+            vkBeginCommandBuffer(slot.command_buffer, &begin_info),
             "vkBeginCommandBuffer");
         batch_open_ = true;
     }
@@ -562,29 +894,47 @@ private:
         if (!batch_open_) {
             return;
         }
+        SubmissionSlot& slot = submission_slots_[active_slot_];
         check_vulkan(
-            vkEndCommandBuffer(command_buffer_),
+            vkEndCommandBuffer(slot.command_buffer),
             "vkEndCommandBuffer");
         check_vulkan(
-            vkResetFences(device_, 1, &dispatch_fence_),
+            vkResetFences(device_, 1, &slot.fence),
             "vkResetFences");
         VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
         submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &command_buffer_;
+        submit_info.pCommandBuffers = &slot.command_buffer;
         check_vulkan(
-            vkQueueSubmit(queue_, 1, &submit_info, dispatch_fence_),
+            vkQueueSubmit(queue_, 1, &submit_info, slot.fence),
             "vkQueueSubmit");
+        slot.in_flight = true;
+        batch_dispatch_count_ = 0;
+        batch_output_bytes_ = 0;
+        batch_open_ = false;
+        active_slot_ =
+            (active_slot_ + 1) % submission_slots_.size();
+    }
+
+    void wait_for_slot(SubmissionSlot& slot) {
+        if (!slot.in_flight) {
+            return;
+        }
         check_vulkan(
             vkWaitForFences(
-                device_, 1, &dispatch_fence_, VK_TRUE, UINT64_MAX),
+                device_, 1, &slot.fence, VK_TRUE, UINT64_MAX),
             "vkWaitForFences");
         check_vulkan(
             vkResetDescriptorPool(
-                device_, descriptor_pool_, 0),
+                device_, slot.descriptor_pool, 0),
             "vkResetDescriptorPool");
-        batch_storage_.clear();
-        batch_dispatch_count_ = 0;
-        batch_open_ = false;
+        slot.storage.clear();
+        slot.in_flight = false;
+    }
+
+    void wait_for_submissions() {
+        for (SubmissionSlot& slot : submission_slots_) {
+            wait_for_slot(slot);
+        }
     }
 
     struct Buffer {
@@ -697,7 +1047,7 @@ private:
             }
         }
         throw std::runtime_error(
-            "Vulkan device has no host-visible coherent memory type");
+            "Vulkan device has no compatible memory type");
     }
 
     void initialize() {
@@ -842,6 +1192,10 @@ private:
                 physical_device_, &device_info, nullptr, &device_),
             "vkCreateDevice");
         vkGetDeviceQueue(device_, queue_family_, 0, &queue_);
+        device_storage_pool_ =
+            std::make_shared<VulkanStoragePool>(device_);
+        staging_storage_pool_ =
+            std::make_shared<VulkanStoragePool>(device_);
 
         std::array<VkDescriptorSetLayoutBinding, 4> bindings{};
         for (std::uint32_t index = 0; index < bindings.size(); ++index) {
@@ -931,56 +1285,81 @@ private:
                 device_, &command_pool_info, nullptr, &command_pool_),
             "vkCreateCommandPool");
 
-        VkDescriptorPoolSize pool_size{};
-        pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        pool_size.descriptorCount =
-            4 * MAX_BATCH_DISPATCHES;
-        VkDescriptorPoolCreateInfo pool_info{
-            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        pool_info.maxSets = MAX_BATCH_DISPATCHES;
-        pool_info.poolSizeCount = 1;
-        pool_info.pPoolSizes = &pool_size;
-        check_vulkan(
-            vkCreateDescriptorPool(
-                device_, &pool_info, nullptr, &descriptor_pool_),
-            "vkCreateDescriptorPool");
-
         VkCommandBufferAllocateInfo command_info{
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
         command_info.commandPool = command_pool_;
         command_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_info.commandBufferCount = 1;
+        command_info.commandBufferCount =
+            static_cast<std::uint32_t>(submission_slots_.size());
+        std::array<VkCommandBuffer, SUBMISSION_SLOT_COUNT>
+            command_buffers{};
         check_vulkan(
             vkAllocateCommandBuffers(
-                device_, &command_info, &command_buffer_),
+                device_, &command_info, command_buffers.data()),
             "vkAllocateCommandBuffers");
 
-        VkFenceCreateInfo fence_info{
-            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-        check_vulkan(
-            vkCreateFence(
-                device_, &fence_info, nullptr, &dispatch_fence_),
-            "vkCreateFence");
+        for (std::size_t index = 0;
+             index < submission_slots_.size();
+             ++index) {
+            SubmissionSlot& slot = submission_slots_[index];
+            slot.command_buffer = command_buffers[index];
+
+            VkDescriptorPoolSize pool_size{};
+            pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            pool_size.descriptorCount =
+                4 * MAX_BATCH_DISPATCHES;
+            VkDescriptorPoolCreateInfo pool_info{
+                VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+            pool_info.maxSets = MAX_BATCH_DISPATCHES;
+            pool_info.poolSizeCount = 1;
+            pool_info.pPoolSizes = &pool_size;
+            check_vulkan(
+                vkCreateDescriptorPool(
+                    device_, &pool_info, nullptr,
+                    &slot.descriptor_pool),
+                "vkCreateDescriptorPool");
+
+            VkFenceCreateInfo fence_info{
+                VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+            check_vulkan(
+                vkCreateFence(
+                    device_, &fence_info, nullptr, &slot.fence),
+                "vkCreateFence");
+        }
     }
 
     void destroy() {
         if (device_ != VK_NULL_HANDLE) {
             vkDeviceWaitIdle(device_);
             if (batch_open_) {
-                vkResetCommandBuffer(command_buffer_, 0);
+                vkResetCommandBuffer(
+                    submission_slots_[active_slot_].command_buffer,
+                    0);
                 batch_open_ = false;
             }
-            batch_storage_.clear();
+            for (SubmissionSlot& slot : submission_slots_) {
+                slot.storage.clear();
+                if (slot.fence != VK_NULL_HANDLE) {
+                    vkDestroyFence(device_, slot.fence, nullptr);
+                    slot.fence = VK_NULL_HANDLE;
+                }
+                if (slot.descriptor_pool != VK_NULL_HANDLE) {
+                    vkDestroyDescriptorPool(
+                        device_, slot.descriptor_pool, nullptr);
+                    slot.descriptor_pool = VK_NULL_HANDLE;
+                }
+                slot.command_buffer = VK_NULL_HANDLE;
+                slot.in_flight = false;
+            }
+            if (device_storage_pool_) {
+                device_storage_pool_->shutdown();
+            }
+            if (staging_storage_pool_) {
+                staging_storage_pool_->shutdown();
+            }
             left_buffer_.destroy();
             right_buffer_.destroy();
             output_buffer_.destroy();
-            if (dispatch_fence_ != VK_NULL_HANDLE) {
-                vkDestroyFence(device_, dispatch_fence_, nullptr);
-            }
-            if (descriptor_pool_ != VK_NULL_HANDLE) {
-                vkDestroyDescriptorPool(
-                    device_, descriptor_pool_, nullptr);
-            }
             if (command_pool_ != VK_NULL_HANDLE) {
                 vkDestroyCommandPool(
                     device_, command_pool_, nullptr);
@@ -1004,8 +1383,16 @@ private:
                 vkDestroyDescriptorSetLayout(
                     device_, descriptor_set_layout_, nullptr);
             }
+            if (device_storage_pool_) {
+                device_storage_pool_->mark_device_destroyed();
+            }
+            if (staging_storage_pool_) {
+                staging_storage_pool_->mark_device_destroyed();
+            }
             vkDestroyDevice(device_, nullptr);
             device_ = VK_NULL_HANDLE;
+            device_storage_pool_.reset();
+            staging_storage_pool_.reset();
         }
         if (instance_ != VK_NULL_HANDLE) {
             vkDestroyInstance(instance_, nullptr);
@@ -1023,21 +1410,26 @@ private:
     VkQueue queue_ = VK_NULL_HANDLE;
     std::uint32_t queue_family_ = 0;
     bool low_precision_available_ = false;
-    static constexpr std::uint32_t MAX_BATCH_DISPATCHES = 4096;
+    static constexpr std::size_t SUBMISSION_SLOT_COUNT = 3;
+    static constexpr std::uint32_t MAX_BATCH_DISPATCHES = 256;
+    static constexpr std::size_t MAX_BATCH_OUTPUT_BYTES =
+        128ULL * 1024ULL * 1024ULL;
     VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
     VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
     std::array<VkShaderModule, 3> shader_modules_{};
     std::array<VkPipeline, 3> pipelines_{};
     VkCommandPool command_pool_ = VK_NULL_HANDLE;
-    VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
-    VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
-    VkFence dispatch_fence_ = VK_NULL_HANDLE;
+    std::array<SubmissionSlot, SUBMISSION_SLOT_COUNT>
+        submission_slots_{};
+    std::shared_ptr<VulkanStoragePool> device_storage_pool_;
+    std::shared_ptr<VulkanStoragePool> staging_storage_pool_;
+    std::size_t active_slot_ = 0;
     Buffer left_buffer_;
     Buffer right_buffer_;
     Buffer output_buffer_;
     bool batch_open_ = false;
     std::uint32_t batch_dispatch_count_ = 0;
-    std::vector<VulkanTensorStoragePtr> batch_storage_;
+    std::size_t batch_output_bytes_ = 0;
     std::mutex dispatch_mutex_;
 };
 
@@ -1093,6 +1485,30 @@ std::vector<double> vulkan_tensor_download(
 bool vulkan_tensor_storage_matches_precision(
     const VulkanTensorStoragePtr& storage) {
     return runtime().storage_matches_precision(storage);
+}
+
+void vulkan_tensor_adamw_step_in_place(
+    const VulkanTensorStoragePtr& values,
+    const VulkanTensorStoragePtr& gradients,
+    const VulkanTensorStoragePtr& first_moment,
+    const VulkanTensorStoragePtr& second_moment,
+    double learning_rate,
+    double beta1,
+    double beta2,
+    double beta1_correction,
+    double beta2_correction,
+    double epsilon,
+    double weight_decay,
+    double gradient_scale) {
+    runtime().adamw_step_in_place(
+        values, gradients, first_moment, second_moment,
+        learning_rate, beta1, beta2,
+        beta1_correction, beta2_correction,
+        epsilon, weight_decay, gradient_scale);
+}
+
+void vulkan_tensor_synchronize() {
+    runtime().synchronize();
 }
 
 std::vector<double> vulkan_tensor_execute(

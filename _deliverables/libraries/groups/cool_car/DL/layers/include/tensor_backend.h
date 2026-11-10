@@ -52,7 +52,23 @@ enum class VulkanTensorOperation {
     SLICE_COLUMNS = 20,
     CONCAT_COLUMNS = 21,
     SQUARED_SUM = 22,
-    ADAMW_UPDATE = 23
+    ADAMW_UPDATE = 23,
+    CROSS_ENTROPY = 24,
+    FUSED_ADAMW_STEP = 25,
+    ATTENTION_SCORES = 26,
+    MATMUL_RIGHT_TRANSPOSED = 27,
+    MATMUL_LEFT_TRANSPOSED = 28,
+    MULTIHEAD_ATTENTION_SCORES = 29,
+    MULTIHEAD_ATTENTION_VALUES = 30,
+    MULTIHEAD_ATTENTION_KEY_GRADIENT = 31,
+    MULTIHEAD_ATTENTION_WEIGHT_GRADIENT = 32,
+    SUM_REDUCTION = 33,
+    GELU = 34,
+    GELU_BACKWARD = 35,
+    SILU = 36,
+    SILU_BACKWARD = 37,
+    ROTARY_EMBEDDING = 38,
+    ROTARY_EMBEDDING_BACKWARD = 39
 };
 
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
@@ -60,6 +76,7 @@ bool vulkan_tensor_available();
 std::string vulkan_tensor_unavailable_reason();
 std::string vulkan_tensor_device_name();
 bool vulkan_tensor_precision_available(TensorPrecision precision);
+void vulkan_tensor_synchronize();
 #endif
 
 inline std::atomic<TensorBackend> requested_tensor_backend{TensorBackend::CPU};
@@ -76,10 +93,19 @@ inline bool tensor_backend_available(TensorBackend backend) {
     if (backend == TensorBackend::CPU || backend == TensorBackend::AUTO) {
         return true;
     }
+
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
     return detail::vulkan_tensor_available();
 #else
     return false;
+#endif
+}
+
+inline void synchronize_tensor_backend() {
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::active_tensor_backend.load() == TensorBackend::VULKAN) {
+        detail::vulkan_tensor_synchronize();
+    }
 #endif
 }
 

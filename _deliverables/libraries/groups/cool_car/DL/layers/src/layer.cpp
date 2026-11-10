@@ -64,11 +64,12 @@ Tensor DenseLayer::forward(const Tensor& input) {
 }
 
 Tensor DenseLayer::backward(const Tensor& gradient) {
-    weight_gradient_ = last_input_.transpose().matmul(gradient);
+    weight_gradient_ =
+        last_input_.matmul_left_transposed(gradient);
     
     bias_gradient_ = gradient.row_sum();
 
-    return gradient.matmul(weights_.transpose());
+    return gradient.matmul_right_transposed(weights_);
 }
 
 void DenseLayer::update_parameters(double learning_rate) {
@@ -1400,12 +1401,9 @@ Tensor ScaledDotProductAttention::forward(const Tensor& Q, const Tensor& K, cons
     
     // scores = Q * K^T / sqrt(d_k)
     // For simplicity, treat as 2D: [seq_len_q, d_k] x [d_k, seq_len_k] = [seq_len_q, seq_len_k]
-    Tensor scores = Q.matmul(K.transpose()) / scale_;
-    
-    // Apply mask if provided (set masked positions to large negative)
-    if (mask) {
-        scores = scores.masked_fill(*mask, -1e9);
-    }
+    Tensor scores = mask
+        ? Q.attention_scores(K, *mask, scale_)
+        : Q.matmul(K.transpose()) / scale_;
     attention_weights_ = scores.row_softmax();
     
     // output = attention_weights * V
@@ -1414,7 +1412,8 @@ Tensor ScaledDotProductAttention::forward(const Tensor& Q, const Tensor& K, cons
 
 std::vector<Tensor> ScaledDotProductAttention::backward(const Tensor& gradient) {
     // d_attn_weights = gradient * V^T
-    Tensor d_weights = gradient.matmul(V_.transpose());
+    Tensor d_weights =
+        gradient.matmul_right_transposed(V_);
     
     Tensor row_dot =
         (d_weights * attention_weights_).row_sum();
@@ -1425,21 +1424,32 @@ std::vector<Tensor> ScaledDotProductAttention::backward(const Tensor& gradient) 
     // dQ = d_scores * K
     Tensor dQ = d_scores.matmul(K_);
     // dK = d_scores^T * Q
-    Tensor dK = d_scores.transpose().matmul(Q_);
+    Tensor dK = d_scores.matmul_left_transposed(Q_);
     // dV = attention_weights^T * gradient
-    Tensor dV = attention_weights_.transpose().matmul(gradient);
+    Tensor dV =
+        attention_weights_.matmul_left_transposed(gradient);
     
     return {dQ, dK, dV};
 }
 
 // MultiHeadAttentionLayer
-MultiHeadAttentionLayer::MultiHeadAttentionLayer(size_t d_model, size_t num_heads)
-    : d_model_(d_model), num_heads_(num_heads), d_k_(0) {
+MultiHeadAttentionLayer::MultiHeadAttentionLayer(
+    size_t d_model,
+    size_t num_heads,
+    bool use_rotary_embedding)
+    : d_model_(d_model),
+      num_heads_(num_heads),
+      d_k_(0),
+      use_rotary_embedding_(use_rotary_embedding) {
     if (num_heads == 0 || d_model == 0 || d_model % num_heads != 0) {
         throw std::invalid_argument(
             "d_model must be positive and divisible by num_heads");
     }
     d_k_ = d_model / num_heads;
+    if (use_rotary_embedding_ && d_k_ % 2 != 0) {
+        throw std::invalid_argument(
+            "RoPE requires an even attention head width");
+    }
     attention_heads_.resize(num_heads_);
     double limit = std::sqrt(6.0 / (d_model + d_model));
     
@@ -1485,11 +1495,32 @@ Tensor MultiHeadAttentionLayer::forward(const Tensor& query, const Tensor& key, 
         &query == &key && &query == &value;
     query_ = query; key_ = key; value_ = value;
     
-    // Project: Q = query * W_q + b_q, etc.
-    // For simplicity, treat as 2D [seq_len, d_model]
     Q_proj_ = query.matmul_bias(W_q_, b_q_);
     K_proj_ = key.matmul_bias(W_k_, b_k_);
     V_proj_ = value.matmul_bias(W_v_, b_v_);
+    if (use_rotary_embedding_ && self_attention_input_) {
+        Q_proj_ = Q_proj_.rotary_embedding(num_heads_);
+        K_proj_ = K_proj_.rotary_embedding(num_heads_);
+    }
+
+    // Packed kernels reduce dispatch overhead until tiled per-head matmul wins.
+    fused_attention_ =
+        tensor_backend() != TensorBackend::CPU &&
+        mask != nullptr &&
+        query.shape()[0] == key.shape()[0] &&
+        d_model_ <= 256;
+    if (fused_attention_) {
+        fused_attention_weights_ =
+            Q_proj_.multihead_attention_scores(
+                K_proj_, *mask, num_heads_).row_softmax();
+        attention_output_ =
+            fused_attention_weights_.multihead_attention_values(
+                V_proj_, num_heads_);
+        Tensor output =
+            attention_output_.matmul_bias(W_o_, b_o_);
+        last_output_ = output;
+        return output;
+    }
 
     Tensor combined_attention;
     for (size_t head = 0; head < num_heads_; ++head) {
@@ -1517,10 +1548,54 @@ Tensor MultiHeadAttentionLayer::forward(const Tensor& query, const Tensor& key, 
 
 Tensor MultiHeadAttentionLayer::backward(const Tensor& gradient) {
     // Output projection backward
-    W_o_grad_ = attention_output_.transpose().matmul(gradient);
+    W_o_grad_ =
+        attention_output_.matmul_left_transposed(gradient);
     b_o_grad_ = gradient.row_sum();
     
-    Tensor d_attn = gradient.matmul(W_o_.transpose());
+    Tensor d_attn =
+        gradient.matmul_right_transposed(W_o_);
+    if (fused_attention_) {
+        Tensor d_weights =
+            d_attn.multihead_attention_weight_gradient(
+                V_proj_, num_heads_);
+        Tensor row_dot =
+            (d_weights * fused_attention_weights_).row_sum();
+        Tensor d_scores = fused_attention_weights_ *
+            d_weights.broadcast_add(row_dot * -1.0);
+        d_scores = d_scores /
+            std::sqrt(static_cast<double>(d_k_));
+
+        Tensor dQ = d_scores.multihead_attention_values(
+            K_proj_, num_heads_);
+        Tensor dK =
+            d_scores.multihead_attention_key_gradient(
+                Q_proj_, num_heads_);
+        Tensor dV =
+            fused_attention_weights_.
+                multihead_attention_key_gradient(
+                    d_attn, num_heads_);
+
+        if (use_rotary_embedding_ && self_attention_input_) {
+            dQ = dQ.rotary_embedding_backward(num_heads_);
+            dK = dK.rotary_embedding_backward(num_heads_);
+        }
+        W_q_grad_ = query_.matmul_left_transposed(dQ);
+        W_k_grad_ = key_.matmul_left_transposed(dK);
+        W_v_grad_ = value_.matmul_left_transposed(dV);
+        b_q_grad_ = dQ.row_sum();
+        b_k_grad_ = dK.row_sum();
+        b_v_grad_ = dV.row_sum();
+
+        Tensor d_query =
+            dQ.matmul_right_transposed(W_q_);
+        Tensor d_key =
+            dK.matmul_right_transposed(W_k_);
+        Tensor d_value =
+            dV.matmul_right_transposed(W_v_);
+        return self_attention_input_
+            ? d_query + d_key + d_value
+            : d_query;
+    }
     
     Tensor dQ;
     Tensor dK;
@@ -1543,24 +1618,26 @@ Tensor MultiHeadAttentionLayer::backward(const Tensor& gradient) {
             : dV.concat_columns(head_gradients[2]);
     }
     
-    // Projection backward
-    W_q_grad_ = query_.transpose().matmul(dQ);
-    W_k_grad_ = key_.transpose().matmul(dK);
-    W_v_grad_ = value_.transpose().matmul(dV);
-    
+    if (use_rotary_embedding_ && self_attention_input_) {
+        dQ = dQ.rotary_embedding_backward(num_heads_);
+        dK = dK.rotary_embedding_backward(num_heads_);
+    }
+    W_q_grad_ = query_.matmul_left_transposed(dQ);
+    W_k_grad_ = key_.matmul_left_transposed(dK);
+    W_v_grad_ = value_.matmul_left_transposed(dV);
     b_q_grad_ = dQ.row_sum();
     b_k_grad_ = dK.row_sum();
     b_v_grad_ = dV.row_sum();
-    
-    // Return gradient w.r.t. query input (for self-attention, all three are the same)
-    Tensor d_query = dQ.matmul(W_q_.transpose());
-    Tensor d_key = dK.matmul(W_k_.transpose());
-    Tensor d_value = dV.matmul(W_v_.transpose());
-    
+
+    Tensor d_query =
+        dQ.matmul_right_transposed(W_q_);
+    Tensor d_key =
+        dK.matmul_right_transposed(W_k_);
+    Tensor d_value =
+        dV.matmul_right_transposed(W_v_);
     if (!self_attention_input_) {
         return d_query;
     }
-
     return d_query + d_key + d_value;
 }
 
@@ -1590,13 +1667,29 @@ void MultiHeadAttentionLayer::collect_trainable_parameters(
 }
 
 // FeedForwardLayer
-FeedForwardLayer::FeedForwardLayer(size_t d_model, size_t d_ff)
-    : linear1_(d_model, d_ff), linear2_(d_ff, d_model) {}
+FeedForwardLayer::FeedForwardLayer(
+    size_t d_model,
+    size_t d_ff,
+    FeedForwardActivation activation)
+    : linear1_(d_model, d_ff),
+      gate_(d_model, d_ff),
+      linear2_(d_ff, d_model),
+      activation_(activation) {}
 
 Tensor FeedForwardLayer::forward(const Tensor& input) {
     last_input_ = input;
     Tensor hidden = linear1_.forward(input);
-    hidden = relu_.forward(hidden);
+    activation_input_ = hidden;
+    if (activation_ == FeedForwardActivation::RELU) {
+        hidden = relu_.forward(hidden);
+    } else if (activation_ == FeedForwardActivation::GELU) {
+        hidden = hidden.gelu();
+    } else {
+        swiglu_value_ = hidden;
+        activation_input_ = gate_.forward(input);
+        hidden =
+            activation_input_.silu() * swiglu_value_;
+    }
     Tensor output = linear2_.forward(hidden);
     last_output_ = output;
     return output;
@@ -1604,18 +1697,36 @@ Tensor FeedForwardLayer::forward(const Tensor& input) {
 
 Tensor FeedForwardLayer::backward(const Tensor& gradient) {
     Tensor d = linear2_.backward(gradient);
-    d = relu_.backward(d);
-    return linear1_.backward(d);
+    if (activation_ == FeedForwardActivation::RELU) {
+        d = relu_.backward(d);
+        return linear1_.backward(d);
+    }
+    if (activation_ == FeedForwardActivation::GELU) {
+        d = activation_input_.gelu_backward(d);
+        return linear1_.backward(d);
+    }
+    Tensor value_gradient =
+        d * activation_input_.silu();
+    Tensor gate_gradient =
+        activation_input_.silu_backward(d * swiglu_value_);
+    return linear1_.backward(value_gradient) +
+        gate_.backward(gate_gradient);
 }
 
 void FeedForwardLayer::update_parameters(double learning_rate) {
     linear1_.update_parameters(learning_rate);
+    if (activation_ == FeedForwardActivation::SWIGLU) {
+        gate_.update_parameters(learning_rate);
+    }
     linear2_.update_parameters(learning_rate);
 }
 
 void FeedForwardLayer::collect_trainable_parameters(
     std::vector<TrainableParameter>& parameters) {
     linear1_.collect_trainable_parameters(parameters);
+    if (activation_ == FeedForwardActivation::SWIGLU) {
+        gate_.collect_trainable_parameters(parameters);
+    }
     linear2_.collect_trainable_parameters(parameters);
 }
 
@@ -1842,9 +1953,12 @@ DecoderOnlyTransformerLayer::DecoderOnlyTransformerLayer(
     size_t d_model,
     size_t num_heads,
     size_t d_ff,
-    double dropout_rate)
-    : self_attention_(d_model, num_heads),
-      feed_forward_(d_model, d_ff),
+    double dropout_rate,
+    FeedForwardActivation activation,
+    bool use_rotary_embedding)
+    : self_attention_(
+          d_model, num_heads, use_rotary_embedding),
+      feed_forward_(d_model, d_ff, activation),
       norm1_(d_model),
       norm2_(d_model),
       dropout1_(dropout_rate),

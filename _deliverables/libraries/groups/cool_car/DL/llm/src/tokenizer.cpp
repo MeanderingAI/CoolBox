@@ -1,9 +1,15 @@
 #include "../include/tokenizer.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <fstream>
-#include <map>
+#include <iostream>
+#include <limits>
+#include <queue>
 #include <stdexcept>
+#include <thread>
+#include <unordered_map>
 
 namespace ml {
 namespace deep_learning {
@@ -12,6 +18,33 @@ namespace {
 
 constexpr std::uint32_t BPE_FILE_VERSION = 1;
 constexpr char BPE_MAGIC[] = "CBXBPE1";
+
+template <typename Function>
+void parallel_for(
+    std::size_t count,
+    std::size_t thread_count,
+    Function&& function) {
+    if (thread_count <= 1 || count <= 1) {
+        function(0, count, 0);
+        return;
+    }
+    std::vector<std::thread> workers;
+    workers.reserve(thread_count);
+    for (std::size_t worker = 0;
+         worker < thread_count;
+         ++worker) {
+        const std::size_t begin = count * worker / thread_count;
+        const std::size_t end =
+            count * (worker + 1) / thread_count;
+        workers.emplace_back(
+            [&, begin, end, worker]() {
+                function(begin, end, worker);
+            });
+    }
+    for (std::thread& worker : workers) {
+        worker.join();
+    }
+}
 
 std::vector<std::size_t> bytes_to_tokens(const std::string& text) {
     std::vector<std::size_t> tokens;
@@ -134,7 +167,8 @@ void BpeTokenizer::apply_merge(
 void BpeTokenizer::train(
     const std::vector<std::string>& corpus,
     std::size_t vocab_size,
-    std::size_t min_frequency) {
+    std::size_t min_frequency,
+    std::size_t thread_count) {
     if (corpus.empty()) {
         throw std::invalid_argument("BPE corpus cannot be empty");
     }
@@ -146,6 +180,21 @@ void BpeTokenizer::train(
         throw std::invalid_argument(
             "BPE minimum frequency must be positive");
     }
+    if (vocab_size >
+        static_cast<std::size_t>(
+            std::numeric_limits<std::uint32_t>::max())) {
+        throw std::invalid_argument(
+            "BPE vocabulary exceeds 32-bit token IDs");
+    }
+    if (thread_count == 0) {
+        thread_count = std::max(
+            std::size_t{1},
+            static_cast<std::size_t>(
+                std::thread::hardware_concurrency()));
+    }
+    thread_count = std::min(thread_count, corpus.size());
+    const bool report_progress =
+        std::getenv("COOLBOX_BPE_PROGRESS") != nullptr;
 
     reset();
     std::vector<std::vector<std::size_t>> sequences;
@@ -155,35 +204,96 @@ void BpeTokenizer::train(
     }
 
     while (token_bytes_.size() < vocab_size) {
-        std::map<std::pair<std::size_t, std::size_t>, std::size_t>
-            frequencies;
-        for (const auto& sequence : sequences) {
-            for (std::size_t index = 1; index < sequence.size(); ++index) {
-                ++frequencies[
-                    {sequence[index - 1], sequence[index]}];
+        using FrequencyMap =
+            std::unordered_map<std::uint64_t, std::size_t>;
+        std::vector<FrequencyMap> local_frequencies(thread_count);
+        parallel_for(
+            sequences.size(),
+            thread_count,
+            [&](std::size_t begin,
+                std::size_t end,
+                std::size_t worker) {
+                FrequencyMap& frequencies =
+                    local_frequencies[worker];
+                for (std::size_t sequence_index = begin;
+                     sequence_index < end;
+                     ++sequence_index) {
+                    const auto& sequence =
+                        sequences[sequence_index];
+                    for (std::size_t index = 1;
+                         index < sequence.size();
+                         ++index) {
+                        const std::uint64_t key =
+                            (static_cast<std::uint64_t>(
+                                 sequence[index - 1]) << 32) |
+                            static_cast<std::uint64_t>(
+                                sequence[index]);
+                        ++frequencies[key];
+                    }
+                }
+            });
+
+        FrequencyMap frequencies;
+        std::size_t unique_pairs = 0;
+        for (const FrequencyMap& local : local_frequencies) {
+            unique_pairs += local.size();
+        }
+        frequencies.reserve(unique_pairs);
+        for (const FrequencyMap& local : local_frequencies) {
+            for (const auto& entry : local) {
+                frequencies[entry.first] += entry.second;
             }
         }
 
-        std::pair<std::size_t, std::size_t> best_pair{};
+        std::uint64_t best_key =
+            std::numeric_limits<std::uint64_t>::max();
         std::size_t best_frequency = 0;
         for (const auto& entry : frequencies) {
-            if (entry.second > best_frequency) {
-                best_pair = entry.first;
+            if (entry.second > best_frequency ||
+                (entry.second == best_frequency &&
+                 entry.first < best_key)) {
+                best_key = entry.first;
                 best_frequency = entry.second;
             }
         }
         if (best_frequency < min_frequency) {
             break;
         }
+        const std::pair<std::size_t, std::size_t> best_pair{
+            static_cast<std::size_t>(best_key >> 32),
+            static_cast<std::size_t>(
+                best_key & 0xffffffffu)};
 
         const std::size_t merged_id = token_bytes_.size();
         merges_.push_back(best_pair);
         token_bytes_.push_back(
             token_bytes_.at(best_pair.first) +
             token_bytes_.at(best_pair.second));
-        for (auto& sequence : sequences) {
-            apply_merge(
-                sequence, best_pair.first, best_pair.second, merged_id);
+        parallel_for(
+            sequences.size(),
+            thread_count,
+            [&](std::size_t begin,
+                std::size_t end,
+                std::size_t) {
+                for (std::size_t index = begin;
+                     index < end;
+                     ++index) {
+                    apply_merge(
+                        sequences[index],
+                        best_pair.first,
+                        best_pair.second,
+                        merged_id);
+                }
+            });
+        if (report_progress &&
+            (merges_.size() == 1 || merges_.size() % 25 == 0)) {
+            std::cerr
+                << "[coolbox-bpe] vocab="
+                << token_bytes_.size()
+                << "/" << vocab_size
+                << " frequency=" << best_frequency
+                << " threads=" << thread_count
+                << '\n';
         }
     }
 }
@@ -193,10 +303,82 @@ std::vector<std::size_t> BpeTokenizer::encode(
     bool add_bos,
     bool add_eos) const {
     std::vector<std::size_t> tokens = bytes_to_tokens(text);
-    for (std::size_t index = 0; index < merges_.size(); ++index) {
-        apply_merge(
-            tokens, merges_[index].first, merges_[index].second,
-            ByteTokenizer::VOCAB_SIZE + index);
+    if (tokens.size() >= 2 && !merges_.empty()) {
+        std::unordered_map<std::uint64_t, std::size_t> ranks;
+        ranks.reserve(merges_.size());
+        for (std::size_t rank = 0;
+             rank < merges_.size();
+             ++rank) {
+            const std::uint64_t key =
+                (static_cast<std::uint64_t>(
+                     merges_[rank].first) << 32) |
+                static_cast<std::uint64_t>(
+                    merges_[rank].second);
+            ranks.emplace(key, rank);
+        }
+        const std::size_t missing = tokens.size();
+        std::vector<std::size_t> previous(tokens.size(), missing);
+        std::vector<std::size_t> next(tokens.size(), missing);
+        std::vector<bool> active(tokens.size(), true);
+        for (std::size_t index = 0; index < tokens.size(); ++index) {
+            if (index > 0) previous[index] = index - 1;
+            if (index + 1 < tokens.size()) next[index] = index + 1;
+        }
+        using Candidate = std::pair<std::size_t, std::size_t>;
+        std::priority_queue<
+            Candidate,
+            std::vector<Candidate>,
+            std::greater<Candidate>> candidates;
+        const auto enqueue =
+            [&](std::size_t left) {
+                if (left == missing || !active[left] ||
+                    next[left] == missing) {
+                    return;
+                }
+                const std::uint64_t key =
+                    (static_cast<std::uint64_t>(
+                         tokens[left]) << 32) |
+                    static_cast<std::uint64_t>(
+                        tokens[next[left]]);
+                const auto rank = ranks.find(key);
+                if (rank != ranks.end()) {
+                    candidates.push({rank->second, left});
+                }
+            };
+        for (std::size_t index = 0;
+             index + 1 < tokens.size();
+             ++index) {
+            enqueue(index);
+        }
+        while (!candidates.empty()) {
+            const auto [rank, left] = candidates.top();
+            candidates.pop();
+            if (!active[left] || next[left] == missing) {
+                continue;
+            }
+            const std::size_t right = next[left];
+            const auto& merge = merges_[rank];
+            if (tokens[left] != merge.first ||
+                tokens[right] != merge.second) {
+                continue;
+            }
+            tokens[left] = ByteTokenizer::VOCAB_SIZE + rank;
+            active[right] = false;
+            next[left] = next[right];
+            if (next[right] != missing) {
+                previous[next[right]] = left;
+            }
+            enqueue(previous[left]);
+            enqueue(left);
+        }
+        std::vector<std::size_t> encoded;
+        encoded.reserve(tokens.size());
+        for (std::size_t index = 0;
+             index != missing;
+             index = next[index]) {
+            encoded.push_back(tokens[index]);
+        }
+        tokens.swap(encoded);
     }
     if (add_bos) {
         tokens.insert(tokens.begin(), 1);

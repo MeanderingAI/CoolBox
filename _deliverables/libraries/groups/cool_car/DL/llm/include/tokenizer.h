@@ -40,7 +40,8 @@ public:
     void train(
         const std::vector<std::string>& corpus,
         std::size_t vocab_size,
-        std::size_t min_frequency = 2);
+        std::size_t min_frequency = 2,
+        std::size_t thread_count = 0);
     std::vector<std::size_t> encode(
         const std::string& text,
         bool add_bos = false,

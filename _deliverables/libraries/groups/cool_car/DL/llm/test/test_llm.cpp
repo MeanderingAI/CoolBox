@@ -46,6 +46,54 @@ TEST(BpeTokenizerTest, TrainsRoundTripsAndPersists) {
     EXPECT_EQ(restored.decode(encoded), text);
 }
 
+TEST(BpeTokenizerTest, ParallelTrainingMatchesSerialMerges) {
+    const std::vector<std::string> corpus{
+        "the quick brown fox jumps over the lazy dog",
+        "the quick blue fox jumps over the sleepy dog",
+        "the fox and the dog are quick",
+        "the dog and the fox are sleepy",
+    };
+    BpeTokenizer serial;
+    BpeTokenizer parallel;
+    serial.train(corpus, 300, 2, 1);
+    parallel.train(corpus, 300, 2, 4);
+    EXPECT_EQ(parallel.merges(), serial.merges());
+    EXPECT_EQ(
+        parallel.encode(corpus.front()),
+        serial.encode(corpus.front()));
+}
+
+TEST(BpeTokenizerTest, RankedEncoderMatchesSequentialMerges) {
+    BpeTokenizer tokenizer;
+    tokenizer.train(
+        {"banana bandana", "banana banana", "bandana banana"},
+        290,
+        2,
+        2);
+    ByteTokenizer bytes;
+    std::vector<std::size_t> expected =
+        bytes.encode("banana bandana");
+    for (std::size_t rank = 0;
+         rank < tokenizer.merges().size();
+         ++rank) {
+        const auto merge = tokenizer.merges()[rank];
+        std::vector<std::size_t> next;
+        for (std::size_t index = 0;
+             index < expected.size();) {
+            if (index + 1 < expected.size() &&
+                expected[index] == merge.first &&
+                expected[index + 1] == merge.second) {
+                next.push_back(ByteTokenizer::VOCAB_SIZE + rank);
+                index += 2;
+            } else {
+                next.push_back(expected[index++]);
+            }
+        }
+        expected.swap(next);
+    }
+    EXPECT_EQ(tokenizer.encode("banana bandana"), expected);
+}
+
 static DecoderLanguageModelConfig tiny_config() {
     DecoderLanguageModelConfig config;
     config.vocab_size = ByteTokenizer::VOCAB_SIZE;
@@ -280,6 +328,184 @@ TEST(DecoderLanguageModelTest, RunsOnSelectedVulkanBackend) {
     EXPECT_TRUE(std::isfinite(loss));
     EXPECT_EQ(active_tensor_backend(), TensorBackend::VULKAN);
     set_tensor_backend(TensorBackend::CPU);
+}
+
+TEST(DecoderLanguageModelTest, VulkanOptimizerPreservesParameters) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    DecoderLanguageModelConfig config = tiny_config();
+    config.dropout_rate = 0.0;
+    DecoderLanguageModel model(config);
+
+    const std::vector<NamedTensor> before = model.state_dict();
+    const double first_loss = model.train_step({1, 30, 31, 32, 2});
+    const double second_loss = model.train_step({1, 31, 32, 33, 2});
+    const std::vector<NamedTensor> after = model.state_dict();
+
+    EXPECT_TRUE(std::isfinite(first_loss));
+    EXPECT_TRUE(std::isfinite(second_loss));
+    ASSERT_EQ(before.size(), after.size());
+    bool changed = false;
+    bool nonzero = false;
+    for (std::size_t tensor_index = 0;
+         tensor_index < after.size();
+         ++tensor_index) {
+        ASSERT_EQ(
+            before[tensor_index].tensor.size(),
+            after[tensor_index].tensor.size());
+        for (std::size_t value_index = 0;
+             value_index < after[tensor_index].tensor.size();
+             ++value_index) {
+            const double before_value =
+                before[tensor_index].tensor.data()[value_index];
+            const double after_value =
+                after[tensor_index].tensor.data()[value_index];
+            changed = changed || before_value != after_value;
+            nonzero = nonzero || after_value != 0.0;
+        }
+    }
+    EXPECT_TRUE(changed);
+    EXPECT_TRUE(nonzero);
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
+}
+
+TEST(DecoderLanguageModelTest, BatchUsesOneOptimizerStep) {
+    set_tensor_backend(TensorBackend::CPU);
+    DecoderLanguageModel model(tiny_config());
+    const std::vector<NamedTensor> before = model.state_dict();
+    const double loss = model.train_batch({
+        {1, 20, 21, 22, 2},
+        {1, 30, 31, 32, 33, 2},
+    });
+    const std::vector<NamedTensor> after = model.state_dict();
+
+    EXPECT_TRUE(std::isfinite(loss));
+    EXPECT_EQ(model.optimizer_step(), 1u);
+    ASSERT_EQ(before.size(), after.size());
+    bool changed = false;
+    for (std::size_t tensor_index = 0;
+         tensor_index < after.size();
+         ++tensor_index) {
+        for (std::size_t value_index = 0;
+             value_index < after[tensor_index].tensor.size();
+             ++value_index) {
+            changed = changed ||
+                before[tensor_index].tensor.data()[value_index] !=
+                after[tensor_index].tensor.data()[value_index];
+        }
+    }
+    EXPECT_TRUE(changed);
+}
+
+TEST(DecoderLanguageModelTest, AccumulatesMicrobatchesBeforeOneStep) {
+    set_tensor_backend(TensorBackend::CPU);
+    DecoderLanguageModel batched(tiny_config());
+    DecoderLanguageModel accumulated(tiny_config());
+    accumulated.load_state_dict(batched.state_dict());
+    const std::vector<std::vector<std::size_t>> first{
+        {1, 20, 21, 22, 2},
+    };
+    const std::vector<std::vector<std::size_t>> second{
+        {1, 30, 31, 32, 33, 2},
+    };
+
+    const double batch_loss = batched.train_batch({
+        first.front(),
+        second.front(),
+    });
+    accumulated.accumulate_batch(first);
+    EXPECT_EQ(accumulated.optimizer_step(), 0u);
+    accumulated.accumulate_batch(second);
+    EXPECT_EQ(accumulated.optimizer_step(), 0u);
+    const double accumulated_loss =
+        accumulated.step_accumulated();
+
+    EXPECT_NEAR(accumulated_loss, batch_loss, 1e-12);
+    EXPECT_EQ(accumulated.optimizer_step(), 1u);
+    const std::vector<NamedTensor> batched_state =
+        batched.state_dict();
+    const std::vector<NamedTensor> accumulated_state =
+        accumulated.state_dict();
+    ASSERT_EQ(batched_state.size(), accumulated_state.size());
+    for (std::size_t tensor_index = 0;
+         tensor_index < batched_state.size();
+         ++tensor_index) {
+        ASSERT_EQ(
+            batched_state[tensor_index].tensor.size(),
+            accumulated_state[tensor_index].tensor.size());
+        for (std::size_t value_index = 0;
+             value_index < batched_state[tensor_index].tensor.size();
+             ++value_index) {
+            EXPECT_NEAR(
+                batched_state[tensor_index].tensor.data()[value_index],
+                accumulated_state[tensor_index].tensor.data()[value_index],
+                1e-12);
+        }
+    }
+}
+
+TEST(DecoderLanguageModelTest, UpdatesLearningRateSafely) {
+    DecoderLanguageModel model(tiny_config());
+    model.set_learning_rate(0.0002);
+    EXPECT_DOUBLE_EQ(model.learning_rate(), 0.0002);
+    EXPECT_THROW(model.set_learning_rate(0.0), std::invalid_argument);
+    EXPECT_THROW(
+        model.set_learning_rate(
+            std::numeric_limits<double>::infinity()),
+        std::invalid_argument);
+}
+
+TEST(DecoderLanguageModelTest, TrainsAndPersistsModernArchitecture) {
+    set_tensor_backend(TensorBackend::CPU);
+    DecoderLanguageModelConfig config = tiny_config();
+    config.d_ff = 12;
+    config.feed_forward_activation =
+        FeedForwardActivation::SWIGLU;
+    config.use_rotary_position_encoding = true;
+    DecoderLanguageModel model(config);
+    const double loss =
+        model.train_step({1, 20, 21, 22, 23, 2});
+    EXPECT_TRUE(std::isfinite(loss));
+    EXPECT_EQ(model.optimizer_step(), 1u);
+
+    const std::filesystem::path path =
+        std::filesystem::temp_directory_path() /
+        "coolbox_modern_decoder.cbx";
+    model.save(path.string());
+    std::unique_ptr<DecoderLanguageModel> restored =
+        DecoderLanguageModel::load(path.string());
+    std::filesystem::remove(path);
+    EXPECT_EQ(
+        restored->config().feed_forward_activation,
+        FeedForwardActivation::SWIGLU);
+    EXPECT_TRUE(
+        restored->config().use_rotary_position_encoding);
+    EXPECT_EQ(restored->optimizer_step(), 1u);
+    EXPECT_EQ(
+        restored->parameter_count(),
+        model.parameter_count());
+}
+
+TEST(DecoderLanguageModelTest, VulkanBatchUsesOneOptimizerStep) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::BF16);
+    DecoderLanguageModel model(tiny_config());
+    const double loss = model.train_batch({
+        {1, 20, 21, 22, 2},
+        {1, 30, 31, 32, 33, 2},
+    });
+
+    EXPECT_TRUE(std::isfinite(loss));
+    EXPECT_EQ(model.optimizer_step(), 1u);
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
 }
 
 int main(int argc, char** argv) {
