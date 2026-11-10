@@ -64,6 +64,12 @@ public:
         const Tensor& bias) const;
     Tensor relu() const;
     Tensor relu_backward(const Tensor& gradient) const;
+    Tensor gelu() const;
+    Tensor gelu_backward(const Tensor& gradient) const;
+    Tensor silu() const;
+    Tensor silu_backward(const Tensor& gradient) const;
+    Tensor rotary_embedding(size_t num_heads) const;
+    Tensor rotary_embedding_backward(size_t num_heads) const;
     Tensor row_softmax() const;
     Tensor masked_fill(
         const Tensor& mask,
@@ -85,7 +91,29 @@ public:
     Tensor add_prefix(const Tensor& prefix) const;
     Tensor slice_columns(size_t offset, size_t width) const;
     Tensor concat_columns(const Tensor& other) const;
+    Tensor cross_entropy_with_one_hot(
+        const Tensor& one_hot_targets) const;
+    Tensor attention_scores(
+        const Tensor& keys,
+        const Tensor& mask,
+        double scale) const;
+    Tensor matmul_right_transposed(const Tensor& other) const;
+    Tensor matmul_left_transposed(const Tensor& other) const;
+    Tensor multihead_attention_scores(
+        const Tensor& keys,
+        const Tensor& mask,
+        size_t heads) const;
+    Tensor multihead_attention_values(
+        const Tensor& values,
+        size_t heads) const;
+    Tensor multihead_attention_key_gradient(
+        const Tensor& queries,
+        size_t heads) const;
+    Tensor multihead_attention_weight_gradient(
+        const Tensor& values,
+        size_t heads) const;
     Tensor squared_sum_tensor() const;
+    Tensor sum_tensor() const;
     double squared_sum() const;
     Tensor adamw_update(
         const Tensor& first_moment,
@@ -94,6 +122,25 @@ public:
         double beta1_correction,
         double beta2_correction,
         double epsilon) const;
+    void adamw_update_in_place(
+        const Tensor& first_moment,
+        const Tensor& second_moment,
+        double learning_rate,
+        double beta1_correction,
+        double beta2_correction,
+        double epsilon);
+    void fused_adamw_step_in_place(
+        const Tensor& gradients,
+        Tensor& first_moment,
+        Tensor& second_moment,
+        double learning_rate,
+        double beta1,
+        double beta2,
+        double beta1_correction,
+        double beta2_correction,
+        double epsilon,
+        double weight_decay,
+        double gradient_scale = 1.0);
     
     // Utility
     void fill(double value);

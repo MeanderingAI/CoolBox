@@ -1,12 +1,16 @@
 #include "../include/decoder_language_model.h"
 
 #include <algorithm>
+#include <array>
+#include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <unordered_map>
@@ -18,7 +22,74 @@ namespace llm {
 namespace {
 
 constexpr char MODEL_MAGIC[] = "CBXLLM1";
-constexpr std::uint32_t MODEL_VERSION = 1;
+constexpr std::uint32_t MODEL_VERSION = 3;
+constexpr std::uint32_t LEGACY_MODEL_VERSION = 1;
+constexpr std::uint32_t PACKED_MODEL_VERSION = 2;
+constexpr std::size_t PACKED_PARAMETERS_PER_LAYER = 12;
+constexpr std::size_t LEGACY_PARAMETERS_PER_LAYER = 16;
+
+bool training_profile_enabled() {
+    const char* value =
+        std::getenv("COOLBOX_PROFILE_TRAINING");
+    return value != nullptr && std::string(value) != "0";
+}
+
+double elapsed_milliseconds(
+    const std::chrono::steady_clock::time_point& started) {
+    return std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - started).count();
+}
+
+std::vector<Tensor> unpack_packed_parameters(
+    const std::vector<Tensor>& packed,
+    const DecoderLanguageModelConfig& config) {
+    const std::size_t expected =
+        1 + config.num_layers * PACKED_PARAMETERS_PER_LAYER + 2;
+    if (packed.size() != expected) {
+        throw std::runtime_error(
+            "Packed language-model parameter count does not match");
+    }
+    std::vector<Tensor> legacy;
+    legacy.reserve(
+        1 + config.num_layers * LEGACY_PARAMETERS_PER_LAYER + 2);
+    legacy.push_back(packed[0].clone());
+    for (std::size_t layer = 0;
+         layer < config.num_layers;
+         ++layer) {
+        const std::size_t base =
+            1 + layer * PACKED_PARAMETERS_PER_LAYER;
+        for (std::size_t projection = 0;
+             projection < 3;
+             ++projection) {
+            legacy.push_back(
+                packed[base].slice_columns(
+                    projection * config.d_model,
+                    config.d_model));
+        }
+        legacy.push_back(packed[base + 1].clone());
+        Tensor bias = packed[base + 2].reshape(
+            {1, 3 * config.d_model});
+        for (std::size_t projection = 0;
+             projection < 3;
+             ++projection) {
+            legacy.push_back(
+                bias.slice_columns(
+                    projection * config.d_model,
+                    config.d_model).reshape({config.d_model}));
+        }
+        legacy.push_back(packed[base + 3].clone());
+        for (std::size_t offset = 4;
+             offset < PACKED_PARAMETERS_PER_LAYER;
+             ++offset) {
+            legacy.push_back(packed[base + offset].clone());
+        }
+    }
+    const std::size_t output =
+        1 + config.num_layers * PACKED_PARAMETERS_PER_LAYER;
+    legacy.push_back(packed[output].clone());
+    legacy.push_back(packed[output + 1].clone());
+    return legacy;
+}
 
 std::vector<std::string> parameter_names(
     const DecoderLanguageModelConfig& config) {
@@ -41,6 +112,11 @@ std::vector<std::string> parameter_names(
         }
         names.push_back(prefix + "mlp.fc1.weight");
         names.push_back(prefix + "mlp.fc1.bias");
+        if (config.feed_forward_activation ==
+            FeedForwardActivation::SWIGLU) {
+            names.push_back(prefix + "mlp.gate_proj.weight");
+            names.push_back(prefix + "mlp.gate_proj.bias");
+        }
         names.push_back(prefix + "mlp.fc2.weight");
         names.push_back(prefix + "mlp.fc2.bias");
         names.push_back(
@@ -148,6 +224,20 @@ void validate_config(const DecoderLanguageModelConfig& config) {
         throw std::invalid_argument(
             "d_model must be positive and divisible by num_heads");
     }
+    if (config.use_rotary_position_encoding &&
+        (config.d_model / config.num_heads) % 2 != 0) {
+        throw std::invalid_argument(
+            "RoPE requires an even attention head width");
+    }
+    if (config.feed_forward_activation !=
+            FeedForwardActivation::RELU &&
+        config.feed_forward_activation !=
+            FeedForwardActivation::GELU &&
+        config.feed_forward_activation !=
+            FeedForwardActivation::SWIGLU) {
+        throw std::invalid_argument(
+            "Unsupported feed-forward activation");
+    }
     if (config.d_ff == 0 || config.num_layers == 0 ||
         config.max_sequence_length == 0) {
         throw std::invalid_argument(
@@ -187,7 +277,9 @@ DecoderLanguageModel::DecoderLanguageModel(
                 config_.d_model,
                 config_.num_heads,
                 config_.d_ff,
-                config_.dropout_rate));
+                config_.dropout_rate,
+                config_.feed_forward_activation,
+                config_.use_rotary_position_encoding));
     }
 }
 
@@ -232,7 +324,9 @@ Tensor DecoderLanguageModel::forward(
     Tensor token_tensor({1, input_ids.size()}, token_values);
     Tensor hidden = embedding_.forward(token_tensor).reshape(
         {input_ids.size(), config_.d_model});
-    hidden = positional_encoding_.forward(hidden);
+    if (!config_.use_rotary_position_encoding) {
+        hidden = positional_encoding_.forward(hidden);
+    }
     for (auto& block : blocks_) {
         hidden = block->forward(hidden);
     }
@@ -245,8 +339,8 @@ Tensor DecoderLanguageModel::logits(
     return forward(input_ids);
 }
 
-std::pair<double, Tensor>
-DecoderLanguageModel::cross_entropy_with_logits(
+std::pair<Tensor, Tensor>
+DecoderLanguageModel::cross_entropy_with_logits_tensor(
     const Tensor& logits,
     const std::vector<std::size_t>& target_ids) {
     if (logits.ndim() != 2 ||
@@ -256,6 +350,25 @@ DecoderLanguageModel::cross_entropy_with_logits(
     }
     const std::size_t rows = logits.shape()[0];
     const std::size_t vocabulary_size = logits.shape()[1];
+    if (tensor_backend() != TensorBackend::CPU) {
+        Tensor one_hot(logits.shape(), 0.0);
+        for (std::size_t row = 0; row < rows; ++row) {
+            if (target_ids[row] >= vocabulary_size) {
+                throw std::out_of_range(
+                    "Target token exceeds logit vocabulary");
+            }
+            one_hot.data()[
+                row * vocabulary_size + target_ids[row]] = 1.0;
+        }
+        Tensor packed =
+            logits.cross_entropy_with_one_hot(one_hot);
+        Tensor gradient =
+            packed.slice_columns(0, vocabulary_size);
+        Tensor losses =
+            packed.slice_columns(vocabulary_size, 1);
+        return {std::move(losses), std::move(gradient)};
+    }
+
     Tensor gradient(logits.shape(), 0.0);
     double loss = 0.0;
 
@@ -293,7 +406,22 @@ DecoderLanguageModel::cross_entropy_with_logits(
     for (double& value : gradient.data()) {
         value *= scale;
     }
-    return {loss * scale, std::move(gradient)};
+    return {
+        Tensor({1}, loss * scale),
+        std::move(gradient),
+    };
+}
+
+std::pair<double, Tensor>
+DecoderLanguageModel::cross_entropy_with_logits(
+    const Tensor& logits,
+    const std::vector<std::size_t>& target_ids) {
+    auto result =
+        cross_entropy_with_logits_tensor(logits, target_ids);
+    return {
+        result.first.mean(),
+        std::move(result.second),
+    };
 }
 
 std::vector<TrainableParameter>
@@ -308,6 +436,8 @@ DecoderLanguageModel::trainable_parameters() {
 }
 
 void DecoderLanguageModel::apply_optimizer() {
+    const auto norm_started =
+        std::chrono::steady_clock::now();
     std::vector<TrainableParameter> parameters =
         trainable_parameters();
     Tensor gradient_norm_squared_tensor;
@@ -322,6 +452,8 @@ void DecoderLanguageModel::apply_optimizer() {
     }
     const double gradient_norm_squared =
         first_gradient ? 0.0 : gradient_norm_squared_tensor.data()[0];
+    const double backward_norm_ms =
+        elapsed_milliseconds(norm_started);
     const double gradient_norm = std::sqrt(gradient_norm_squared);
     double gradient_scale = 1.0;
     if (config_.gradient_clip_norm > 0.0 &&
@@ -330,6 +462,8 @@ void DecoderLanguageModel::apply_optimizer() {
             config_.gradient_clip_norm / gradient_norm;
     }
 
+    const auto optimizer_started =
+        std::chrono::steady_clock::now();
     ++optimizer_step_;
     for (TrainableParameter& parameter : parameters) {
         Tensor& values = *parameter.values;
@@ -346,7 +480,7 @@ void DecoderLanguageModel::apply_optimizer() {
                     update = update +
                         values * config_.weight_decay;
                 }
-                values = values - update * config_.learning_rate;
+                values -= update * config_.learning_rate;
                 continue;
             }
             for (std::size_t index = 0; index < values.size(); ++index) {
@@ -376,26 +510,20 @@ void DecoderLanguageModel::apply_optimizer() {
                 config_.beta2,
                 static_cast<double>(optimizer_step_));
         if (tensor_backend() != TensorBackend::CPU) {
-            Tensor scaled_gradient = gradients * gradient_scale;
-            state.first_moment =
-                state.first_moment * config_.beta1 +
-                scaled_gradient * (1.0 - config_.beta1);
-            state.second_moment =
-                state.second_moment * config_.beta2 +
-                (scaled_gradient * scaled_gradient) *
-                    (1.0 - config_.beta2);
-            values = values.adamw_update(
+            values.fused_adamw_step_in_place(
+                gradients,
                 state.first_moment,
                 state.second_moment,
                 config_.learning_rate,
+                config_.beta1,
+                config_.beta2,
                 beta1_correction,
                 beta2_correction,
-                config_.epsilon);
-            if (parameter.apply_weight_decay) {
-                values = values * (
-                    1.0 - config_.learning_rate *
-                    config_.weight_decay);
-            }
+                config_.epsilon,
+                parameter.apply_weight_decay
+                    ? config_.weight_decay
+                    : 0.0,
+                gradient_scale);
             continue;
         }
         for (std::size_t index = 0; index < values.size(); ++index) {
@@ -423,9 +551,18 @@ void DecoderLanguageModel::apply_optimizer() {
             }
         }
     }
+    synchronize_tensor_backend();
+    if (training_profile_enabled()) {
+        std::cerr
+            << "[coolbox-profile] backward_norm_ms="
+            << backward_norm_ms
+            << " optimizer_ms="
+            << elapsed_milliseconds(optimizer_started)
+            << '\n';
+    }
 }
 
-double DecoderLanguageModel::train_step(
+Tensor DecoderLanguageModel::compute_gradients(
     const std::vector<std::size_t>& token_ids) {
     validate_token_ids(token_ids, true);
     if (token_ids.size() < 2) {
@@ -437,22 +574,150 @@ double DecoderLanguageModel::train_step(
     std::vector<std::size_t> target_ids(
         token_ids.begin() + 1, token_ids.end());
 
+    const auto forward_started =
+        std::chrono::steady_clock::now();
     set_training(true);
     Tensor predictions = forward(input_ids);
     auto loss_and_gradient =
-        cross_entropy_with_logits(predictions, target_ids);
+        cross_entropy_with_logits_tensor(predictions, target_ids);
+    if (training_profile_enabled()) {
+        std::cerr
+            << "[coolbox-profile] forward_loss_ms="
+            << elapsed_milliseconds(forward_started)
+            << '\n';
+    }
+    const auto backward_started =
+        std::chrono::steady_clock::now();
     Tensor gradient =
         output_projection_.backward(loss_and_gradient.second);
     for (auto block = blocks_.rbegin();
          block != blocks_.rend(); ++block) {
         gradient = (*block)->backward(gradient);
     }
-    gradient = positional_encoding_.backward(gradient);
+    if (!config_.use_rotary_position_encoding) {
+        gradient = positional_encoding_.backward(gradient);
+    }
     embedding_.backward(
         gradient.reshape(
             {1, input_ids.size(), config_.d_model}));
+    if (training_profile_enabled()) {
+        std::cerr
+            << "[coolbox-profile] backward_record_ms="
+            << elapsed_milliseconds(backward_started)
+            << '\n';
+    }
+    return std::move(loss_and_gradient.first);
+}
+
+double DecoderLanguageModel::train_step(
+    const std::vector<std::size_t>& token_ids) {
+    return train_batch({token_ids});
+}
+
+double DecoderLanguageModel::train_batch(
+    const std::vector<std::vector<std::size_t>>& token_sequences) {
+    if (accumulated_token_count_ != 0) {
+        throw std::logic_error(
+            "Cannot train_batch while gradients are accumulated");
+    }
+    accumulate_batch(token_sequences);
+    return step_accumulated();
+}
+
+double DecoderLanguageModel::accumulate_batch(
+    const std::vector<std::vector<std::size_t>>& token_sequences) {
+    if (token_sequences.empty()) {
+        throw std::invalid_argument(
+            "Training batch cannot be empty");
+    }
+    for (const auto& token_ids : token_sequences) {
+        validate_token_ids(token_ids, true);
+        if (token_ids.size() < 2) {
+            throw std::invalid_argument(
+                "Each training sequence requires at least two tokens");
+        }
+    }
+
+    std::vector<std::pair<Tensor, std::size_t>> losses;
+    losses.reserve(token_sequences.size());
+    std::size_t batch_tokens = 0;
+    for (const auto& token_ids : token_sequences) {
+        const std::size_t predicted_tokens = token_ids.size() - 1;
+        Tensor loss = compute_gradients(token_ids);
+        losses.emplace_back(
+            std::move(loss), predicted_tokens);
+        batch_tokens += predicted_tokens;
+
+        const std::vector<TrainableParameter> parameters =
+            trainable_parameters();
+        if (accumulated_gradients_.empty()) {
+            accumulated_gradients_.reserve(parameters.size());
+            for (const TrainableParameter& parameter : parameters) {
+                accumulated_gradients_.push_back(
+                    parameter.gradients->clone() *
+                    static_cast<double>(predicted_tokens));
+            }
+        } else {
+            if (accumulated_gradients_.size() != parameters.size()) {
+                throw std::logic_error(
+                    "Trainable parameter count changed within batch");
+            }
+            for (std::size_t index = 0;
+                 index < parameters.size();
+                 ++index) {
+                accumulated_gradients_[index] +=
+                    *parameters[index].gradients *
+                    static_cast<double>(predicted_tokens);
+            }
+        }
+    }
+
+    double weighted_loss = 0.0;
+    for (auto& loss : losses) {
+        weighted_loss +=
+            loss.first.mean() *
+            static_cast<double>(loss.second);
+    }
+    accumulated_token_count_ += batch_tokens;
+    accumulated_weighted_loss_ += weighted_loss;
+    return weighted_loss / static_cast<double>(batch_tokens);
+}
+
+double DecoderLanguageModel::step_accumulated() {
+    if (accumulated_token_count_ == 0) {
+        throw std::logic_error(
+            "No accumulated gradients are available");
+    }
+    std::vector<TrainableParameter> parameters =
+        trainable_parameters();
+    if (accumulated_gradients_.size() != parameters.size()) {
+        throw std::logic_error(
+            "Accumulated gradient count does not match parameters");
+    }
+    const double inverse_token_count =
+        1.0 / static_cast<double>(accumulated_token_count_);
+    for (std::size_t index = 0;
+         index < parameters.size();
+         ++index) {
+        *parameters[index].gradients =
+            accumulated_gradients_[index] * inverse_token_count;
+    }
+    const double loss =
+        accumulated_weighted_loss_ * inverse_token_count;
     apply_optimizer();
-    return loss_and_gradient.first;
+    accumulated_gradients_.clear();
+    accumulated_token_count_ = 0;
+    accumulated_weighted_loss_ = 0.0;
+    return loss;
+}
+
+void DecoderLanguageModel::set_learning_rate(
+    double learning_rate) {
+    if (!std::isfinite(learning_rate) || learning_rate <= 0.0) {
+        throw std::invalid_argument(
+            "learning_rate must be finite and greater than zero");
+    }
+    config_.learning_rate = learning_rate;
 }
 
 std::vector<std::vector<std::size_t>>
@@ -749,6 +1014,14 @@ void DecoderLanguageModel::save(const std::string& path) {
     write_value(stream, config_.epsilon);
     write_value(stream, config_.gradient_clip_norm);
     write_value(stream, config_.seed);
+    write_value(
+        stream,
+        static_cast<std::uint32_t>(
+            config_.feed_forward_activation));
+    write_value(
+        stream,
+        static_cast<std::uint8_t>(
+            config_.use_rotary_position_encoding ? 1 : 0));
 
     std::vector<TrainableParameter> parameters =
         trainable_parameters();
@@ -785,7 +1058,11 @@ DecoderLanguageModel::load(const std::string& path) {
             std::string(MODEL_MAGIC, sizeof(MODEL_MAGIC))) {
         throw std::runtime_error("Invalid language model file");
     }
-    if (read_value<std::uint32_t>(stream) != MODEL_VERSION) {
+    const std::uint32_t model_version =
+        read_value<std::uint32_t>(stream);
+    if (model_version != MODEL_VERSION &&
+        model_version != LEGACY_MODEL_VERSION &&
+        model_version != PACKED_MODEL_VERSION) {
         throw std::runtime_error(
             "Unsupported language model version");
     }
@@ -813,6 +1090,13 @@ DecoderLanguageModel::load(const std::string& path) {
     config.epsilon = read_value<double>(stream);
     config.gradient_clip_norm = read_value<double>(stream);
     config.seed = read_value<std::uint64_t>(stream);
+    if (model_version == MODEL_VERSION) {
+        config.feed_forward_activation =
+            static_cast<FeedForwardActivation>(
+                read_value<std::uint32_t>(stream));
+        config.use_rotary_position_encoding =
+            read_value<std::uint8_t>(stream) != 0;
+    }
     if (config.optimizer != LanguageModelOptimizer::SGD &&
         config.optimizer != LanguageModelOptimizer::ADAMW) {
         throw std::runtime_error(
@@ -825,39 +1109,174 @@ DecoderLanguageModel::load(const std::string& path) {
         model->trainable_parameters();
     const std::uint64_t parameter_count =
         read_value<std::uint64_t>(stream);
-    if (parameter_count != parameters.size()) {
-        throw std::runtime_error(
-            "Language-model parameter count does not match");
-    }
-    for (TrainableParameter& parameter : parameters) {
-        Tensor loaded = read_tensor(stream);
-        if (loaded.shape() != parameter.values->shape()) {
+    if (model_version != PACKED_MODEL_VERSION) {
+        if (parameter_count != parameters.size()) {
             throw std::runtime_error(
-                "Language-model parameter shape does not match");
+                "Language-model parameter count does not match");
         }
-        *parameter.values = std::move(loaded);
+        for (TrainableParameter& parameter : parameters) {
+            Tensor loaded = read_tensor(stream);
+            if (loaded.shape() != parameter.values->shape()) {
+                throw std::runtime_error(
+                    "Language-model parameter shape does not match");
+            }
+            *parameter.values = std::move(loaded);
+        }
+    } else {
+        const std::size_t expected_packed_count =
+            1 + config.num_layers *
+                    PACKED_PARAMETERS_PER_LAYER +
+                2;
+        if (parameter_count != expected_packed_count) {
+            throw std::runtime_error(
+                "Packed language-model parameter count does not match");
+        }
+        std::vector<Tensor> packed;
+        packed.reserve(expected_packed_count);
+        for (std::size_t index = 0;
+             index < expected_packed_count;
+             ++index) {
+            packed.push_back(read_tensor(stream));
+        }
+        std::vector<Tensor> legacy =
+            unpack_packed_parameters(packed, config);
+        for (std::size_t index = 0;
+             index < parameters.size();
+             ++index) {
+            if (legacy[index].shape() !=
+                parameters[index].values->shape()) {
+                throw std::runtime_error(
+                    "Unpacked parameter shape does not match");
+            }
+            *parameters[index].values =
+                std::move(legacy[index]);
+        }
     }
 
     model->optimizer_step_ = static_cast<std::size_t>(
         read_value<std::uint64_t>(stream));
-    for (TrainableParameter& parameter : parameters) {
-        const std::uint8_t has_state =
-            read_value<std::uint8_t>(stream);
-        if (has_state == 0) {
-            continue;
+    if (model_version != PACKED_MODEL_VERSION) {
+        for (TrainableParameter& parameter : parameters) {
+            const std::uint8_t has_state =
+                read_value<std::uint8_t>(stream);
+            if (has_state == 0) {
+                continue;
+            }
+            AdamState state{
+                read_tensor(stream),
+                read_tensor(stream),
+            };
+            if (state.first_moment.shape() !=
+                    parameter.values->shape() ||
+                state.second_moment.shape() !=
+                    parameter.values->shape()) {
+                throw std::runtime_error(
+                    "Language-model optimizer state shape does not match");
+            }
+            model->adam_states_.emplace(
+                parameter.values, std::move(state));
         }
-        AdamState state{
-            read_tensor(stream),
-            read_tensor(stream),
-        };
-        if (state.first_moment.shape() != parameter.values->shape() ||
-            state.second_moment.shape() != parameter.values->shape()) {
-            throw std::runtime_error(
-                "Language-model optimizer state shape does not match");
-        }
-        model->adam_states_.emplace(
-            parameter.values, std::move(state));
+        return model;
     }
+
+    const std::size_t packed_count =
+        1 + config.num_layers * PACKED_PARAMETERS_PER_LAYER + 2;
+    std::vector<std::optional<AdamState>> packed_states(
+        packed_count);
+    for (std::size_t index = 0; index < packed_count; ++index) {
+        if (read_value<std::uint8_t>(stream) != 0) {
+            packed_states[index] = AdamState{
+                read_tensor(stream),
+                read_tensor(stream)};
+        }
+    }
+    const auto assign_direct_state =
+        [&](std::size_t legacy_index,
+            std::size_t packed_index) {
+            if (!packed_states[packed_index]) {
+                return;
+            }
+            AdamState state =
+                std::move(*packed_states[packed_index]);
+            if (state.first_moment.shape() !=
+                    parameters[legacy_index].values->shape() ||
+                state.second_moment.shape() !=
+                    parameters[legacy_index].values->shape()) {
+                throw std::runtime_error(
+                    "Packed optimizer state shape does not match");
+            }
+            model->adam_states_.emplace(
+                parameters[legacy_index].values,
+                std::move(state));
+        };
+    const auto assign_split_states =
+        [&](std::size_t legacy_first,
+            std::size_t packed_index,
+            bool matrix) {
+            if (!packed_states[packed_index]) {
+                return;
+            }
+            const AdamState& packed =
+                *packed_states[packed_index];
+            Tensor first = matrix
+                ? packed.first_moment
+                : packed.first_moment.reshape(
+                    {1, 3 * config.d_model});
+            Tensor second = matrix
+                ? packed.second_moment
+                : packed.second_moment.reshape(
+                    {1, 3 * config.d_model});
+            for (std::size_t projection = 0;
+                 projection < 3;
+                 ++projection) {
+                AdamState state{
+                    first.slice_columns(
+                        projection * config.d_model,
+                        config.d_model),
+                    second.slice_columns(
+                        projection * config.d_model,
+                        config.d_model),
+                };
+                if (!matrix) {
+                    state.first_moment =
+                        state.first_moment.reshape(
+                            {config.d_model});
+                    state.second_moment =
+                        state.second_moment.reshape(
+                            {config.d_model});
+                }
+                model->adam_states_.emplace(
+                    parameters[legacy_first + projection].values,
+                    std::move(state));
+            }
+        };
+
+    assign_direct_state(0, 0);
+    for (std::size_t layer = 0;
+         layer < config.num_layers;
+         ++layer) {
+        const std::size_t legacy =
+            1 + layer * LEGACY_PARAMETERS_PER_LAYER;
+        const std::size_t packed =
+            1 + layer * PACKED_PARAMETERS_PER_LAYER;
+        assign_split_states(legacy, packed, true);
+        assign_direct_state(legacy + 3, packed + 1);
+        assign_split_states(legacy + 4, packed + 2, false);
+        assign_direct_state(legacy + 7, packed + 3);
+        for (std::size_t offset = 8;
+             offset < LEGACY_PARAMETERS_PER_LAYER;
+             ++offset) {
+            assign_direct_state(
+                legacy + offset,
+                packed + offset - 4);
+        }
+    }
+    const std::size_t legacy_output =
+        1 + config.num_layers * LEGACY_PARAMETERS_PER_LAYER;
+    const std::size_t packed_output =
+        1 + config.num_layers * PACKED_PARAMETERS_PER_LAYER;
+    assign_direct_state(legacy_output, packed_output);
+    assign_direct_state(legacy_output + 1, packed_output + 1);
     return model;
 }
 

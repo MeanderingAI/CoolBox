@@ -29,6 +29,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+// Xlib.h #defines "None" as 0L, which collides with the platform-neutral
+// SpecialKey::None enumerator declared in full_application_window.hpp.
+// Nothing in this translation unit relies on the macro afterwards.
+#undef None
 #if defined(GRAPHICS_HAVE_GTK3)
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -70,6 +74,11 @@ struct FullApplicationWindow::Impl {
 #else
         ::graphics::windows::PlatformStyle::Linux;
 #endif
+
+    // Minimal 5x7 ASCII bitmap font (printable chars 32-126), shared by the
+    // software-rasterized backends (macOS Cocoa and Linux/X11) that draw
+    // into an RGBA pixel buffer instead of calling a native text API.
+    static const unsigned char k_font_5x7[95][7];
 
 #if defined(_WIN32)
     HINSTANCE instance = nullptr;
@@ -121,30 +130,32 @@ struct FullApplicationWindow::Impl {
         }
     }
 
-    // Minimal 5x7 ASCII bitmap font (printable chars 32-126).
-    static const unsigned char k_font_5x7[95][7];
-
     void mac_draw_text(int x, int y,
                        const std::string& text,
-                       unsigned char r, unsigned char g, unsigned char b) const {
+                       unsigned char r, unsigned char g, unsigned char b,
+                       int scale = 1) const {
         if (!mac_ensure_buf(mac_buf_w, mac_buf_h)) return;
+        scale = std::max(1, scale);
         int cx = x;
         for (unsigned char ch : text) {
-            if (ch < 32 || ch > 126) { cx += 6; continue; }
+            if (ch < 32 || ch > 126) { cx += 6 * scale; continue; }
             const unsigned char* glyph = k_font_5x7[ch - 32];
             for (int row = 0; row < 7; ++row) {
-                const int py = y + row;
-                if (py < 0 || py >= mac_buf_h) continue;
                 for (int col = 0; col < 5; ++col) {
-                    const int px = cx + col;
-                    if (px < 0 || px >= mac_buf_w) continue;
-                    if (glyph[row] & (0x10u >> col)) {
-                        unsigned char* p = mac_pixels.data() + (py * mac_buf_w + px) * 4;
-                        p[0] = r; p[1] = g; p[2] = b; p[3] = 255;
+                    if (!(glyph[row] & (0x10u >> col))) continue;
+                    for (int sy = 0; sy < scale; ++sy) {
+                        const int py = y + row * scale + sy;
+                        if (py < 0 || py >= mac_buf_h) continue;
+                        for (int sx = 0; sx < scale; ++sx) {
+                            const int px = cx + col * scale + sx;
+                            if (px < 0 || px >= mac_buf_w) continue;
+                            unsigned char* p = mac_pixels.data() + (py * mac_buf_w + px) * 4;
+                            p[0] = r; p[1] = g; p[2] = b; p[3] = 255;
+                        }
                     }
                 }
             }
-            cx += 6;
+            cx += 6 * scale;
         }
     }
 
@@ -862,7 +873,6 @@ struct FullApplicationWindow::Impl {
 // ─── 5×7 pixel font (printable ASCII 32–126) ──────────────────────────────
 // Each entry is 7 rows; each row is a 5-bit mask stored in the low 5 bits
 // (bit 4 = leftmost pixel).
-#if defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
 // clang-format off
 const unsigned char FullApplicationWindow::Impl::k_font_5x7[95][7] = {
 // ' '
@@ -1057,7 +1067,6 @@ const unsigned char FullApplicationWindow::Impl::k_font_5x7[95][7] = {
 {0x00,0x08,0x15,0x02,0x00,0x00,0x00},
 };
 // clang-format on
-#endif
 
 std::string backend_name(Backend backend) {
     switch (backend) {
@@ -1599,6 +1608,7 @@ bool FullApplicationWindow::pump_events() {
         if (event.type == ConfigureNotify) {
             impl_->config.width = static_cast<std::size_t>(event.xconfigure.width);
             impl_->config.height = static_cast<std::size_t>(event.xconfigure.height);
+            impl_->x11_ensure_buf(event.xconfigure.width, event.xconfigure.height);
             if (impl_->hooks.on_resize) {
                 impl_->hooks.on_resize(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
             }
@@ -1610,6 +1620,58 @@ bool FullApplicationWindow::pump_events() {
                 event.xbutton.y,
                 event.xbutton.button == Button4 ? 1.0 : -1.0,
                 (event.xbutton.state & ShiftMask) != 0});
+        }
+        if (event.type == KeyPress && impl_->hooks.on_key) {
+            char buffer[32] = {0};
+            KeySym keysym = NoSymbol;
+            const int len = XLookupString(&event.xkey, buffer, sizeof(buffer) - 1, &keysym, nullptr);
+            KeyEvent key_event{};
+            key_event.shift = (event.xkey.state & ShiftMask) != 0;
+            key_event.ctrl = (event.xkey.state & ControlMask) != 0;
+            switch (keysym) {
+                case XK_Return:
+                case XK_KP_Enter:
+                    key_event.special = SpecialKey::Enter;
+                    break;
+                case XK_BackSpace:
+                    key_event.special = SpecialKey::Backspace;
+                    break;
+                case XK_Delete:
+                    key_event.special = SpecialKey::Delete;
+                    break;
+                case XK_Escape:
+                    key_event.special = SpecialKey::Escape;
+                    break;
+                case XK_Tab:
+                    key_event.special = SpecialKey::Tab;
+                    break;
+                case XK_Left:
+                    key_event.special = SpecialKey::Left;
+                    break;
+                case XK_Right:
+                    key_event.special = SpecialKey::Right;
+                    break;
+                case XK_Up:
+                    key_event.special = SpecialKey::Up;
+                    break;
+                case XK_Down:
+                    key_event.special = SpecialKey::Down;
+                    break;
+                default:
+                    key_event.special = SpecialKey::None;
+                    break;
+            }
+            if (key_event.special == SpecialKey::None && len > 0) {
+                // Printable text (may be empty for pure modifier/function keys).
+                key_event.text.assign(buffer, static_cast<std::size_t>(len));
+                // Filter out raw control characters that are not meaningful
+                // as text input (e.g. Ctrl+<letter> combos still land here).
+                if (key_event.text.size() == 1 &&
+                    static_cast<unsigned char>(key_event.text[0]) < 0x20) {
+                    key_event.text.clear();
+                }
+            }
+            impl_->hooks.on_key(key_event);
         }
         if (event.type == ClientMessage && static_cast<Atom>(event.xclient.data.l[0]) == impl_->delete_message) {
             if (impl_->hooks.on_close) {
@@ -1798,8 +1860,12 @@ void FullApplicationWindow::request_redraw() {
     // producing a clear -> (gap) -> redraw "strobe" where the window was
     // blank the vast majority of the time.
     if (impl_->display && impl_->window && impl_->hooks.on_render) {
+        int w = 0, h = 0;
+        client_size(w, h);
+        impl_->x11_ensure_buf(w, h);
         impl_->hooks.on_render(impl_->make_render_event(
             static_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
+        impl_->x11_blit_to_window();
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->hooks.on_render) {
@@ -2002,6 +2068,13 @@ void FullApplicationWindow::clear_background(unsigned char r, unsigned char g, u
         impl_->mac_ensure_buf(w, h);
         impl_->mac_fill_rect(0, 0, w, h, r, g, b);
     }
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    {
+        int w = 0, h = 0;
+        client_size(w, h);
+        impl_->x11_ensure_buf(w, h);
+        impl_->x11_fill_rect(0, 0, w, h, r, g, b);
+    }
 #else
     (void)r;
     (void)g;
@@ -2031,6 +2104,8 @@ void FullApplicationWindow::fill_rect(int left, int top, int right, int bottom,
     impl_->ui_backbuffer_used_this_frame = true;
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     impl_->mac_fill_rect(left, top, right, bottom, r, g, b);
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    impl_->x11_fill_rect(left, top, right, bottom, r, g, b);
 #else
     (void)left;
     (void)top;
@@ -2154,6 +2229,8 @@ void FullApplicationWindow::draw_rounded_rect(int left, int top, int right, int 
         DeleteObject(brush);
     }
     impl_->ui_backbuffer_used_this_frame = true;
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    impl_->x11_fill_rounded_rect(left, top, right, bottom, radius, r, g, b, filled);
 #else
     (void)left;
     (void)top;
@@ -2167,8 +2244,23 @@ void FullApplicationWindow::draw_rounded_rect(int left, int top, int right, int 
 #endif
 }
 
+void FullApplicationWindow::fill_rounded_rect_alpha(int left, int top, int right, int bottom,
+                                                    int radius,
+                                                    unsigned char r, unsigned char g, unsigned char b,
+                                                    unsigned char alpha) const {
+#if defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    impl_->x11_fill_rounded_rect_alpha(left, top, right, bottom, radius, r, g, b, alpha);
+#else
+    // No readable/writable backbuffer on this backend yet; fall back to an
+    // opaque fill so the panel is still visible rather than missing.
+    (void)alpha;
+    draw_rounded_rect(left, top, right, bottom, radius, r, g, b, true);
+#endif
+}
+
 void FullApplicationWindow::draw_text_line(int x, int y, const std::string& text,
-                                           unsigned char r, unsigned char g, unsigned char b) const {
+                                           unsigned char r, unsigned char g, unsigned char b,
+                                           int scale) const {
 #if defined(_WIN32)
     if (!impl_->hwnd || !IsWindow(impl_->hwnd)) {
         return;
@@ -2186,8 +2278,11 @@ void FullApplicationWindow::draw_text_line(int x, int y, const std::string& text
     SetTextColor(dc, RGB(r, g, b));
     TextOutA(dc, x, y, text.c_str(), static_cast<int>(text.size()));
     impl_->ui_backbuffer_used_this_frame = true;
+    (void)scale;
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
-    impl_->mac_draw_text(x, y, text, r, g, b);
+    impl_->mac_draw_text(x, y, text, r, g, b, scale);
+#elif defined(__linux__) && defined(GRAPHICS_HAVE_X11)
+    impl_->x11_draw_text(x, y, text, r, g, b, scale);
 #else
     (void)x;
     (void)y;
@@ -2195,6 +2290,7 @@ void FullApplicationWindow::draw_text_line(int x, int y, const std::string& text
     (void)r;
     (void)g;
     (void)b;
+    (void)scale;
 #endif
 }
 

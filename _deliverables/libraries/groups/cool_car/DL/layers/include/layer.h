@@ -463,7 +463,10 @@ private:
 // Multi-Head Attention
 class MultiHeadAttentionLayer : public Layer {
 public:
-    MultiHeadAttentionLayer(size_t d_model, size_t num_heads);
+    MultiHeadAttentionLayer(
+        size_t d_model,
+        size_t num_heads,
+        bool use_rotary_embedding = false);
     
     Tensor forward(const Tensor& input) override;
     
@@ -485,7 +488,7 @@ private:
     size_t d_k_;  // d_model / num_heads
     
     // Linear projections
-    Tensor W_q_, W_k_, W_v_, W_o_;  // Shape: [d_model, d_model]
+    Tensor W_q_, W_k_, W_v_, W_o_;
     Tensor b_q_, b_k_, b_v_, b_o_;
     
     Tensor W_q_grad_, W_k_grad_, W_v_grad_, W_o_grad_;
@@ -497,13 +500,26 @@ private:
     Tensor query_, key_, value_;
     Tensor Q_proj_, K_proj_, V_proj_;
     Tensor attention_output_;
+    Tensor fused_attention_weights_;
+    bool fused_attention_ = false;
     bool self_attention_input_ = true;
+    bool use_rotary_embedding_ = false;
+};
+
+enum class FeedForwardActivation {
+    RELU,
+    GELU,
+    SWIGLU
 };
 
 // Position-wise Feed-Forward Network (used inside transformer blocks)
 class FeedForwardLayer : public Layer {
 public:
-    FeedForwardLayer(size_t d_model, size_t d_ff);
+    FeedForwardLayer(
+        size_t d_model,
+        size_t d_ff,
+        FeedForwardActivation activation =
+            FeedForwardActivation::RELU);
     
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;
@@ -516,8 +532,12 @@ public:
     
 private:
     DenseLayer linear1_;
+    DenseLayer gate_;
     DenseLayer linear2_;
     ReLULayer relu_;
+    FeedForwardActivation activation_;
+    Tensor activation_input_;
+    Tensor swiglu_value_;
 };
 
 // Positional Encoding: adds sinusoidal position information
@@ -612,7 +632,10 @@ public:
         size_t d_model,
         size_t num_heads,
         size_t d_ff,
-        double dropout_rate = 0.1);
+        double dropout_rate = 0.1,
+        FeedForwardActivation activation =
+            FeedForwardActivation::RELU,
+        bool use_rotary_embedding = false);
 
     Tensor forward(const Tensor& input) override;
     Tensor backward(const Tensor& gradient) override;

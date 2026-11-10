@@ -17,3 +17,25 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../../../../../cmake/VulkanTensorBackend.cm
 coolbox_configure_vulkan_tensor(test_llm)
 
 add_test(NAME DecoderLanguageModelTests COMMAND test_llm)
+
+option(
+    COOLBOX_BUILD_LLM_BENCHMARKS
+    "Build the MLPerf-style CoolBox language-model benchmark"
+    OFF
+)
+
+if(COOLBOX_BUILD_LLM_BENCHMARKS)
+    add_executable(coolbox_llm_benchmark
+        benchmark/benchmark_llm.cpp
+        src/tokenizer.cpp
+        src/decoder_language_model.cpp
+        ../layers/src/tensor.cpp
+        ../layers/src/layer.cpp
+    )
+    target_include_directories(coolbox_llm_benchmark PRIVATE
+        include
+        ../layers/include
+    )
+    target_compile_features(coolbox_llm_benchmark PRIVATE cxx_std_17)
+    coolbox_configure_vulkan_tensor(coolbox_llm_benchmark)
+endif()

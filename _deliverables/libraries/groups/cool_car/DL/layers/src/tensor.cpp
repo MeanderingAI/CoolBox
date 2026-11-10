@@ -441,6 +441,199 @@ Tensor Tensor::relu_backward(const Tensor& gradient) const {
     return result;
 }
 
+Tensor Tensor::gelu() const {
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        return device_result(
+            shape_,
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::GELU,
+                device_storage_, {}, size(), 0, 0, 0));
+    }
+#endif
+    Tensor result(shape_);
+    constexpr double coefficient = 0.7978845608028654;
+    for (size_t index = 0; index < size(); ++index) {
+        const double value = data()[index];
+        result.data_[index] =
+            0.5 * value *
+            (1.0 + std::tanh(
+                coefficient *
+                (value + 0.044715 * value * value * value)));
+    }
+    return result;
+}
+
+Tensor Tensor::gelu_backward(const Tensor& gradient) const {
+    if (shape_ != gradient.shape_) {
+        throw std::invalid_argument(
+            "GELU gradient shape does not match input");
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        gradient.ensure_device();
+        return device_result(
+            shape_,
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::GELU_BACKWARD,
+                device_storage_, gradient.device_storage_,
+                size(), 0, 0, 0));
+    }
+#endif
+    Tensor result(shape_);
+    constexpr double coefficient = 0.7978845608028654;
+    for (size_t index = 0; index < size(); ++index) {
+        const double value = data()[index];
+        const double cubic =
+            coefficient *
+            (value + 0.044715 * value * value * value);
+        const double tangent = std::tanh(cubic);
+        const double derivative =
+            0.5 * (1.0 + tangent) +
+            0.5 * value * (1.0 - tangent * tangent) *
+            coefficient * (1.0 + 0.134145 * value * value);
+        result.data_[index] =
+            gradient.data()[index] * derivative;
+    }
+    return result;
+}
+
+Tensor Tensor::silu() const {
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        return device_result(
+            shape_,
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::SILU,
+                device_storage_, {}, size(), 0, 0, 0));
+    }
+#endif
+    Tensor result(shape_);
+    for (size_t index = 0; index < size(); ++index) {
+        const double value = data()[index];
+        result.data_[index] =
+            value / (1.0 + std::exp(-value));
+    }
+    return result;
+}
+
+Tensor Tensor::silu_backward(const Tensor& gradient) const {
+    if (shape_ != gradient.shape_) {
+        throw std::invalid_argument(
+            "SiLU gradient shape does not match input");
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        gradient.ensure_device();
+        return device_result(
+            shape_,
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::SILU_BACKWARD,
+                device_storage_, gradient.device_storage_,
+                size(), 0, 0, 0));
+    }
+#endif
+    Tensor result(shape_);
+    for (size_t index = 0; index < size(); ++index) {
+        const double value = data()[index];
+        const double sigmoid = 1.0 / (1.0 + std::exp(-value));
+        result.data_[index] = gradient.data()[index] *
+            sigmoid * (1.0 + value * (1.0 - sigmoid));
+    }
+    return result;
+}
+
+Tensor Tensor::rotary_embedding(size_t num_heads) const {
+    if (ndim() != 2 || num_heads == 0 ||
+        shape_[1] % num_heads != 0 ||
+        (shape_[1] / num_heads) % 2 != 0) {
+        throw std::invalid_argument(
+            "RoPE requires [sequence, width] with even head width");
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        return device_result(
+            shape_,
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::ROTARY_EMBEDDING,
+                device_storage_, {}, size(),
+                shape_[0], shape_[1], 0,
+                static_cast<double>(num_heads)));
+    }
+#endif
+    Tensor result(shape_);
+    const size_t head_width = shape_[1] / num_heads;
+    for (size_t row = 0; row < shape_[0]; ++row) {
+        for (size_t column = 0; column < shape_[1]; column += 2) {
+            const size_t pair = (column % head_width) & ~size_t{1};
+            const double angle = static_cast<double>(row) /
+                std::pow(
+                    10000.0,
+                    static_cast<double>(pair) /
+                        static_cast<double>(head_width));
+            const double cosine = std::cos(angle);
+            const double sine = std::sin(angle);
+            const size_t base = row * shape_[1] + column;
+            result.data_[base] =
+                data()[base] * cosine -
+                data()[base + 1] * sine;
+            result.data_[base + 1] =
+                data()[base] * sine +
+                data()[base + 1] * cosine;
+        }
+    }
+    return result;
+}
+
+Tensor Tensor::rotary_embedding_backward(size_t num_heads) const {
+    if (ndim() != 2 || num_heads == 0 ||
+        shape_[1] % num_heads != 0 ||
+        (shape_[1] / num_heads) % 2 != 0) {
+        throw std::invalid_argument(
+            "RoPE backward requires even per-head width");
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        return device_result(
+            shape_,
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    ROTARY_EMBEDDING_BACKWARD,
+                device_storage_, {}, size(),
+                shape_[0], shape_[1], 0,
+                static_cast<double>(num_heads)));
+    }
+#endif
+    Tensor result(shape_);
+    const size_t head_width = shape_[1] / num_heads;
+    for (size_t row = 0; row < shape_[0]; ++row) {
+        for (size_t column = 0; column < shape_[1]; column += 2) {
+            const size_t pair = (column % head_width) & ~size_t{1};
+            const double angle = -static_cast<double>(row) /
+                std::pow(
+                    10000.0,
+                    static_cast<double>(pair) /
+                        static_cast<double>(head_width));
+            const double cosine = std::cos(angle);
+            const double sine = std::sin(angle);
+            const size_t base = row * shape_[1] + column;
+            result.data_[base] =
+                data()[base] * cosine -
+                data()[base + 1] * sine;
+            result.data_[base + 1] =
+                data()[base] * sine +
+                data()[base + 1] * cosine;
+        }
+    }
+    return result;
+}
+
 Tensor Tensor::row_softmax() const {
     if (ndim() != 2) {
         throw std::invalid_argument(
@@ -817,20 +1010,453 @@ Tensor Tensor::concat_columns(const Tensor& other) const {
     return result;
 }
 
+Tensor Tensor::cross_entropy_with_one_hot(
+    const Tensor& one_hot_targets) const {
+    if (ndim() != 2 || shape_ != one_hot_targets.shape_) {
+        throw std::invalid_argument(
+            "Cross-entropy logits and targets must be matching matrices");
+    }
+    const size_t rows = shape_[0];
+    const size_t columns = shape_[1];
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(rows * columns)) {
+        ensure_device();
+        one_hot_targets.ensure_device();
+        return device_result(
+            {rows, columns + 1},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::CROSS_ENTROPY,
+                device_storage_,
+                one_hot_targets.device_storage_,
+                rows * (columns + 1),
+                rows,
+                columns,
+                0));
+    }
+#endif
+    Tensor result({rows, columns + 1}, 0.0);
+    for (size_t row = 0; row < rows; ++row) {
+        const size_t input_base = row * columns;
+        const size_t output_base = row * (columns + 1);
+        double maximum = -std::numeric_limits<double>::infinity();
+        for (size_t column = 0; column < columns; ++column) {
+            maximum = std::max(
+                maximum, data()[input_base + column]);
+        }
+        double denominator = 0.0;
+        for (size_t column = 0; column < columns; ++column) {
+            const double probability =
+                std::exp(data()[input_base + column] - maximum);
+            result.data_[output_base + column] = probability;
+            denominator += probability;
+        }
+        double target_probability = 0.0;
+        for (size_t column = 0; column < columns; ++column) {
+            const double probability =
+                result.data_[output_base + column] / denominator;
+            result.data_[output_base + column] =
+                (probability -
+                 one_hot_targets.data()[input_base + column]) /
+                static_cast<double>(rows);
+            target_probability +=
+                probability *
+                one_hot_targets.data()[input_base + column];
+        }
+        result.data_[output_base + columns] =
+            -std::log(std::max(
+                target_probability,
+                std::numeric_limits<double>::min()));
+    }
+    return result;
+}
+
+Tensor Tensor::attention_scores(
+    const Tensor& keys,
+    const Tensor& mask,
+    double scale) const {
+    if (ndim() != 2 || keys.ndim() != 2 ||
+        shape_[1] != keys.shape_[1] ||
+        mask.shape_ !=
+            std::vector<size_t>{shape_[0], keys.shape_[0]} ||
+        scale <= 0.0) {
+        throw std::invalid_argument(
+            "Attention score dimensions or scale are invalid");
+    }
+    const size_t query_rows = shape_[0];
+    const size_t key_rows = keys.shape_[0];
+    const size_t width = shape_[1];
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(query_rows * key_rows)) {
+        ensure_device();
+        keys.ensure_device();
+        mask.ensure_device();
+        return device_result(
+            {query_rows, key_rows},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::ATTENTION_SCORES,
+                device_storage_,
+                keys.device_storage_,
+                query_rows * key_rows,
+                query_rows,
+                key_rows,
+                width,
+                scale,
+                mask.device_storage_));
+    }
+#endif
+    Tensor result({query_rows, key_rows}, 0.0);
+    for (size_t query = 0; query < query_rows; ++query) {
+        for (size_t key = 0; key < key_rows; ++key) {
+            const size_t output_index = query * key_rows + key;
+            if (mask.data()[output_index] == 0.0) {
+                result.data_[output_index] = -1e9;
+                continue;
+            }
+            double total = 0.0;
+            for (size_t column = 0; column < width; ++column) {
+                total +=
+                    data()[query * width + column] *
+                    keys.data()[key * width + column];
+            }
+            result.data_[output_index] = total / scale;
+        }
+    }
+    return result;
+}
+
+Tensor Tensor::matmul_right_transposed(const Tensor& other) const {
+    if (ndim() != 2 || other.ndim() != 2 ||
+        shape_[1] != other.shape_[1]) {
+        throw std::invalid_argument(
+            "Right-transposed matmul inner dimensions must match");
+    }
+    const size_t rows = shape_[0];
+    const size_t columns = other.shape_[0];
+    const size_t inner = shape_[1];
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(rows * columns * inner)) {
+        ensure_device();
+        other.ensure_device();
+        return device_result(
+            {rows, columns},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    MATMUL_RIGHT_TRANSPOSED,
+                device_storage_,
+                other.device_storage_,
+                rows * columns,
+                rows,
+                columns,
+                inner));
+    }
+#endif
+    Tensor result({rows, columns}, 0.0);
+    for (size_t row = 0; row < rows; ++row)
+        for (size_t column = 0; column < columns; ++column)
+            for (size_t index = 0; index < inner; ++index)
+                result.data_[row * columns + column] +=
+                    data()[row * inner + index] *
+                    other.data()[column * inner + index];
+    return result;
+}
+
+Tensor Tensor::matmul_left_transposed(const Tensor& other) const {
+    if (ndim() != 2 || other.ndim() != 2 ||
+        shape_[0] != other.shape_[0]) {
+        throw std::invalid_argument(
+            "Left-transposed matmul row dimensions must match");
+    }
+    const size_t rows = shape_[1];
+    const size_t columns = other.shape_[1];
+    const size_t inner = shape_[0];
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(rows * columns * inner)) {
+        ensure_device();
+        other.ensure_device();
+        return device_result(
+            {rows, columns},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    MATMUL_LEFT_TRANSPOSED,
+                device_storage_,
+                other.device_storage_,
+                rows * columns,
+                rows,
+                columns,
+                inner));
+    }
+#endif
+    Tensor result({rows, columns}, 0.0);
+    for (size_t row = 0; row < rows; ++row)
+        for (size_t column = 0; column < columns; ++column)
+            for (size_t index = 0; index < inner; ++index)
+                result.data_[row * columns + column] +=
+                    data()[index * rows + row] *
+                    other.data()[index * columns + column];
+    return result;
+}
+
+Tensor Tensor::multihead_attention_scores(
+    const Tensor& keys,
+    const Tensor& mask,
+    size_t heads) const {
+    if (ndim() != 2 || keys.shape_ != shape_ ||
+        shape_[0] == 0 || heads == 0 ||
+        shape_[1] % heads != 0 ||
+        mask.shape_ !=
+            std::vector<size_t>{shape_[0], shape_[0]}) {
+        throw std::invalid_argument(
+            "Packed multi-head attention dimensions are invalid");
+    }
+    const size_t sequence = shape_[0];
+    const size_t model = shape_[1];
+    const size_t head_width = model / heads;
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(
+            heads * sequence * sequence * head_width)) {
+        ensure_device();
+        keys.ensure_device();
+        mask.ensure_device();
+        return device_result(
+            {heads * sequence, sequence},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    MULTIHEAD_ATTENTION_SCORES,
+                device_storage_,
+                keys.device_storage_,
+                heads * sequence * sequence,
+                sequence,
+                model,
+                heads,
+                std::sqrt(static_cast<double>(head_width)),
+                mask.device_storage_));
+    }
+#endif
+    Tensor result({heads * sequence, sequence}, 0.0);
+    const double scale = std::sqrt(
+        static_cast<double>(head_width));
+    for (size_t head = 0; head < heads; ++head)
+        for (size_t query = 0; query < sequence; ++query)
+            for (size_t key = 0; key < sequence; ++key) {
+                const size_t output =
+                    (head * sequence + query) * sequence + key;
+                if (mask.data()[query * sequence + key] == 0.0) {
+                    result.data_[output] = -1e9;
+                    continue;
+                }
+                for (size_t column = 0;
+                     column < head_width;
+                     ++column) {
+                    const size_t model_column =
+                        head * head_width + column;
+                    result.data_[output] +=
+                        data()[query * model + model_column] *
+                        keys.data()[key * model + model_column];
+                }
+                result.data_[output] /= scale;
+            }
+    return result;
+}
+
+Tensor Tensor::multihead_attention_values(
+    const Tensor& values,
+    size_t heads) const {
+    if (ndim() != 2 || values.ndim() != 2 ||
+        heads == 0 || values.shape_[1] % heads != 0 ||
+        shape_[0] != heads * values.shape_[0] ||
+        shape_[1] != values.shape_[0]) {
+        throw std::invalid_argument(
+            "Packed attention weights and values are incompatible");
+    }
+    const size_t sequence = values.shape_[0];
+    const size_t model = values.shape_[1];
+    const size_t head_width = model / heads;
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(sequence * sequence * model)) {
+        ensure_device();
+        values.ensure_device();
+        return device_result(
+            {sequence, model},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    MULTIHEAD_ATTENTION_VALUES,
+                device_storage_,
+                values.device_storage_,
+                sequence * model,
+                sequence,
+                model,
+                heads));
+    }
+#endif
+    Tensor result({sequence, model}, 0.0);
+    for (size_t query = 0; query < sequence; ++query)
+        for (size_t column = 0; column < model; ++column) {
+            const size_t head = column / head_width;
+            for (size_t key = 0; key < sequence; ++key)
+                result.data_[query * model + column] +=
+                    data()[
+                        (head * sequence + query) *
+                            sequence + key] *
+                    values.data()[key * model + column];
+        }
+    return result;
+}
+
+Tensor Tensor::multihead_attention_key_gradient(
+    const Tensor& queries,
+    size_t heads) const {
+    if (ndim() != 2 || queries.ndim() != 2 ||
+        heads == 0 || queries.shape_[1] % heads != 0 ||
+        shape_[0] != heads * queries.shape_[0] ||
+        shape_[1] != queries.shape_[0]) {
+        throw std::invalid_argument(
+            "Packed attention weights and queries are incompatible");
+    }
+    const size_t sequence = queries.shape_[0];
+    const size_t model = queries.shape_[1];
+    const size_t head_width = model / heads;
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(sequence * sequence * model)) {
+        ensure_device();
+        queries.ensure_device();
+        return device_result(
+            {sequence, model},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    MULTIHEAD_ATTENTION_KEY_GRADIENT,
+                device_storage_,
+                queries.device_storage_,
+                sequence * model,
+                sequence,
+                model,
+                heads));
+    }
+#endif
+    Tensor result({sequence, model}, 0.0);
+    for (size_t key = 0; key < sequence; ++key)
+        for (size_t column = 0; column < model; ++column) {
+            const size_t head = column / head_width;
+            for (size_t query = 0; query < sequence; ++query)
+                result.data_[key * model + column] +=
+                    data()[
+                        (head * sequence + query) *
+                            sequence + key] *
+                    queries.data()[query * model + column];
+        }
+    return result;
+}
+
+Tensor Tensor::multihead_attention_weight_gradient(
+    const Tensor& values,
+    size_t heads) const {
+    if (ndim() != 2 || values.shape_ != shape_ ||
+        shape_[0] == 0 || heads == 0 ||
+        shape_[1] % heads != 0) {
+        throw std::invalid_argument(
+            "Packed attention gradient dimensions are invalid");
+    }
+    const size_t sequence = shape_[0];
+    const size_t model = shape_[1];
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(sequence * sequence * model)) {
+        ensure_device();
+        values.ensure_device();
+        return device_result(
+            {heads * sequence, sequence},
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::
+                    MULTIHEAD_ATTENTION_WEIGHT_GRADIENT,
+                device_storage_,
+                values.device_storage_,
+                heads * sequence * sequence,
+                sequence,
+                model,
+                heads));
+    }
+#endif
+    const size_t head_width = model / heads;
+    Tensor result({heads * sequence, sequence}, 0.0);
+    for (size_t head = 0; head < heads; ++head)
+        for (size_t query = 0; query < sequence; ++query)
+            for (size_t key = 0; key < sequence; ++key)
+                for (size_t column = 0;
+                     column < head_width;
+                     ++column) {
+                    const size_t model_column =
+                        head * head_width + column;
+                    result.data_[
+                        (head * sequence + query) *
+                            sequence + key] +=
+                        data()[query * model + model_column] *
+                        values.data()[key * model + model_column];
+                }
+    return result;
+}
+
 Tensor Tensor::squared_sum_tensor() const {
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
     if (detail::should_use_vulkan(size())) {
         ensure_device();
+        detail::VulkanTensorStoragePtr partials =
+            device_storage_;
+        size_t input_size = size();
+        bool square_values = true;
+        do {
+            const size_t output_size =
+                (input_size + 255) / 256;
+            partials =
+                detail::vulkan_tensor_execute_resident(
+                    square_values
+                        ? detail::VulkanTensorOperation::SQUARED_SUM
+                        : detail::VulkanTensorOperation::SUM_REDUCTION,
+                    partials,
+                    {},
+                    output_size,
+                    input_size,
+                    0,
+                    0);
+            input_size = output_size;
+            square_values = false;
+        } while (input_size > 1);
         return device_result(
             {1},
-            detail::vulkan_tensor_execute_resident(
-                detail::VulkanTensorOperation::SQUARED_SUM,
-                device_storage_, {}, 1, size(), 0, 0));
+            std::move(partials));
     }
 #endif
     double result = 0.0;
     for (double value : data()) {
         result += value * value;
+    }
+    return Tensor({1}, result);
+}
+
+Tensor Tensor::sum_tensor() const {
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        detail::VulkanTensorStoragePtr partials =
+            device_storage_;
+        size_t input_size = size();
+        do {
+            const size_t output_size =
+                (input_size + 255) / 256;
+            partials =
+                detail::vulkan_tensor_execute_resident(
+                    detail::VulkanTensorOperation::SUM_REDUCTION,
+                    partials,
+                    {},
+                    output_size,
+                    input_size,
+                    0,
+                    0);
+            input_size = output_size;
+        } while (input_size > 1);
+        return device_result({1}, std::move(partials));
+    }
+#endif
+    double result = 0.0;
+    for (double value : data()) {
+        result += value;
     }
     return Tensor({1}, result);
 }
@@ -887,6 +1513,115 @@ Tensor Tensor::adamw_update(
             data()[index] - learning_rate * update;
     }
     return result;
+}
+
+void Tensor::adamw_update_in_place(
+    const Tensor& first_moment,
+    const Tensor& second_moment,
+    double learning_rate,
+    double beta1_correction,
+    double beta2_correction,
+    double epsilon) {
+    if (shape_ != first_moment.shape_ ||
+        shape_ != second_moment.shape_) {
+        throw std::invalid_argument(
+            "AdamW state shape does not match parameter");
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        first_moment.ensure_device();
+        second_moment.ensure_device();
+        const float beta1_value =
+            static_cast<float>(beta1_correction);
+        const float beta2_value =
+            static_cast<float>(beta2_correction);
+        const float epsilon_value = static_cast<float>(epsilon);
+        std::uint32_t beta1_bits = 0;
+        std::uint32_t beta2_bits = 0;
+        std::uint32_t epsilon_bits = 0;
+        std::memcpy(&beta1_bits, &beta1_value, sizeof(beta1_bits));
+        std::memcpy(&beta2_bits, &beta2_value, sizeof(beta2_bits));
+        std::memcpy(&epsilon_bits, &epsilon_value, sizeof(epsilon_bits));
+        device_storage_ =
+            detail::vulkan_tensor_execute_resident(
+                detail::VulkanTensorOperation::ADAMW_UPDATE,
+                device_storage_, first_moment.device_storage_,
+                size(), beta1_bits, beta2_bits, epsilon_bits,
+                learning_rate, second_moment.device_storage_);
+        host_valid_ = false;
+        return;
+    }
+#endif
+    for (size_t index = 0; index < size(); ++index) {
+        const double update =
+            (first_moment.data()[index] / beta1_correction) /
+            (std::sqrt(
+                 second_moment.data()[index] / beta2_correction) +
+             epsilon);
+        data()[index] -= learning_rate * update;
+    }
+}
+
+void Tensor::fused_adamw_step_in_place(
+    const Tensor& gradients,
+    Tensor& first_moment,
+    Tensor& second_moment,
+    double learning_rate,
+    double beta1,
+    double beta2,
+    double beta1_correction,
+    double beta2_correction,
+    double epsilon,
+    double weight_decay,
+    double gradient_scale) {
+    if (shape_ != gradients.shape_ ||
+        shape_ != first_moment.shape_ ||
+        shape_ != second_moment.shape_) {
+        throw std::invalid_argument(
+            "Fused AdamW tensors must have matching shapes");
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(size())) {
+        ensure_device();
+        gradients.ensure_device();
+        first_moment.ensure_device();
+        second_moment.ensure_device();
+        detail::vulkan_tensor_adamw_step_in_place(
+            device_storage_,
+            gradients.device_storage_,
+            first_moment.device_storage_,
+            second_moment.device_storage_,
+            learning_rate,
+            beta1,
+            beta2,
+            beta1_correction,
+            beta2_correction,
+            epsilon,
+            weight_decay,
+            gradient_scale);
+        host_valid_ = false;
+        first_moment.host_valid_ = false;
+        second_moment.host_valid_ = false;
+        return;
+    }
+#endif
+    for (size_t index = 0; index < size(); ++index) {
+        const double gradient =
+            gradients.data()[index] * gradient_scale;
+        double& first = first_moment.data()[index];
+        double& second = second_moment.data()[index];
+        first = beta1 * first + (1.0 - beta1) * gradient;
+        second =
+            beta2 * second +
+            (1.0 - beta2) * gradient * gradient;
+        const double update =
+            (first / beta1_correction) /
+            (std::sqrt(second / beta2_correction) + epsilon);
+        data()[index] -= learning_rate * update;
+        data()[index] -=
+            learning_rate * weight_decay * data()[index];
+    }
 }
 
 void Tensor::fill(double value) {

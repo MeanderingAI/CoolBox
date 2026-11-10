@@ -84,6 +84,30 @@ struct PointerPressEvent {
     PointerButton button = PointerButton::Left;
 };
 
+// A key press translated into either a chunk of typed text (for ordinary
+// printable characters) or one of a small set of editing/navigation keys.
+// `text` is only non-empty for printable input; `special` is set instead
+// for control keys such as Enter/Backspace.
+enum class SpecialKey {
+    None,
+    Enter,
+    Backspace,
+    Delete,
+    Escape,
+    Tab,
+    Left,
+    Right,
+    Up,
+    Down
+};
+
+struct KeyEvent {
+    std::string text;
+    SpecialKey special = SpecialKey::None;
+    bool shift = false;
+    bool ctrl = false;
+};
+
 struct RenderHooks {
     std::function<void(const RenderEvent&)> on_create;
     std::function<void(const RenderEvent&)> on_render;
@@ -160,8 +184,17 @@ public:
                            int radius,
                            unsigned char r, unsigned char g, unsigned char b,
                            bool filled = false) const;
+    // Fills a rounded rect blended with whatever was already drawn beneath it
+    // (alpha in [0,255]), producing a translucent "glass panel" look. Falls
+    // back to an opaque fill on backends without a readable/writable pixel
+    // buffer.
+    void fill_rounded_rect_alpha(int left, int top, int right, int bottom,
+                                 int radius,
+                                 unsigned char r, unsigned char g, unsigned char b,
+                                 unsigned char alpha) const;
     void draw_text_line(int x, int y, const std::string& text,
-                        unsigned char r = 235, unsigned char g = 240, unsigned char b = 248) const;
+                        unsigned char r = 235, unsigned char g = 240, unsigned char b = 248,
+                        int scale = 1) const;
     bool present_canvas(const ::graphics::Canvas& canvas) const;
 
     std::string graphics_object_kind() const override { return "fullApplicationWindow"; }

@@ -3,7 +3,7 @@
 
 layout(local_size_x = 256) in;
 
-layout(set = 0, binding = 0, std430) readonly buffer LeftBuffer {
+layout(set = 0, binding = 0, std430) buffer LeftBuffer {
     double values[];
 } left_buffer;
 
@@ -11,11 +11,11 @@ layout(set = 0, binding = 1, std430) readonly buffer RightBuffer {
     double values[];
 } right_buffer;
 
-layout(set = 0, binding = 2, std430) readonly buffer AuxiliaryBuffer {
+layout(set = 0, binding = 2, std430) buffer AuxiliaryBuffer {
     double values[];
 } auxiliary_buffer;
 
-layout(set = 0, binding = 3, std430) writeonly buffer OutputBuffer {
+layout(set = 0, binding = 3, std430) buffer OutputBuffer {
     double values[];
 } output_buffer;
 
@@ -28,10 +28,89 @@ layout(push_constant) uniform Parameters {
     uint scalar_low;
     uint scalar_high;
     uint encoding;
+    uint extra0;
+    uint extra1;
+    uint extra2;
+    uint extra3;
 } parameters;
 
+shared double left_tile[256];
+shared double right_tile[256];
+
 void main() {
+    if (parameters.operation == 6 ||
+        parameters.operation == 8 ||
+        parameters.operation == 27 ||
+        parameters.operation == 28) {
+        uint local_index = gl_LocalInvocationID.x;
+        uint local_row = local_index / 16;
+        uint local_column = local_index % 16;
+        uint row = gl_WorkGroupID.y * 16 + local_row;
+        uint column = gl_WorkGroupID.x * 16 + local_column;
+        double total =
+            parameters.operation == 8 &&
+            column < parameters.columns
+                ? auxiliary_buffer.values[column] : 0.0;
+        for (uint tile = 0; tile < parameters.inner; tile += 16) {
+            uint left_column = tile + local_column;
+            uint right_row = tile + local_row;
+            left_tile[local_index] =
+                row < parameters.rows &&
+                left_column < parameters.inner
+                    ? (parameters.operation == 28
+                        ? left_buffer.values[
+                            left_column * parameters.rows + row]
+                        : left_buffer.values[
+                            row * parameters.inner + left_column])
+                    : 0.0;
+            right_tile[local_index] =
+                right_row < parameters.inner &&
+                column < parameters.columns
+                    ? (parameters.operation == 27
+                        ? right_buffer.values[
+                            column * parameters.inner + right_row]
+                        : right_buffer.values[
+                            right_row * parameters.columns + column])
+                    : 0.0;
+            barrier();
+            for (uint offset = 0; offset < 16; ++offset) {
+                total +=
+                    left_tile[local_row * 16 + offset] *
+                    right_tile[offset * 16 + local_column];
+            }
+            barrier();
+        }
+        if (row < parameters.rows &&
+            column < parameters.columns) {
+            output_buffer.values[
+                row * parameters.columns + column] = total;
+        }
+        return;
+    }
+
     uint index = gl_GlobalInvocationID.x;
+    if (parameters.operation == 22 ||
+        parameters.operation == 33) {
+        uint local_index = gl_LocalInvocationID.x;
+        double value = index < parameters.count
+            ? left_buffer.values[index]
+            : 0.0;
+        left_tile[local_index] =
+            parameters.operation == 22 ? value * value : value;
+        barrier();
+        for (uint stride = 128; stride > 0; stride >>= 1) {
+            if (local_index < stride) {
+                left_tile[local_index] +=
+                    left_tile[local_index + stride];
+            }
+            barrier();
+        }
+        if (local_index == 0) {
+            output_buffer.values[gl_WorkGroupID.x] =
+                left_tile[0];
+        }
+        return;
+    }
     if (index >= parameters.count) {
         return;
     }
@@ -56,31 +135,11 @@ void main() {
         double scalar = packDouble2x32(
             uvec2(parameters.scalar_low, parameters.scalar_high));
         output_buffer.values[index] = left_buffer.values[index] / scalar;
-    } else if (parameters.operation == 6) {
-        uint row = index / parameters.columns;
-        uint column = index % parameters.columns;
-        double total = 0.0;
-        for (uint offset = 0; offset < parameters.inner; ++offset) {
-            total +=
-                left_buffer.values[row * parameters.inner + offset] *
-                right_buffer.values[offset * parameters.columns + column];
-        }
-        output_buffer.values[index] = total;
     } else if (parameters.operation == 7) {
         uint row = index / parameters.columns;
         uint column = index % parameters.columns;
         output_buffer.values[column * parameters.rows + row] =
             left_buffer.values[index];
-    } else if (parameters.operation == 8) {
-        uint row = index / parameters.columns;
-        uint column = index % parameters.columns;
-        double total = auxiliary_buffer.values[column];
-        for (uint offset = 0; offset < parameters.inner; ++offset) {
-            total +=
-                left_buffer.values[row * parameters.inner + offset] *
-                right_buffer.values[offset * parameters.columns + column];
-        }
-        output_buffer.values[index] = total;
     } else if (parameters.operation == 9) {
         output_buffer.values[index] =
             max(left_buffer.values[index], 0.0);
@@ -217,14 +276,6 @@ void main() {
                 ? left_buffer.values[row * parameters.columns + column]
                 : right_buffer.values[
                     row * parameters.inner + column - parameters.columns];
-    } else if (parameters.operation == 22) {
-        if (index != 0) return;
-        double total = 0.0;
-        for (uint offset = 0; offset < parameters.rows; ++offset) {
-            double value = left_buffer.values[offset];
-            total += value * value;
-        }
-        output_buffer.values[0] = total;
     } else if (parameters.operation == 23) {
         double learning_rate = packDouble2x32(
             uvec2(parameters.scalar_low, parameters.scalar_high));
@@ -237,5 +288,199 @@ void main() {
              epsilon);
         output_buffer.values[index] =
             left_buffer.values[index] - learning_rate * update;
+    } else if (parameters.operation == 24) {
+        uint input_base = index * parameters.columns;
+        uint output_base =
+            index * (parameters.columns + 1);
+        double maximum = -1.0 / 0.0;
+        for (uint column = 0;
+             column < parameters.columns;
+             ++column) {
+            maximum = max(
+                maximum,
+                left_buffer.values[input_base + column]);
+        }
+        double denominator = 0.0;
+        for (uint column = 0;
+             column < parameters.columns;
+             ++column) {
+            denominator += double(exp(float(
+                left_buffer.values[input_base + column] -
+                maximum)));
+        }
+        double target_probability = 0.0;
+        for (uint column = 0;
+             column < parameters.columns;
+             ++column) {
+            double probability = double(exp(float(
+                left_buffer.values[input_base + column] -
+                maximum))) / denominator;
+            double target =
+                right_buffer.values[input_base + column];
+            output_buffer.values[output_base + column] =
+                (probability - target) /
+                double(parameters.rows);
+            target_probability += probability * target;
+        }
+        output_buffer.values[
+            output_base + parameters.columns] =
+            -double(log(float(max(
+                target_probability, 1e-30))));
+    } else if (parameters.operation == 25) {
+        double scalar = packDouble2x32(
+            uvec2(parameters.scalar_low, parameters.scalar_high));
+        double beta1 = double(uintBitsToFloat(parameters.rows));
+        double beta2 = double(uintBitsToFloat(parameters.columns));
+        double epsilon = double(uintBitsToFloat(parameters.inner));
+        double beta1_correction =
+            double(uintBitsToFloat(parameters.extra0));
+        double beta2_correction =
+            double(uintBitsToFloat(parameters.extra1));
+        double weight_decay =
+            double(uintBitsToFloat(parameters.extra2));
+        double gradient =
+            right_buffer.values[index] *
+            double(uintBitsToFloat(parameters.extra3));
+        double first =
+            beta1 * auxiliary_buffer.values[index] +
+            (1.0 - beta1) * gradient;
+        double second =
+            beta2 * output_buffer.values[index] +
+            (1.0 - beta2) * gradient * gradient;
+        auxiliary_buffer.values[index] = first;
+        output_buffer.values[index] = second;
+        double updated =
+            left_buffer.values[index] -
+            scalar * (first / beta1_correction) /
+                (sqrt(second / beta2_correction) + epsilon);
+        left_buffer.values[index] =
+            updated - scalar * weight_decay * updated;
+    } else if (parameters.operation == 26) {
+        double scale = packDouble2x32(
+            uvec2(parameters.scalar_low, parameters.scalar_high));
+        if (auxiliary_buffer.values[index] == 0.0) {
+            output_buffer.values[index] = -1e9;
+            return;
+        }
+        uint query = index / parameters.columns;
+        uint key = index % parameters.columns;
+        double total = 0.0;
+        for (uint column = 0;
+             column < parameters.inner;
+             ++column) {
+            total += left_buffer.values[
+                query * parameters.inner + column] *
+                right_buffer.values[
+                    key * parameters.inner + column];
+        }
+        output_buffer.values[index] = total / scale;
+    } else if (parameters.operation == 29) {
+        double scale = packDouble2x32(
+            uvec2(parameters.scalar_low, parameters.scalar_high));
+        uint sequence = parameters.rows;
+        uint model = parameters.columns;
+        uint head_width = model / parameters.inner;
+        uint head = index / (sequence * sequence);
+        uint within_head = index % (sequence * sequence);
+        uint query = within_head / sequence;
+        uint key = within_head % sequence;
+        if (auxiliary_buffer.values[
+                query * sequence + key] == 0.0) {
+            output_buffer.values[index] = -1e9;
+            return;
+        }
+        double total = 0.0;
+        for (uint column = 0; column < head_width; ++column) {
+            uint model_column = head * head_width + column;
+            total += left_buffer.values[
+                query * model + model_column] *
+                right_buffer.values[
+                    key * model + model_column];
+        }
+        output_buffer.values[index] = total / scale;
+    } else if (parameters.operation == 30 ||
+               parameters.operation == 31) {
+        uint sequence = parameters.rows;
+        uint model = parameters.columns;
+        uint head_width = model / parameters.inner;
+        uint row = index / model;
+        uint column = index % model;
+        uint head = column / head_width;
+        double total = 0.0;
+        for (uint other = 0; other < sequence; ++other) {
+            uint weight_index = parameters.operation == 30
+                ? (head * sequence + row) * sequence + other
+                : (head * sequence + other) * sequence + row;
+            total += left_buffer.values[weight_index] *
+                right_buffer.values[other * model + column];
+        }
+        output_buffer.values[index] = total;
+    } else if (parameters.operation == 32) {
+        uint sequence = parameters.rows;
+        uint model = parameters.columns;
+        uint head_width = model / parameters.inner;
+        uint head = index / (sequence * sequence);
+        uint within_head = index % (sequence * sequence);
+        uint query = within_head / sequence;
+        uint key = within_head % sequence;
+        double total = 0.0;
+        for (uint column = 0; column < head_width; ++column) {
+            uint model_column = head * head_width + column;
+            total += left_buffer.values[
+                query * model + model_column] *
+                right_buffer.values[
+                    key * model + model_column];
+        }
+        output_buffer.values[index] = total;
+    } else if (parameters.operation == 34 ||
+               parameters.operation == 35) {
+        double value = left_buffer.values[index];
+        double cubic = 0.7978845608028654 *
+            (value + 0.044715 * value * value * value);
+        double tangent = double(tanh(float(cubic)));
+        if (parameters.operation == 34) {
+            output_buffer.values[index] =
+                0.5 * value * (1.0 + tangent);
+        } else {
+            double derivative =
+                0.5 * (1.0 + tangent) +
+                0.5 * value * (1.0 - tangent * tangent) *
+                0.7978845608028654 *
+                (1.0 + 0.134145 * value * value);
+            output_buffer.values[index] =
+                right_buffer.values[index] * derivative;
+        }
+    } else if (parameters.operation == 36 ||
+               parameters.operation == 37) {
+        double value = left_buffer.values[index];
+        double sigmoid =
+            1.0 / (1.0 + double(exp(float(-value))));
+        output_buffer.values[index] =
+            parameters.operation == 36
+                ? value * sigmoid
+                : right_buffer.values[index] * sigmoid *
+                    (1.0 + value * (1.0 - sigmoid));
+    } else if (parameters.operation == 38 ||
+               parameters.operation == 39) {
+        double scalar = packDouble2x32(
+            uvec2(parameters.scalar_low, parameters.scalar_high));
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        uint head_width =
+            parameters.columns / uint(scalar + 0.5);
+        uint pair = (column % head_width) & ~1u;
+        float angle = float(row) /
+            pow(10000.0, float(pair) / float(head_width));
+        if (parameters.operation == 39) angle = -angle;
+        uint pair_column = column - (column & 1u);
+        uint base = row * parameters.columns + pair_column;
+        double even = left_buffer.values[base];
+        double odd = left_buffer.values[base + 1];
+        output_buffer.values[index] =
+            (column & 1u) == 0u
+                ? even * double(cos(angle)) -
+                    odd * double(sin(angle))
+                : even * double(sin(angle)) +
+                    odd * double(cos(angle));
     }
 }

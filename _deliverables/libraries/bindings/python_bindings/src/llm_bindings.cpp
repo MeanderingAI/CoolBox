@@ -151,12 +151,14 @@ void bind_llm(py::module_& deep_learning_module) {
             "train", &BpeTokenizer::train,
             py::arg("corpus"),
             py::arg("vocab_size"),
-            py::arg("min_frequency") = 2)
+            py::arg("min_frequency") = 2,
+            py::arg("thread_count") = 0)
         .def(
             "encode", &BpeTokenizer::encode,
             py::arg("text"),
             py::arg("add_bos") = false,
-            py::arg("add_eos") = false)
+            py::arg("add_eos") = false,
+            py::call_guard<py::gil_scoped_release>())
         .def(
             "decode", &BpeTokenizer::decode,
             py::arg("token_ids"),
@@ -170,6 +172,11 @@ void bind_llm(py::module_& deep_learning_module) {
     py::enum_<LanguageModelOptimizer>(module, "Optimizer")
         .value("SGD", LanguageModelOptimizer::SGD)
         .value("ADAMW", LanguageModelOptimizer::ADAMW);
+
+    py::enum_<FeedForwardActivation>(module, "FeedForwardActivation")
+        .value("RELU", FeedForwardActivation::RELU)
+        .value("GELU", FeedForwardActivation::GELU)
+        .value("SWIGLU", FeedForwardActivation::SWIGLU);
 
     py::class_<DecoderLanguageModelConfig>(module, "ModelConfig")
         .def(py::init<>())
@@ -195,7 +202,14 @@ void bind_llm(py::module_& deep_learning_module) {
         .def_readwrite(
             "gradient_clip_norm",
             &DecoderLanguageModelConfig::gradient_clip_norm)
-        .def_readwrite("seed", &DecoderLanguageModelConfig::seed);
+        .def_readwrite("seed", &DecoderLanguageModelConfig::seed)
+        .def_readwrite(
+            "feed_forward_activation",
+            &DecoderLanguageModelConfig::feed_forward_activation)
+        .def_readwrite(
+            "use_rotary_position_encoding",
+            &DecoderLanguageModelConfig::
+                use_rotary_position_encoding);
 
     py::class_<GenerationConfig>(module, "GenerationConfig")
         .def(py::init<>())
@@ -218,6 +232,19 @@ void bind_llm(py::module_& deep_learning_module) {
         .def(
             "train_step", &DecoderLanguageModel::train_step,
             py::arg("token_ids"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "train_batch", &DecoderLanguageModel::train_batch,
+            py::arg("token_sequences"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "accumulate_batch",
+            &DecoderLanguageModel::accumulate_batch,
+            py::arg("token_sequences"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "step_accumulated",
+            &DecoderLanguageModel::step_accumulated,
             py::call_guard<py::gil_scoped_release>())
         .def(
             "fit", &DecoderLanguageModel::fit,
@@ -246,6 +273,10 @@ void bind_llm(py::module_& deep_learning_module) {
         .def_property_readonly(
             "optimizer_step",
             &DecoderLanguageModel::optimizer_step)
+        .def_property(
+            "learning_rate",
+            &DecoderLanguageModel::learning_rate,
+            &DecoderLanguageModel::set_learning_rate)
         .def(
             "state_dict",
             [](DecoderLanguageModel& model) {

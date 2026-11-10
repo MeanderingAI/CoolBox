@@ -187,6 +187,266 @@ TEST(TensorBackendTest, VulkanSelectionMatchesAvailability) {
     set_tensor_backend(TensorBackend::CPU);
 }
 
+TEST(TensorBackendTest, VulkanSubmissionRingPreservesDependencies) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    Tensor value({1024}, 1.0);
+    Tensor increment({1024}, 0.25);
+    for (std::size_t iteration = 0; iteration < 800; ++iteration) {
+        value += increment;
+    }
+
+    EXPECT_NEAR(value.data()[0], 201.0, 1e-4);
+    EXPECT_NEAR(value.data()[1023], 201.0, 1e-4);
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
+}
+
+TEST(TensorBackendTest, VulkanCrossEntropyMatchesCpu) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    Tensor logits(
+        {2, 4},
+        {0.1, 0.2, 0.3, 0.4,
+         0.5, -0.5, 0.25, 0.0});
+    Tensor targets(
+        {2, 4},
+        {0.0, 0.0, 0.0, 1.0,
+         1.0, 0.0, 0.0, 0.0});
+
+    set_tensor_backend(TensorBackend::CPU);
+    Tensor expected =
+        logits.cross_entropy_with_one_hot(targets);
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    Tensor actual =
+        logits.cross_entropy_with_one_hot(targets);
+    ASSERT_EQ(expected.shape(), actual.shape());
+    for (std::size_t index = 0;
+         index < expected.size();
+         ++index) {
+        EXPECT_NEAR(
+            expected.data()[index],
+            actual.data()[index],
+            1e-6);
+    }
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
+}
+
+TEST(TensorBackendTest, FusedVulkanAdamwMatchesCpu) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    Tensor expected_values(
+        {4}, {1.0, -2.0, 0.5, -0.25});
+    Tensor expected_gradients(
+        {4}, {0.1, -0.2, 0.05, 0.3});
+    Tensor expected_first(
+        {4}, {0.01, -0.02, 0.03, -0.04});
+    Tensor expected_second(
+        {4}, {0.001, 0.002, 0.003, 0.004});
+    Tensor actual_values = expected_values;
+    Tensor actual_gradients = expected_gradients;
+    Tensor actual_first = expected_first;
+    Tensor actual_second = expected_second;
+
+    set_tensor_backend(TensorBackend::CPU);
+    expected_values.fused_adamw_step_in_place(
+        expected_gradients, expected_first, expected_second,
+        0.001, 0.9, 0.999, 0.19, 0.001999,
+        1e-8, 0.01, 0.25);
+
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    actual_values.fused_adamw_step_in_place(
+        actual_gradients, actual_first, actual_second,
+        0.001, 0.9, 0.999, 0.19, 0.001999,
+        1e-8, 0.01, 0.25);
+    synchronize_tensor_backend();
+    for (std::size_t index = 0;
+         index < expected_values.size();
+         ++index) {
+        EXPECT_NEAR(
+            expected_values.data()[index],
+            actual_values.data()[index],
+            1e-6);
+        EXPECT_NEAR(
+            expected_first.data()[index],
+            actual_first.data()[index],
+            1e-6);
+        EXPECT_NEAR(
+            expected_second.data()[index],
+            actual_second.data()[index],
+            1e-6);
+    }
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
+}
+
+TEST(TensorBackendTest, ParallelVulkanSquaredSumMatchesCpu) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    std::vector<double> values(513);
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        values[index] =
+            static_cast<double>(static_cast<int>(index % 17) - 8) /
+            16.0;
+    }
+    Tensor input({values.size()}, values);
+
+    set_tensor_backend(TensorBackend::CPU);
+    const double expected = input.squared_sum();
+
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    const double actual = input.squared_sum();
+    EXPECT_NEAR(expected, actual, 1e-4);
+    set_tensor_precision(TensorPrecision::BF16);
+    const double bf16_actual = input.squared_sum();
+    EXPECT_NEAR(expected, bf16_actual, expected * 0.01);
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
+}
+
+TEST(TensorBackendTest, VulkanAttentionScoresMatchCpu) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    Tensor queries(
+        {2, 3},
+        {1.0, 2.0, 3.0,
+         -1.0, 0.5, 2.0});
+    Tensor keys(
+        {3, 3},
+        {0.5, 1.0, -1.0,
+         2.0, -0.5, 1.0,
+         1.5, 2.0, 0.25});
+    Tensor mask(
+        {2, 3},
+        {1.0, 0.0, 1.0,
+         1.0, 1.0, 0.0});
+    Tensor left_transpose_other(
+        {2, 2},
+        {0.25, 1.0,
+         -0.5, 2.0});
+    Tensor packed_queries(
+        {2, 4},
+        {1.0, 0.5, -1.0, 2.0,
+         0.25, -0.5, 1.5, 0.75});
+    Tensor packed_keys(
+        {2, 4},
+        {0.5, -1.0, 2.0, 0.25,
+         1.0, 0.75, -0.5, 1.25});
+    Tensor packed_mask(
+        {2, 2},
+        {1.0, 0.0,
+         1.0, 1.0});
+
+    set_tensor_backend(TensorBackend::CPU);
+    Tensor expected = queries.attention_scores(
+        keys, mask, std::sqrt(3.0));
+    Tensor expected_right =
+        queries.matmul_right_transposed(keys);
+    Tensor expected_left =
+        queries.matmul_left_transposed(left_transpose_other);
+    Tensor expected_packed_scores =
+        packed_queries.multihead_attention_scores(
+            packed_keys, packed_mask, 2);
+    Tensor expected_attention_weights =
+        expected_packed_scores.row_softmax();
+    Tensor expected_packed_values =
+        expected_attention_weights.multihead_attention_values(
+            packed_keys, 2);
+    Tensor expected_packed_keys =
+        expected_attention_weights.
+            multihead_attention_key_gradient(
+                packed_queries, 2);
+    Tensor expected_packed_weights =
+        packed_queries.
+            multihead_attention_weight_gradient(
+                packed_keys, 2);
+
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    Tensor actual = queries.attention_scores(
+        keys, mask, std::sqrt(3.0));
+    Tensor actual_right =
+        queries.matmul_right_transposed(keys);
+    Tensor actual_left =
+        queries.matmul_left_transposed(left_transpose_other);
+    Tensor actual_packed_scores =
+        packed_queries.multihead_attention_scores(
+            packed_keys, packed_mask, 2);
+    Tensor actual_attention_weights =
+        actual_packed_scores.row_softmax();
+    Tensor actual_packed_values =
+        actual_attention_weights.multihead_attention_values(
+            packed_keys, 2);
+    Tensor actual_packed_keys =
+        actual_attention_weights.
+            multihead_attention_key_gradient(
+                packed_queries, 2);
+    Tensor actual_packed_weights =
+        packed_queries.
+            multihead_attention_weight_gradient(
+                packed_keys, 2);
+    ASSERT_EQ(expected.shape(), actual.shape());
+    for (std::size_t index = 0;
+         index < expected.size();
+         ++index) {
+        EXPECT_NEAR(
+            expected.data()[index],
+            actual.data()[index],
+            1e-5);
+    }
+    for (std::size_t index = 0;
+         index < expected_right.size();
+         ++index) {
+        EXPECT_NEAR(
+            expected_right.data()[index],
+            actual_right.data()[index],
+            1e-5);
+    }
+    for (std::size_t index = 0;
+         index < expected_left.size();
+         ++index) {
+        EXPECT_NEAR(
+            expected_left.data()[index],
+            actual_left.data()[index],
+            1e-5);
+    }
+    const auto expect_near = [](
+        const Tensor& expected_tensor,
+        const Tensor& actual_tensor) {
+        ASSERT_EQ(
+            expected_tensor.shape(), actual_tensor.shape());
+        for (std::size_t index = 0;
+             index < expected_tensor.size();
+             ++index) {
+            EXPECT_NEAR(
+                expected_tensor.data()[index],
+                actual_tensor.data()[index],
+                1e-5);
+        }
+    };
+    expect_near(
+        expected_packed_scores, actual_packed_scores);
+    expect_near(
+        expected_packed_values, actual_packed_values);
+    expect_near(
+        expected_packed_keys, actual_packed_keys);
+    expect_near(
+        expected_packed_weights, actual_packed_weights);
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
+}
+
 // ============================================================================
 // Dense Layer Tests
 // ============================================================================
@@ -221,6 +481,85 @@ TEST(ReLULayerTest, Forward) {
     EXPECT_DOUBLE_EQ(output.data()[1], 0.0);
     EXPECT_DOUBLE_EQ(output.data()[2], 0.0);
     EXPECT_DOUBLE_EQ(output.data()[3], 1.0);
+}
+
+TEST(ActivationTensorTest, GeluAndSiluBackwardMatchFiniteDifference) {
+    set_tensor_backend(TensorBackend::CPU);
+    Tensor input({1, 3}, {-1.25, 0.0, 0.75});
+    Tensor gradient({1, 3}, {1.0, -0.5, 2.0});
+    Tensor gelu_gradient = input.gelu_backward(gradient);
+    Tensor silu_gradient = input.silu_backward(gradient);
+    constexpr double epsilon = 1e-6;
+    for (size_t index = 0; index < input.size(); ++index) {
+        Tensor plus = input;
+        Tensor minus = input;
+        plus.data()[index] += epsilon;
+        minus.data()[index] -= epsilon;
+        const double gelu_numeric =
+            (plus.gelu().data()[index] -
+             minus.gelu().data()[index]) /
+            (2.0 * epsilon) * gradient.data()[index];
+        const double silu_numeric =
+            (plus.silu().data()[index] -
+             minus.silu().data()[index]) /
+            (2.0 * epsilon) * gradient.data()[index];
+        EXPECT_NEAR(
+            gelu_gradient.data()[index], gelu_numeric, 1e-6);
+        EXPECT_NEAR(
+            silu_gradient.data()[index], silu_numeric, 1e-6);
+    }
+}
+
+TEST(RotaryEmbeddingTest, BackwardInvertsForward) {
+    set_tensor_backend(TensorBackend::CPU);
+    Tensor input(
+        {3, 8},
+        {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0,
+         8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0,
+         16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0});
+    Tensor restored =
+        input.rotary_embedding(2).rotary_embedding_backward(2);
+    for (size_t index = 0; index < input.size(); ++index) {
+        EXPECT_NEAR(
+            restored.data()[index], input.data()[index], 1e-10);
+    }
+}
+
+TEST(ActivationTensorTest, VulkanMatchesCpu) {
+    if (!tensor_backend_available(TensorBackend::VULKAN)) {
+        return;
+    }
+    Tensor input({2, 4}, {-2.0, -1.0, 0.0, 1.0,
+                           2.0, 3.0, -0.5, 0.5});
+    Tensor gradient({2, 4}, 0.75);
+    set_tensor_backend(TensorBackend::CPU);
+    Tensor expected_gelu = input.gelu();
+    Tensor expected_silu_gradient =
+        input.silu_backward(gradient);
+    Tensor expected_rope = input.rotary_embedding(2);
+
+    set_tensor_backend(TensorBackend::VULKAN);
+    set_tensor_precision(TensorPrecision::FP32);
+    Tensor actual_gelu = input.gelu();
+    Tensor actual_silu_gradient =
+        input.silu_backward(gradient);
+    Tensor actual_rope = input.rotary_embedding(2);
+    for (size_t index = 0; index < input.size(); ++index) {
+        EXPECT_NEAR(
+            actual_gelu.data()[index],
+            expected_gelu.data()[index],
+            1e-5);
+        EXPECT_NEAR(
+            actual_silu_gradient.data()[index],
+            expected_silu_gradient.data()[index],
+            1e-5);
+        EXPECT_NEAR(
+            actual_rope.data()[index],
+            expected_rope.data()[index],
+            1e-5);
+    }
+    set_tensor_backend(TensorBackend::CPU);
+    set_tensor_precision(TensorPrecision::AUTO);
 }
 
 TEST(SigmoidLayerTest, Forward) {

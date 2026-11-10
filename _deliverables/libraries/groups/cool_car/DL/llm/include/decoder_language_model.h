@@ -37,6 +37,9 @@ struct DecoderLanguageModelConfig {
     double epsilon = 1e-8;
     double gradient_clip_norm = 1.0;
     std::uint64_t seed = 0;
+    FeedForwardActivation feed_forward_activation =
+        FeedForwardActivation::RELU;
+    bool use_rotary_position_encoding = false;
 };
 
 struct GenerationConfig {
@@ -60,6 +63,11 @@ public:
 
     Tensor logits(const std::vector<std::size_t>& input_ids);
     double train_step(const std::vector<std::size_t>& token_ids);
+    double train_batch(
+        const std::vector<std::vector<std::size_t>>& token_sequences);
+    double accumulate_batch(
+        const std::vector<std::vector<std::size_t>>& token_sequences);
+    double step_accumulated();
     std::vector<double> fit(
         const std::vector<std::vector<std::size_t>>& token_sequences,
         std::size_t epochs = 1,
@@ -75,6 +83,8 @@ public:
     const DecoderLanguageModelConfig& config() const { return config_; }
     std::size_t parameter_count();
     std::size_t optimizer_step() const { return optimizer_step_; }
+    double learning_rate() const { return config_.learning_rate; }
+    void set_learning_rate(double learning_rate);
     std::vector<NamedTensor> state_dict();
     void load_state_dict(
         const std::vector<NamedTensor>& tensors,
@@ -98,11 +108,20 @@ private:
     bool training_ = true;
     std::size_t optimizer_step_ = 0;
     std::unordered_map<Tensor*, AdamState> adam_states_;
+    std::vector<Tensor> accumulated_gradients_;
+    std::size_t accumulated_token_count_ = 0;
+    double accumulated_weighted_loss_ = 0.0;
 
     Tensor forward(const std::vector<std::size_t>& input_ids);
     static std::pair<double, Tensor> cross_entropy_with_logits(
         const Tensor& logits,
         const std::vector<std::size_t>& target_ids);
+    static std::pair<Tensor, Tensor>
+    cross_entropy_with_logits_tensor(
+        const Tensor& logits,
+        const std::vector<std::size_t>& target_ids);
+    Tensor compute_gradients(
+        const std::vector<std::size_t>& token_ids);
     std::vector<TrainableParameter> trainable_parameters();
     void apply_optimizer();
     std::vector<std::vector<std::size_t>> split_training_sequence(
