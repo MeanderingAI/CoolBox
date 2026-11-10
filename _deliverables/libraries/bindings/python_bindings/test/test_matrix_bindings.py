@@ -59,3 +59,96 @@ def test_matrix_dimension_errors_are_reported():
 
     with pytest.raises(ValueError, match="dimension mismatch"):
         first.multiply(other)
+
+
+def test_cpu_thread_limit_can_be_configured():
+    try:
+        matrix.set_cpu_threads(0)
+        assert matrix.cpu_threads() >= 1
+        for thread_count in (1, 2):
+            matrix.set_cpu_threads(thread_count)
+            assert matrix.cpu_threads() == thread_count
+    finally:
+        matrix.set_cpu_threads(0)
+
+
+@pytest.mark.parametrize(
+    "backend", [matrix.MatrixBackend.CPU, matrix.MatrixBackend.EIGEN]
+)
+def test_odd_rectangular_multiply_respects_thread_budget(backend):
+    np = pytest.importorskip("numpy")
+    rng = np.random.default_rng(193129173)
+    left_values = rng.standard_normal((193, 1025))
+    right_values = rng.standard_normal((1025, 683))
+    reference = left_values @ right_values
+    left = matrix.DenseMatrix(193, 1025, left_values.ravel().tolist())
+    right = matrix.DenseMatrix(1025, 683, right_values.ravel().tolist())
+    original_backend = matrix.get_backend()
+    try:
+        matrix.set_backend(backend)
+        matrix.set_cpu_threads(1)
+        serial_result = np.asarray(left.multiply(right).data).reshape(193, 683)
+        matrix.set_cpu_threads(4)
+        threaded = left.multiply(right)
+        threaded_result = np.asarray(threaded.data).reshape(193, 683)
+        assert matrix.get_active_backend() == backend
+        assert np.allclose(serial_result, reference, rtol=1e-10, atol=1e-10)
+        assert np.allclose(threaded_result, reference, rtol=1e-10, atol=1e-10)
+    finally:
+        matrix.set_cpu_threads(0)
+        matrix.set_backend(original_backend)
+
+
+def test_auto_backend_resolves_to_an_available_backend():
+    matrix.set_backend(matrix.MatrixBackend.AUTO)
+    try:
+        left = matrix.DenseMatrix.identity(2)
+        left.multiply(left)
+        active = matrix.get_active_backend()
+        assert active != matrix.MatrixBackend.AUTO
+        assert matrix.backend_available(active)
+    finally:
+        matrix.set_backend(matrix.MatrixBackend.CPU)
+
+
+def test_openblas_availability_and_selection():
+    original_backend = matrix.get_backend()
+    try:
+        assert matrix.backend_name(matrix.MatrixBackend.OPENBLAS) == "openblas"
+        if matrix.backend_available(matrix.MatrixBackend.OPENBLAS):
+            matrix.set_backend(matrix.MatrixBackend.OPENBLAS)
+            assert matrix.get_backend() == matrix.MatrixBackend.OPENBLAS
+        else:
+            with pytest.raises(ValueError, match="unavailable"):
+                matrix.set_backend(matrix.MatrixBackend.OPENBLAS)
+            assert matrix.get_backend() == original_backend
+    finally:
+        matrix.set_backend(original_backend)
+
+
+@pytest.mark.parametrize("shape", [(1, 3, 5), (7, 19, 13), (129, 137, 131)])
+def test_openblas_products(shape):
+    if not matrix.backend_available(matrix.MatrixBackend.OPENBLAS):
+        pytest.skip("OpenBLAS was not enabled in this build")
+    np = pytest.importorskip("numpy")
+    m, k, n = shape
+    rng = np.random.default_rng(32)
+    a, b = rng.standard_normal((m, k)), rng.standard_normal((k, n))
+    left = matrix.DenseMatrix(m, k, a.ravel().tolist())
+    right = matrix.DenseMatrix(k, n, b.ravel().tolist())
+    original_backend = matrix.get_backend()
+    try:
+        matrix.set_backend(matrix.MatrixBackend.OPENBLAS)
+        for threads in (1, 2, 8):
+            matrix.set_cpu_threads(threads)
+            actual = np.asarray((left @ right).data).reshape(m, n)
+            assert matrix.get_active_backend() == matrix.MatrixBackend.OPENBLAS
+            assert np.allclose(actual, a @ b, rtol=1e-10, atol=1e-10)
+        with pytest.raises(ValueError, match="dimension mismatch"):
+            left.multiply(matrix.DenseMatrix(k + 1, n))
+        left.transpose()
+        assert matrix.get_active_backend() == matrix.MatrixBackend.CPU
+        assert matrix.get_backend() == matrix.MatrixBackend.OPENBLAS
+    finally:
+        matrix.set_cpu_threads(0)
+        matrix.set_backend(original_backend)

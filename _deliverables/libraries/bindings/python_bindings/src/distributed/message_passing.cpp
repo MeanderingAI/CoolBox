@@ -1,58 +1,144 @@
 #include "distributed/message_passing.h"
 #include <algorithm>
+#include <chrono>
+#include <deque>
 #include <numeric>
 #include <cmath>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace distributed {
 
+struct DistributedContext::SharedBus {
+    explicit SharedBus(int size) : world_size(size) {}
+
+    int world_size;
+    std::map<int, std::deque<Message>> queues;
+    std::mutex mutex;
+    std::condition_variable condition;
+    int barrier_count = 0;
+    std::size_t barrier_generation = 0;
+};
+
+std::shared_ptr<DistributedContext::SharedBus>
+DistributedContext::acquire_bus(
+    const std::string& cluster_id, int world_size) {
+    static std::mutex registry_mutex;
+    static std::unordered_map<
+        std::string,
+        std::weak_ptr<SharedBus>> registry;
+
+    std::lock_guard<std::mutex> lock(registry_mutex);
+    const std::string key =
+        cluster_id + ":" + std::to_string(world_size);
+    std::shared_ptr<SharedBus> bus = registry[key].lock();
+    if (!bus) {
+        bus = std::make_shared<SharedBus>(world_size);
+        registry[key] = bus;
+    }
+    return bus;
+}
+
 // DistributedContext implementation
-DistributedContext::DistributedContext(int world_size, int rank)
-    : world_size_(world_size), rank_(rank) {
-    if (rank < 0 || rank >= world_size) {
+DistributedContext::DistributedContext(
+    int world_size, int rank, std::string cluster_id)
+    : world_size_(world_size),
+      rank_(rank),
+      cluster_id_(std::move(cluster_id)) {
+    if (world_size_ <= 0) {
+        throw std::invalid_argument("World size must be positive");
+    }
+    if (rank_ < 0 || rank_ >= world_size_) {
         throw std::invalid_argument("Invalid rank");
     }
+    if (cluster_id_.empty()) {
+        throw std::invalid_argument("Cluster id cannot be empty");
+    }
+    bus_ = acquire_bus(cluster_id_, world_size_);
 }
 
 DistributedContext::~DistributedContext() = default;
 
 void DistributedContext::send(const Message& msg, int dest_rank) {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    message_queues_[dest_rank].push(msg);
-    queue_cv_.notify_all();
+    if (dest_rank < 0 || dest_rank >= world_size_) {
+        throw std::invalid_argument("Invalid destination rank");
+    }
+    Message copy = msg;
+    if (copy.source_rank < 0) {
+        copy.source_rank = rank_;
+    }
+    copy.dest_rank = dest_rank;
+    {
+        std::lock_guard<std::mutex> lock(bus_->mutex);
+        bus_->queues[dest_rank].push_back(std::move(copy));
+    }
+    bus_->condition.notify_all();
 }
 
 Message DistributedContext::receive(int source_rank) {
-    std::unique_lock<std::mutex> lock(queue_mutex_);
-    
-    if (source_rank == -1) {
-        // Receive from any source
-        queue_cv_.wait(lock, [this] {
-            for (auto& kv : message_queues_) {
-                if (!kv.second.empty()) return true;
-            }
+    Message message;
+    std::unique_lock<std::mutex> lock(bus_->mutex);
+    auto ready = [&]() {
+        const auto queue = bus_->queues.find(rank_);
+        if (queue == bus_->queues.end()) {
             return false;
-        });
-        
-        for (auto& kv : message_queues_) {
-            if (!kv.second.empty()) {
-                Message msg = kv.second.front();
-                kv.second.pop();
-                return msg;
-            }
         }
-    } else {
-        // Receive from specific source
-        queue_cv_.wait(lock, [this, source_rank] {
-            return !message_queues_[source_rank].empty();
+        return std::any_of(
+            queue->second.begin(),
+            queue->second.end(),
+            [&](const Message& candidate) {
+                return source_rank < 0 ||
+                       candidate.source_rank == source_rank;
+            });
+    };
+    bus_->condition.wait(lock, ready);
+    auto& queue = bus_->queues[rank_];
+    const auto iterator = std::find_if(
+        queue.begin(),
+        queue.end(),
+        [&](const Message& candidate) {
+            return source_rank < 0 ||
+                   candidate.source_rank == source_rank;
         });
-        
-        Message msg = message_queues_[source_rank].front();
-        message_queues_[source_rank].pop();
-        return msg;
+    message = std::move(*iterator);
+    queue.erase(iterator);
+    return message;
+}
+
+bool DistributedContext::receive_for(
+    Message& message, int timeout_ms, int source_rank) {
+    if (timeout_ms < 0) {
+        throw std::invalid_argument("Timeout cannot be negative");
     }
-    
-    return Message(); // Should not reach here
+    std::unique_lock<std::mutex> lock(bus_->mutex);
+    auto ready = [&]() {
+        const auto queue = bus_->queues.find(rank_);
+        if (queue == bus_->queues.end()) {
+            return false;
+        }
+        return std::any_of(
+            queue->second.begin(),
+            queue->second.end(),
+            [&](const Message& candidate) {
+                return source_rank < 0 ||
+                       candidate.source_rank == source_rank;
+            });
+    };
+    if (!bus_->condition.wait_for(
+            lock, std::chrono::milliseconds(timeout_ms), ready)) {
+        return false;
+    }
+    auto& queue = bus_->queues[rank_];
+    const auto iterator = std::find_if(
+        queue.begin(),
+        queue.end(),
+        [&](const Message& candidate) {
+            return source_rank < 0 ||
+                   candidate.source_rank == source_rank;
+        });
+    message = std::move(*iterator);
+    queue.erase(iterator);
+    return true;
 }
 
 void DistributedContext::broadcast(std::vector<double>& data, int root_rank) {
@@ -200,19 +286,18 @@ std::vector<double> DistributedContext::ring_all_reduce(const std::vector<double
 }
 
 void DistributedContext::barrier() {
-    // Simple barrier implementation
-    static std::mutex barrier_mutex;
-    static std::condition_variable barrier_cv;
-    static int barrier_count = 0;
-    
-    std::unique_lock<std::mutex> lock(barrier_mutex);
-    ++barrier_count;
-    
-    if (barrier_count >= world_size_) {
-        barrier_count = 0;
-        barrier_cv.notify_all();
+    std::unique_lock<std::mutex> lock(bus_->mutex);
+    const std::size_t generation = bus_->barrier_generation;
+    ++bus_->barrier_count;
+
+    if (bus_->barrier_count >= world_size_) {
+        bus_->barrier_count = 0;
+        ++bus_->barrier_generation;
+        bus_->condition.notify_all();
     } else {
-        barrier_cv.wait(lock, [] { return barrier_count == 0; });
+        bus_->condition.wait(lock, [&] {
+            return bus_->barrier_generation != generation;
+        });
     }
 }
 

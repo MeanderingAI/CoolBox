@@ -4,6 +4,7 @@ add_library(distributed_learning SHARED
 )
 target_include_directories(distributed_learning PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
 target_include_directories(distributed_learning PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../headers)
+target_include_directories(distributed_learning PUBLIC ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car)
 target_include_directories(distributed_learning PUBLIC ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include)
 target_include_directories(distributed_learning PUBLIC ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers)
 find_package(Eigen3 QUIET)

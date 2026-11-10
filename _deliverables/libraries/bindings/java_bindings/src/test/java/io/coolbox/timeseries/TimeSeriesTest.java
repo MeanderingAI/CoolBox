@@ -1,0 +1,10 @@
+package io.coolbox.timeseries;
+import io.coolbox.CoolBoxException;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+class TimeSeriesTest {
+ @Test void univariateTransformsAndUtilities(){try(TimeSeries ts=new TimeSeries(new double[]{1,2,3,4,100},new String[]{"a","b","c","d","e"})){assertEquals(22,ts.mean(),1e-9);assertEquals(4,ts.at(3));assertEquals("d",ts.timestampAt(3));assertEquals(3,ts.createWindows(3).length);assertEquals(5,TimeSeriesFunctions.interpolateMissing(ts,2).size());assertNotNull(TimeSeriesFunctions.seasonalDecompose(ts,2).trend());assertTrue(TimeSeriesFunctions.detectOutliersIqr(ts).length>0);}}
+ @Test void multivariateFeaturesAndWindows(){try(MultivariateTimeSeries ts=new MultivariateTimeSeries(new double[][]{{1,2,3,4},{3,4,5,6}},java.util.List.of("x","y"),java.util.List.of("a","b","c","d"))){assertEquals(2,ts.numFeatures());assertArrayEquals(new double[]{2,4},ts.sample(1));assertEquals(3,ts.createWindows(2).length);assertEquals(2,ts.means().length);assertEquals(2,ts.normalize().numFeatures());}}
+ @Test void forecastAndErrorPath(){try(TimeSeries ts=new TimeSeries(new double[]{1,2,3,4,5});MovingAverageForecaster model=new MovingAverageForecaster(2)){assertThrows(CoolBoxException.class,()->model.forecast(2));model.fit(ts);assertEquals(2,model.forecast(2).length);assertEquals(4.5,model.forecastOneStep(),1e-9);}}
+ @Test void allModelFamiliesFitAndForecast(){try(TimeSeries ts=new TimeSeries(new double[]{1,2,3,4,5,6,7,8});AutoRegressiveModel ar=new AutoRegressiveModel(1).fit(ts);ExponentialSmoothingForecaster es=new ExponentialSmoothingForecaster(0.5).fit(ts);ARMAModel arma=new ARMAModel(1,1).fit(ts);ARIMAModel arima=new ARIMAModel(1,1,1).fit(ts)){assertEquals(1,ar.coefficients().length);assertEquals(2,ar.forecast(2).length);assertEquals(1,es.forecast(1).length);assertEquals(1,arma.forecast(1).length);assertEquals(1,arima.forecast(1).length);}}
+}

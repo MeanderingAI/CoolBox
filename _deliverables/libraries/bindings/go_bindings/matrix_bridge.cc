@@ -13,6 +13,14 @@
 #include <string>
 #include <vector>
 
+extern "C" void coolbox_matrix_set_cpu_threads(size_t count) {
+    coolbox::matrix::set_cpu_threads(count);
+}
+
+extern "C" size_t coolbox_matrix_cpu_threads(void) {
+    return coolbox::matrix::cpu_threads();
+}
+
 namespace {
 
 using coolbox::matrix::CpuOptimization;
@@ -77,6 +85,7 @@ MatrixBackend matrix_backend(int value) {
     case 3: return MatrixBackend::OpenCl;
     case 4: return MatrixBackend::Cuda;
     case 5: return MatrixBackend::Metal;
+    case 6: return MatrixBackend::OpenBlas;
     default: throw std::invalid_argument("unknown matrix backend");
     }
 }
@@ -89,11 +98,12 @@ mytrix::ComputeBackend compute_backend(MatrixBackend backend) {
     case MatrixBackend::OpenCl: return mytrix::ComputeBackend::GPU_OPENCL;
     case MatrixBackend::Cuda: return mytrix::ComputeBackend::GPU_CUDA;
     case MatrixBackend::Metal: return mytrix::ComputeBackend::GPU_METAL;
+    case MatrixBackend::OpenBlas: return mytrix::ComputeBackend::OPENBLAS;
     default: throw std::invalid_argument("unknown matrix backend");
     }
 }
 
-MatrixBackend matrix_backend(mytrix::ComputeBackend backend) {
+MatrixBackend from_compute_backend(mytrix::ComputeBackend backend) {
     switch (backend) {
     case mytrix::ComputeBackend::CPU:
     case mytrix::ComputeBackend::BOOST: return MatrixBackend::Cpu;
@@ -102,14 +112,17 @@ MatrixBackend matrix_backend(mytrix::ComputeBackend backend) {
     case mytrix::ComputeBackend::GPU_OPENCL: return MatrixBackend::OpenCl;
     case mytrix::ComputeBackend::GPU_CUDA: return MatrixBackend::Cuda;
     case mytrix::ComputeBackend::GPU_METAL: return MatrixBackend::Metal;
+    case mytrix::ComputeBackend::OPENBLAS: return MatrixBackend::OpenBlas;
     default: return MatrixBackend::Cpu;
     }
 }
 
-mytrix::ComputeBackend effective_backend() {
-    const auto backend = mytrix::BackendConfig::resolve_backend(
+mytrix::ComputeBackend effective_backend(bool supports_openblas = false) {
+    auto backend = mytrix::BackendConfig::resolve_backend(
         mytrix::BackendConfig::requested_backend(),
         mytrix::BackendConfig::boost_enabled());
+    if (backend == mytrix::ComputeBackend::OPENBLAS && !supports_openblas)
+        backend = mytrix::ComputeBackend::CPU;
     mytrix::BackendConfig::set_active_backend(backend);
     return backend;
 }
@@ -246,6 +259,9 @@ const T& checked(const void* handle, const char* kind) {
 
 namespace coolbox::matrix {
 
+void set_cpu_threads(size_t count) { mytrix::set_cpu_threads(count); }
+size_t cpu_threads() noexcept { return mytrix::cpu_threads(); }
+
 DenseVector::DenseVector(size_t size) : values_(size, 0.0) {}
 
 DenseVector::DenseVector(const double* values, size_t size) : values_(size) {
@@ -371,23 +387,32 @@ DenseMatrix DenseMatrix::subtract(const DenseMatrix& other) const {
 
 DenseMatrix DenseMatrix::multiply(const DenseMatrix& other, CpuOptimization selected) const {
     if (columns_ != other.rows_) throw std::invalid_argument("matrix dimension mismatch for multiplication");
-    const auto backend = effective_backend();
+    const auto backend = effective_backend(true);
+#ifdef MYTRIX_ENABLE_OPENBLAS
+    if (backend == mytrix::ComputeBackend::OPENBLAS) {
+        DenseMatrix result(rows_, other.columns_);
+        mytrix::detail::openblas_multiply(data(), other.data(), result.values_.data(),
+                                         rows_, columns_, other.columns_, true);
+        return result;
+    }
+#endif
     if (use_gpu_backend(backend)) return gpu_matrix_multiply(*this, other, backend);
     if (backend == mytrix::ComputeBackend::EIGEN) {
-        const auto left = to_eigen_matrix(*this);
-        const auto right = to_eigen_matrix(other);
-        return from_eigen_matrix(mytrix::DenseMatrix((left.data * right.data).eval()));
+        using RowMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+        const auto m = eigen_dimension(rows_), n = eigen_dimension(other.columns_), k = eigen_dimension(columns_);
+        DenseMatrix result(rows_, other.columns_);
+        const Eigen::Map<const RowMatrix> left(data(), m, k), right(other.data(), k, n);
+        Eigen::Map<RowMatrix> output(result.values_.data(), m, n);
+        mytrix::parallel_matrix_rows(rows_, other.columns_, columns_, [&](size_t first, size_t last) {
+            const auto count = static_cast<Eigen::Index>(last - first);
+            output.middleRows(static_cast<Eigen::Index>(first), count).noalias() =
+                left.middleRows(static_cast<Eigen::Index>(first), count) * right;
+        });
+        return result;
     }
     DenseMatrix result(rows_, other.columns_);
-    std::vector<double> column(columns_);
-    for (size_t j = 0; j < other.columns_; ++j) {
-        for (size_t k = 0; k < columns_; ++k) column[k] = other.values_[k * other.columns_ + j];
-        for (size_t i = 0; i < rows_; ++i) {
-            result.values_[i * other.columns_ + j] =
-                mytrix::optimized_dot(values_.data() + i * columns_, column.data(), columns_,
-                                      static_cast<mytrix::CpuOptimization>(selected));
-        }
-    }
+    mytrix::optimized_multiply(data(), other.data(), result.values_.data(),
+        rows_, columns_, other.columns_, static_cast<mytrix::CpuOptimization>(selected));
     return result;
 }
 
@@ -459,11 +484,11 @@ void set_matrix_backend(MatrixBackend backend) {
 }
 
 MatrixBackend matrix_backend() noexcept {
-    return matrix_backend(mytrix::BackendConfig::requested_backend());
+    return from_compute_backend(mytrix::BackendConfig::requested_backend());
 }
 
 MatrixBackend active_matrix_backend() noexcept {
-    return matrix_backend(mytrix::BackendConfig::active_backend());
+    return from_compute_backend(mytrix::BackendConfig::active_backend());
 }
 
 const char* matrix_backend_name(MatrixBackend backend) noexcept {
@@ -474,6 +499,7 @@ const char* matrix_backend_name(MatrixBackend backend) noexcept {
     case MatrixBackend::OpenCl: return "opencl";
     case MatrixBackend::Cuda: return "cuda";
     case MatrixBackend::Metal: return "metal";
+    case MatrixBackend::OpenBlas: return "openblas";
     default: return "unknown";
     }
 }

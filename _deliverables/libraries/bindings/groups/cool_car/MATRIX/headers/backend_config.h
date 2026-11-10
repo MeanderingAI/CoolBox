@@ -1,3 +1,3 @@
 #pragma once
 
-#include "backend_config_templated.h"
+#include "matrix_dense.h"

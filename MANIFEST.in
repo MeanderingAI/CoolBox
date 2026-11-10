@@ -2,6 +2,15 @@ include pyproject.toml
 include setup.py
 include README.md
 recursive-include _deliverables/libraries/bindings/python_bindings *.md *.txt *.toml *.py *.typed *.h *.hpp *.cpp *.cmake
+recursive-include _deliverables/libraries/groups/cool_car/DL/layers *.h *.cpp *.comp
+recursive-include _deliverables/libraries/groups/cool_car/DL/loss *.h *.cpp
+recursive-include _deliverables/libraries/groups/cool_car/DL/optimizer *.h *.cpp
+recursive-include _deliverables/libraries/groups/cool_car/DL/wrapper *.h *.cpp
+recursive-include _deliverables/libraries/groups/cool_car/DL/llm *.h *.cpp *.txt
+recursive-include _deliverables/libraries/groups/cool_car/DL/agent_runtime *.h *.cpp *.txt
+recursive-include _deliverables/libraries/groups/trekker/IO/dataformats/json *.h *.cpp
+recursive-include _deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers *.h *.cpp
+recursive-include cmake *.cmake
 include _deliverables/libraries/bindings/python_bindings/CMakeLists.txt
 global-exclude *.pyc
 global-exclude __pycache__

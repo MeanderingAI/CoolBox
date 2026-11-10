@@ -1,0 +1,3 @@
+package io.coolbox.synthetic;
+import static org.junit.jupiter.api.Assertions.*; import org.junit.jupiter.api.Test;
+class SyntheticDataTest { @Test void generatorsHaveRequestedShapesAndSeed(){var a=SyntheticData.makeRegression(12,3,0,1,42);var b=SyntheticData.makeRegression(12,3,0,1,42);assertEquals(12,a.features().length);assertEquals(3,a.features()[0].length);assertArrayEquals(a.targets(),b.targets());var c=SyntheticData.makeClassification(10,2,2,2,5);assertEquals(10,c.labels().length);var d=SyntheticData.makeBlobs(9,3,2,0,8);assertEquals(9,d.features().length);assertThrows(RuntimeException.class,()->SyntheticData.makeBlobs(2,3,2,1,0));} }

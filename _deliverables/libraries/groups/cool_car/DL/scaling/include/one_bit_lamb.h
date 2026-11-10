@@ -3,7 +3,7 @@
 
 #include "collective.h"
 #include "optimizer.h"
-#include "tensor.h"
+#include "../../layers/include/tensor.h"
 
 #include <cstdint>
 #include <string>

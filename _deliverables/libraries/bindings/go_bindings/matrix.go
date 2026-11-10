@@ -1,6 +1,8 @@
 package coolbox
 
 /*
+#cgo coolbox_openblas CXXFLAGS: -DMYTRIX_ENABLE_OPENBLAS=1
+#cgo coolbox_openblas LDFLAGS: -lopenblas
 #include "matrix_bridge.h"
 */
 import "C"
@@ -24,6 +26,20 @@ const (
 // MatrixBackend selects the implementation used by dense matrix/vector operations.
 type MatrixBackend int
 
+// SetMatrixCPUThreads sets the CPU multiplication thread budget (0 = automatic).
+func SetMatrixCPUThreads(count int) error {
+	if count < 0 {
+		return errors.New("coolbox: CPU thread count must not be negative")
+	}
+	C.coolbox_matrix_set_cpu_threads(C.size_t(count))
+	return nil
+}
+
+// MatrixCPUThreads returns the resolved CPU thread budget; small products stay serial.
+func MatrixCPUThreads() int {
+	return int(C.coolbox_matrix_cpu_threads())
+}
+
 const (
 	BackendCPU MatrixBackend = iota
 	BackendEigen
@@ -31,10 +47,11 @@ const (
 	BackendOpenCL
 	BackendCUDA
 	BackendMetal
+	BackendOpenBLAS
 )
 
 func (backend MatrixBackend) validate() error {
-	if backend < BackendCPU || backend > BackendMetal {
+	if backend < BackendCPU || backend > BackendOpenBLAS {
 		return fmt.Errorf("coolbox: unknown matrix backend %d", backend)
 	}
 	return nil

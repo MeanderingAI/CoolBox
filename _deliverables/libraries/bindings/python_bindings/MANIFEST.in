@@ -5,6 +5,7 @@ include requirements.txt
 include CMakeLists.txt
 include pyproject.toml
 include setup.py
+include eigen_build.py
 recursive-include ml_toolbox *.py *.typed
 recursive-include ml_core *.py
 recursive-include examples *.py *.md

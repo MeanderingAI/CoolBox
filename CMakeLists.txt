@@ -30,7 +30,11 @@ endif()
 
 # On MSVC, force a consistent dynamic MSVC runtime to avoid /MT vs /MD mismatches
 if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+    if(COOLBOX_STANDALONE_INSTALL)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE STRING "MSVC runtime library (force dynamic debug/runtime)" FORCE)
+    endif()
     # /FS: force synchronous PDB writes to fix C1041 when multiple CL.EXE run in parallel
     add_compile_options(/FS)
 endif()
@@ -213,7 +217,7 @@ endif()
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 option(BUILD_BINARIES "Build binaries (apps, services, demos)" ON)
 option(BUILD_PRODUCT_INSTALLER_ABSTRACTIONS "Build installer abstraction helpers for release-packaged products" OFF)
-if(BUILD_BINARIES)
+if(BUILD_BINARIES AND NOT COOLBOX_STANDALONE_INSTALL)
     if(EXISTS "${CMAKE_SOURCE_DIR}/_binaries")
         add_subdirectory(_binaries)
     else()
@@ -224,12 +228,12 @@ endif()
 add_subdirectory(_deliverables/libraries)
 
 # Build apps if present (e.g., apps/lsp)
-if(EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
+if(NOT COOLBOX_STANDALONE_INSTALL AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/apps")
     add_subdirectory(_deliverables/apps)
 endif()
 
 option(BUILD_PRODUCTS "Build products under _Product" ON)
-if(BUILD_PRODUCTS AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/Product")
+if(BUILD_PRODUCTS AND NOT COOLBOX_STANDALONE_INSTALL AND EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/Product")
     add_subdirectory(_deliverables/Product)
 endif()
 
@@ -264,11 +268,13 @@ if(COOLBOX_INSTALL_PACKAGE)
             list(APPEND interface_includes "$<BUILD_INTERFACE:${COOLBOX_PUBLIC_INCLUDE_ROOT}>")
         endif()
 
+        # Public headers are installed under include/CB/<target>/ (see
+        # coolbox_install_target_headers below), so point the installed
+        # interface there to keep unprefixed transitive includes working.
         if(EXISTS "${target_source_dir}/headers")
-            file(RELATIVE_PATH rel_headers "${CMAKE_SOURCE_DIR}/_deliverables/libraries" "${target_source_dir}/headers")
             list(APPEND interface_includes
                 "$<BUILD_INTERFACE:${target_source_dir}/headers>"
-                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${rel_headers}>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/CB/${target_name}>"
             )
         endif()
 
@@ -276,10 +282,9 @@ if(COOLBOX_INSTALL_PACKAGE)
         # for their public headers; honor that convention too so their
         # INTERFACE_INCLUDE_DIRECTORIES aren't silently dropped below.
         if(EXISTS "${target_source_dir}/include")
-            file(RELATIVE_PATH rel_include "${CMAKE_SOURCE_DIR}/_deliverables/libraries" "${target_source_dir}/include")
             list(APPEND interface_includes
                 "$<BUILD_INTERFACE:${target_source_dir}/include>"
-                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${rel_include}>"
+                "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/CB/${target_name}>"
             )
         endif()
 
@@ -314,6 +319,72 @@ if(COOLBOX_INSTALL_PACKAGE)
         set_target_properties(${target_name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${interface_includes}")
     endfunction()
 
+    # Install each exported library's public headers under include/CB/<target>/
+    # and generate an umbrella header include/CB/<target>.hpp, so external
+    # projects can write e.g. #include "CB/uuid_generation.hpp" (or include an
+    # individual header via "CB/uuid_generation/uuid_generation.hpp").
+    function(coolbox_install_target_headers target_name)
+        get_target_property(target_source_dir ${target_name} SOURCE_DIR)
+        if(NOT target_source_dir)
+            return()
+        endif()
+
+        set(public_header_relpaths "")
+        foreach(header_dir_name IN ITEMS headers include)
+            set(header_dir "${target_source_dir}/${header_dir_name}")
+            if(NOT EXISTS "${header_dir}")
+                continue()
+            endif()
+
+            install(DIRECTORY "${header_dir}/"
+                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/CB/${target_name}"
+                FILES_MATCHING
+                    PATTERN "*.h"
+                    PATTERN "*.hpp"
+                    PATTERN "*.hh"
+                    PATTERN "*.inl"
+                    PATTERN "*.ipp"
+            )
+
+            file(GLOB_RECURSE header_files RELATIVE "${header_dir}"
+                "${header_dir}/*.h"
+                "${header_dir}/*.hpp"
+                "${header_dir}/*.hh"
+            )
+            list(APPEND public_header_relpaths ${header_files})
+        endforeach()
+
+        if(target_name STREQUAL "dl_scaling")
+            install(DIRECTORY
+                "${target_source_dir}/../layers/include/"
+                "${target_source_dir}/../optimizer/include/"
+                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/CB/${target_name}"
+                FILES_MATCHING
+                    PATTERN "*.h"
+                    PATTERN "*.hpp"
+                    PATTERN "*.hh"
+                    PATTERN "*.inl"
+                    PATTERN "*.ipp"
+            )
+        endif()
+
+        if(NOT public_header_relpaths)
+            return()
+        endif()
+
+        list(REMOVE_DUPLICATES public_header_relpaths)
+        list(SORT public_header_relpaths)
+
+        set(umbrella_content "// Auto-generated umbrella header for the CoolBox '${target_name}' library.\n#pragma once\n\n")
+        foreach(header_relpath IN LISTS public_header_relpaths)
+            string(APPEND umbrella_content "#include \"CB/${target_name}/${header_relpath}\"\n")
+        endforeach()
+
+        set(umbrella_file "${CMAKE_BINARY_DIR}/coolbox_umbrella_headers/CB/${target_name}.hpp")
+        file(WRITE "${umbrella_file}" "${umbrella_content}")
+        install(FILES "${umbrella_file}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/CB")
+    endfunction()
+
     coolbox_collect_directory_targets("${CMAKE_BINARY_DIR}/_deliverables/libraries" all_targets)
     set(COOLBOX_EXPORT_TARGETS "")
     foreach(target_name IN LISTS all_targets)
@@ -333,6 +404,7 @@ if(COOLBOX_INSTALL_PACKAGE)
         get_target_property(target_type ${target_name} TYPE)
         if(target_type STREQUAL "STATIC_LIBRARY" OR target_type STREQUAL "SHARED_LIBRARY" OR target_type STREQUAL "INTERFACE_LIBRARY")
             coolbox_prepare_target_for_export(${target_name})
+            coolbox_install_target_headers(${target_name})
             list(APPEND COOLBOX_EXPORT_TARGETS ${target_name})
         endif()
     endforeach()
@@ -356,12 +428,14 @@ if(COOLBOX_INSTALL_PACKAGE)
             )
         endif()
 
-        install(DIRECTORY ${CMAKE_SOURCE_DIR}/_deliverables/libraries/packages/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/packages
-            FILES_MATCHING
-                PATTERN "*.h"
-                PATTERN "*.hpp"
-        )
+        if(EXISTS "${CMAKE_SOURCE_DIR}/_deliverables/libraries/packages")
+            install(DIRECTORY ${CMAKE_SOURCE_DIR}/_deliverables/libraries/packages/
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/packages
+                FILES_MATCHING
+                    PATTERN "*.h"
+                    PATTERN "*.hpp"
+            )
+        endif()
 
         configure_package_config_file(
             ${CMAKE_SOURCE_DIR}/cmake/CoolBoxConfig.cmake.in
@@ -395,7 +469,7 @@ endif()
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 # Add Python bindings if requested
-if(BUILD_PYTHON_BINDINGS AND NOT _coolbox_skip_pybind11)
+if(BUILD_PYTHON_BINDINGS AND NOT COOLBOX_STANDALONE_INSTALL AND NOT _coolbox_skip_pybind11)
     if(TARGET ml_core)
         message(STATUS "Python bindings are already configured by the libraries tree.")
     elseif(TARGET pybind11::pybind11)
@@ -416,7 +490,7 @@ endif()
 # Find and include Eigen3 globally for all targets that need it.
 # ExternalDependencies.cmake already provides Eigen3::Eigen in CI/toolchains
 # where a package config is unavailable.
-if(NOT TARGET Eigen3::Eigen)
+if(NOT COOLBOX_STANDALONE_INSTALL AND NOT TARGET Eigen3::Eigen)
     find_package(Eigen3 QUIET CONFIG)
     if(NOT TARGET Eigen3::Eigen)
         find_package(Eigen3 REQUIRED)

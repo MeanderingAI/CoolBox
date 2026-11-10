@@ -1,0 +1,250 @@
+#version 450
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0, std430) readonly buffer LeftBuffer {
+    uint16_t values[];
+} left_buffer;
+
+layout(set = 0, binding = 1, std430) readonly buffer RightBuffer {
+    uint16_t values[];
+} right_buffer;
+
+layout(set = 0, binding = 2, std430) readonly buffer AuxiliaryBuffer {
+    uint16_t values[];
+} auxiliary_buffer;
+
+layout(set = 0, binding = 3, std430) writeonly buffer OutputBuffer {
+    uint16_t values[];
+} output_buffer;
+
+layout(push_constant) uniform Parameters {
+    uint operation;
+    uint count;
+    uint rows;
+    uint columns;
+    uint inner;
+    uint scalar_low;
+    uint scalar_high;
+    uint encoding;
+} parameters;
+
+float decode_value(uint16_t encoded) {
+    if (parameters.encoding == 3) {
+        return unpackHalf2x16(uint(encoded)).x;
+    }
+    return uintBitsToFloat(uint(encoded) << 16);
+}
+
+uint16_t encode_value(float value) {
+    if (parameters.encoding == 3) {
+        return uint16_t(packHalf2x16(vec2(value, 0.0)) & 0xffffu);
+    }
+    uint bits = floatBitsToUint(value);
+    uint rounding_bias = 0x7fffu + ((bits >> 16) & 1u);
+    return uint16_t((bits + rounding_bias) >> 16);
+}
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= parameters.count) {
+        return;
+    }
+    float left = decode_value(left_buffer.values[index]);
+    float scalar = uintBitsToFloat(parameters.scalar_low);
+    if (parameters.operation == 0) {
+        output_buffer.values[index] = encode_value(
+            left + decode_value(right_buffer.values[index]));
+    } else if (parameters.operation == 1) {
+        output_buffer.values[index] = encode_value(
+            left - decode_value(right_buffer.values[index]));
+    } else if (parameters.operation == 2) {
+        output_buffer.values[index] = encode_value(
+            left * decode_value(right_buffer.values[index]));
+    } else if (parameters.operation == 3) {
+        output_buffer.values[index] = encode_value(
+            left / decode_value(right_buffer.values[index]));
+    } else if (parameters.operation == 4) {
+        output_buffer.values[index] = encode_value(left * scalar);
+    } else if (parameters.operation == 5) {
+        output_buffer.values[index] = encode_value(left / scalar);
+    } else if (parameters.operation == 6) {
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        float total = 0.0;
+        for (uint offset = 0; offset < parameters.inner; ++offset) {
+            total += decode_value(
+                left_buffer.values[row * parameters.inner + offset]) *
+                decode_value(
+                    right_buffer.values[
+                        offset * parameters.columns + column]);
+        }
+        output_buffer.values[index] = encode_value(total);
+    } else if (parameters.operation == 7) {
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        output_buffer.values[column * parameters.rows + row] =
+            left_buffer.values[index];
+    } else if (parameters.operation == 8) {
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        float total = decode_value(auxiliary_buffer.values[column]);
+        for (uint offset = 0; offset < parameters.inner; ++offset)
+            total += decode_value(
+                left_buffer.values[row * parameters.inner + offset]) *
+                decode_value(right_buffer.values[
+                    offset * parameters.columns + column]);
+        output_buffer.values[index] = encode_value(total);
+    } else if (parameters.operation == 9) {
+        output_buffer.values[index] = encode_value(max(left, 0.0));
+    } else if (parameters.operation == 10) {
+        output_buffer.values[index] = encode_value(
+            left > 0.0 ? decode_value(right_buffer.values[index]) : 0.0);
+    } else if (parameters.operation == 11) {
+        if (index >= parameters.rows) return;
+        uint base = index * parameters.columns;
+        float maximum = -1.0 / 0.0;
+        for (uint column = 0; column < parameters.columns; ++column)
+            maximum = max(maximum,
+                decode_value(left_buffer.values[base + column]));
+        float total = 0.0;
+        for (uint column = 0; column < parameters.columns; ++column)
+            total += exp(decode_value(
+                left_buffer.values[base + column]) - maximum);
+        for (uint column = 0; column < parameters.columns; ++column)
+            output_buffer.values[base + column] = encode_value(
+                exp(decode_value(left_buffer.values[base + column]) -
+                    maximum) / total);
+    } else if (parameters.operation == 12) {
+        output_buffer.values[index] = encode_value(
+            decode_value(right_buffer.values[index]) == 0.0
+                ? -1e9 : left);
+    } else if (parameters.operation == 13 ||
+               parameters.operation == 14 ||
+               parameters.operation == 15) {
+        if (parameters.operation != 15 && index >= parameters.rows) return;
+        if (parameters.operation == 15 && index >= parameters.columns) return;
+        if (parameters.operation == 15) {
+            float parameter_gradient = 0.0;
+            for (uint row = 0; row < parameters.rows; ++row) {
+                uint base = row * parameters.columns;
+                float mean = 0.0;
+                for (uint column = 0; column < parameters.columns; ++column)
+                    mean += decode_value(
+                        left_buffer.values[base + column]);
+                mean /= float(parameters.columns);
+                float variance = 0.0;
+                for (uint column = 0; column < parameters.columns; ++column) {
+                    float difference = decode_value(
+                        left_buffer.values[base + column]) - mean;
+                    variance += difference * difference;
+                }
+                variance /= float(parameters.columns);
+                float normalized = (decode_value(
+                    left_buffer.values[base + index]) - mean) *
+                    inversesqrt(variance + scalar);
+                parameter_gradient += decode_value(
+                    right_buffer.values[base + index]) * normalized;
+            }
+            output_buffer.values[index] =
+                encode_value(parameter_gradient);
+            return;
+        }
+        uint base = index * parameters.columns;
+        float mean = 0.0;
+        for (uint column = 0; column < parameters.columns; ++column)
+            mean += decode_value(left_buffer.values[base + column]);
+        mean /= float(parameters.columns);
+        float variance = 0.0;
+        for (uint column = 0; column < parameters.columns; ++column) {
+            float difference =
+                decode_value(left_buffer.values[base + column]) - mean;
+            variance += difference * difference;
+        }
+        variance /= float(parameters.columns);
+        float inverse = inversesqrt(variance + scalar);
+        if (parameters.operation == 13) {
+            for (uint column = 0; column < parameters.columns; ++column) {
+                float normalized = (decode_value(
+                    left_buffer.values[base + column]) - mean) * inverse;
+                output_buffer.values[base + column] = encode_value(
+                    normalized * decode_value(
+                        right_buffer.values[column]) +
+                    decode_value(auxiliary_buffer.values[column]));
+            }
+        } else {
+            float sum_dy = 0.0;
+            float sum_dy_normalized = 0.0;
+            for (uint column = 0; column < parameters.columns; ++column) {
+                float normalized = (decode_value(
+                    left_buffer.values[base + column]) - mean) * inverse;
+                float dy = decode_value(
+                    right_buffer.values[base + column]) *
+                    decode_value(auxiliary_buffer.values[column]);
+                sum_dy += dy;
+                sum_dy_normalized += dy * normalized;
+            }
+            float width = float(parameters.columns);
+            for (uint column = 0; column < parameters.columns; ++column) {
+                float normalized = (decode_value(
+                    left_buffer.values[base + column]) - mean) * inverse;
+                float dy = decode_value(
+                    right_buffer.values[base + column]) *
+                    decode_value(auxiliary_buffer.values[column]);
+                output_buffer.values[base + column] = encode_value(
+                    inverse / width * (width * dy - sum_dy -
+                    normalized * sum_dy_normalized));
+            }
+        }
+    } else if (parameters.operation == 16) {
+        if (index >= parameters.columns) return;
+        float total = 0.0;
+        for (uint row = 0; row < parameters.rows; ++row)
+            total += decode_value(left_buffer.values[
+                row * parameters.columns + index]);
+        output_buffer.values[index] = encode_value(total);
+    } else if (parameters.operation == 17) {
+        output_buffer.values[index] = encode_value(left + decode_value(
+            right_buffer.values[index % parameters.columns]));
+    } else if (parameters.operation == 18) {
+        output_buffer.values[index] = encode_value(left * decode_value(
+            right_buffer.values[index % parameters.columns]));
+    } else if (parameters.operation == 19) {
+        output_buffer.values[index] = encode_value(
+            left + decode_value(right_buffer.values[index]));
+    } else if (parameters.operation == 20) {
+        uint row = index / parameters.columns;
+        uint column = index % parameters.columns;
+        uint offset = uint(scalar);
+        output_buffer.values[index] = left_buffer.values[
+            row * parameters.inner + offset + column];
+    } else if (parameters.operation == 21) {
+        uint width = parameters.columns + parameters.inner;
+        uint row = index / width;
+        uint column = index % width;
+        output_buffer.values[index] = column < parameters.columns
+            ? left_buffer.values[row * parameters.columns + column]
+            : right_buffer.values[
+                row * parameters.inner + column - parameters.columns];
+    } else if (parameters.operation == 22) {
+        if (index != 0) return;
+        float total = 0.0;
+        for (uint offset = 0; offset < parameters.rows; ++offset) {
+            float value = decode_value(left_buffer.values[offset]);
+            total += value * value;
+        }
+        output_buffer.values[0] = encode_value(total);
+    } else if (parameters.operation == 23) {
+        float beta1_correction = uintBitsToFloat(parameters.rows);
+        float beta2_correction = uintBitsToFloat(parameters.columns);
+        float epsilon = uintBitsToFloat(parameters.inner);
+        float update =
+            (decode_value(right_buffer.values[index]) / beta1_correction) /
+            (sqrt(decode_value(auxiliary_buffer.values[index]) /
+                  beta2_correction) + epsilon);
+        output_buffer.values[index] = encode_value(
+            left - scalar * update);
+    }
+}

@@ -1,9 +1,68 @@
 package coolbox
 
 import (
+	"math"
 	"reflect"
 	"testing"
 )
+
+func TestMatrixCPUThreads(t *testing.T) {
+	defer SetMatrixCPUThreads(0)
+	defer func() {
+		if err := SetMatrixBackend(BackendCPU); err != nil {
+			t.Error(err)
+		}
+	}()
+	if err := SetMatrixCPUThreads(-1); err == nil {
+		t.Fatal("negative CPU thread budget accepted")
+	}
+	if err := SetMatrixCPUThreads(0); err != nil || MatrixCPUThreads() < 1 {
+		t.Fatalf("automatic CPU thread budget invalid: %v", err)
+	}
+	for _, backend := range []MatrixBackend{BackendCPU, BackendEigen} {
+		if err := SetMatrixBackend(backend); err != nil {
+			t.Fatal(err)
+		}
+		values := make([]float64, 513*513)
+		for i := range values {
+			values[i] = float64(i%7) - 3
+		}
+		left, err := DenseMatrixFromData(513, 513, values)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer left.Close()
+		if err := SetMatrixCPUThreads(1); err != nil {
+			t.Fatal(err)
+		}
+		serial, err := left.Multiply(left, OptimizationAuto)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer serial.Close()
+		if err := SetMatrixCPUThreads(3); err != nil || MatrixCPUThreads() != 3 {
+			t.Fatalf("CPU thread budget not applied: %v", err)
+		}
+		parallel, err := left.Multiply(left, OptimizationAuto)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer parallel.Close()
+		expected, err := serial.Data()
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual, err := parallel.Data()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range expected {
+			if math.Abs(expected[i]-actual[i]) > 1e-10 {
+				t.Fatalf("threaded product mismatch at %d", i)
+			}
+		}
+	}
+}
 
 func TestDenseMatrixOperations(t *testing.T) {
 	if err := SetMatrixBackend(BackendEigen); err != nil {
@@ -51,6 +110,16 @@ func TestMatrixBackendSelection(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+	if name, err := MatrixBackendName(BackendOpenBLAS); err != nil || name != "openblas" {
+		t.Fatalf("OpenBLAS backend name = %q, %v", name, err)
+	}
+	if available, err := MatrixBackendAvailable(BackendOpenBLAS); err != nil {
+		t.Fatal(err)
+	} else if !available {
+		if err := SetMatrixBackend(BackendOpenBLAS); err == nil {
+			t.Fatal("unavailable OpenBLAS backend accepted")
+		}
+	}
 	if available, err := MatrixBackendAvailable(BackendEigen); err != nil || !available {
 		t.Fatalf("MatrixBackendAvailable(Eigen) = %v, %v; want true", available, err)
 	}

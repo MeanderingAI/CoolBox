@@ -56,10 +56,20 @@ subtraction, multiplication, transpose, norms, row-wise vector addition, and
 dense-vector addition/dot products. Select `matrix.MatrixBackend.EIGEN` with
 `matrix.set_backend(...)` to run matrix operations through MATRIX's Eigen-backed
 types; `matrix.MatrixBackend.CPU` selects the existing optimized CPU kernels.
-The selection is process-wide. Eigen headers are required when building the
-native extension and can be located with `EIGEN3_INCLUDE_DIR` or
-`EIGEN_INCLUDE_DIR`. CPU optimization strategies apply when the CPU backend
-is selected. Backends are process-wide; `get_backend()` returns the requested
+The backend selection and CPU thread limit are process-wide. Control CPU
+parallelism with `matrix.set_cpu_threads(n)`: `0` selects automatic sizing,
+`1` forces serial execution, and larger values cap the CPU worker count.
+`matrix.cpu_threads()` reports the resolved CPU thread budget; automatic mode
+resolves to the available hardware concurrency. Small products may still run
+serially. Matrix multiplication currently retains the Python GIL while the
+native kernel runs, avoiding concurrent Python-side mutation of input matrices.
+Eigen headers are required when building the native extension. The pip build
+first checks `EIGEN3_INCLUDE_DIR`, `EIGEN_INCLUDE_DIR`, and standard system
+locations. If Eigen is not installed, it downloads the pinned Eigen 3.4.0
+source archive and verifies its SHA-256 checksum before extracting the headers.
+Set `COOLBOX_DISABLE_EIGEN_DOWNLOAD=1` to require a local Eigen installation.
+CPU optimization strategies apply when the CPU backend is selected. Backends
+are process-wide; `get_backend()` returns the requested
 backend and `get_active_backend()` reports the one resolved for the most recent
 operation. `AUTO` selects an available GPU backend and otherwise CPU. CUDA is
 available only when the native extension is compiled with nvcc and a CUDA
@@ -71,6 +81,319 @@ unsupported vector arithmetic, matrix subtraction, and row-wise operations
 report errors instead of silently claiming GPU execution. OpenCL is listed but
 unavailable until its kernels are implemented; check `backend_available(...)`
 before selecting it.
+
+To compare native CPU multiplication against NumPy with correctness checks
+outside the timed regions, run
+`python benchmarks/benchmark_matrix_numpy.py --sizes 32 64 128 256 512 1024
+--backends cpu eigen --threads auto 1 2 4`. The script prints JSON containing medians, speedups,
+platform details, configured CoolBox thread limits, and NumPy BLAS thread-pool
+metadata when `threadpoolctl` is installed. NumPy's own threading follows its
+BLAS configuration and environment variables; the comparison does not assume
+CoolBox is faster for every matrix size or machine.
+
+### OpenBLAS (optional)
+
+For `setup.py` / pip builds, enable `MYTRIX_ENABLE_OPENBLAS=1` in the build
+environment and install OpenBLAS development headers/libraries first. Optional
+`OPENBLAS_INCLUDE_DIR` and `OPENBLAS_LIBRARY_DIR` select a nonstandard installation.
+CMake builds use `-DMYTRIX_ENABLE_OPENBLAS=ON` and optionally `-DOpenBLAS_ROOT=...`.
+The OS must be able to load OpenBLAS and its runtime dependencies.
+
+```python
+from ml_toolbox import matrix
+
+if not matrix.backend_available(matrix.MatrixBackend.OPENBLAS):
+    raise RuntimeError("Rebuild CoolBox with OpenBLAS enabled")
+matrix.set_backend(matrix.MatrixBackend.OPENBLAS)
+matrix.set_cpu_threads(8)  # OpenBLAS manages its own worker scheduling
+result = left @ right
+```
+
+OpenBLAS handles matrix multiplication directly on native buffers. Other
+operations use host CPU kernels and report CPU as the active backend.
+The default backend/Auto policy is unchanged. OpenBLAS thread settings are
+global; CoolBox serializes its OpenBLAS calls and restores the previous setting.
+External code must not change that library's thread configuration concurrently.
+This uses the installed library, which may differ from NumPy's private OpenBLAS.
+To compare, run the benchmark with `--backends cpu eigen openblas --threads 8`
+and set `OPENBLAS_NUM_THREADS=8` before starting Python.
+
+### Vulkan deep-learning tensors
+
+The deep-learning `Tensor` API has an optional Vulkan compute backend for
+Intel, AMD, and NVIDIA GPUs. It accelerates matrix multiplication, transpose,
+element-wise arithmetic, and scalar arithmetic, including the corresponding
+transformer attention and residual operations. Tensor storage is still
+host-resident in this milestone; activation, softmax, normalization, reduction,
+and optimizer loops still execute on the CPU.
+
+Install Vulkan development headers and loader libraries plus
+`glslangValidator`, then opt in when building the Python extension:
+
+```bash
+COOLBOX_ENABLE_VULKAN=1 pip install .
+```
+
+Set `VULKAN_SDK`, or set `VULKAN_INCLUDE_DIR` and `VULKAN_LIBRARY_DIR`
+individually, when the SDK is outside standard locations. CMake builds detect
+the same dependencies automatically and can be disabled with
+`-DCOOLBOX_ENABLE_VULKAN_TENSOR=OFF`.
+
+Select an Intel device and require Vulkan explicitly:
+
+```bash
+export COOLBOX_VULKAN_DEVICE=intel
+```
+
+```python
+from ml_toolbox import ml_core
+
+dl = ml_core.deep_learning
+if not dl.tensor_backend_available(dl.TensorBackend.VULKAN):
+    raise RuntimeError(
+        dl.tensor_backend_unavailable_reason(dl.TensorBackend.VULKAN)
+    )
+dl.set_tensor_backend(dl.TensorBackend.VULKAN)
+print(dl.tensor_backend_device_name(dl.TensorBackend.VULKAN))
+```
+
+Vulkan devices must support `shaderFloat64` because CoolBox tensors currently
+store double-precision values. `TensorBackend.AUTO` uses Vulkan for sufficiently
+large supported operations and CPU otherwise. Explicit `VULKAN` selection
+raises an error if initialization or execution fails.
+
+### Transformer and LLM API
+
+Transformer building blocks are available directly from
+`ml_core.deep_learning`:
+
+- `EmbeddingLayer`
+- `MultiHeadAttentionLayer`
+- `FeedForwardLayer`
+- `PositionalEncodingLayer`
+- `TransformerEncoderLayer`
+- `TransformerDecoderLayer`
+- `DecoderOnlyTransformerLayer`
+
+`MultiHeadAttentionLayer` splits `d_model` across the requested heads.
+`DecoderOnlyTransformerLayer` applies a lower-triangular causal mask.
+
+The higher-level `ml_core.deep_learning.llm` module provides:
+
+- direct token-ID training and generation;
+- `ByteTokenizer` for reversible UTF-8 byte tokenization;
+- `BpeTokenizer` with deterministic merge training and persistence;
+- causal next-token cross-entropy;
+- SGD and AdamW with global gradient clipping;
+- greedy, temperature, top-k, and top-p generation;
+- model parameters and optimizer-state checkpoints.
+
+```python
+from ml_toolbox import ml_core
+
+llm = ml_core.deep_learning.llm
+tokenizer = llm.ByteTokenizer()
+
+config = llm.ModelConfig()
+config.vocab_size = tokenizer.vocabulary.size
+config.d_model = 64
+config.num_heads = 4
+config.d_ff = 256
+config.num_layers = 2
+config.max_sequence_length = 128
+config.optimizer = llm.Optimizer.ADAMW
+config.learning_rate = 3e-4
+
+model = llm.DecoderLanguageModel(config)
+tokens = tokenizer.encode(
+    "hello from CoolBox",
+    add_bos=True,
+    add_eos=True,
+)
+print(model.train_step(tokens))
+
+generation = llm.GenerationConfig()
+generation.max_new_tokens = 20
+generation.temperature = 0.8
+generation.top_k = 40
+result = model.generate(
+    tokenizer.encode("hello", add_bos=True),
+    generation,
+)
+print(tokenizer.decode(result))
+```
+
+For BPE:
+
+```python
+corpus = ["first training document", "second training document"]
+tokenizer = llm.BpeTokenizer()
+tokenizer.train(corpus, vocab_size=1024, min_frequency=2)
+config.vocab_size = tokenizer.vocabulary.size
+model = llm.DecoderLanguageModel(config)
+losses = model.fit_text_bpe(corpus, tokenizer, epochs=3)
+```
+
+Training currently processes one sequence chunk at a time. Vulkan accelerates
+supported tensor arithmetic, but tensors and optimizer state remain
+host-resident and optimizer updates are CPU-side. KV caching, mixed precision,
+distributed training, and fully device-resident weights are not implemented.
+
+### Agent runtime and OpenAI-compatible tools
+
+The `ml_core.deep_learning.agent_runtime` module combines:
+
+- four memory kinds: working, episodic, semantic, and procedural;
+- dependency-aware plans, bounded retries, resumable state, and execution
+  budgets;
+- callback guardrails for input, tool calls, tool results, and output;
+- execution events and evaluation records;
+- abstract persistence/event/evaluation interfaces that can be implemented in
+  Python or C++;
+- deterministic in-memory implementations for local use and testing.
+
+Register a GPT-family function tool from Python:
+
+```python
+import json
+from ml_toolbox import ml_core
+
+runtime = ml_core.deep_learning.agent_runtime
+tools = runtime.ToolRegistry()
+
+def lookup(call, context):
+    arguments = json.loads(call.arguments_json)
+    result = runtime.ToolResult()
+    result.call_id = call.id
+    result.name = call.name
+    result.content = f"result for {arguments['query']}"
+    return result
+
+tools.register_openai_tool(
+    "lookup",
+    "Look up a value",
+    {
+        "type": "object",
+        "properties": {"query": {"type": "string"}},
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+    lookup,
+)
+
+# Compatible with the `tools` field used by GPT-family APIs.
+request_tools = tools.openai_tools()
+```
+
+`invoke_openai_chat_tool_call()` accepts the dictionary representation of a
+Chat Completions tool call and returns a `role="tool"` message.
+`invoke_openai_response_tool_call()` accepts a Responses API `function_call`
+item and returns a `function_call_output` item.
+
+Create and execute a plan:
+
+```python
+step = runtime.PlanStep()
+step.id = "lookup"
+step.objective = "Retrieve evidence"
+step.tool = "lookup"
+step.arguments_json = '{"query":"CoolBox"}'
+step.max_attempts = 2
+
+plan = runtime.Plan()
+plan.steps = [step]
+
+agent = runtime.AgentRuntime(tools)
+state = agent.run("Research CoolBox", plan)
+print(state.status, state.output)
+```
+
+#### Distributed execution
+
+`DistributedAgentRuntime` schedules independent ready steps concurrently over
+CoolBox `DistributedContext` ranks. Rank zero is the coordinator; each other
+rank runs an `AgentWorker`.
+
+```python
+import uuid
+from ml_toolbox import ml_core
+
+runtime = ml_core.deep_learning.agent_runtime
+cluster = f"runtime-{uuid.uuid4()}"
+coordinator_context = ml_core.distributed.DistributedContext(
+    3, 0, cluster
+)
+worker_contexts = [
+    ml_core.distributed.DistributedContext(3, rank, cluster)
+    for rank in (1, 2)
+]
+workers = [
+    runtime.AgentWorker(context, tools)
+    for context in worker_contexts
+]
+for worker in workers:
+    worker.start()
+
+coordinator = runtime.DistributedAgentRuntime(
+    coordinator_context, tools
+)
+state = coordinator.run("Run the plan", plan)
+
+for worker in workers:
+    worker.stop()
+for worker in workers:
+    worker.join()
+```
+
+Plan steps support:
+
+- dependency-aware parallel scheduling;
+- preferred worker ranks;
+- retry and execution timeout limits;
+- cancellation and checkpoint/resume;
+- human approval callbacks;
+- logical agent handoffs through `agent_id`;
+- input, tool-call, tool-result, and output guardrails.
+
+Tool definitions can declare required credential names and
+`sandbox_required=True`. `EnvironmentCredentialProvider` exposes only
+explicitly allowlisted environment variables. An execution policy must approve
+sandbox-required tools before their handlers run.
+
+#### Durable state, hosted GPT loops, and telemetry
+
+The pure-Python `ml_toolbox.agent_runtime` helpers provide:
+
+```python
+from ml_toolbox.agent_runtime import (
+    JsonLinesEventSink,
+    OpenAIResponsesClient,
+    OpenTelemetryEventSink,
+    SQLiteEvaluationSink,
+    SQLiteMemoryStore,
+    SQLiteRunStateStore,
+    invoke_tools_async,
+    make_subprocess_tool_handler,
+)
+```
+
+`OpenAIResponsesClient` reads `OPENAI_API_KEY` by default, sends the registry's
+function schemas to the Responses API, executes returned function calls, and
+submits `function_call_output` items until the model produces a final response.
+`run_tool_loop_async()` provides an asyncio adapter.
+
+The SQLite stores use WAL mode and persist complete run checkpoints, all four
+memory kinds, and evaluation records.
+`JsonLinesEventSink` writes structured events, while
+`OpenTelemetryEventSink` maps events to an exporter callback. The subprocess
+handler uses `shell=False`, an absolute executable, argument allowlists,
+restricted environment propagation, captured output, and a hard timeout.
+
+The current CoolBox message transport is shared by ranked worker threads in one
+process. It now correctly connects separate `DistributedContext` instances,
+but it does not communicate between operating-system processes or machines.
+Cross-machine deployment still requires an MPI, gRPC, ZeroMQ, or equivalent
+transport adapter.
 
 ## Data structures
 

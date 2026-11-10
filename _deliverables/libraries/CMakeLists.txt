@@ -1,3 +1,17 @@
+if(COOLBOX_STANDALONE_INSTALL)
+    option(BUILD_TESTING "Build standalone C++ library tests" OFF)
+    if(BUILD_TESTING)
+        add_subdirectory(groups/Generics/tyst_framework)
+    endif()
+    add_subdirectory(groups/trekker/MISC/uuid_generation)
+    add_subdirectory(groups/trekker/IO/dataformats/json)
+    add_subdirectory(groups/trekker/GIS)
+    add_subdirectory(groups/trekker/DATASTRUCTURE/trees/bbtree)
+    add_subdirectory(groups/app_builder/OS_GENERICS/cli_tools)
+    add_subdirectory(groups/cool_car/DL/scaling)
+    message(STATUS "Standalone C++ package: uuid_generation, json, gis, bbtree, cli_tools, dl_scaling")
+    return()
+endif()
 
 # Add tyst_framework once for all groups
 add_subdirectory(groups/Generics/tyst_framework)

@@ -3,15 +3,52 @@ import os
 from pathlib import Path
 import glob
 import shutil
+import subprocess
 import sys
 
 import pybind11
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 from setuptools.command.build_ext import build_ext as build_ext_orig
+
+setup_root = Path(__file__).resolve().parent
+if str(setup_root) not in sys.path:
+    sys.path.insert(0, str(setup_root))
+
+from eigen_build import provision_eigen, resolve_eigen_include_dirs
+
+
 class build_ext_with_move(build_ext_orig):
     def run(self):
+        build_configuration = (
+            f"vulkan={os.environ.get('COOLBOX_ENABLE_VULKAN', '')};"
+            f"openblas={os.environ.get('MYTRIX_ENABLE_OPENBLAS', '')};"
+            "deep_learning_sources=canonical-v6"
+        )
+        configuration_marker = (
+            setup_root / "build" / ".coolbox-extension-configuration"
+        )
+        previous_configuration = (
+            configuration_marker.read_text()
+            if configuration_marker.is_file()
+            else None
+        )
+        if previous_configuration != build_configuration:
+            self.force = True
+
+        eigen_include_dirs = resolve_eigen_include_dirs(eigen_candidates)
+        if not eigen_include_dirs:
+            eigen_include_dirs = [
+                provision_eigen(project_root / "build" / "eigen-src")
+            ]
+        for extension in self.extensions:
+            for include_dir in eigen_include_dirs:
+                if include_dir not in extension.include_dirs:
+                    extension.include_dirs.append(include_dir)
+
         super().run()
+        configuration_marker.parent.mkdir(parents=True, exist_ok=True)
+        configuration_marker.write_text(build_configuration)
         # Move built ml_core*.so into ml_toolbox/ for in-place builds
         search_dirs = ['.', self.build_lib if hasattr(self, 'build_lib') else None]
         found = False
@@ -34,6 +71,7 @@ vendor_src_root = project_root / "vendor_src"
 vendor_graphics_header = "vendor_include/GRAPHICS/charts/headers/graphics.h"
 vendor_wave_header = "vendor_include/MISC/wave_generator/headers/wave_generator.hpp"
 vendor_matrix_headers_dir = project_root / "vendor_include" / "MATRIX" / "headers"
+binding_matrix_headers_dir = project_root.parent / "groups" / "cool_car" / "MATRIX" / "headers"
 timer_headers_dir = repo_root / "_deliverables/libraries/groups/Generics/timer/headers"
 vendor_graphics_source = "vendor_src/GRAPHICS/charts/source/graphics.cpp"
 vendor_wave_source = "vendor_src/MISC/wave_generator/source/wave_generator.cpp"
@@ -97,34 +135,6 @@ def existing_dirs(paths):
             seen.add(normalized)
             result.append(normalized)
     return result
-
-
-def resolve_eigen_include_dirs(paths):
-    seen = set()
-    resolved = []
-    for raw_path in paths:
-        if not raw_path:
-            continue
-
-        candidate = Path(raw_path)
-        variants = [candidate]
-
-        if candidate.name.lower() != "eigen3":
-            variants.append(candidate / "eigen3")
-
-        for variant in variants:
-            eigen_core = variant / "Eigen" / "Core"
-            unsupported = variant / "unsupported"
-            if not eigen_core.exists() and not unsupported.exists():
-                continue
-
-            normalized = str(variant)
-            if normalized in seen:
-                continue
-            seen.add(normalized)
-            resolved.append(normalized)
-
-    return resolved
 
 
 def sync_vendor_file(repo_source: Union[Path, str], vendored_path: Union[Path, str]) -> Path:
@@ -218,6 +228,91 @@ def env_flag(name: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def configure_vulkan_extension():
+    if not env_flag("COOLBOX_ENABLE_VULKAN"):
+        return None
+
+    shader_compiler = shutil.which("glslangValidator")
+    cmake_executable = shutil.which("cmake")
+    if shader_compiler is None or cmake_executable is None:
+        raise RuntimeError(
+            "COOLBOX_ENABLE_VULKAN=1 requires glslangValidator and cmake"
+        )
+
+    vulkan_sdk = os.environ.get("VULKAN_SDK")
+    include_candidates = [
+        os.environ.get("VULKAN_INCLUDE_DIR"),
+        str(Path(vulkan_sdk) / "Include") if vulkan_sdk else None,
+        str(Path(vulkan_sdk) / "include") if vulkan_sdk else None,
+        "/usr/include",
+        "/usr/local/include",
+    ]
+    vulkan_include = next(
+        (
+            Path(path)
+            for path in include_candidates
+            if path and (Path(path) / "vulkan" / "vulkan.h").is_file()
+        ),
+        None,
+    )
+    if vulkan_include is None:
+        raise RuntimeError(
+            "COOLBOX_ENABLE_VULKAN=1 requires Vulkan headers. Set "
+            "VULKAN_INCLUDE_DIR or VULKAN_SDK."
+        )
+
+    generated_dir = project_root / "build" / "vulkan_generated"
+    generated_dir.mkdir(parents=True, exist_ok=True)
+    shader_directory = (
+        repo_root
+        / "_deliverables/libraries/groups/cool_car/DL/layers/shaders"
+    )
+    for suffix in ("fp64", "fp32", "lowp"):
+        source_name = (
+            "tensor_ops.comp"
+            if suffix == "fp64"
+            else f"tensor_ops_{suffix}.comp"
+        )
+        shader_source = shader_directory / source_name
+        shader_binary = generated_dir / f"tensor_ops_{suffix}.spv"
+        shader_header = (
+            generated_dir / f"vulkan_tensor_shader_{suffix}.h"
+        )
+        subprocess.run(
+            [
+                shader_compiler,
+                "-V",
+                str(shader_source),
+                "-o",
+                str(shader_binary),
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                cmake_executable,
+                f"-DINPUT={shader_binary}",
+                f"-DOUTPUT={shader_header}",
+                f"-DSYMBOL=coolbox_tensor_ops_{suffix}_spv",
+                "-P",
+                str(repo_root / "cmake/EmbedBinary.cmake"),
+            ],
+            check=True,
+        )
+
+    library_candidates = [
+        os.environ.get("VULKAN_LIBRARY_DIR"),
+        str(Path(vulkan_sdk) / "Lib") if vulkan_sdk else None,
+        str(Path(vulkan_sdk) / "lib") if vulkan_sdk else None,
+    ]
+    return {
+        "generated_dir": generated_dir,
+        "include_dir": vulkan_include,
+        "library_dirs": existing_dirs(library_candidates),
+        "library": "vulkan-1" if sys.platform.startswith("win") else "vulkan",
+    }
+
+
 # On Windows CI we prefer to use the cleaned include files under
 # `include/` to avoid parsing issues with any vendored files. Do not
 # overwrite those files on Windows.
@@ -273,6 +368,11 @@ matrix_header_dir = sync_vendor_directory(
     vendor_matrix_headers_dir,
     ["*.h", "*.hpp"],
 )
+sync_vendor_directory(
+    matrix_header_source_dir,
+    binding_matrix_headers_dir,
+    ["*.h", "*.hpp"],
+)
 
 
 eigen_candidates = [
@@ -285,6 +385,7 @@ eigen_candidates = [
     str(project_root.parent.parent / "eigen-src" / "eigen3"),
     str(project_root.parent.parent / "build" / "eigen-src"),
     str(project_root.parent.parent / "build" / "eigen-src" / "eigen3"),
+    str(project_root / "build" / "eigen-src"),
     "/usr/include/eigen3",
     "/usr/local/include/eigen3",
     "/opt/homebrew/include/eigen3",
@@ -321,6 +422,14 @@ ensemble_sources = [
 
 include_dirs = [
     pybind11.get_include(),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/loss/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/optimizer/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/llm/include"),
+    str(repo_root / "_deliverables/libraries/groups/cool_car/DL/agent_runtime/include"),
+    str(repo_root / "_deliverables/libraries/groups/trekker/IO/dataformats/json/headers"),
+    str(repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/headers"),
     str(include_root),
     str(vendor_include_root),   # for "MISC/..." and "GRAPHICS/..." relative includes
     str(regressor_header.parent),
@@ -344,7 +453,10 @@ include_dirs = [
             repo_root / "_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/headers",
             repo_root / "_deliverables/libraries/groups/cool_car/FINANCE/headers",
             repo_root / "_deliverables/libraries/groups/cool_car/MATH",
-            repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/rag/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/scaling/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/agents/include",
+            repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/include",
             repo_root / "_deliverables/libraries/groups/cool_car/MATRIX/headers",
             repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers",
             repo_root / "_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers",
@@ -380,18 +492,71 @@ source_files = [
     "src/data_structures_bindings.cpp",
     "src/matrix_bindings.cpp",
     "src/synthetic_data_bindings.cpp",
+    "src/deep_learning_extensions.cpp",
+    "src/deep_learning_agent_bindings.cpp",
+    "src/agent_runtime_bindings.cpp",
+    "src/deep_learning_explainability_bindings.cpp",
+    "src/llm_bindings.cpp",
+    "src/sql_bindings.cpp",
+    "src/rest_api_server.cpp",
+    "src/web_helpers.cpp",
 ]
 source_files.extend(to_setup_relative_path(path) for path in ensemble_sources)
+for native_module in ("rag", "scaling", "agents", "agent_runtime"):
+    source_files.extend(
+        to_setup_relative_path(path)
+        for path in sorted(
+            (repo_root / "_deliverables/libraries/groups/cool_car/DL" /
+             native_module / "src").glob("*.cpp")
+        )
+    )
+vulkan_config = configure_vulkan_extension()
+if vulkan_config is not None:
+    source_files.append(
+        str(
+            repo_root
+            / "_deliverables/libraries/groups/cool_car/DL/layers/src/vulkan_tensor_backend.cpp"
+        )
+    )
+source_files.extend(
+        to_setup_relative_path(repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src" / name)
+        for name in ("cdeepex.cpp", "explainability_facade.cpp")
+)
 for module_dir in source_modules:
     module_sources = sorted(glob.glob(f"src/{module_dir}/*.cpp"))
     if module_dir == "deep_learning":
-        module_sources = [path for path in module_sources if not path.endswith("templates.cpp")]
+        continue
     source_files.extend(module_sources)
+source_files.extend(
+    to_setup_relative_path(path)
+    for path in [
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/src/tensor.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/layers/src/layer.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/loss/src/loss.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/optimizer/src/optimizer.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src/neural_network.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/wrapper/src/templates.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/llm/src/tokenizer.cpp",
+        repo_root / "_deliverables/libraries/groups/cool_car/DL/llm/src/decoder_language_model.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/dataformats/json/source/json.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/source/schema_parser.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/source/query_builder.cpp",
+        repo_root / "_deliverables/libraries/groups/trekker/IO/databases/sql_db_helpers/source/database.cpp",
+    ]
+)
 source_files.append(str(project_root.parent / "go_bindings" / "matrix_bridge.cc"))
 source_files.extend(
     [
         str(project_root.parent / "go_bindings" / "ds_bridge.cc"),
         str(project_root.parent / "go_bindings" / "ds_bridge_sources.cc"),
+        str(project_root.parent / "go_bindings" / "opt_math_finance_bridge.cc"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/bayesian_quantum_control/source/quantum_control_bo.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/genetic_search/source/genetic_search.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/hill_climbing/source/hill_climbing.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/optimization_factory/source/optimization_factory.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/simulated_annealing/source/simulated_annealing.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/OPT/distributed_learning/source/distributed_owa.cpp"),
+        str(repo_root / "_deliverables/libraries/groups/cool_car/FINANCE/source/finance.cpp"),
     ]
 )
 
@@ -458,12 +623,37 @@ runtime_library_dirs = []
 if not sys.platform.startswith("win"):
     runtime_library_dirs = resolved_library_dirs[:]
 extension_libraries = unresolved_libraries + (["shell32"] if sys.platform.startswith("win") else [])
+extension_libraries.append("sqlite3")
+extension_macros = []
+openblas_enabled = env_flag("MYTRIX_ENABLE_OPENBLAS")
+if openblas_enabled:
+    extension_macros.append(("MYTRIX_ENABLE_OPENBLAS", "1"))
+    extension_libraries.append("openblas")
+    if os.environ.get("OPENBLAS_INCLUDE_DIR"):
+        include_dirs.append(os.environ["OPENBLAS_INCLUDE_DIR"])
+    if os.environ.get("OPENBLAS_LIBRARY_DIR"):
+        library_dirs.append(os.environ["OPENBLAS_LIBRARY_DIR"])
+        if not sys.platform.startswith("win"):
+            runtime_library_dirs.append(os.environ["OPENBLAS_LIBRARY_DIR"])
+if vulkan_config is not None:
+    include_dirs.extend(
+        [
+            str(vulkan_config["generated_dir"]),
+            str(vulkan_config["include_dir"]),
+        ]
+    )
+    library_dirs.extend(vulkan_config["library_dirs"])
+    if not sys.platform.startswith("win"):
+        runtime_library_dirs.extend(vulkan_config["library_dirs"])
+    extension_libraries.append(vulkan_config["library"])
+    extension_macros.append(("COOLBOX_HAS_VULKAN_TENSOR", "1"))
 
 ext_modules = [
     Pybind11Extension(
         "ml_toolbox.ml_core",
         source_files,
         include_dirs=include_dirs,
+        define_macros=extension_macros,
         cxx_std=17,
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,

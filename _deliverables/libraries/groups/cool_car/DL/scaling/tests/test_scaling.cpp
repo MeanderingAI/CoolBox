@@ -31,11 +31,12 @@ Tensor make_tensor(const std::vector<size_t>& shape, double seed) {
 
 TYST_TEST(ScalingCitationsTest, RegistersEveryImplementedPaper) {
     const auto& citations = scaling_citations();
-    TYST_ASSERT_EQ(citations.size(), 8u);
+    TYST_ASSERT_EQ(citations.size(), 11u);
 
     const std::vector<std::string> expected_ids = {
         "1910.02054", "2104.06069", "2104.07857", "2201.05596",
-        "2206.01861", "2406.13768", "2406.18820", "2409.15241"
+        "2206.01861", "2406.13768", "2406.18820", "2409.15241",
+        "2506.13771", "2602.06694", "2603.00042"
     };
     for (size_t i = 0; i < expected_ids.size(); ++i) {
         TYST_EXPECT_EQ(citations[i].arxiv_id, expected_ids[i]);
@@ -898,4 +899,151 @@ TYST_TEST(CollectiveTest, ReduceScatterThenAllGatherReproducesAllReduce) {
     group.all_gather(shards, gathered);
     TYST_ASSERT_EQ(gathered[0].size(), 4u);
     TYST_EXPECT_DOUBLE_EQ(gathered[0][3], 12.0);
+}
+
+// ============================================================================
+// Samsung Research sub-1-bit factorization methods
+// ============================================================================
+
+TYST_TEST(SamsungBinaryPackingTest, IsLsbFirstAndAccountsForRowPadding) {
+    Tensor signs({2, 35}, 1.0);
+    signs.data()[0] = -1.0;
+    signs.data()[34] = -2.0;
+    const PackedBinaryMatrix packed = pack_binary_signs(signs);
+    TYST_EXPECT_EQ(packed.words_per_row(), 2u);
+    TYST_EXPECT_EQ(packed.logical_bits(), 70u);
+    TYST_EXPECT_EQ(packed.packed_bits(), 128u);
+    TYST_EXPECT_EQ(packed.words[0], 1u);
+    TYST_EXPECT_EQ(packed.words[1], 4u);
+    const Tensor unpacked = unpack_binary_signs(packed);
+    TYST_EXPECT_EQ(unpacked.shape(), signs.shape());
+    TYST_EXPECT_DOUBLE_EQ(unpacked.data()[0], -1.0);
+    TYST_EXPECT_DOUBLE_EQ(unpacked.data()[1], 1.0);
+    TYST_EXPECT_DOUBLE_EQ(unpacked.data()[34], -1.0);
+}
+
+TYST_TEST(LittleBitTest, ShapesAccountingAndForwardMatchPaperFactorization) {
+    const Tensor weight = make_tensor({4, 5}, 0.21);
+    LittleBitConfig config;
+    config.rank = 2;
+    const LittleBitResult result = little_bit_quantize(weight, config);
+
+    TYST_EXPECT_EQ(result.primary.u_sign.rows, 4u);
+    TYST_EXPECT_EQ(result.primary.u_sign.cols, 2u);
+    TYST_EXPECT_EQ(result.primary.v_sign.rows, 2u);
+    TYST_EXPECT_EQ(result.primary.v_sign.cols, 5u);
+    TYST_EXPECT_EQ(result.primary.h.shape(), std::vector<size_t>({4}));
+    TYST_EXPECT_EQ(result.primary.latent.shape(), std::vector<size_t>({2}));
+    TYST_EXPECT_EQ(result.primary.g.shape(), std::vector<size_t>({5}));
+    TYST_EXPECT_EQ(result.logical_storage_bits(), 194u);
+    TYST_EXPECT_EQ(result.packed_storage_bits(), 368u);
+    TYST_EXPECT_NEAR(result.bits_per_weight(), 9.7, 1e-12);
+
+    const Tensor input = make_tensor({3, 5}, 0.7);
+    const Tensor expected = input.matmul(result.reconstruct().transpose());
+    const Tensor actual = result.forward(input);
+    TYST_EXPECT_EQ(actual.shape(), std::vector<size_t>({3, 4}));
+    for (size_t i = 0; i < actual.size(); ++i)
+        TYST_EXPECT_NEAR(actual.data()[i], expected.data()[i], 1e-12);
+
+    const double error = quantization_error(weight, result.reconstruct());
+    const Tensor zeros(weight.shape(), 0.0);
+    TYST_EXPECT_LT(error, quantization_error(weight, zeros));
+}
+
+TYST_TEST(LittleBitTest, ResidualPathHasExactDoubleStorageAndImprovesTinyCase) {
+    const Tensor weight = make_tensor({5, 5}, 1.13);
+    LittleBitConfig primary_config;
+    primary_config.rank = 1;
+    LittleBitConfig residual_config = primary_config;
+    residual_config.residual_compensation = true;
+    const auto primary = little_bit_quantize(weight, primary_config);
+    const auto residual = little_bit_quantize(weight, residual_config);
+    TYST_EXPECT_TRUE(residual.has_residual);
+    TYST_EXPECT_EQ(residual.logical_storage_bits(), 2 * primary.logical_storage_bits());
+    TYST_EXPECT_LT(quantization_error(weight, residual.reconstruct()),
+                   quantization_error(weight, primary.reconstruct()));
+}
+
+TYST_TEST(LittleBit2Test, JointItqIsDeterministicAndKeepsDeploymentCost) {
+    const Tensor weight = make_tensor({6, 5}, 0.41);
+    LittleBit2Config config;
+    config.rank = 3;
+    config.alignment_iterations = 8;
+    config.seed = 17;
+    const auto first = little_bit2_quantize(weight, config);
+    const auto second = little_bit2_quantize(weight, config);
+    TYST_EXPECT_EQ(first.logical_storage_bits(), second.logical_storage_bits());
+    TYST_EXPECT_EQ(first.primary.u_sign.words, second.primary.u_sign.words);
+    TYST_EXPECT_EQ(first.primary.v_sign.words, second.primary.v_sign.words);
+    for (size_t i = 0; i < first.reconstruct().size(); ++i)
+        TYST_EXPECT_NEAR(first.reconstruct().data()[i], second.reconstruct().data()[i], 1e-14);
+
+    LittleBitConfig baseline_config;
+    baseline_config.rank = 3;
+    const auto baseline = little_bit_quantize(weight, baseline_config);
+    TYST_EXPECT_EQ(first.logical_storage_bits(), baseline.logical_storage_bits());
+    TYST_EXPECT_EQ(first.reconstruct().shape(), weight.shape());
+
+    Tensor latent = make_tensor({7, 3}, 0.19);
+    Tensor rotation = joint_itq_rotation(latent, 8, 17);
+    Tensor gram = rotation.transpose().matmul(rotation);
+    for (size_t row = 0; row < 3; ++row) {
+        for (size_t col = 0; col < 3; ++col) {
+            TYST_EXPECT_NEAR(gram.data()[row * 3 + col], row == col ? 1.0 : 0.0, 1e-10);
+        }
+    }
+    TYST_EXPECT_TRUE(std::isfinite(latent_alignment_error(latent, rotation)));
+}
+
+TYST_TEST(NanoQuantTest, ProducesScaleBinaryBinaryScaleWithExactAccounting) {
+    const Tensor weight = make_tensor({4, 5}, 0.83);
+    NanoQuantConfig config;
+    config.rank = 2;
+    config.outer_iterations = 6;
+    config.projection_iterations = 8;
+    const NanoQuantFactors result = nano_quantize(weight, config);
+    TYST_EXPECT_EQ(result.u_sign.rows, 4u);
+    TYST_EXPECT_EQ(result.u_sign.cols, 2u);
+    TYST_EXPECT_EQ(result.v_sign.rows, 2u);
+    TYST_EXPECT_EQ(result.v_sign.cols, 5u);
+    TYST_EXPECT_EQ(result.pre_scale.shape(), std::vector<size_t>({5}));
+    TYST_EXPECT_EQ(result.post_scale.shape(), std::vector<size_t>({4}));
+    TYST_EXPECT_EQ(result.logical_storage_bits(), 162u);
+    TYST_EXPECT_EQ(result.packed_storage_bits(), 336u);
+    TYST_EXPECT_NEAR(result.bits_per_weight(), 8.1, 1e-12);
+    TYST_EXPECT_EQ(result.reconstruct().shape(), weight.shape());
+    for (double value : result.reconstruct().data()) TYST_EXPECT_TRUE(std::isfinite(value));
+
+    Tensor input = make_tensor({2, 5}, 0.31);
+    Tensor expected = input.matmul(result.reconstruct().transpose());
+    Tensor actual = result.forward(input);
+    TYST_EXPECT_EQ(actual.shape(), std::vector<size_t>({2, 4}));
+    for (size_t i = 0; i < actual.size(); ++i)
+        TYST_EXPECT_NEAR(actual.data()[i], expected.data()[i], 1e-12);
+}
+
+TYST_TEST(SamsungQuantizationTest, RejectsInvalidInputs) {
+    Tensor vector({4}, 1.0);
+    LittleBitConfig little;
+    TYST_EXPECT_THROW(little_bit_quantize(vector, little), std::invalid_argument);
+
+    Tensor matrix({3, 2}, 1.0);
+    little.rank = 3;
+    TYST_EXPECT_THROW(little_bit_quantize(matrix, little), std::invalid_argument);
+
+    LittleBit2Config little2;
+    little2.rank = 1;
+    little2.alignment_iterations = 0;
+    TYST_EXPECT_THROW(little_bit2_quantize(matrix, little2), std::invalid_argument);
+
+    NanoQuantConfig nano;
+    nano.rank = 1;
+    Tensor wrong_importance({3}, 1.0);
+    TYST_EXPECT_THROW(nano_quantize(matrix, nano, wrong_importance), std::invalid_argument);
+
+    PackedBinaryMatrix malformed;
+    malformed.rows = 2;
+    malformed.cols = 2;
+    TYST_EXPECT_THROW(unpack_binary_signs(malformed), std::invalid_argument);
 }

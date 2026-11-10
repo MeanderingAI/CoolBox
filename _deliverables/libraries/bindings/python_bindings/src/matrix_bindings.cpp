@@ -28,10 +28,16 @@ void bind_matrix(py::module_& parent) {
         .value("AUTO", MatrixBackend::Auto)
         .value("OPENCL", MatrixBackend::OpenCl)
         .value("CUDA", MatrixBackend::Cuda)
-        .value("METAL", MatrixBackend::Metal);
+        .value("METAL", MatrixBackend::Metal)
+        .value("OPENBLAS", MatrixBackend::OpenBlas);
 
     matrix.def("cpu_optimization_name", &coolbox::matrix::cpu_optimization_name);
     matrix.def("cpu_optimization_available", &coolbox::matrix::cpu_optimization_available);
+    matrix.def("set_cpu_threads", &coolbox::matrix::set_cpu_threads,
+               py::arg("threads"),
+               "Set the CPU worker-thread limit; 0 selects automatic sizing and 1 is serial.");
+    matrix.def("cpu_threads", &coolbox::matrix::cpu_threads,
+               "Return the resolved CPU worker-thread budget. Small products may run serially.");
     matrix.def("set_backend", &coolbox::matrix::set_matrix_backend, py::arg("backend"));
     matrix.def("get_backend", &coolbox::matrix::matrix_backend);
     matrix.def("get_active_backend", &coolbox::matrix::active_matrix_backend);
@@ -116,7 +122,8 @@ void bind_matrix(py::module_& parent) {
              py::arg("optimization") = CpuOptimization::Auto)
         .def("subtract", &DenseMatrix::subtract, py::arg("other"))
         .def("multiply", &DenseMatrix::multiply, py::arg("other"),
-             py::arg("optimization") = CpuOptimization::Auto)
+             py::arg("optimization") = CpuOptimization::Auto,
+             "Multiply matrices using the selected native backend.")
         .def("transpose", &DenseMatrix::transpose)
         .def("rowwise_add", &DenseMatrix::rowwise_add,
              py::arg("vector"), py::arg("optimization") = CpuOptimization::Auto)
@@ -127,7 +134,7 @@ void bind_matrix(py::module_& parent) {
         .def("__sub__", &DenseMatrix::subtract, py::is_operator())
         .def("__matmul__", [](const DenseMatrix& lhs, const DenseMatrix& rhs) {
             return lhs.multiply(rhs, CpuOptimization::Auto);
-        }, py::is_operator())
+        }, py::is_operator(), "Multiply matrices using the selected native backend.")
         .def("__repr__", [](const DenseMatrix& value) {
             return "DenseMatrix(shape=(" + std::to_string(value.rows()) + ", " +
                 std::to_string(value.columns()) + "))";

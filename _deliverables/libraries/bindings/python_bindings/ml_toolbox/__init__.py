@@ -115,4 +115,5 @@ __all__ = [
     "matrix",
     "synthetic_data",
     "data_structures",
+    "llm_export",
 ]

@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
@@ -23,11 +24,12 @@
 #include "dimensionality_reduction/knn.h"
 #include "dimensionality_reduction/umap.h"
 #include "kmeans/kmeans.h"
-#include "tensor.h"
-#include "layer.h"
-#include "loss.h"
-#include "optimizer.h"
-#include "neural_network.h"
+#include "DL/layers/include/tensor.h"
+#include "DL/layers/include/tensor_backend.h"
+#include "DL/layers/include/layer.h"
+#include "DL/loss/include/loss.h"
+#include "DL/optimizer/include/optimizer.h"
+#include "DL/wrapper/include/neural_network.h"
 #include "computer_vision/image.h"
 #include "computer_vision/transforms.h"
 #include "computer_vision/pipeline.h"
@@ -38,6 +40,7 @@
 #include "nlp/text_processor.h"
 #include "nlp/embeddings.h"
 #include "rest_api/server.h"
+#include "rest_api/forms.h"
 #include "distributed/message_passing.h"
 #include "distributed/distributed_trainer.h"
 #include "rest_api/server.h"
@@ -52,6 +55,12 @@ void bind_tree_ensembles(py::module_& module);
 void bind_data_structures(py::module_& module);
 void bind_matrix(py::module_& module);
 void bind_opt_math_finance(py::module_& module);
+void bind_sql(py::module_& module);
+void bind_deep_learning_extensions(py::module_& module);
+void bind_deep_learning_agents(py::module_& module);
+void bind_deep_learning_explainability(py::module_& module);
+void bind_llm(py::module_& module);
+void bind_agent_runtime(py::module_& module);
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
@@ -63,6 +72,7 @@ PYBIND11_MODULE(ml_core, m) {
     bind_synthetic_data(m);
     bind_matrix(m);
     bind_opt_math_finance(m);
+    bind_sql(m);
     py::module_ data_structures_module =
         m.def_submodule("data_structures", "Native data structures");
     bind_data_structures(data_structures_module);
@@ -489,6 +499,58 @@ PYBIND11_MODULE(ml_core, m) {
     // Deep Learning Module
     py::module_ dl_module = m.def_submodule("deep_learning", "Deep Learning neural networks");
 
+    py::enum_<ml::deep_learning::TensorBackend>(dl_module, "TensorBackend")
+        .value("CPU", ml::deep_learning::TensorBackend::CPU)
+        .value("VULKAN", ml::deep_learning::TensorBackend::VULKAN)
+        .value("AUTO", ml::deep_learning::TensorBackend::AUTO);
+    py::enum_<ml::deep_learning::TensorPrecision>(
+        dl_module, "TensorPrecision")
+        .value("AUTO", ml::deep_learning::TensorPrecision::AUTO)
+        .value("FP64", ml::deep_learning::TensorPrecision::FP64)
+        .value("FP32", ml::deep_learning::TensorPrecision::FP32)
+        .value("FP16", ml::deep_learning::TensorPrecision::FP16)
+        .value("BF16", ml::deep_learning::TensorPrecision::BF16);
+    dl_module.def(
+        "set_tensor_backend", &ml::deep_learning::set_tensor_backend,
+        py::arg("backend"));
+    dl_module.def(
+        "tensor_backend", &ml::deep_learning::tensor_backend);
+    dl_module.def(
+        "active_tensor_backend", &ml::deep_learning::active_tensor_backend);
+    dl_module.def(
+        "set_tensor_precision",
+        &ml::deep_learning::set_tensor_precision,
+        py::arg("precision"));
+    dl_module.def(
+        "tensor_precision",
+        &ml::deep_learning::tensor_precision);
+    dl_module.def(
+        "active_tensor_precision",
+        &ml::deep_learning::active_tensor_precision);
+    dl_module.def(
+        "tensor_precision_available",
+        &ml::deep_learning::tensor_precision_available,
+        py::arg("precision"));
+    dl_module.def(
+        "set_tensor_cpu_threads",
+        &ml::deep_learning::set_tensor_cpu_threads,
+        py::arg("thread_count"));
+    dl_module.def(
+        "tensor_cpu_threads",
+        &ml::deep_learning::tensor_cpu_threads);
+    dl_module.def(
+        "tensor_backend_available",
+        &ml::deep_learning::tensor_backend_available,
+        py::arg("backend"));
+    dl_module.def(
+        "tensor_backend_device_name",
+        &ml::deep_learning::tensor_backend_device_name,
+        py::arg("backend"));
+    dl_module.def(
+        "tensor_backend_unavailable_reason",
+        &ml::deep_learning::tensor_backend_unavailable_reason,
+        py::arg("backend"));
+
     // Tensor class
     py::class_<ml::deep_learning::Tensor>(dl_module, "Tensor")
         .def(py::init<const std::vector<size_t>&>())
@@ -613,6 +675,8 @@ PYBIND11_MODULE(ml_core, m) {
              py::arg("epochs"),
              py::arg("batch_size") = 32,
              py::arg("verbose") = true);
+
+    bind_llm(dl_module);
 
     dl_module.def("binary_classifier",
                      [](int input_dim, const std::vector<int>& hidden_dims) {
@@ -832,6 +896,11 @@ PYBIND11_MODULE(ml_core, m) {
                      py::arg("num_layers") = 6,
                      py::arg("ff_dim") = 2048,
                      "Create an example language-model network.");
+
+    bind_deep_learning_extensions(dl_module);
+    bind_deep_learning_agents(dl_module);
+    bind_agent_runtime(dl_module);
+    bind_deep_learning_explainability(dl_module);
 
     // Computer Vision Module
     py::module_ cv_module = m.def_submodule("computer_vision", "Computer Vision algorithms");
@@ -1258,9 +1327,31 @@ PYBIND11_MODULE(ml_core, m) {
     py::class_<distributed::DistributedContext, std::shared_ptr<distributed::DistributedContext>>(
         dist_module, "DistributedContext")
         .def(py::init<int, int>())
+        .def(py::init<int, int, std::string>(),
+             py::arg("world_size"), py::arg("rank"),
+             py::arg("cluster_id"))
         .def("send", &distributed::DistributedContext::send)
         .def("receive", &distributed::DistributedContext::receive,
              py::arg("source_rank") = -1)
+        .def(
+            "receive_for",
+            [](distributed::DistributedContext& context,
+               int timeout_ms,
+               int source_rank) -> py::object {
+                distributed::Message message;
+                bool received = false;
+                {
+                    py::gil_scoped_release release;
+                    received = context.receive_for(
+                        message, timeout_ms, source_rank);
+                }
+                if (!received) {
+                    return py::none();
+                }
+                return py::cast(std::move(message));
+            },
+            py::arg("timeout_ms"),
+            py::arg("source_rank") = -1)
         .def("broadcast", &distributed::DistributedContext::broadcast)
         .def("scatter", &distributed::DistributedContext::scatter)
         .def("gather", &distributed::DistributedContext::gather)
@@ -1269,7 +1360,10 @@ PYBIND11_MODULE(ml_core, m) {
         .def("barrier", &distributed::DistributedContext::barrier)
         .def("rank", &distributed::DistributedContext::rank)
         .def("world_size", &distributed::DistributedContext::world_size)
-        .def("is_master", &distributed::DistributedContext::is_master);
+        .def("is_master", &distributed::DistributedContext::is_master)
+        .def_property_readonly(
+            "cluster_id",
+            &distributed::DistributedContext::cluster_id);
 
     // DataPartitioner class
     py::class_<distributed::DataPartitioner>(dist_module, "DataPartitioner")
@@ -1305,6 +1399,23 @@ PYBIND11_MODULE(ml_core, m) {
     // =========================================================================
 
     py::module_ rest_module = m.def_submodule("rest_api", "REST API for model serving");
+
+    py::class_<ml::rest_api::ValidationResult>(rest_module, "ValidationResult")
+        .def_readonly("valid", &ml::rest_api::ValidationResult::valid)
+        .def_readonly("errors", &ml::rest_api::ValidationResult::errors)
+        .def_property_readonly("values", [](const ml::rest_api::ValidationResult& result) {
+            return py::module_::import("json").attr("loads")(result.values_json);
+        })
+        .def("to_json", &ml::rest_api::ValidationResult::to_json);
+    py::class_<ml::rest_api::FormSchema>(rest_module, "FormSchema")
+        .def(py::init<const std::string&>(), py::arg("definition"))
+        .def_static("from_file", &ml::rest_api::FormSchema::from_file)
+        .def("validate", &ml::rest_api::FormSchema::validate,
+             py::arg("body"), py::arg("content_type") = "application/json")
+        .def("validate_request", [](const ml::rest_api::FormSchema& form,
+                                    const ml::rest_api::Request& request) {
+            return form.validate(request.body(), request.get_header("Content-Type"));
+        });
 
     // HTTP Method enum
     py::enum_<ml::rest_api::HttpMethod>(rest_module, "HttpMethod")
@@ -1358,7 +1469,14 @@ PYBIND11_MODULE(ml_core, m) {
         .def("set_body", &ml::rest_api::Response::set_body)
         .def("set_header", &ml::rest_api::Response::set_header)
         .def("set_json", &ml::rest_api::Response::set_json)
-        .def("to_string", &ml::rest_api::Response::to_string);
+        .def("to_string", &ml::rest_api::Response::to_string)
+        .def_static("html", &ml::rest_api::Response::html,
+                    py::arg("content"), py::arg("status") = 200)
+        .def_static("html_file", &ml::rest_api::Response::html_file,
+                    py::arg("root"), py::arg("filename"), py::arg("status") = 200)
+        .def_static("render", &ml::rest_api::Response::render,
+                    py::arg("root"), py::arg("filename"),
+                    py::arg("context"), py::arg("status") = 200);
 
     // Server class
     py::class_<ml::rest_api::Server>(rest_module, "Server")
@@ -1368,9 +1486,15 @@ PYBIND11_MODULE(ml_core, m) {
         .def("put", &ml::rest_api::Server::put)
         .def("delete", &ml::rest_api::Server::delete_)
         .def("patch", &ml::rest_api::Server::patch)
+        .def("options", &ml::rest_api::Server::options)
+        .def("register_handler", &ml::rest_api::Server::register_handler)
+        .def("load_routes", &ml::rest_api::Server::load_routes)
         .def("enable_cors", &ml::rest_api::Server::enable_cors,
              py::arg("origin") = "*")
-        .def("start", &ml::rest_api::Server::start)
+        .def("start", [](ml::rest_api::Server& server) {
+            py::gil_scoped_release release;
+            server.start();
+        })
         .def("stop", &ml::rest_api::Server::stop)
         .def("is_running", &ml::rest_api::Server::is_running)
         .def("handle_request", &ml::rest_api::Server::handle_request)

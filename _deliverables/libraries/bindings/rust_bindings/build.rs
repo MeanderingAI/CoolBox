@@ -93,6 +93,22 @@ fn main() {
         .include("../../groups/trekker/DATASTRUCTURE/xarray/headers")
         .std("c++17");
     build.flag_if_supported("-pthread");
+    let openblas_enabled = env::var("MYTRIX_ENABLE_OPENBLAS")
+        .map(|value| matches!(value.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+        .unwrap_or(false);
+    if openblas_enabled {
+        build.define("MYTRIX_ENABLE_OPENBLAS", "1");
+        if let Some(path) = env::var_os("OPENBLAS_INCLUDE_DIR") {
+            build.include(path);
+        }
+        if let Some(path) = env::var_os("OPENBLAS_LIBRARY_DIR") {
+            println!("cargo:rustc-link-search=native={}", PathBuf::from(path).display());
+        }
+        println!("cargo:rustc-link-lib=openblas");
+    }
+    for name in ["MYTRIX_ENABLE_OPENBLAS", "OPENBLAS_INCLUDE_DIR", "OPENBLAS_LIBRARY_DIR"] {
+        println!("cargo:rerun-if-env-changed={name}");
+    }
     for path in &eigen_include_dirs {
         build.include(path);
     }

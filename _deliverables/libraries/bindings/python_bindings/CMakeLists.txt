@@ -21,6 +21,22 @@ if(COOLBOX_NUMPY_IMPORT_RESULT EQUAL 0)
         COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/test_bindings.py
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import pytest"
+        RESULT_VARIABLE COOLBOX_PYTEST_IMPORT_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    if(COOLBOX_PYTEST_IMPORT_RESULT EQUAL 0)
+        add_test(NAME matrix_python_bindings_test
+            COMMAND Python3::Interpreter -m pytest -q
+                ${CMAKE_CURRENT_SOURCE_DIR}/test/test_matrix_bindings.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/test/test_sql_bindings.py
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+    else()
+        message(STATUS "Skipping matrix_python_bindings_test: pytest is unavailable")
+    endif()
     # metadata_client.py loads libcoolbox_c_bindings via ctypes and otherwise only
     # looks for a standalone out-of-source build at ../c_bindings/build; point it
     # at the actual location this unified build produces the shared library.
@@ -79,6 +95,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/../include
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/bindings/python_bindings/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers
@@ -104,6 +122,16 @@ set(ML_BINDING_GLOBS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/timer_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/tree_ensemble_bindings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/synthetic_data_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_extensions.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_agent_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/agent_runtime_bindings.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/deep_learning_explainability_bindings.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/rag/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/scaling/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agents/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agent_runtime/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/src/cdeepex.cpp"
+    "${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/src/explainability_facade.cpp"
 )
 file(GLOB_RECURSE ML_BINDING_SOURCES CONFIGURE_DEPENDS ${ML_BINDING_GLOBS})
 
@@ -142,32 +170,85 @@ set(ML_BINDINGS_FLAT_INCLUDE_DIRS
 # Create the Python module
 pybind11_add_module(ml_core 
     py_ml_core.cpp
+    src/data_structures_bindings.cpp
+    src/matrix_bindings.cpp
+    src/synthetic_data_bindings.cpp
+    src/llm_bindings.cpp
+    src/tree_ensemble_bindings.cpp
+    src/sql_bindings.cpp
+    src/rest_api_server.cpp
+    src/web_helpers.cpp
     ${ML_BINDING_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/matrix_bridge.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/ds_bridge.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/ds_bridge_sources.cc
     ../../groups/cool_car/ML/decision_tree/source/decision_tree_regressor.cpp
     ${TREE_ENSEMBLE_ROOT}/source/boost_tree.cpp
     ${TREE_ENSEMBLE_ROOT}/source/random_forest_regressor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/GRAPHICS/charts/source/graphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_src/MISC/wave_generator/source/wave_generator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../go_bindings/opt_math_finance_bridge.cc
     ../../groups/cool_car/DL/layers/src/tensor.cpp
     ../../groups/cool_car/DL/wrapper/src/templates.cpp
     ../../groups/cool_car/DL/optimizer/src/optimizer.cpp
     ../../groups/cool_car/DL/wrapper/src/neural_network.cpp
     ../../groups/cool_car/DL/loss/src/loss.cpp
     ../../groups/cool_car/DL/layers/src/layer.cpp
+    ../../groups/cool_car/DL/llm/src/tokenizer.cpp
+    ../../groups/cool_car/DL/llm/src/decoder_language_model.cpp
+)
+
+target_include_directories(ml_core BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agent_runtime/include
 )
 
 # Set properties
 target_compile_definitions(ml_core PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
 target_compile_features(ml_core PRIVATE cxx_std_17)
+target_link_libraries(ml_core PRIVATE
+    optimization_factory
+    distributed_learning
+    FINANCE
+)
 
 # Link libraries
 find_package(Threads REQUIRED)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/MATRIX/cmake/OpenBLAS.cmake)
+mytrix_link_openblas(ml_core PRIVATE)
+target_include_directories(ml_core BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../groups/cool_car/MATRIX/headers)
 target_link_libraries(ml_core PRIVATE 
+    sql
     Eigen3::Eigen
     Threads::Threads
 )
 if(WIN32)
+    target_link_libraries(ml_core PRIVATE ws2_32)
+endif()
+if(WIN32)
     target_link_libraries(ml_core PRIVATE shell32)
+endif()
+include(${CMAKE_CURRENT_LIST_DIR}/../../../../cmake/VulkanTensorBackend.cmake)
+coolbox_configure_vulkan_tensor(ml_core)
+
+if(BUILD_TESTING)
+    add_executable(test_rest_api_server
+        test/test_rest_api_server.cpp
+        src/rest_api_server.cpp
+    )
+    target_include_directories(test_rest_api_server PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_rest_api_server PRIVATE Threads::Threads)
+    if(WIN32)
+        target_link_libraries(test_rest_api_server PRIVATE ws2_32)
+    endif()
+    add_test(NAME test_rest_api_server COMMAND test_rest_api_server)
+    add_executable(test_web_helpers test/test_web_helpers.cpp src/web_helpers.cpp)
+    target_include_directories(test_web_helpers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(test_web_helpers PRIVATE json)
+    add_test(NAME test_web_helpers COMMAND test_web_helpers)
 endif()
 
 target_include_directories(ml_core PRIVATE
@@ -186,6 +267,16 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/FINANCE/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATH
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/layers/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/rag/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/scaling/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/agents/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/llm/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/xarray/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/filters/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/list/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/maps/headers
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/trekker/DATASTRUCTURE/trees/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include

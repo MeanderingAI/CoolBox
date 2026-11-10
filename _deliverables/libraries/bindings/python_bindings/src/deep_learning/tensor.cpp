@@ -1,4 +1,7 @@
 #include "DL/layers/include/tensor.h"
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+#include "DL/layers/include/vulkan_tensor_backend.h"
+#endif
 #include <random>
 #include <sstream>
 
@@ -78,6 +81,17 @@ Tensor Tensor::transpose() const {
     size_t rows = shape_[0];
     size_t cols = shape_[1];
     std::vector<size_t> new_shape = {cols, rows};
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            new_shape,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::TRANSPOSE, data_, {},
+                data_.size(), rows, cols, 0));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(new_shape);
     
     for (size_t i = 0; i < rows; ++i) {
@@ -98,6 +112,17 @@ Tensor Tensor::operator+(const Tensor& other) const {
         throw std::invalid_argument("Tensor shapes must match for addition");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            shape_,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::ADD, data_, other.data_,
+                data_.size(), 0, 0, 0));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(shape_);
     for (size_t i = 0; i < data_.size(); ++i) {
         result.data_[i] = data_[i] + other.data_[i];
@@ -110,6 +135,17 @@ Tensor Tensor::operator-(const Tensor& other) const {
         throw std::invalid_argument("Tensor shapes must match for subtraction");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            shape_,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::SUBTRACT, data_, other.data_,
+                data_.size(), 0, 0, 0));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(shape_);
     for (size_t i = 0; i < data_.size(); ++i) {
         result.data_[i] = data_[i] - other.data_[i];
@@ -122,6 +158,17 @@ Tensor Tensor::operator*(const Tensor& other) const {
         throw std::invalid_argument("Tensor shapes must match for element-wise multiplication");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            shape_,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::MULTIPLY, data_, other.data_,
+                data_.size(), 0, 0, 0));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(shape_);
     for (size_t i = 0; i < data_.size(); ++i) {
         result.data_[i] = data_[i] * other.data_[i];
@@ -134,6 +181,22 @@ Tensor Tensor::operator/(const Tensor& other) const {
         throw std::invalid_argument("Tensor shapes must match for element-wise division");
     }
     
+    for (double value : other.data_) {
+        if (std::abs(value) < 1e-10) {
+            throw std::runtime_error("Division by zero");
+        }
+    }
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            shape_,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::DIVIDE, data_, other.data_,
+                data_.size(), 0, 0, 0));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(shape_);
     for (size_t i = 0; i < data_.size(); ++i) {
         if (std::abs(other.data_[i]) < 1e-10) {
@@ -149,6 +212,16 @@ Tensor& Tensor::operator+=(const Tensor& other) {
         throw std::invalid_argument("Tensor shapes must match for addition");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        data_ = detail::vulkan_tensor_execute(
+            detail::VulkanTensorOperation::ADD, data_, other.data_,
+            data_.size(), 0, 0, 0);
+        return *this;
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     for (size_t i = 0; i < data_.size(); ++i) {
         data_[i] += other.data_[i];
     }
@@ -160,6 +233,16 @@ Tensor& Tensor::operator-=(const Tensor& other) {
         throw std::invalid_argument("Tensor shapes must match for subtraction");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        data_ = detail::vulkan_tensor_execute(
+            detail::VulkanTensorOperation::SUBTRACT, data_, other.data_,
+            data_.size(), 0, 0, 0);
+        return *this;
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     for (size_t i = 0; i < data_.size(); ++i) {
         data_[i] -= other.data_[i];
     }
@@ -167,6 +250,17 @@ Tensor& Tensor::operator-=(const Tensor& other) {
 }
 
 Tensor Tensor::operator*(double scalar) const {
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            shape_,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::SCALAR_MULTIPLY, data_, {},
+                data_.size(), 0, 0, 0, scalar));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(shape_);
     for (size_t i = 0; i < data_.size(); ++i) {
         result.data_[i] = data_[i] * scalar;
@@ -179,6 +273,17 @@ Tensor Tensor::operator/(double scalar) const {
         throw std::runtime_error("Division by zero");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(data_.size())) {
+        return Tensor(
+            shape_,
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::SCALAR_DIVIDE, data_, {},
+                data_.size(), 0, 0, 0, scalar));
+    }
+#else
+    detail::should_use_vulkan(data_.size());
+#endif
     Tensor result(shape_);
     for (size_t i = 0; i < data_.size(); ++i) {
         result.data_[i] = data_[i] / scalar;
@@ -199,6 +304,17 @@ Tensor Tensor::matmul(const Tensor& other) const {
         throw std::invalid_argument("Invalid dimensions for matrix multiplication");
     }
     
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+    if (detail::should_use_vulkan(m * n)) {
+        return Tensor(
+            {m, n},
+            detail::vulkan_tensor_execute(
+                detail::VulkanTensorOperation::MATMUL, data_, other.data_,
+                m * n, m, n, k));
+    }
+#else
+    detail::should_use_vulkan(m * n);
+#endif
     Tensor result({m, n});
     
     for (size_t i = 0; i < m; ++i) {

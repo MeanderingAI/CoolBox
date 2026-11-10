@@ -1,0 +1,132 @@
+package coolbox
+
+/*
+#include "coolbox/coolbox_c.h"
+#include <stdlib.h>
+*/
+import "C"
+
+import (
+	"encoding/json"
+	"errors"
+	"os"
+	"strings"
+	"unsafe"
+)
+
+// FormSchema is an immutable, language-neutral form definition.
+type FormSchema struct {
+	definition string
+}
+
+type ValidationResult struct {
+	Valid  bool                `json:"valid"`
+	Values map[string]any      `json:"values"`
+	Errors map[string][]string `json:"errors"`
+}
+
+func ParseFormSchema(definition string) (*FormSchema, error) {
+	form := &FormSchema{definition: definition}
+	if _, err := form.Validate("{}", "application/json"); err != nil {
+		return nil, err
+	}
+	return form, nil
+}
+
+func LoadFormSchema(filename string) (*FormSchema, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFormSchema(string(data))
+}
+
+func (form *FormSchema) Validate(body, contentType string) (*ValidationResult, error) {
+	if form == nil {
+		return nil, errors.New("form schema is required")
+	}
+	for _, text := range []string{form.definition, body, contentType} {
+		if strings.ContainsRune(text, '\x00') {
+			return nil, errors.New("form arguments cannot contain NUL")
+		}
+	}
+	schema, value, media := C.CString(form.definition), C.CString(body), C.CString(contentType)
+	defer C.free(unsafe.Pointer(schema))
+	defer C.free(unsafe.Pointer(value))
+	defer C.free(unsafe.Pointer(media))
+	var nativeError [serviceErrorCapacity]C.char
+	output := C.coolbox_http_form_validate(schema, value, media, &nativeError[0], C.size_t(len(nativeError)))
+	if output == nil {
+		return nil, serviceError(&nativeError)
+	}
+	defer C.coolbox_c_free_string(output)
+	var result ValidationResult
+	if err := json.Unmarshal([]byte(C.GoString(output)), &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (form *FormSchema) ValidateRequest(request HTTPRequest) (*ValidationResult, error) {
+	contentType := ""
+	for name, value := range request.Headers {
+		if strings.EqualFold(name, "Content-Type") {
+			contentType = value
+			break
+		}
+	}
+	return form.Validate(request.Body, contentType)
+}
+
+func HTML(content string) HTTPResponse {
+	return HTTPResponse{
+		StatusCode: 200, Body: content,
+		Headers: map[string]string{"Content-Type": "text/html; charset=utf-8"},
+	}
+}
+
+func HTMLFile(root, filename string) (HTTPResponse, error) {
+	return htmlFile(root, filename, nil, false)
+}
+
+func Render(root, filename string, context map[string]string) (HTTPResponse, error) {
+	return htmlFile(root, filename, context, true)
+}
+
+func htmlFile(root, filename string, context map[string]string, render bool) (HTTPResponse, error) {
+	for _, text := range []string{root, filename} {
+		if strings.ContainsRune(text, '\x00') {
+			return HTTPResponse{}, errors.New("HTML paths cannot contain NUL")
+		}
+	}
+	if context == nil {
+		context = map[string]string{}
+	}
+	encoded, err := json.Marshal(context)
+	if err != nil {
+		return HTTPResponse{}, err
+	}
+	base, path, values := C.CString(root), C.CString(filename), C.CString(string(encoded))
+	defer C.free(unsafe.Pointer(base))
+	defer C.free(unsafe.Pointer(path))
+	defer C.free(unsafe.Pointer(values))
+	var flag C.int
+	if render {
+		flag = 1
+	}
+	var nativeError [serviceErrorCapacity]C.char
+	output := C.coolbox_http_html_file(base, path, values, flag, &nativeError[0], C.size_t(len(nativeError)))
+	if output == nil {
+		return HTTPResponse{}, serviceError(&nativeError)
+	}
+	defer C.coolbox_c_free_string(output)
+	var envelope struct {
+		StatusCode int               `json:"status_code"`
+		Body       string            `json:"body"`
+		Headers    map[string]string `json:"headers"`
+	}
+	if err := json.Unmarshal([]byte(C.GoString(output)), &envelope); err != nil {
+		return HTTPResponse{}, err
+	}
+	return HTTPResponse{StatusCode: envelope.StatusCode, Body: envelope.Body, Headers: envelope.Headers}, nil
+}

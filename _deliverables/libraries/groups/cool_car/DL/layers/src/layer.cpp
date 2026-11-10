@@ -58,12 +58,7 @@ DenseLayer::DenseLayer(size_t input_size, size_t output_size)
 
 Tensor DenseLayer::forward(const Tensor& input) {
     last_input_ = input;
-    Tensor output = input.matmul(weights_);
-    for (size_t i = 0; i < output.shape()[0]; ++i) {
-        for (size_t j = 0; j < output_size_; ++j) {
-            output.data()[i * output_size_ + j] += bias_.data()[j];
-        }
-    }
+    Tensor output = input.matmul_bias(weights_, bias_);
     last_output_ = output;
     return output;
 }
@@ -71,12 +66,7 @@ Tensor DenseLayer::forward(const Tensor& input) {
 Tensor DenseLayer::backward(const Tensor& gradient) {
     weight_gradient_ = last_input_.transpose().matmul(gradient);
     
-    bias_gradient_ = Tensor({output_size_}, 0.0);
-    for (size_t i = 0; i < gradient.shape()[0]; ++i) {
-        for (size_t j = 0; j < output_size_; ++j) {
-            bias_gradient_.data()[j] += gradient.data()[i * output_size_ + j];
-        }
-    }
+    bias_gradient_ = gradient.row_sum();
 
     return gradient.matmul(weights_.transpose());
 }
@@ -91,26 +81,25 @@ void DenseLayer::update_parameters(double learning_rate) {
     }
 }
 
+void DenseLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    parameters.push_back({&weights_, &weight_gradient_, true});
+    parameters.push_back({&bias_, &bias_gradient_, false});
+}
+
 // ============================================================================
 // Activation Layers
 // ============================================================================
 
 Tensor ReLULayer::forward(const Tensor& input) {
     last_input_ = input;
-    Tensor output = input.clone();
-    for (size_t i = 0; i < output.size(); ++i) {
-        if (output.data()[i] < 0.0) output.data()[i] = 0.0;
-    }
+    Tensor output = input.relu();
     last_output_ = output;
     return output;
 }
 
 Tensor ReLULayer::backward(const Tensor& gradient) {
-    Tensor result = gradient.clone();
-    for (size_t i = 0; i < result.size(); ++i) {
-        if (last_input_.data()[i] <= 0.0) result.data()[i] = 0.0;
-    }
-    return result;
+    return last_input_.relu_backward(gradient);
 }
 
 Tensor SigmoidLayer::forward(const Tensor& input) {
@@ -147,22 +136,7 @@ Tensor TanhLayer::backward(const Tensor& gradient) {
 
 Tensor SoftmaxLayer::forward(const Tensor& input) {
     last_input_ = input;
-    Tensor output = input.clone();
-    // Apply softmax per row (batch dimension)
-    size_t batch = input.shape()[0];
-    size_t cols = input.size() / batch;
-    for (size_t i = 0; i < batch; ++i) {
-        double max_val = -std::numeric_limits<double>::infinity();
-        for (size_t j = 0; j < cols; ++j)
-            max_val = std::max(max_val, output.data()[i * cols + j]);
-        double sum = 0.0;
-        for (size_t j = 0; j < cols; ++j) {
-            output.data()[i * cols + j] = std::exp(output.data()[i * cols + j] - max_val);
-            sum += output.data()[i * cols + j];
-        }
-        for (size_t j = 0; j < cols; ++j)
-            output.data()[i * cols + j] /= sum;
-    }
+    Tensor output = input.row_softmax();
     last_output_ = output;
     return output;
 }
@@ -318,73 +292,17 @@ LayerNormLayer::LayerNormLayer(size_t normalized_shape, double epsilon)
 
 Tensor LayerNormLayer::forward(const Tensor& input) {
     last_input_ = input;
-    size_t total = input.size();
-    size_t features = normalized_shape_;
-    size_t num_elements = total / features;
-    
-    Tensor output(input.shape(), 0.0);
-    normalized_ = Tensor(input.shape(), 0.0);
-    std_inv_ = Tensor({num_elements}, 0.0);
-    
-    for (size_t i = 0; i < num_elements; ++i) {
-        // Compute mean over features
-        double mean = 0.0;
-        for (size_t j = 0; j < features; ++j)
-            mean += input.data()[i * features + j];
-        mean /= features;
-        
-        // Compute variance
-        double var = 0.0;
-        for (size_t j = 0; j < features; ++j) {
-            double diff = input.data()[i * features + j] - mean;
-            var += diff * diff;
-        }
-        var /= features;
-        
-        double inv_std = 1.0 / std::sqrt(var + epsilon_);
-        std_inv_.data()[i] = inv_std;
-        
-        for (size_t j = 0; j < features; ++j) {
-            normalized_.data()[i * features + j] = (input.data()[i * features + j] - mean) * inv_std;
-            output.data()[i * features + j] = gamma_.data()[j] * normalized_.data()[i * features + j] + beta_.data()[j];
-        }
-    }
-    
+    Tensor output = input.layer_norm(gamma_, beta_, epsilon_);
     last_output_ = output;
     return output;
 }
 
 Tensor LayerNormLayer::backward(const Tensor& gradient) {
-    size_t total = gradient.size();
-    size_t features = normalized_shape_;
-    size_t num_elements = total / features;
-    
-    gamma_gradient_ = Tensor({features}, 0.0);
-    beta_gradient_ = Tensor({features}, 0.0);
-    
-    for (size_t i = 0; i < num_elements; ++i)
-        for (size_t j = 0; j < features; ++j) {
-            gamma_gradient_.data()[j] += gradient.data()[i * features + j] * normalized_.data()[i * features + j];
-            beta_gradient_.data()[j] += gradient.data()[i * features + j];
-        }
-    
-    Tensor input_grad(gradient.shape(), 0.0);
-    double N = static_cast<double>(features);
-    
-    for (size_t i = 0; i < num_elements; ++i) {
-        double sum_dg = 0.0, sum_dg_norm = 0.0;
-        for (size_t j = 0; j < features; ++j) {
-            double dy = gradient.data()[i * features + j] * gamma_.data()[j];
-            sum_dg += dy;
-            sum_dg_norm += dy * normalized_.data()[i * features + j];
-        }
-        for (size_t j = 0; j < features; ++j) {
-            double dy = gradient.data()[i * features + j] * gamma_.data()[j];
-            input_grad.data()[i * features + j] = std_inv_.data()[i] / N *
-                (N * dy - sum_dg - normalized_.data()[i * features + j] * sum_dg_norm);
-        }
-    }
-    return input_grad;
+    gamma_gradient_ =
+        last_input_.layer_norm_gamma_gradient(gradient, epsilon_);
+    beta_gradient_ = gradient.row_sum();
+    return last_input_.layer_norm_backward(
+        gradient, gamma_, epsilon_);
 }
 
 void LayerNormLayer::update_parameters(double learning_rate) {
@@ -392,6 +310,12 @@ void LayerNormLayer::update_parameters(double learning_rate) {
         gamma_.data()[i] -= learning_rate * gamma_gradient_.data()[i];
         beta_.data()[i] -= learning_rate * beta_gradient_.data()[i];
     }
+}
+
+void LayerNormLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    parameters.push_back({&gamma_, &gamma_gradient_, false});
+    parameters.push_back({&beta_, &beta_gradient_, false});
 }
 
 // FlattenLayer
@@ -1419,6 +1343,10 @@ Tensor EmbeddingLayer::forward(const Tensor& input) {
     for (size_t b = 0; b < batch; ++b) {
         for (size_t t = 0; t < seq_len; ++t) {
             size_t idx = static_cast<size_t>(input.data()[b * seq_len + t]);
+            if (idx >= vocab_size_) {
+                throw std::out_of_range(
+                    "Embedding token index exceeds vocabulary size");
+            }
             for (size_t d = 0; d < embedding_dim_; ++d) {
                 output.data()[b * (seq_len * embedding_dim_) + t * embedding_dim_ + d] =
                     embeddings_.data()[idx * embedding_dim_ + d];
@@ -1454,6 +1382,11 @@ void EmbeddingLayer::update_parameters(double learning_rate) {
         embeddings_.data()[i] -= learning_rate * embedding_grad_.data()[i] / batch_size;
 }
 
+void EmbeddingLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    parameters.push_back({&embeddings_, &embedding_grad_, true});
+}
+
 // ============================================================================
 // Transformer Layers
 // ============================================================================
@@ -1467,34 +1400,13 @@ Tensor ScaledDotProductAttention::forward(const Tensor& Q, const Tensor& K, cons
     
     // scores = Q * K^T / sqrt(d_k)
     // For simplicity, treat as 2D: [seq_len_q, d_k] x [d_k, seq_len_k] = [seq_len_q, seq_len_k]
-    Tensor scores = Q.matmul(K.transpose());
-    for (size_t i = 0; i < scores.size(); ++i)
-        scores.data()[i] /= scale_;
+    Tensor scores = Q.matmul(K.transpose()) / scale_;
     
     // Apply mask if provided (set masked positions to large negative)
     if (mask) {
-        for (size_t i = 0; i < scores.size(); ++i) {
-            if (mask->data()[i] == 0.0)
-                scores.data()[i] = -1e9;
-        }
+        scores = scores.masked_fill(*mask, -1e9);
     }
-    
-    // Softmax over last dimension
-    size_t rows = scores.shape()[0];
-    size_t cols = scores.shape()[1];
-    attention_weights_ = Tensor(scores.shape(), 0.0);
-    for (size_t i = 0; i < rows; ++i) {
-        double max_val = -std::numeric_limits<double>::infinity();
-        for (size_t j = 0; j < cols; ++j)
-            max_val = std::max(max_val, scores.data()[i * cols + j]);
-        double sum = 0.0;
-        for (size_t j = 0; j < cols; ++j) {
-            attention_weights_.data()[i * cols + j] = std::exp(scores.data()[i * cols + j] - max_val);
-            sum += attention_weights_.data()[i * cols + j];
-        }
-        for (size_t j = 0; j < cols; ++j)
-            attention_weights_.data()[i * cols + j] /= sum;
-    }
+    attention_weights_ = scores.row_softmax();
     
     // output = attention_weights * V
     return attention_weights_.matmul(V);
@@ -1504,22 +1416,11 @@ std::vector<Tensor> ScaledDotProductAttention::backward(const Tensor& gradient) 
     // d_attn_weights = gradient * V^T
     Tensor d_weights = gradient.matmul(V_.transpose());
     
-    // Softmax backward
-    size_t rows = attention_weights_.shape()[0];
-    size_t cols = attention_weights_.shape()[1];
-    Tensor d_scores(attention_weights_.shape(), 0.0);
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            double s_ij = attention_weights_.data()[i * cols + j];
-            double sum = 0.0;
-            for (size_t k = 0; k < cols; ++k)
-                sum += d_weights.data()[i * cols + k] * attention_weights_.data()[i * cols + k];
-            d_scores.data()[i * cols + j] = s_ij * (d_weights.data()[i * cols + j] - sum);
-        }
-    }
-    
-    for (size_t i = 0; i < d_scores.size(); ++i)
-        d_scores.data()[i] /= scale_;
+    Tensor row_dot =
+        (d_weights * attention_weights_).row_sum();
+    Tensor d_scores = attention_weights_ *
+        d_weights.broadcast_add(row_dot * -1.0);
+    d_scores = d_scores / scale_;
     
     // dQ = d_scores * K
     Tensor dQ = d_scores.matmul(K_);
@@ -1533,7 +1434,13 @@ std::vector<Tensor> ScaledDotProductAttention::backward(const Tensor& gradient) 
 
 // MultiHeadAttentionLayer
 MultiHeadAttentionLayer::MultiHeadAttentionLayer(size_t d_model, size_t num_heads)
-    : d_model_(d_model), num_heads_(num_heads), d_k_(d_model / num_heads) {
+    : d_model_(d_model), num_heads_(num_heads), d_k_(0) {
+    if (num_heads == 0 || d_model == 0 || d_model % num_heads != 0) {
+        throw std::invalid_argument(
+            "d_model must be positive and divisible by num_heads");
+    }
+    d_k_ = d_model / num_heads;
+    attention_heads_.resize(num_heads_);
     double limit = std::sqrt(6.0 / (d_model + d_model));
     
     W_q_ = Tensor({d_model, d_model}); W_q_.randomize(-limit, limit);
@@ -1562,90 +1469,99 @@ Tensor MultiHeadAttentionLayer::forward(const Tensor& input) {
 
 Tensor MultiHeadAttentionLayer::forward(const Tensor& query, const Tensor& key, const Tensor& value,
                                          const Tensor* mask) {
+    if (query.ndim() != 2 || key.ndim() != 2 || value.ndim() != 2 ||
+        query.shape()[1] != d_model_ || key.shape()[1] != d_model_ ||
+        value.shape()[1] != d_model_ || key.shape()[0] != value.shape()[0]) {
+        throw std::invalid_argument(
+            "Multi-head attention expects 2D [sequence, d_model] tensors");
+    }
+    if (mask != nullptr &&
+        mask->shape() !=
+            std::vector<size_t>{query.shape()[0], key.shape()[0]}) {
+        throw std::invalid_argument(
+            "Attention mask shape must be [query_length, key_length]");
+    }
+    self_attention_input_ =
+        &query == &key && &query == &value;
     query_ = query; key_ = key; value_ = value;
     
     // Project: Q = query * W_q + b_q, etc.
     // For simplicity, treat as 2D [seq_len, d_model]
-    Q_proj_ = query.matmul(W_q_);
-    K_proj_ = key.matmul(W_k_);
-    V_proj_ = value.matmul(W_v_);
-    
-    // Add biases
-    size_t rows_q = Q_proj_.shape()[0];
-    size_t rows_k = K_proj_.shape()[0];
-    for (size_t i = 0; i < rows_q; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            Q_proj_.data()[i * d_model_ + j] += b_q_.data()[j];
-    for (size_t i = 0; i < rows_k; ++i)
-        for (size_t j = 0; j < d_model_; ++j) {
-            K_proj_.data()[i * d_model_ + j] += b_k_.data()[j];
-            V_proj_.data()[i * d_model_ + j] += b_v_.data()[j];
-        }
-    
-    // Simplified multi-head: run attention on full d_model
-    // (A production implementation would split into heads, attend, then concat)
-    attention_output_ = attention_.forward(Q_proj_, K_proj_, V_proj_, mask);
-    
-    // Output projection
-    Tensor output = attention_output_.matmul(W_o_);
-    size_t rows = output.shape()[0];
-    for (size_t i = 0; i < rows; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            output.data()[i * d_model_ + j] += b_o_.data()[j];
+    Q_proj_ = query.matmul_bias(W_q_, b_q_);
+    K_proj_ = key.matmul_bias(W_k_, b_k_);
+    V_proj_ = value.matmul_bias(W_v_, b_v_);
+
+    Tensor combined_attention;
+    for (size_t head = 0; head < num_heads_; ++head) {
+        const size_t offset = head * d_k_;
+        Tensor head_query =
+            Q_proj_.slice_columns(offset, d_k_);
+        Tensor head_key =
+            K_proj_.slice_columns(offset, d_k_);
+        Tensor head_value =
+            V_proj_.slice_columns(offset, d_k_);
+
+        Tensor head_output = attention_heads_[head].forward(
+            head_query, head_key, head_value, mask);
+        combined_attention = head == 0
+            ? head_output
+            : combined_attention.concat_columns(head_output);
+    }
+    attention_output_ = std::move(combined_attention);
+
+    Tensor output = attention_output_.matmul_bias(W_o_, b_o_);
     
     last_output_ = output;
     return output;
 }
 
 Tensor MultiHeadAttentionLayer::backward(const Tensor& gradient) {
-    size_t rows = gradient.shape()[0];
-    
     // Output projection backward
     W_o_grad_ = attention_output_.transpose().matmul(gradient);
-    b_o_grad_ = Tensor({d_model_}, 0.0);
-    for (size_t i = 0; i < rows; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            b_o_grad_.data()[j] += gradient.data()[i * d_model_ + j];
+    b_o_grad_ = gradient.row_sum();
     
     Tensor d_attn = gradient.matmul(W_o_.transpose());
     
-    // Attention backward
-    std::vector<Tensor> dqkv = attention_.backward(d_attn);
-    Tensor& dQ = dqkv[0];
-    Tensor& dK = dqkv[1];
-    Tensor& dV = dqkv[2];
+    Tensor dQ;
+    Tensor dK;
+    Tensor dV;
+    for (size_t head = 0; head < num_heads_; ++head) {
+        const size_t offset = head * d_k_;
+        Tensor head_gradient =
+            d_attn.slice_columns(offset, d_k_);
+
+        std::vector<Tensor> head_gradients =
+            attention_heads_[head].backward(head_gradient);
+        dQ = head == 0
+            ? head_gradients[0]
+            : dQ.concat_columns(head_gradients[0]);
+        dK = head == 0
+            ? head_gradients[1]
+            : dK.concat_columns(head_gradients[1]);
+        dV = head == 0
+            ? head_gradients[2]
+            : dV.concat_columns(head_gradients[2]);
+    }
     
     // Projection backward
     W_q_grad_ = query_.transpose().matmul(dQ);
     W_k_grad_ = key_.transpose().matmul(dK);
     W_v_grad_ = value_.transpose().matmul(dV);
     
-    b_q_grad_ = Tensor({d_model_}, 0.0);
-    b_k_grad_ = Tensor({d_model_}, 0.0);
-    b_v_grad_ = Tensor({d_model_}, 0.0);
-    
-    size_t rows_q = dQ.shape()[0];
-    size_t rows_k = dK.shape()[0];
-    for (size_t i = 0; i < rows_q; ++i)
-        for (size_t j = 0; j < d_model_; ++j)
-            b_q_grad_.data()[j] += dQ.data()[i * d_model_ + j];
-    for (size_t i = 0; i < rows_k; ++i)
-        for (size_t j = 0; j < d_model_; ++j) {
-            b_k_grad_.data()[j] += dK.data()[i * d_model_ + j];
-            b_v_grad_.data()[j] += dV.data()[i * d_model_ + j];
-        }
+    b_q_grad_ = dQ.row_sum();
+    b_k_grad_ = dK.row_sum();
+    b_v_grad_ = dV.row_sum();
     
     // Return gradient w.r.t. query input (for self-attention, all three are the same)
     Tensor d_query = dQ.matmul(W_q_.transpose());
     Tensor d_key = dK.matmul(W_k_.transpose());
     Tensor d_value = dV.matmul(W_v_.transpose());
     
-    // Sum if self-attention (query == key == value)
-    Tensor result = d_query;
-    for (size_t i = 0; i < result.size(); ++i)
-        result.data()[i] += d_key.data()[i] + d_value.data()[i];
-    
-    return result;
+    if (!self_attention_input_) {
+        return d_query;
+    }
+
+    return d_query + d_key + d_value;
 }
 
 void MultiHeadAttentionLayer::update_parameters(double learning_rate) {
@@ -1659,6 +1575,18 @@ void MultiHeadAttentionLayer::update_parameters(double learning_rate) {
     update(W_k_, W_k_grad_, b_k_, b_k_grad_);
     update(W_v_, W_v_grad_, b_v_, b_v_grad_);
     update(W_o_, W_o_grad_, b_o_, b_o_grad_);
+}
+
+void MultiHeadAttentionLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    parameters.push_back({&W_q_, &W_q_grad_, true});
+    parameters.push_back({&W_k_, &W_k_grad_, true});
+    parameters.push_back({&W_v_, &W_v_grad_, true});
+    parameters.push_back({&W_o_, &W_o_grad_, true});
+    parameters.push_back({&b_q_, &b_q_grad_, false});
+    parameters.push_back({&b_k_, &b_k_grad_, false});
+    parameters.push_back({&b_v_, &b_v_grad_, false});
+    parameters.push_back({&b_o_, &b_o_grad_, false});
 }
 
 // FeedForwardLayer
@@ -1685,6 +1613,12 @@ void FeedForwardLayer::update_parameters(double learning_rate) {
     linear2_.update_parameters(learning_rate);
 }
 
+void FeedForwardLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    linear1_.collect_trainable_parameters(parameters);
+    linear2_.collect_trainable_parameters(parameters);
+}
+
 // PositionalEncodingLayer
 PositionalEncodingLayer::PositionalEncodingLayer(size_t d_model, size_t max_seq_len, double dropout_rate)
     : d_model_(d_model), max_seq_len_(max_seq_len), dropout_(dropout_rate) {
@@ -1705,17 +1639,12 @@ Tensor PositionalEncodingLayer::forward(const Tensor& input) {
     last_input_ = input;
     Tensor output = input.clone();
     
-    size_t seq_len, d_model;
     if (input.ndim() == 2) {
-        seq_len = input.shape()[0];
-        d_model = input.shape()[1];
-        for (size_t i = 0; i < seq_len; ++i)
-            for (size_t j = 0; j < d_model; ++j)
-                output.data()[i * d_model + j] += encoding_.data()[i * d_model_ + j];
+        output = input.add_prefix(encoding_);
     } else {
         size_t batch = input.shape()[0];
-        seq_len = input.shape()[1];
-        d_model = input.shape()[2];
+        size_t seq_len = input.shape()[1];
+        size_t d_model = input.shape()[2];
         for (size_t b = 0; b < batch; ++b)
             for (size_t i = 0; i < seq_len; ++i)
                 for (size_t j = 0; j < d_model; ++j)
@@ -1749,8 +1678,7 @@ Tensor TransformerEncoderLayer::forward(const Tensor& input) {
     attn = dropout1_.forward(attn);
     // Residual connection
     Tensor residual1 = input.clone();
-    for (size_t i = 0; i < residual1.size(); ++i)
-        residual1.data()[i] += attn.data()[i];
+    residual1 += attn;
     attn_output_ = norm1_.forward(residual1);
     
     // Feed-forward with residual + layer norm
@@ -1758,8 +1686,7 @@ Tensor TransformerEncoderLayer::forward(const Tensor& input) {
     Tensor ff = feed_forward_.forward(attn_output_);
     ff = dropout2_.forward(ff);
     Tensor residual2 = attn_output_.clone();
-    for (size_t i = 0; i < residual2.size(); ++i)
-        residual2.data()[i] += ff.data()[i];
+    residual2 += ff;
     Tensor output = norm2_.forward(residual2);
     
     last_output_ = output;
@@ -1779,8 +1706,7 @@ Tensor TransformerEncoderLayer::backward(const Tensor& gradient) {
     d_ff = feed_forward_.backward(d_ff);
     
     // Add residual gradient
-    for (size_t i = 0; i < d_ff.size(); ++i)
-        d_ff.data()[i] += d_res2.data()[i];
+    d_ff += d_res2;
     
     // Backward through norm1
     Tensor d_norm1 = norm1_.backward(d_ff);
@@ -1794,8 +1720,7 @@ Tensor TransformerEncoderLayer::backward(const Tensor& gradient) {
     d_attn = self_attention_.backward(d_attn);
     
     // Add residual gradient
-    for (size_t i = 0; i < d_attn.size(); ++i)
-        d_attn.data()[i] += d_res1.data()[i];
+    d_attn += d_res1;
     
     return d_attn;
 }
@@ -1805,6 +1730,14 @@ void TransformerEncoderLayer::update_parameters(double learning_rate) {
     feed_forward_.update_parameters(learning_rate);
     norm1_.update_parameters(learning_rate);
     norm2_.update_parameters(learning_rate);
+}
+
+void TransformerEncoderLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    self_attention_.collect_trainable_parameters(parameters);
+    feed_forward_.collect_trainable_parameters(parameters);
+    norm1_.collect_trainable_parameters(parameters);
+    norm2_.collect_trainable_parameters(parameters);
 }
 
 // TransformerDecoderLayer
@@ -1833,16 +1766,14 @@ Tensor TransformerDecoderLayer::forward(const Tensor& target, const Tensor& enco
     Tensor self_attn = self_attention_.forward(target, target, target, target_mask);
     self_attn = dropout1_.forward(self_attn);
     Tensor residual1 = target.clone();
-    for (size_t i = 0; i < residual1.size(); ++i)
-        residual1.data()[i] += self_attn.data()[i];
+    residual1 += self_attn;
     self_attn_output_ = norm1_.forward(residual1);
     
     // Cross-attention with encoder output
     Tensor cross_attn = cross_attention_.forward(self_attn_output_, encoder_output, encoder_output, memory_mask);
     cross_attn = dropout2_.forward(cross_attn);
     Tensor residual2 = self_attn_output_.clone();
-    for (size_t i = 0; i < residual2.size(); ++i)
-        residual2.data()[i] += cross_attn.data()[i];
+    residual2 += cross_attn;
     cross_attn_output_ = norm2_.forward(residual2);
     
     // Feed-forward with residual + layer norm
@@ -1850,8 +1781,7 @@ Tensor TransformerDecoderLayer::forward(const Tensor& target, const Tensor& enco
     Tensor ff = feed_forward_.forward(cross_attn_output_);
     ff = dropout3_.forward(ff);
     Tensor residual3 = cross_attn_output_.clone();
-    for (size_t i = 0; i < residual3.size(); ++i)
-        residual3.data()[i] += ff.data()[i];
+    residual3 += ff;
     Tensor output = norm3_.forward(residual3);
     
     last_output_ = output;
@@ -1866,8 +1796,7 @@ Tensor TransformerDecoderLayer::backward(const Tensor& gradient) {
     
     d_ff = dropout3_.backward(d_ff);
     d_ff = feed_forward_.backward(d_ff);
-    for (size_t i = 0; i < d_ff.size(); ++i)
-        d_ff.data()[i] += d_res3.data()[i];
+    d_ff += d_res3;
     
     // Backward through norm2
     Tensor d_norm2 = norm2_.backward(d_ff);
@@ -1876,8 +1805,7 @@ Tensor TransformerDecoderLayer::backward(const Tensor& gradient) {
     
     d_cross = dropout2_.backward(d_cross);
     d_cross = cross_attention_.backward(d_cross);
-    for (size_t i = 0; i < d_cross.size(); ++i)
-        d_cross.data()[i] += d_res2.data()[i];
+    d_cross += d_res2;
     
     // Backward through norm1
     Tensor d_norm1 = norm1_.backward(d_cross);
@@ -1886,8 +1814,7 @@ Tensor TransformerDecoderLayer::backward(const Tensor& gradient) {
     
     d_self = dropout1_.backward(d_self);
     d_self = self_attention_.backward(d_self);
-    for (size_t i = 0; i < d_self.size(); ++i)
-        d_self.data()[i] += d_res1.data()[i];
+    d_self += d_res1;
     
     return d_self;
 }
@@ -1899,6 +1826,94 @@ void TransformerDecoderLayer::update_parameters(double learning_rate) {
     norm1_.update_parameters(learning_rate);
     norm2_.update_parameters(learning_rate);
     norm3_.update_parameters(learning_rate);
+}
+
+void TransformerDecoderLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    self_attention_.collect_trainable_parameters(parameters);
+    cross_attention_.collect_trainable_parameters(parameters);
+    feed_forward_.collect_trainable_parameters(parameters);
+    norm1_.collect_trainable_parameters(parameters);
+    norm2_.collect_trainable_parameters(parameters);
+    norm3_.collect_trainable_parameters(parameters);
+}
+
+DecoderOnlyTransformerLayer::DecoderOnlyTransformerLayer(
+    size_t d_model,
+    size_t num_heads,
+    size_t d_ff,
+    double dropout_rate)
+    : self_attention_(d_model, num_heads),
+      feed_forward_(d_model, d_ff),
+      norm1_(d_model),
+      norm2_(d_model),
+      dropout1_(dropout_rate),
+      dropout2_(dropout_rate) {}
+
+Tensor DecoderOnlyTransformerLayer::forward(const Tensor& input) {
+    if (input.ndim() != 2) {
+        throw std::invalid_argument(
+            "Decoder-only transformer expects [sequence, d_model]");
+    }
+    last_input_ = input;
+    const size_t sequence_length = input.shape()[0];
+    Tensor causal_mask(
+        {sequence_length, sequence_length}, 0.0);
+    for (size_t row = 0; row < sequence_length; ++row)
+        for (size_t column = 0; column <= row; ++column)
+            causal_mask.data()[row * sequence_length + column] = 1.0;
+
+    Tensor attention = self_attention_.forward(
+        input, input, input, &causal_mask);
+    attention = dropout1_.forward(attention);
+    Tensor hidden = input + attention;
+    hidden = norm1_.forward(hidden);
+
+    Tensor feed_forward = feed_forward_.forward(hidden);
+    feed_forward = dropout2_.forward(feed_forward);
+    Tensor output = norm2_.forward(hidden + feed_forward);
+    last_output_ = output;
+    return output;
+}
+
+Tensor DecoderOnlyTransformerLayer::backward(
+    const Tensor& gradient) {
+    Tensor normalized_gradient = norm2_.backward(gradient);
+    Tensor feed_forward_gradient =
+        dropout2_.backward(normalized_gradient);
+    feed_forward_gradient =
+        feed_forward_.backward(feed_forward_gradient);
+    Tensor hidden_gradient =
+        normalized_gradient + feed_forward_gradient;
+
+    Tensor attention_input_gradient =
+        norm1_.backward(hidden_gradient);
+    Tensor attention_gradient =
+        dropout1_.backward(attention_input_gradient);
+    attention_gradient =
+        self_attention_.backward(attention_gradient);
+    return attention_input_gradient + attention_gradient;
+}
+
+void DecoderOnlyTransformerLayer::update_parameters(
+    double learning_rate) {
+    self_attention_.update_parameters(learning_rate);
+    feed_forward_.update_parameters(learning_rate);
+    norm1_.update_parameters(learning_rate);
+    norm2_.update_parameters(learning_rate);
+}
+
+void DecoderOnlyTransformerLayer::collect_trainable_parameters(
+    std::vector<TrainableParameter>& parameters) {
+    self_attention_.collect_trainable_parameters(parameters);
+    feed_forward_.collect_trainable_parameters(parameters);
+    norm1_.collect_trainable_parameters(parameters);
+    norm2_.collect_trainable_parameters(parameters);
+}
+
+void DecoderOnlyTransformerLayer::set_training(bool training) {
+    dropout1_.set_training(training);
+    dropout2_.set_training(training);
 }
 
 } // namespace deep_learning

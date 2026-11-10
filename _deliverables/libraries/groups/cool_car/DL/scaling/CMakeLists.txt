@@ -15,8 +15,12 @@ add_library(dl_scaling STATIC
     src/collective.cpp
     src/domino.cpp
     src/fast_persist.cpp
+    src/little_bit.cpp
+    src/little_bit2.cpp
     src/moe.cpp
+    src/nano_quant.cpp
     src/one_bit_lamb.cpp
+    src/samsung_quantization_internal.cpp
     src/scaling_citations.cpp
     src/universal_checkpoint.cpp
     src/zero.cpp
@@ -27,6 +31,7 @@ add_library(dl_scaling STATIC
 
 target_include_directories(dl_scaling PUBLIC
     ${DL_SCALING_ROOT}/include
+    ${DL_GROUP_ROOT}
     ${DL_GROUP_ROOT}/layers/include
     ${DL_GROUP_ROOT}/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/MATRIX/headers

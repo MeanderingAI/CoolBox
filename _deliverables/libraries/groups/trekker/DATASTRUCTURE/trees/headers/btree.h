@@ -6,6 +6,7 @@
 #include <optional>
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 
 namespace data_structures {
 

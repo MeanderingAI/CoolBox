@@ -32,6 +32,77 @@ row-major dense operations, including matrix arithmetic, matrix products,
 transpose, norms, vector dot/add, row-wise vector broadcasting, and selectable
 CPU optimizations.
 
+The service bindings also expose Prisma-schema parsing and SQL ORM operations
+(`ParsePrismaSchema`, `NewSQLDatabase`, migrations, and model repositories),
+plus a route-registration `HttpServer`. `Start` blocks until `Stop` is called;
+invoke `Stop` from another goroutine to shut down the listener.
+For language-neutral routing, register named handlers with `RegisterHandler`
+and load a shared `.routes` manifest with `LoadRoutes`.
+
+### Independent service packages
+
+Import the `http` subpackage for an HTTP-only application, rather than the
+legacy root package:
+
+```go
+import coolbox "github.com/MeanderingAI/CoolBox/_deliverables/libraries/bindings/go_bindings/http"
+```
+
+It provides `NewHttpServer`, `HTTPRequest`, `HTTPResponse`, named handlers, and
+`.routes` loading. Its shared C++ router and C bridge are bundled inside the Go
+module and compiled by cgo. It does not require Eigen, SQL client libraries, a
+full checkout, a separate CMake build, or the CoolBox C API DLL. A compatible
+C/C++ compiler and `CGO_ENABLED=1` are still required.
+
+The independent `sql` subpackage provides `NewSQLDatabase`,
+`ParsePrismaSchema`, repositories, and versioned migrations. It bundles its C
+header but still links the separately built `coolbox_c_bindings` native library.
+Supply its directory through `CGO_LDFLAGS` (`-L...`) and the platform's runtime
+library path. The selected native build determines database backend support.
+Importing `sql` does not compile the Go matrix or optimization bridges.
+
+The legacy root package remains compatible and continues to compile all of its
+native features, including matrix and optimization; those APIs still need their
+existing dependencies. Use the service subpackages to avoid those dependencies.
+
+`go get` downloads modules but does not run setup hooks, install compilers, or
+enable cgo. The isolated HTTP package needs no post-download setup beyond the
+compiler/cgo prerequisite. For example:
+
+```powershell
+$env:CGO_ENABLED = "1"
+$env:CC = (Get-Command gcc -ErrorAction Stop).Source
+$env:CXX = (Get-Command g++ -ErrorAction Stop).Source
+go get github.com/MeanderingAI/CoolBox/_deliverables/libraries/bindings/go_bindings/http
+```
+
+That download command requires a published revision containing the subpackage.
+Until then, use the local module replacement shown below with a checkout that
+contains these changes.
+
+Maintainers regenerate the bundled service sources from the canonical shared
+implementations by running `go run tools\sync_services.go` from this binding
+directory. Check synchronization with `go run tools\sync_services.go -check`.
+Consumers do not run this generator.
+
+## Forms and HTML responses
+
+The HTTP subpackage and legacy root expose `ParseFormSchema`, `LoadFormSchema`,
+`FormSchema.Validate` / `ValidateRequest`, and `ValidationResult` (`Valid`,
+`Values`, per-field `Errors`). They share the native validator with Python and
+Rust, accepting JSON or URL-encoded submissions and a language-neutral JSON
+form definition.
+
+`HTML(content)`, `HTMLFile(root, filename)`, and `Render(root, filename,
+map[string]string)` return HTML responses with the correct Content-Type.
+File helpers return `(HTTPResponse, error)` and restrict relative paths to the
+specified root. `Render` replaces `{{name}}` with HTML-escaped text, not executable
+template code. Do not use substitutions in JavaScript, CSS, or URL contexts.
+Requests and responses now carry a `Headers map[string]string` field.
+
+See the [shared form format and examples](../../../../__init__/__GENERATED_CONTENT/read_mes/REST_API.md#shared-forms-and-html)
+for the schema, normalization/error contract, and examples for all bindings.
+
 ## OPT, MATH, and FINANCE
 
 The Go API exposes genetic search, simulated annealing, hill climbing, and
@@ -86,6 +157,25 @@ APIs still need Go bindings.
 - A C and C++ compiler compatible with the Go toolchain
 - CMake
 - On Windows, a MinGW-w64 toolchain compatible with cgo
+
+## Using the bindings from another Go module
+
+The legacy root bindings currently require a full CoolBox checkout: their cgo include paths
+and C++ bridge sources reference sibling directories outside this Go module.
+A downloaded Go submodule alone does not contain those headers and sources.
+From the consuming project, use a local replacement (adjust the checkout path):
+
+```powershell
+go mod edit "-replace=github.com/MeanderingAI/CoolBox/_deliverables/libraries/bindings/go_bindings=C:\Users\mngha\workspace\CoolBox\_deliverables\libraries\bindings\go_bindings"
+$env:CGO_ENABLED = "1"
+$env:CC = (Get-Command gcc -ErrorAction Stop).Source
+$env:CXX = (Get-Command g++ -ErrorAction Stop).Source
+```
+
+This resolves the source layout; it does not install native dependencies.
+Eigen headers and the built native C API are still required. With cgo disabled,
+Go excludes the native APIs, including `NewHttpServer`, `HTTPRequest`, and
+`HTTPResponse`.
 
 ## Build the native C API
 
@@ -282,6 +372,12 @@ network implementation currently applies its own fixed learning rate when
 training; configuring an optimizer stores it on the network but does not yet
 change that training behavior.
 
+For CPU and Eigen matrix multiplication, `SetMatrixCPUThreads(8)` sets a
+process-wide thread budget; `1` forces serial execution and `0` selects hardware
+concurrency. `MatrixCPUThreads()` returns the resolved budget. Small products
+remain serial to avoid scheduling overhead. Do not modify matrices during
+concurrent reads.
+
 Dense matrix and vector operations have a process-wide backend selector:
 `SetMatrixBackend(BackendEigen)`, `SetMatrixBackend(BackendCPU)`, or
 `SetMatrixBackend(BackendAuto)`. `MatrixBackendAvailable` checks whether a
@@ -298,3 +394,12 @@ than silently claiming GPU execution. OpenCL remains unavailable until kernels
 are implemented. Eigen headers are required to compile the bindings. The build checks
 `external/eigen/eigen-3.4.0` in the repository; otherwise supply the include
 directory in `CGO_CXXFLAGS` (for example, `CGO_CXXFLAGS="-I/path/to/eigen"`).
+
+Optional OpenBLAS multiplication is available with the `coolbox_openblas` build
+tag and installed OpenBLAS development files. For nonstandard installations add
+the header/library search paths using `CGO_CXXFLAGS` / `CGO_LDFLAGS` and configure
+the runtime loader. Check `MatrixBackendAvailable(BackendOpenBLAS)`, then select
+`SetMatrixBackend(BackendOpenBLAS)`. `SetMatrixCPUThreads` controls OpenBLAS's
+thread budget; other operations use CPU kernels and report CPU as active.
+CoolBox serializes its OpenBLAS calls and restores the previous global library
+thread setting. Do not change that setting concurrently from external code.

@@ -1,5 +1,8 @@
-#include "../go_bindings/opt_math_finance_bridge.cc"
-#include "../go_bindings/opt_math_finance_bridge_sources.cc"
+#include "../../go_bindings/opt_math_finance_bridge.h"
+
+#include "distributed_owa.h"
+#include "finance.hpp"
+#include "optimization_factory.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

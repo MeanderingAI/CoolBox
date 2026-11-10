@@ -1,0 +1,1 @@
+ c_bindings/sql/libsql.dll.a c_bindings/json/libjson.dll.a -lws2_32 -lshell32 libcoolbox_bundled_sqlite3.a -lpthread -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

@@ -430,6 +430,7 @@ std::string operator_to_sql(Operator op) {
 }
 
 std::string escape_value(const std::string& value) {
+    if (value == "?") return value;
     if (value.empty()) return "''";
     
     // Check if already quoted or is a number

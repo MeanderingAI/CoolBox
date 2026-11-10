@@ -21,10 +21,11 @@ namespace detail {
  *
  * Provides GPU acceleration on macOS/iOS via Metal.
  * Separate kernel methods for each operation, each with its own optimization strategy.
- * Falls back to CPU for unsupported shapes or when Metal is unavailable.
+ * The higher-level convenience methods may use CPU for small inputs; explicit
+ * kernel calls fail when Metal is unavailable.
  *
- * When compiled as Objective-C++ on Apple platforms, this backend uses inline Metal
- * shader sources plus command buffers. Otherwise it falls back to the CPU path.
+ * When compiled as Objective-C++ on Apple platforms, this backend uses Metal
+ * shader sources plus command buffers. Otherwise explicit kernel calls fail.
  */
 
 class MetalBackend {
@@ -51,10 +52,10 @@ public:
         if (auto result = detail::dispatch_multiply(lhs, rhs)) {
             return *result;
         }
+        throw std::runtime_error("Metal matrix multiplication failed");
+#else
+        throw std::runtime_error("Metal backend was not compiled for Objective-C++");
 #endif
-        auto result = std::make_unique<DenseMatrix>(lhs.rows(), rhs.cols());
-        result->data = lhs.data * rhs.data;
-        return *result;
     }
 
     /**
@@ -68,10 +69,10 @@ public:
         if (auto result = detail::dispatch_transpose(mat)) {
             return *result;
         }
+        throw std::runtime_error("Metal matrix transpose failed");
+#else
+        throw std::runtime_error("Metal backend was not compiled for Objective-C++");
 #endif
-        auto result = std::make_unique<DenseMatrix>(mat.cols(), mat.rows());
-        result->data = mat.data.transpose();
-        return *result;
     }
 
     /**
@@ -87,10 +88,10 @@ public:
         if (auto result = detail::dispatch_add(lhs, rhs)) {
             return *result;
         }
+        throw std::runtime_error("Metal matrix addition failed");
+#else
+        throw std::runtime_error("Metal backend was not compiled for Objective-C++");
 #endif
-        auto result = std::make_unique<DenseMatrix>(lhs.rows(), lhs.cols());
-        result->data = lhs.data + rhs.data;
-        return *result;
     }
 
     /**

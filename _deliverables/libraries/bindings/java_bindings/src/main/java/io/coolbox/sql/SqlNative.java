@@ -1,0 +1,50 @@
+package io.coolbox.sql;
+
+import com.sun.jna.Library;
+import com.sun.jna.Pointer;
+import io.coolbox.internal.NativeLibraries;
+import java.util.Map;
+
+interface SqlNative extends Library {
+    SqlNative INSTANCE = NativeLibraries.bridge(SqlNative.class);
+    Pointer coolbox_sql_schema_parse(String text, Pointer error, long cap);
+    Pointer coolbox_sql_schema_parse_file(String path, Pointer error, long cap);
+    void coolbox_sql_schema_free(Pointer schema);
+    long coolbox_sql_schema_model_count(Pointer schema);
+    Pointer coolbox_sql_schema_provider(Pointer schema);
+    Pointer coolbox_sql_model_name(Pointer schema,long model);
+    Pointer coolbox_sql_model_table_name(Pointer schema,long model);
+    long coolbox_sql_model_field_count(Pointer schema,long model);
+    Pointer coolbox_sql_field_name(Pointer schema,long model,long field);
+    int coolbox_sql_field_type(Pointer schema,long model,long field);
+    int coolbox_sql_field_flag(Pointer schema,long model,long field,int flag);
+    Pointer coolbox_sql_field_default(Pointer schema,long model,long field);
+    Pointer coolbox_sql_field_sql_type(Pointer schema,long model,long field,String provider);
+    Pointer coolbox_sql_database_new(String provider,Pointer error,long cap);
+    void coolbox_sql_database_free(Pointer db);
+    int coolbox_sql_database_connect(Pointer db,String connection,Pointer error,long cap);
+    void coolbox_sql_database_disconnect(Pointer db);
+    int coolbox_sql_database_connected(Pointer db);
+    Pointer coolbox_sql_database_provider(Pointer db);
+    Pointer coolbox_sql_execute(Pointer db,String query,String[] params,long count,Pointer error,long cap);
+    int coolbox_sql_transaction(Pointer db,int op);
+    int coolbox_sql_create_table(Pointer db,Pointer schema,long model,Pointer error,long cap);
+    int coolbox_sql_drop_table(Pointer db,String table,Pointer error,long cap);
+    void coolbox_sql_result_free(Pointer result);
+    long coolbox_sql_result_column_count(Pointer result);
+    long coolbox_sql_result_row_count(Pointer result);
+    int coolbox_sql_result_affected_rows(Pointer result);
+    long coolbox_sql_result_last_insert_id(Pointer result);
+    Pointer coolbox_sql_result_column(Pointer result,long i);
+    Pointer coolbox_sql_result_value(Pointer result,long row,long column);
+    Pointer coolbox_sql_result_json(Pointer result);
+    Pointer coolbox_sql_repository_new(Pointer db,Pointer schema,long model,Pointer error,long cap);
+    void coolbox_sql_repository_free(Pointer repository);
+    Pointer coolbox_sql_repository_call(Pointer repo,int operation,String id,String[] keys,String[] values,long count,String[] conditionKeys,String[] conditionValues,long conditionCount,Pointer error,long cap);
+    Pointer coolbox_sql_migrator_new(Pointer db,Pointer schema,Pointer error,long cap);
+    void coolbox_sql_migrator_free(Pointer migrator);
+    int coolbox_sql_migrator_call(Pointer migrator,int operation,Pointer output,long outputCap,Pointer error,long errorCap);
+    Pointer coolbox_sql_runner_new(Pointer db,String directory,Pointer error,long cap);
+    void coolbox_sql_runner_free(Pointer runner);
+    int coolbox_sql_runner_call(Pointer runner,int operation,long steps,Pointer output,long outputCap,Pointer error,long errorCap);
+}
