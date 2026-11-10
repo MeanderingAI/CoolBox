@@ -11,6 +11,66 @@
 namespace dataformats {
 namespace json {
 
+namespace {
+
+std::string quote_string(const std::string& value) {
+    std::string result = "\"";
+    for (char c : value) {
+        switch (c) {
+            case '"': result += "\\\""; break;
+            case '\\': result += "\\\\"; break;
+            case '\n': result += "\\n"; break;
+            case '\r': result += "\\r"; break;
+            case '\t': result += "\\t"; break;
+            case '\b': result += "\\b"; break;
+            case '\f': result += "\\f"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    const char* hex = "0123456789abcdef";
+                    result += "\\u00";
+                    result += hex[(static_cast<unsigned char>(c) >> 4) & 15];
+                    result += hex[static_cast<unsigned char>(c) & 15];
+                } else result += c;
+                break;
+        }
+    }
+    result += '"';
+    return result;
+}
+
+unsigned read_hex_escape(std::istringstream& input) {
+    unsigned value = 0;
+    for (int i = 0; i < 4; ++i) {
+        const int c = input.get();
+        unsigned digit;
+        if (c >= '0' && c <= '9') digit = c - '0';
+        else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F') digit = c - 'A' + 10;
+        else throw std::runtime_error("Invalid JSON Unicode escape");
+        value = value * 16 + digit;
+    }
+    return value;
+}
+
+void append_unicode(std::string& output, unsigned codepoint) {
+    if (codepoint <= 0x7f) output += static_cast<char>(codepoint);
+    else if (codepoint <= 0x7ff) {
+        output += static_cast<char>(0xc0 | (codepoint >> 6));
+        output += static_cast<char>(0x80 | (codepoint & 0x3f));
+    } else if (codepoint <= 0xffff) {
+        output += static_cast<char>(0xe0 | (codepoint >> 12));
+        output += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f));
+        output += static_cast<char>(0x80 | (codepoint & 0x3f));
+    } else {
+        output += static_cast<char>(0xf0 | (codepoint >> 18));
+        output += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f));
+        output += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f));
+        output += static_cast<char>(0x80 | (codepoint & 0x3f));
+    }
+}
+
+} // namespace
+
 // =========================================================================
 // Value Implementation
 // =========================================================================
@@ -400,6 +460,7 @@ std::string Parser::parse_string(std::istringstream& iss) {
                 default: throw std::runtime_error("Invalid JSON escape");
             }
         } else {
+            if (static_cast<unsigned char>(c) < 0x20) throw std::runtime_error("Unescaped JSON control character");
             result += c;
         }
     }

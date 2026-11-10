@@ -688,6 +688,58 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "build-movie-editor-debug",
+			"type": "shell",
+			"command": "cmake",
+			"windows": {
+				"type": "process",
+				"command": "powershell",
+				"args": [
+					"-NoProfile",
+					"-NonInteractive",
+					"-ExecutionPolicy",
+					"Bypass",
+					"-File",
+					"${workspaceFolder}\\_scripts\\build_movie_editor_windows.ps1"
+				]
+			},
+			"args": [
+				"--build",
+				"build",
+				"--config",
+				"Debug",
+				"--target",
+				"movie_editor"
+			],
+			"isBackground": false,
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "run-movie-editor",
+			"type": "shell",
+			"command": "${workspaceFolder}/build/_deliverables/apps/movie_editor/movie_editor",
+			"windows": {
+				"type": "process",
+				"command": "powershell",
+				"args": [
+					"-NoProfile",
+					"-NonInteractive",
+					"-ExecutionPolicy",
+					"Bypass",
+					"-Command",
+					"& { $ErrorActionPreference = 'Stop'; . '${workspaceFolder}\\_scripts\\movie_editor_ffmpeg_windows.ps1'; Initialize-MovieEditorFfmpeg; & '${workspaceFolder}\\build_windows\\_deliverables\\apps\\movie_editor\\Debug\\movie_editor.exe'; exit $LASTEXITCODE }"
+				]
+			},
+			"dependsOn": [
+				"build-movie-editor-debug"
+			],
+			"dependsOrder": "sequence",
+			"isBackground": false,
+			"group": "run",
+			"problemMatcher": []
+		},
+		{
 			"label": "run-recording-studio",
 			"type": "shell",
 			"command": "${workspaceFolder}/build/_deliverables/apps/recording_studio/recording_studio",

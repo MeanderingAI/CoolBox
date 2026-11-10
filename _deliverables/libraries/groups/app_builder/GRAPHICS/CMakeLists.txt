@@ -8,6 +8,7 @@ target_include_directories(graphics INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/components/headers>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/fonts/headers>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas/headers>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os_generic/headers>
   $<INSTALL_INTERFACE:include>
 )
 
@@ -15,6 +16,7 @@ target_include_directories(graphics INTERFACE
 install(DIRECTORY components/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
 install(DIRECTORY fonts/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
 install(DIRECTORY canvas/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
+install(DIRECTORY os_generic/headers/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/graphics)
 install(TARGETS graphics)
 
 # Optional texture loader library (uses stb_image if available in third_party)
@@ -73,5 +75,13 @@ endif()
 # Add subdirectories (keep the layout explicit and consistent)
 add_subdirectory(components)
 add_subdirectory(charts)
+if(GRAPHICS_ENABLE_STB_IMAGE AND EXISTS "${STB_PATH}")
+  FetchContent_GetProperties(stb SOURCE_DIR graphics_stb_source_dir)
+  if(NOT EXISTS "${graphics_stb_source_dir}/stb_image.h")
+    message(FATAL_ERROR "graphics_textures requires the pinned stb dependency configured by charts")
+  endif()
+  # The repository-local compatibility header only decodes BMP.
+  target_include_directories(graphics_textures BEFORE PRIVATE "${graphics_stb_source_dir}")
+endif()
 add_subdirectory(fonts)
 add_subdirectory(canvas)
