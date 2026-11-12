@@ -84,30 +84,6 @@ struct PointerPressEvent {
     PointerButton button = PointerButton::Left;
 };
 
-// A key press translated into either a chunk of typed text (for ordinary
-// printable characters) or one of a small set of editing/navigation keys.
-// `text` is only non-empty for printable input; `special` is set instead
-// for control keys such as Enter/Backspace.
-enum class SpecialKey {
-    None,
-    Enter,
-    Backspace,
-    Delete,
-    Escape,
-    Tab,
-    Left,
-    Right,
-    Up,
-    Down
-};
-
-struct KeyEvent {
-    std::string text;
-    SpecialKey special = SpecialKey::None;
-    bool shift = false;
-    bool ctrl = false;
-};
-
 struct RenderHooks {
     std::function<void(const RenderEvent&)> on_create;
     std::function<void(const RenderEvent&)> on_render;

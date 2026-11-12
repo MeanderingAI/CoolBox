@@ -29,10 +29,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
-// Xlib.h #defines "None" as 0L, which collides with the platform-neutral
-// SpecialKey::None enumerator declared in full_application_window.hpp.
-// Nothing in this translation unit relies on the macro afterwards.
-#undef None
 #if defined(GRAPHICS_HAVE_GTK3)
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -234,6 +230,172 @@ struct FullApplicationWindow::Impl {
     std::unordered_set<unsigned int> held_keys;
     ::Window window = 0;
     Atom delete_message = 0;
+    mutable GC gc = nullptr;
+
+    // Software pixel backbuffer: RGBA 8-bit packed rows, blitted to the
+    // X window with XPutImage. X11 has no built-in text/vector drawing
+    // wired up here, so clear_background/fill_rect/draw_text_line all
+    // rasterize into this buffer and request_redraw() blits it once per
+    // frame (same strategy as the macOS Cocoa backend above).
+    mutable std::vector<unsigned char> x11_pixels;
+    mutable int x11_buf_w = 0;
+    mutable int x11_buf_h = 0;
+    // Set by present_canvas() for the duration of the current frame so that
+    // request_redraw() knows the app already blitted a fully-composed frame
+    // itself and must not also blit the (separate, unrelated) x11_pixels
+    // backbuffer on top of it, which would otherwise erase it.
+    mutable bool x11_canvas_presented = false;
+    // Scratch buffer reused across present_canvas() calls so a fresh ~27MB
+    // heap allocation isn't paid on every single frame (only reallocated
+    // when the canvas size actually changes, e.g. on window resize).
+    mutable std::vector<std::uint32_t> present_scratch;
+
+    bool x11_ensure_buf(int w, int h) const {
+        if (w <= 0 || h <= 0) return false;
+        if (w == x11_buf_w && h == x11_buf_h) return true;
+        x11_buf_w = w;
+        x11_buf_h = h;
+        x11_pixels.assign(static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4u, 0);
+        return true;
+    }
+
+    void x11_fill_rect(int x0, int y0, int x1, int y1,
+                       unsigned char r, unsigned char g, unsigned char b) const {
+        if (!x11_ensure_buf(x11_buf_w, x11_buf_h)) return;
+        x0 = std::max(0, x0); y0 = std::max(0, y0);
+        x1 = std::min(x11_buf_w, x1); y1 = std::min(x11_buf_h, y1);
+        for (int y = y0; y < y1; ++y) {
+            unsigned char* row = x11_pixels.data() + (y * x11_buf_w + x0) * 4;
+            for (int x = x0; x < x1; ++x, row += 4) {
+                // Byte order matches a 32bpp BGRA XImage (the common X11
+                // TrueColor layout); see x11_blit_to_window().
+                row[0] = b; row[1] = g; row[2] = r; row[3] = 255;
+            }
+        }
+    }
+
+    void x11_draw_text(int x, int y,
+                       const std::string& text,
+                       unsigned char r, unsigned char g, unsigned char b,
+                       int scale = 1) const {
+        if (!x11_ensure_buf(x11_buf_w, x11_buf_h)) return;
+        scale = std::max(1, scale);
+        int cx = x;
+        for (unsigned char ch : text) {
+            if (ch < 32 || ch > 126) { cx += 6 * scale; continue; }
+            const unsigned char* glyph = k_font_5x7[ch - 32];
+            for (int row = 0; row < 7; ++row) {
+                for (int col = 0; col < 5; ++col) {
+                    if (!(glyph[row] & (0x10u >> col))) continue;
+                    for (int sy = 0; sy < scale; ++sy) {
+                        const int py = y + row * scale + sy;
+                        if (py < 0 || py >= x11_buf_h) continue;
+                        for (int sx = 0; sx < scale; ++sx) {
+                            const int px = cx + col * scale + sx;
+                            if (px < 0 || px >= x11_buf_w) continue;
+                            unsigned char* p = x11_pixels.data() + (py * x11_buf_w + px) * 4;
+                            p[0] = b; p[1] = g; p[2] = r; p[3] = 255;
+                        }
+                    }
+                }
+            }
+            cx += 6 * scale;
+        }
+    }
+
+    void x11_fill_rounded_rect(int left, int top, int right, int bottom, int radius,
+                               unsigned char r, unsigned char g, unsigned char b,
+                               bool filled) const {
+        if (!x11_ensure_buf(x11_buf_w, x11_buf_h)) return;
+        if (right <= left || bottom <= top) return;
+        const int clip_left = std::max(0, left);
+        const int clip_top = std::max(0, top);
+        const int clip_right = std::min(x11_buf_w, right);
+        const int clip_bottom = std::min(x11_buf_h, bottom);
+        if (clip_right <= clip_left || clip_bottom <= clip_top) return;
+        const int rad = std::max(0, std::min({radius, (right - left) / 2, (bottom - top) / 2}));
+        const int rad_sq = rad * rad;
+        const int inner_rad_sq = std::max(0, rad - 1) * std::max(0, rad - 1);
+        for (int y = clip_top; y < clip_bottom; ++y) {
+            for (int x = clip_left; x < clip_right; ++x) {
+                int dx = 0, dy = 0;
+                if (x < left + rad) dx = (left + rad) - x;
+                else if (x >= right - rad) dx = x - (right - rad - 1);
+                if (y < top + rad) dy = (top + rad) - y;
+                else if (y >= bottom - rad) dy = y - (bottom - rad - 1);
+                if (dx > 0 && dy > 0 && dx * dx + dy * dy > rad_sq) continue;
+                if (!filled) {
+                    const bool near_border =
+                        x <= left + 1 || x >= right - 2 ||
+                        y <= top + 1 || y >= bottom - 2 ||
+                        (dx > 0 && dy > 0 && dx * dx + dy * dy > inner_rad_sq);
+                    if (!near_border) continue;
+                }
+                unsigned char* p = x11_pixels.data() + (y * x11_buf_w + x) * 4;
+                p[0] = b; p[1] = g; p[2] = r; p[3] = 255;
+            }
+        }
+    }
+
+    // Same shape test as x11_fill_rounded_rect, but blends the new color
+    // into whatever is already in the pixel buffer using `alpha` (0-255)
+    // instead of overwriting it outright, producing a translucent "glass
+    // panel" look.
+    void x11_fill_rounded_rect_alpha(int left, int top, int right, int bottom, int radius,
+                                     unsigned char r, unsigned char g, unsigned char b,
+                                     unsigned char alpha) const {
+        if (!x11_ensure_buf(x11_buf_w, x11_buf_h)) return;
+        if (right <= left || bottom <= top) return;
+        const int clip_left = std::max(0, left);
+        const int clip_top = std::max(0, top);
+        const int clip_right = std::min(x11_buf_w, right);
+        const int clip_bottom = std::min(x11_buf_h, bottom);
+        if (clip_right <= clip_left || clip_bottom <= clip_top) return;
+        const int rad = std::max(0, std::min({radius, (right - left) / 2, (bottom - top) / 2}));
+        const int rad_sq = rad * rad;
+        const int a = alpha;
+        const int inv_a = 255 - alpha;
+        for (int y = clip_top; y < clip_bottom; ++y) {
+            for (int x = clip_left; x < clip_right; ++x) {
+                int dx = 0, dy = 0;
+                if (x < left + rad) dx = (left + rad) - x;
+                else if (x >= right - rad) dx = x - (right - rad - 1);
+                if (y < top + rad) dy = (top + rad) - y;
+                else if (y >= bottom - rad) dy = y - (bottom - rad - 1);
+                if (dx > 0 && dy > 0 && dx * dx + dy * dy > rad_sq) continue;
+                unsigned char* p = x11_pixels.data() + (y * x11_buf_w + x) * 4;
+                p[0] = static_cast<unsigned char>((b * a + p[0] * inv_a) / 255);
+                p[1] = static_cast<unsigned char>((g * a + p[1] * inv_a) / 255);
+                p[2] = static_cast<unsigned char>((r * a + p[2] * inv_a) / 255);
+                p[3] = 255;
+            }
+        }
+    }
+
+    void x11_blit_to_window() const {
+        if (!display || !window || x11_pixels.empty() || x11_buf_w <= 0 || x11_buf_h <= 0) return;
+        if (!gc) {
+            gc = XCreateGC(display, window, 0, nullptr);
+        }
+        XImage* image = XCreateImage(
+            display,
+            DefaultVisual(display, DefaultScreen(display)),
+            24, ZPixmap, 0,
+            reinterpret_cast<char*>(x11_pixels.data()),
+            static_cast<unsigned int>(x11_buf_w),
+            static_cast<unsigned int>(x11_buf_h),
+            32, 0);
+        if (!image) return;
+        // XCreateImage does not own the data buffer here; prevent XDestroyImage
+        // from freeing memory that belongs to x11_pixels.
+        image->data = reinterpret_cast<char*>(x11_pixels.data());
+        XPutImage(display, window, gc, image, 0, 0, 0, 0,
+                 static_cast<unsigned int>(x11_buf_w),
+                 static_cast<unsigned int>(x11_buf_h));
+        image->data = nullptr;
+        XDestroyImage(image);
+        XFlush(display);
+    }
 #if defined(GRAPHICS_HAVE_GTK3)
     GtkWidget* gtk_window = nullptr;
     GtkWidget* gtk_box = nullptr;
@@ -1346,6 +1508,10 @@ void FullApplicationWindow::close() {
     impl_->display = nullptr; // GDK owns the shared display connection.
     impl_->window = 0;
 #else
+    if (impl_->gc) {
+        XFreeGC(impl_->display, impl_->gc);
+        impl_->gc = nullptr;
+    }
     if (impl_->display && impl_->window) {
         XDestroyWindow(impl_->display, impl_->window);
         impl_->window = 0;
@@ -1621,58 +1787,6 @@ bool FullApplicationWindow::pump_events() {
                 event.xbutton.button == Button4 ? 1.0 : -1.0,
                 (event.xbutton.state & ShiftMask) != 0});
         }
-        if (event.type == KeyPress && impl_->hooks.on_key) {
-            char buffer[32] = {0};
-            KeySym keysym = NoSymbol;
-            const int len = XLookupString(&event.xkey, buffer, sizeof(buffer) - 1, &keysym, nullptr);
-            KeyEvent key_event{};
-            key_event.shift = (event.xkey.state & ShiftMask) != 0;
-            key_event.ctrl = (event.xkey.state & ControlMask) != 0;
-            switch (keysym) {
-                case XK_Return:
-                case XK_KP_Enter:
-                    key_event.special = SpecialKey::Enter;
-                    break;
-                case XK_BackSpace:
-                    key_event.special = SpecialKey::Backspace;
-                    break;
-                case XK_Delete:
-                    key_event.special = SpecialKey::Delete;
-                    break;
-                case XK_Escape:
-                    key_event.special = SpecialKey::Escape;
-                    break;
-                case XK_Tab:
-                    key_event.special = SpecialKey::Tab;
-                    break;
-                case XK_Left:
-                    key_event.special = SpecialKey::Left;
-                    break;
-                case XK_Right:
-                    key_event.special = SpecialKey::Right;
-                    break;
-                case XK_Up:
-                    key_event.special = SpecialKey::Up;
-                    break;
-                case XK_Down:
-                    key_event.special = SpecialKey::Down;
-                    break;
-                default:
-                    key_event.special = SpecialKey::None;
-                    break;
-            }
-            if (key_event.special == SpecialKey::None && len > 0) {
-                // Printable text (may be empty for pure modifier/function keys).
-                key_event.text.assign(buffer, static_cast<std::size_t>(len));
-                // Filter out raw control characters that are not meaningful
-                // as text input (e.g. Ctrl+<letter> combos still land here).
-                if (key_event.text.size() == 1 &&
-                    static_cast<unsigned char>(key_event.text[0]) < 0x20) {
-                    key_event.text.clear();
-                }
-            }
-            impl_->hooks.on_key(key_event);
-        }
         if (event.type == ClientMessage && static_cast<Atom>(event.xclient.data.l[0]) == impl_->delete_message) {
             if (impl_->hooks.on_close) {
                 impl_->hooks.on_close(impl_->make_render_event(static_cast<std::uintptr_t>(impl_->window), impl_->frame_index));
@@ -1863,9 +1977,12 @@ void FullApplicationWindow::request_redraw() {
         int w = 0, h = 0;
         client_size(w, h);
         impl_->x11_ensure_buf(w, h);
+        impl_->x11_canvas_presented = false;
         impl_->hooks.on_render(impl_->make_render_event(
             static_cast<std::uintptr_t>(impl_->window), impl_->frame_index++));
-        impl_->x11_blit_to_window();
+        if (!impl_->x11_canvas_presented) {
+            impl_->x11_blit_to_window();
+        }
     }
 #elif defined(__APPLE__) && defined(GRAPHICS_HAVE_COCOA_RUNTIME)
     if (impl_->hooks.on_render) {
@@ -2396,7 +2513,8 @@ bool FullApplicationWindow::present_canvas(const ::graphics::Canvas& canvas) con
     const int gshift = shift_for_mask(visual->green_mask);
     const int bshift = shift_for_mask(visual->blue_mask);
 
-    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
+    std::vector<std::uint32_t>& pixels = impl_->present_scratch;
+    pixels.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
     const unsigned char* src = canvas.data(); // RGBA8, row-major, top-left origin
     for (std::size_t i = 0; i < pixels.size(); ++i) {
         const unsigned char r = src[i * 4 + 0];
@@ -2420,6 +2538,7 @@ bool FullApplicationWindow::present_canvas(const ::graphics::Canvas& canvas) con
     image->data = nullptr; // `pixels` owns the buffer; don't let XDestroyImage free it
     XDestroyImage(image);
     XFlush(impl_->display);
+    impl_->x11_canvas_presented = true;
     return true;
 #else
     (void)canvas;

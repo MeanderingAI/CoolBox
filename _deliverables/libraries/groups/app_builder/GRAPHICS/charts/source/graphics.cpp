@@ -344,6 +344,12 @@ void Canvas::fill(Color c) {
     }
 }
 
+bool Canvas::blit_from(const Canvas& other) {
+    if (width_ != other.width_ || height_ != other.height_) return false;
+    std::memcpy(pixels_.data(), other.pixels_.data(), pixels_.size());
+    return true;
+}
+
 void Canvas::set_pixel(int x, int y, Color c) {
     if (x < 0 || x >= width_ || y < 0 || y >= height_) return;
     blend_pixel(x, y, c);

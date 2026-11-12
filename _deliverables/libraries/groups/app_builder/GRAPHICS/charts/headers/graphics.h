@@ -126,6 +126,12 @@ public:
     Color get_pixel(int x, int y) const;
     void fill(Color c);
 
+    // Bulk-copies another canvas's pixel buffer into this one (raw memcpy,
+    // no blending). Both canvases must have identical width/height; no-op
+    // (returns false) otherwise. Much cheaper than redrawing an unchanged
+    // background every frame.
+    bool blit_from(const Canvas& other);
+
     // Drawing primitives
     void draw_line(int x0, int y0, int x1, int y1, Color c, int thickness = 1);
     void draw_rect(int x, int y, int w, int h, Color c, bool filled = false);

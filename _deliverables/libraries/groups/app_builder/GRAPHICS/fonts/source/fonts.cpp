@@ -4,16 +4,30 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <unordered_map>
 #include <utility>
 
 #include <stb_truetype.h>
 
 namespace graphics::fonts {
 
+// Rasterizing a glyph's vector outline (stbtt_GetCodepointBitmap) is not
+// cheap, especially at larger pixel sizes, and TextRenderer::draw_text used
+// to do it from scratch for every glyph on every call with no caching --
+// fine at a handful of small draws, but with many on-screen labels at large
+// pixel heights this became the dominant per-frame cost and made typing (or
+// any redraw) visibly laggy. Cache rasterized bitmaps per (codepoint,
+// pixel_height) so repeat draws of the same glyph/size reuse the bitmap.
+struct CachedGlyph {
+    int w = 0, h = 0, xoff = 0, yoff = 0;
+    std::vector<unsigned char> bitmap;
+};
+
 struct FontFace::Impl {
     std::vector<unsigned char> bytes;
     stbtt_fontinfo info{};
     bool loaded = false;
+    mutable std::unordered_map<std::uint64_t, CachedGlyph> glyph_cache;
 };
 
 namespace {
@@ -215,30 +229,46 @@ bool TextRenderer::draw_text(Canvas& canvas,
 
         for (std::size_t i = 0; i < codepoints.size(); ++i) {
             const int codepoint = codepoints[i];
-            int glyph_w = 0;
-            int glyph_h = 0;
-            int xoff = 0;
-            int yoff = 0;
-            unsigned char* bitmap = stbtt_GetCodepointBitmap(
-                &font.impl()->info, scale, scale, codepoint, &glyph_w, &glyph_h, &xoff, &yoff);
 
-            if (bitmap != nullptr) {
-                for (int row = 0; row < glyph_h; ++row) {
-                    for (int col = 0; col < glyph_w; ++col) {
-                        const unsigned char coverage = bitmap[row * glyph_w + col];
-                        if (coverage == 0) {
-                            continue;
-                        }
-                        const int px = pen_x + xoff + col;
-                        const int py = baseline_y + yoff + row;
-                        if (px < 0 || py < 0 || px >= canvas.width() || py >= canvas.height()) {
-                            continue;
-                        }
-                        const Color dst = canvas.get_pixel(px, py);
-                        canvas.set_pixel(px, py, alpha_blend(dst, color, coverage));
-                    }
+            // Cache key packs the (quantized) pixel height and codepoint;
+            // callers in practice only ever use a small fixed set of sizes,
+            // so rounding to the nearest pixel loses no meaningful quality.
+            const auto size_key = static_cast<std::uint64_t>(std::lround(pixel_height));
+            const std::uint64_t key = (size_key << 32) | static_cast<std::uint32_t>(codepoint);
+
+            auto& cache = font.impl()->glyph_cache;
+            auto cached = cache.find(key);
+            if (cached == cache.end()) {
+                CachedGlyph entry;
+                int glyph_w = 0, glyph_h = 0, xoff = 0, yoff = 0;
+                unsigned char* bitmap = stbtt_GetCodepointBitmap(
+                    &font.impl()->info, scale, scale, codepoint, &glyph_w, &glyph_h, &xoff, &yoff);
+                entry.w = glyph_w;
+                entry.h = glyph_h;
+                entry.xoff = xoff;
+                entry.yoff = yoff;
+                if (bitmap != nullptr) {
+                    entry.bitmap.assign(bitmap, bitmap + static_cast<std::size_t>(glyph_w) * glyph_h);
+                    stbtt_FreeBitmap(bitmap, nullptr);
                 }
-                stbtt_FreeBitmap(bitmap, nullptr);
+                cached = cache.emplace(key, std::move(entry)).first;
+            }
+
+            const CachedGlyph& glyph = cached->second;
+            for (int row = 0; row < glyph.h; ++row) {
+                for (int col = 0; col < glyph.w; ++col) {
+                    const unsigned char coverage = glyph.bitmap[static_cast<std::size_t>(row) * glyph.w + col];
+                    if (coverage == 0) {
+                        continue;
+                    }
+                    const int px = pen_x + glyph.xoff + col;
+                    const int py = baseline_y + glyph.yoff + row;
+                    if (px < 0 || py < 0 || px >= canvas.width() || py >= canvas.height()) {
+                        continue;
+                    }
+                    const Color dst = canvas.get_pixel(px, py);
+                    canvas.set_pixel(px, py, alpha_blend(dst, color, coverage));
+                }
             }
 
             int advance = 0;
