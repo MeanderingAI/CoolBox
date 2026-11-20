@@ -66,7 +66,8 @@ void Tensor::ensure_device() const {
 Tensor Tensor::device_result(
     const std::vector<size_t>& shape,
     detail::VulkanTensorStoragePtr storage) const {
-    Tensor result(shape);
+    Tensor result;
+    result.shape_ = shape;
     result.device_storage_ = std::move(storage);
     result.host_valid_ = false;
     return result;
@@ -97,10 +98,11 @@ const double& Tensor::operator()(const std::vector<size_t>& indices) const {
 Tensor Tensor::reshape(const std::vector<size_t>& new_shape) const {
     size_t total = 1;
     for (auto s : new_shape) total *= s;
-    if (total != data_.size()) throw std::invalid_argument("Reshape size mismatch");
+    if (total != size()) throw std::invalid_argument("Reshape size mismatch");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
     if (device_storage_) {
-        Tensor result(new_shape);
+        Tensor result;
+        result.shape_ = new_shape;
         result.data_ = data_;
         result.device_storage_ = device_storage_;
         result.host_valid_ = host_valid_;
@@ -115,16 +117,16 @@ Tensor Tensor::transpose() const {
     if (shape_.size() != 2) throw std::invalid_argument("Transpose only for 2D tensors");
     size_t rows = shape_[0], cols = shape_[1];
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         return device_result(
             {cols, rows},
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::TRANSPOSE,
-                device_storage_, {}, data_.size(), rows, cols, 0));
+                device_storage_, {}, size(), rows, cols, 0));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     Tensor result({cols, rows});
@@ -138,7 +140,7 @@ Tensor Tensor::operator+(const Tensor& other) const {
     if (shape_ != other.shape_)
         throw std::invalid_argument("Tensor shapes must match for addition");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         other.ensure_device();
         return device_result(
@@ -146,15 +148,15 @@ Tensor Tensor::operator+(const Tensor& other) const {
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::ADD,
                 device_storage_, other.device_storage_,
-                data_.size(), 0, 0, 0));
+                size(), 0, 0, 0));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     other.data();
     Tensor result(shape_);
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         result.data_[i] = data_[i] + other.data_[i];
     return result;
 }
@@ -163,7 +165,7 @@ Tensor Tensor::operator-(const Tensor& other) const {
     if (shape_ != other.shape_)
         throw std::invalid_argument("Tensor shapes must match for subtraction");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         other.ensure_device();
         return device_result(
@@ -171,15 +173,15 @@ Tensor Tensor::operator-(const Tensor& other) const {
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::SUBTRACT,
                 device_storage_, other.device_storage_,
-                data_.size(), 0, 0, 0));
+                size(), 0, 0, 0));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     other.data();
     Tensor result(shape_);
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         result.data_[i] = data_[i] - other.data_[i];
     return result;
 }
@@ -189,7 +191,7 @@ Tensor Tensor::operator*(const Tensor& other) const {
         throw std::invalid_argument(
             "Tensor shapes must match for element-wise multiplication");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         other.ensure_device();
         return device_result(
@@ -197,15 +199,15 @@ Tensor Tensor::operator*(const Tensor& other) const {
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::MULTIPLY,
                 device_storage_, other.device_storage_,
-                data_.size(), 0, 0, 0));
+                size(), 0, 0, 0));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     other.data();
     Tensor result(shape_);
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         result.data_[i] = data_[i] * other.data_[i];
     return result;
 }
@@ -219,7 +221,7 @@ Tensor Tensor::operator/(const Tensor& other) const {
             throw std::runtime_error("Division by zero");
     }
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         other.ensure_device();
         return device_result(
@@ -227,14 +229,14 @@ Tensor Tensor::operator/(const Tensor& other) const {
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::DIVIDE,
                 device_storage_, other.device_storage_,
-                data_.size(), 0, 0, 0));
+                size(), 0, 0, 0));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     Tensor result(shape_);
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         result.data_[i] = data_[i] / other.data_[i];
     return result;
 }
@@ -243,22 +245,22 @@ Tensor& Tensor::operator+=(const Tensor& other) {
     if (shape_ != other.shape_)
         throw std::invalid_argument("Tensor shapes must match for addition");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         other.ensure_device();
         device_storage_ = detail::vulkan_tensor_execute_resident(
             detail::VulkanTensorOperation::ADD,
             device_storage_, other.device_storage_,
-            data_.size(), 0, 0, 0);
+            size(), 0, 0, 0);
         host_valid_ = false;
         return *this;
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     other.data();
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         data_[i] += other.data_[i];
     return *this;
 }
@@ -267,42 +269,42 @@ Tensor& Tensor::operator-=(const Tensor& other) {
     if (shape_ != other.shape_)
         throw std::invalid_argument("Tensor shapes must match for subtraction");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         other.ensure_device();
         device_storage_ = detail::vulkan_tensor_execute_resident(
             detail::VulkanTensorOperation::SUBTRACT,
             device_storage_, other.device_storage_,
-            data_.size(), 0, 0, 0);
+            size(), 0, 0, 0);
         host_valid_ = false;
         return *this;
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     other.data();
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         data_[i] -= other.data_[i];
     return *this;
 }
 
 Tensor Tensor::operator*(double scalar) const {
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         return device_result(
             shape_,
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::SCALAR_MULTIPLY,
-                device_storage_, {}, data_.size(), 0, 0, 0, scalar));
+                device_storage_, {}, size(), 0, 0, 0, scalar));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     Tensor result(shape_);
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         result.data_[i] = data_[i] * scalar;
     return result;
 }
@@ -311,20 +313,20 @@ Tensor Tensor::operator/(double scalar) const {
     if (std::abs(scalar) < 1e-10)
         throw std::runtime_error("Division by zero");
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
-    if (detail::should_use_vulkan(data_.size())) {
+    if (detail::should_use_vulkan(size())) {
         ensure_device();
         return device_result(
             shape_,
             detail::vulkan_tensor_execute_resident(
                 detail::VulkanTensorOperation::SCALAR_DIVIDE,
-                device_storage_, {}, data_.size(), 0, 0, 0, scalar));
+                device_storage_, {}, size(), 0, 0, 0, scalar));
     }
 #else
-    detail::should_use_vulkan(data_.size());
+    detail::should_use_vulkan(size());
 #endif
     data();
     Tensor result(shape_);
-    for (size_t i = 0; i < data_.size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
         result.data_[i] = data_[i] / scalar;
     return result;
 }
@@ -1639,7 +1641,8 @@ void Tensor::randomize(double min, double max) {
 Tensor Tensor::clone() const {
 #ifdef COOLBOX_HAS_VULKAN_TENSOR
     if (device_storage_) {
-        Tensor result(shape_);
+        Tensor result;
+        result.shape_ = shape_;
         result.data_ = data_;
         result.device_storage_ = device_storage_;
         result.host_valid_ = host_valid_;
@@ -1657,8 +1660,8 @@ double Tensor::sum() const {
 }
 
 double Tensor::mean() const {
-    if (data_.empty()) return 0.0;
-    return sum() / static_cast<double>(data_.size());
+    if (size() == 0) return 0.0;
+    return sum() / static_cast<double>(size());
 }
 
 } // namespace deep_learning

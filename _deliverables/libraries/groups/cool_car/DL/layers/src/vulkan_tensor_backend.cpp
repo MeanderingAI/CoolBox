@@ -24,6 +24,11 @@ namespace ml {
 namespace deep_learning {
 namespace detail {
 
+constexpr VkDeviceSize MAX_CACHED_DEVICE_BYTES =
+    256ULL * 1024ULL * 1024ULL;
+constexpr VkDeviceSize MAX_CACHED_STAGING_BYTES =
+    64ULL * 1024ULL * 1024ULL;
+
 struct VulkanBufferAllocation {
     VkDevice device = VK_NULL_HANDLE;
     VkBuffer buffer = VK_NULL_HANDLE;
@@ -50,8 +55,11 @@ struct VulkanBufferAllocation {
 };
 
 struct VulkanStoragePool {
-    explicit VulkanStoragePool(VkDevice device)
+    VulkanStoragePool(
+        VkDevice device,
+        VkDeviceSize maximum_cached_bytes)
         : device(device),
+          maximum_cached_bytes(maximum_cached_bytes),
           device_alive(std::make_shared<std::atomic<bool>>(true)) {}
 
     ~VulkanStoragePool() {
@@ -82,8 +90,8 @@ struct VulkanStoragePool {
             return;
         }
         if (allocation->capacity >
-            MAX_CACHED_BYTES -
-                std::min(cached_bytes, MAX_CACHED_BYTES)) {
+            maximum_cached_bytes -
+                std::min(cached_bytes, maximum_cached_bytes)) {
             return;
         }
         cached_bytes += allocation->capacity;
@@ -106,6 +114,7 @@ struct VulkanStoragePool {
     }
 
     VkDevice device = VK_NULL_HANDLE;
+    VkDeviceSize maximum_cached_bytes = 0;
     std::shared_ptr<std::atomic<bool>> device_alive;
     std::mutex mutex;
     std::multimap<
@@ -113,9 +122,6 @@ struct VulkanStoragePool {
         std::unique_ptr<VulkanBufferAllocation>> available;
     VkDeviceSize cached_bytes = 0;
     bool accepting = true;
-
-    static constexpr VkDeviceSize MAX_CACHED_BYTES =
-        1024ULL * 1024ULL * 1024ULL;
 };
 
 struct VulkanTensorStorage {
@@ -1193,9 +1199,11 @@ private:
             "vkCreateDevice");
         vkGetDeviceQueue(device_, queue_family_, 0, &queue_);
         device_storage_pool_ =
-            std::make_shared<VulkanStoragePool>(device_);
+            std::make_shared<VulkanStoragePool>(
+                device_, MAX_CACHED_DEVICE_BYTES);
         staging_storage_pool_ =
-            std::make_shared<VulkanStoragePool>(device_);
+            std::make_shared<VulkanStoragePool>(
+                device_, MAX_CACHED_STAGING_BYTES);
 
         std::array<VkDescriptorSetLayoutBinding, 4> bindings{};
         for (std::uint32_t index = 0; index < bindings.size(); ++index) {

@@ -31,7 +31,18 @@ public:
     const std::vector<double>& data() const;
     std::vector<double>& data();
     const std::vector<size_t>& shape() const { return shape_; }
-    size_t size() const { return data_.size(); }
+    size_t size() const {
+#ifdef COOLBOX_HAS_VULKAN_TENSOR
+        if (device_storage_ && !host_valid_) {
+            size_t total = 1;
+            for (size_t dimension : shape_) {
+                total *= dimension;
+            }
+            return total;
+        }
+#endif
+        return data_.size();
+    }
     size_t ndim() const { return shape_.size(); }
     
     // Element access
