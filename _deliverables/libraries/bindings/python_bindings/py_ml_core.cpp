@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
+#include <cstring>
 
 #include "graphics_misc/bindings.hpp"
 #include "decision_tree/decision_tree.h"
@@ -45,11 +46,119 @@
 #include "include/pde_spde_bindings.hpp"
 #include "include/timer_bindings.hpp"
 #include "include/synthetic_data_bindings.hpp"
+#include "stable_kl.h"
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(ml_core, m) {
     m.doc() = "Machine Learning Core Library Python Bindings";
+
+    py::module_ stable_kl_module = m.def_submodule(
+        "stable_kl", "Numerically stable KL divergence routines");
+    stable_kl_module.def("expm1_minus_x",
+        [](py::array_t<double, py::array::c_style | py::array::forcecast> values) {
+            auto view = values.unchecked<1>();
+            std::vector<double> input(static_cast<std::size_t>(view.size()));
+            for (py::ssize_t i = 0; i < view.size(); ++i) input[static_cast<std::size_t>(i)] = view(i);
+            const auto result = ml::stable_kl::expm1_minus_x(input);
+            py::array_t<double> output(static_cast<py::ssize_t>(result.size()));
+            auto output_view = output.mutable_unchecked<1>();
+            for (std::size_t i = 0; i < result.size(); ++i) output_view(static_cast<py::ssize_t>(i)) = result[i];
+            return output;
+        }, py::arg("values"));
+    stable_kl_module.def("normal_kl",
+        [](const std::vector<double>& mu,
+           const std::vector<double>& logvar,
+           const std::vector<double>& mu_target,
+           const std::vector<double>& logvar_target) {
+            const auto result = ml::stable_kl::normal_kl(
+                mu, logvar, mu_target, logvar_target);
+            py::array_t<double> output(static_cast<py::ssize_t>(result.size()));
+            auto output_view = output.mutable_unchecked<1>();
+            for (std::size_t i = 0; i < result.size(); ++i) {
+                output_view(static_cast<py::ssize_t>(i)) = result[i];
+            }
+            return output;
+        }, py::arg("mu"), py::arg("logvar"),
+           py::arg("mu_target"), py::arg("logvar_target"));
+    stable_kl_module.def("kl_from_logits",
+        [](py::array_t<double, py::array::c_style | py::array::forcecast> teacher,
+           py::array_t<double, py::array::c_style | py::array::forcecast> student) {
+            if (teacher.ndim() < 1 || teacher.shape(teacher.ndim() - 1) == 0 ||
+                teacher.ndim() != student.ndim()) {
+                throw py::value_error("teacher_logits and student_logits must be identical-shaped, non-empty arrays");
+            }
+            for (py::ssize_t i = 0; i < teacher.ndim(); ++i) {
+                if (teacher.shape(i) != student.shape(i)) {
+                    throw py::value_error("teacher_logits and student_logits must be identical-shaped, non-empty arrays");
+                }
+            }
+            const py::ssize_t classes = teacher.shape(teacher.ndim() - 1);
+            py::ssize_t rows = 1;
+            for (py::ssize_t i = 0; i < teacher.ndim() - 1; ++i) rows *= teacher.shape(i);
+
+            const auto teacher_view = teacher.unchecked();
+            const auto student_view = student.unchecked();
+            std::vector<double> teacher_values(static_cast<std::size_t>(rows * classes));
+            std::vector<double> student_values(static_cast<std::size_t>(rows * classes));
+            for (py::ssize_t i = 0; i < rows * classes; ++i) {
+                teacher_values[static_cast<std::size_t>(i)] = *(
+                    reinterpret_cast<const double*>(teacher.data()) + i);
+                student_values[static_cast<std::size_t>(i)] = *(
+                    reinterpret_cast<const double*>(student.data()) + i);
+            }
+            const auto result = ml::stable_kl::kl_from_logits(
+                teacher_values, student_values,
+                static_cast<std::size_t>(rows),
+                static_cast<std::size_t>(classes));
+            py::array_t<double> output(static_cast<py::ssize_t>(rows));
+            auto output_view = output.mutable_unchecked<1>();
+            for (py::ssize_t i = 0; i < rows; ++i) output_view(i) = result[static_cast<std::size_t>(i)];
+            return output;
+        }, py::arg("teacher_logits"), py::arg("student_logits"));
+    stable_kl_module.def("kl_divergence",
+        [](py::array_t<double, py::array::c_style | py::array::forcecast> target,
+           py::array_t<double, py::array::c_style | py::array::forcecast> input,
+           const std::string& reduction,
+           bool log_target) {
+            if (target.ndim() != input.ndim()) {
+                throw py::value_error("target and input must have the same shape");
+            }
+            for (py::ssize_t i = 0; i < target.ndim(); ++i) {
+                if (target.shape(i) != input.shape(i)) {
+                    throw py::value_error("target and input must have the same shape");
+                }
+            }
+            const py::ssize_t count = target.size();
+            std::vector<double> target_values(static_cast<std::size_t>(count));
+            std::vector<double> input_values(static_cast<std::size_t>(count));
+            for (py::ssize_t i = 0; i < count; ++i) {
+                target_values[static_cast<std::size_t>(i)] =
+                    *(reinterpret_cast<const double*>(target.data()) + i);
+                input_values[static_cast<std::size_t>(i)] =
+                    *(reinterpret_cast<const double*>(input.data()) + i);
+            }
+            std::size_t batch_size = 1;
+            std::size_t batch_columns = static_cast<std::size_t>(count);
+            if (target.ndim() >= 2) {
+                batch_size = static_cast<std::size_t>(target.shape(0));
+                batch_columns = static_cast<std::size_t>(count) / batch_size;
+            }
+            const auto result = ml::stable_kl::kl_divergence(
+                target_values, input_values, log_target,
+                ml::stable_kl::parse_reduction(reduction),
+                batch_size, batch_columns);
+            if (reduction == "none") {
+                py::array_t<double> output(target.request().shape);
+                std::memcpy(output.mutable_data(), result.data(),
+                            result.size() * sizeof(double));
+                return output;
+            }
+            return py::array_t<double>(
+                static_cast<py::ssize_t>(1),
+                result.data());
+        }, py::arg("target"), py::arg("input"),
+           py::arg("reduction") = "mean", py::arg("log_target") = false);
 
     bind_graphics(m);
     bind_misc(m);

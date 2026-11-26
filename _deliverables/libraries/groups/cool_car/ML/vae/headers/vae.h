@@ -104,6 +104,25 @@ public:
         init_weights();
     }
 
+    /** @brief Stable KL for a diagonal normal posterior and standard normal prior. */
+    static double kl_divergence(const MatrixD& mu, const MatrixD& logvar) {
+        // 0.5 * sum(mu^2 + exp(logvar) - 1 - logvar)
+        double kl = 0.0;
+        for (Eigen::Index i = 0; i < mu.data.rows(); ++i) {
+            for (Eigen::Index j = 0; j < mu.data.cols(); ++j) {
+                const double lv = logvar.data(i, j);
+                const double mu_value = mu.data(i, j);
+                const double variance_residual =
+                    (std::abs(lv) < 1e-5)
+                        ? lv * lv * (0.5 + lv * (1.0 / 6.0
+                            + lv * (1.0 / 24.0 + lv * (1.0 / 120.0 + lv / 720.0))))
+                        : std::expm1(lv) - lv;
+                kl += 0.5 * (mu_value * mu_value + variance_residual);
+            }
+        }
+        return kl / mu.data.rows();
+    }
+
     // ---------------------------------------------------------------
     // Training (EM-style)
     // ---------------------------------------------------------------
@@ -343,14 +362,6 @@ private:
         return bce / x.data.rows();
     }
 
-    /** @brief KL divergence KL(q(z|x) ‖ p(z)) (mean over batch). */
-    static double kl_divergence(const MatrixD& mu, const MatrixD& logvar) {
-        // KL = -0.5 * Σ(1 + log σ² - μ² - σ²)
-        double kl = -0.5 * (1.0 + logvar.data.array() - mu.data.array().square()
-                  - logvar.data.array().exp()).sum();
-        return kl / mu.data.rows();
-    }
-
     // ---------------------------------------------------------------
     // Backward pass (manual gradients)
     // ---------------------------------------------------------------
@@ -383,9 +394,10 @@ private:
 
         // ── KL gradients (added to encoder gradients) ──
         // d_KL / d_mu = mu
-        // d_KL / d_logvar = 0.5 * (exp(logvar) - 1)
+        // d_KL / d_logvar = 0.5 * expm1(logvar)
         MatrixD d_mu_kl = MatrixD(c.mu.data * inv_bs);
-        MatrixD d_logvar_kl = MatrixD(0.5 * (c.logvar.data.array().exp() - 1.0).matrix() * inv_bs);
+        MatrixD d_logvar_kl = MatrixD(0.5 * c.logvar.data.array().unaryExpr(
+            [](double x) { return std::expm1(x); }).matrix() * inv_bs);
 
         // ── Encoder gradients (through reparameterisation) ──
 

@@ -147,6 +147,7 @@ target_compile_features(ml_core PRIVATE cxx_std_17)
 # Link libraries
 target_link_libraries(ml_core PRIVATE 
     Eigen3::Eigen
+    distribution
 )
 
 target_include_directories(ml_core PRIVATE
@@ -157,6 +158,7 @@ target_include_directories(ml_core PRIVATE
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/loss/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/optimizer/include
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/DL/wrapper/include
+    ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/cool_car/ML/distribution/headers
     ${CMAKE_SOURCE_DIR}/_deliverables/libraries/groups/Generics/timer/headers
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor_include/GRAPHICS/charts/headers

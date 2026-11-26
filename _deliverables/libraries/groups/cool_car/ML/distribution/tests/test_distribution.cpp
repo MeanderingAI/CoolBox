@@ -1,6 +1,8 @@
 #include "tyst_framework.hpp"
 #include "normal_distribution.h"
 #include "poisson_distribution.h"
+#include "stable_kl.h"
+#include "matrix_dense.h"
 #include <numeric>
 #include <vector>
 #include <cmath>
@@ -45,5 +47,49 @@ TEST(PoissonDistribution, PdfAndCdfAndLinks) {
 	double eta = p.link_function(3.0);
 	EXPECT_NEAR(eta, std::log(3.0), 1e-12);
 	EXPECT_NEAR(p.mean_function(eta), 3.0, 1e-12);
+}
+
+TEST(StableKL, ExponentialResidualAtZero) {
+	const std::vector<double> value =
+		ml::stable_kl::expm1_minus_x({0.0, 1e-8, -1e-8});
+
+	EXPECT_DOUBLE_EQ(value[0], 0.0);
+	EXPECT_LT(std::abs(value[1]), 1e-15);
+	EXPECT_LT(std::abs(value[2]), 1e-15);
+}
+
+TEST(StableKL, IdenticalNormalAndLogits) {
+	const std::vector<double> mu = {1.0, -2.0};
+	const std::vector<double> logvar = {0.25, -0.5};
+	const auto normal = ml::stable_kl::normal_kl(
+		mu, logvar, mu, logvar);
+	for (double value : normal) {
+		EXPECT_DOUBLE_EQ(value, 0.0);
+	}
+
+	const std::vector<double> logits = {1.0, 2.0, 3.0};
+	const std::vector<double> shifted = {101.0, 102.0, 103.0};
+	const auto categorical = ml::stable_kl::kl_from_logits(
+		logits, shifted, 1, 3);
+	EXPECT_NEAR(categorical[0], 0.0, 1e-15);
+}
+
+TEST(StableKL, BuiltInMatrixOverloads) {
+	mytrix::DenseMatrix mu =
+		mytrix::DenseMatrix::Zero(4, 3);
+	mytrix::DenseMatrix logvar =
+		mytrix::DenseMatrix::Zero(4, 3);
+
+	const auto normal = ml::stable_kl::normal_kl(
+		mu, logvar, mu, logvar);
+	EXPECT_DOUBLE_EQ(normal.data.sum(), 0.0);
+
+	mytrix::DenseMatrix teacher(1, 3);
+	mytrix::DenseMatrix student(1, 3);
+	teacher.data << 1.0, 2.0, 3.0;
+	student.data << 101.0, 102.0, 103.0;
+	const auto categorical =
+		ml::stable_kl::kl_from_logits(teacher, student);
+	EXPECT_NEAR(categorical(0), 0.0, 1e-15);
 }
 

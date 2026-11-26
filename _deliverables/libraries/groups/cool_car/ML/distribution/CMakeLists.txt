@@ -10,9 +10,11 @@ add_library(distribution SHARED
     source/multinomial_distribution.cpp
     source/normal_distribution.cpp
     source/poisson_distribution.cpp
+    source/stable_kl.cpp
     source/util.cpp
 )
 target_include_directories(distribution PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+target_link_libraries(distribution PUBLIC mytrix)
 
 # Tests
 if(BUILD_TESTING AND TARGET tyst_framework_main)

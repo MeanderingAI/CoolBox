@@ -217,6 +217,13 @@ TEST(VAETest, KLDivergenceNonNegative) {
     }
 }
 
+TEST(VAETest, KLDivergenceStableAtIdentity) {
+    MatrixD mu = MatrixD::Zero(4, 3);
+    MatrixD logvar = MatrixD::Zero(4, 3);
+
+    EXPECT_DOUBLE_EQ(VAE::kl_divergence(mu, logvar), 0.0);
+}
+
 // ===================================================================
 // Accessor tests
 // ===================================================================
